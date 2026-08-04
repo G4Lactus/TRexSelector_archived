@@ -11,7 +11,7 @@
  *        T-solver objective scaling, plus a K-fold cross-validation wrapper
  *        that selects lambda2 over a DIRECT grid by profiling the lambda1
  *        path.  Companion of `enet_cv_ccd` for the IEN geometry: the selected
- *        lambda2 is consumable AS-IS by `TIENET_Solver` / `TCIENET_Solver`
+ *        lambda2 is consumable AS-IS by `TIENET_Solver` / `TCDIENET_Solver`
  *        (no p/2 conversion).
  *
  * @details
@@ -22,7 +22,7 @@
  *
  *   on the standardized (centered, column-L2-normalized) scale used by the
  *   LARS/CD T-solvers — NOT glmnet's 1/(2n) parameterization.  Two penalty
- *   specializations mirror `TCIENET_Solver`:
+ *   specializations mirror `TCDIENET_Solver`:
  *
  *   - Group mode: the IEN group-mean penalty K = W = sum_m 1_m 1_m^T / p_m,
  *     maintained through the O(M) group-sum bookkeeping
@@ -37,7 +37,7 @@
  *                    lambda1 ) / (d_j + lambda2 K_jj) ,
  *
  *   whose fixed points satisfy exactly the IEN KKT conditions with the
- *   modified correlation c_j = x_j^T r - lambda2 (K beta)_j of the T-CIENET /
+ *   modified correlation c_j = x_j^T r - lambda2 (K beta)_j of the T-CDIENET /
  *   LARS-IEN solvers.
  *
  *   **Well-posedness.**  Unlike the pure Tikhonov backbone of
@@ -507,7 +507,7 @@ public:
     const Eigen::VectorXd& cv_sem() const noexcept { return cv_sem_; }
 
     /** @brief lambda2 minimising the profiled CV-MSE (`lambda.min`),
-     *         directly consumable by TIENET_Solver / TCIENET_Solver. */
+     *         directly consumable by TIENET_Solver / TCDIENET_Solver. */
     double cv_min() const { check_fitted(); return lambdas_(idx_min_); }
 
     /** @brief Largest lambda2 within one SE of the CV-min (`lambda.1se`). */
