@@ -50,7 +50,8 @@ enum class SolverTypeOMPBased: int {
     TGP = 1,         // Terminating Gradient Pursuit
     TACGP = 2,       // Terminating Approximate Conjugate Gradient Pursuit
     TMP = 3,         // Terminating Matching Pursuit
-    TOOLS = 4        // Terminating Orthogonal Least Squares (OLS)
+    TOOLS = 4,       // Terminating Orthogonal Least Squares (OLS)
+    TIKOMP = 5       // Terminating Tikhonov-K OMP (generalized-ridge refit)
 };
 
 /**
@@ -137,6 +138,7 @@ public:
             case SolverTypeOMPBased::TACGP:     return "TACGP";
             case SolverTypeOMPBased::TMP:       return "TMP";
             case SolverTypeOMPBased::TOOLS:     return "TOOLS";
+            case SolverTypeOMPBased::TIKOMP:    return "TIKOMP";
             default:                            return "UnknownSolver";
         }
     }

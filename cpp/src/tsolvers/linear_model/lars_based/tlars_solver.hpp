@@ -51,12 +51,13 @@ namespace trex::tsolvers::linear_model::lars_based {
  * Used for algorithm selection, configuration, and logging/reporting.
  */
 enum class SolverTypeLarsBased: int {
-    TLARS = 0,      // Terminating Least Angle Regression (T-LARS)
-    TLASSO = 1,     // T-LARS/LASSO with variable removal
-    TSTEPWISE = 2,  // T-Stepwise selection (forward stepwise without variable removal)
-    TENET = 3,      // T-Elastic Net (L1 + L2) regularization
-    TIENET = 4,      // T-Informed Elastic Net
-    TSTAGEWISE = 5  // T-Stagewise regression
+    TLARS      = 0,       // Terminating Least Angle Regression (T-LARS)
+    TLASSO     = 1,       // T-LARS/LASSO with variable removal
+    TSTEPWISE  = 2,       // T-Stepwise selection (forward stepwise without variable removal)
+    TENET      = 3,       // T-Elastic Net (L1 + L2) regularization
+    TIENET     = 4,       // T-Informed Elastic Net
+    TSTAGEWISE = 5,       // T-Stagewise regression
+    TIKNET     = 6        // T-Tikhonov Net (general sparse-K quadratic penalty)
 };
 
 
@@ -190,6 +191,7 @@ public:
             case SolverTypeLarsBased::TLASSO:      return "TLASSO";
             case SolverTypeLarsBased::TSTEPWISE:   return "TSTEPWISE";
             case SolverTypeLarsBased::TSTAGEWISE:  return "TSTAGEWISE";
+            case SolverTypeLarsBased::TIKNET:      return "TIKNET";
             default:                               return "UnknownSolver";
         }
     }
