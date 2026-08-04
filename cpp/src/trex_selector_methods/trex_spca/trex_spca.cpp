@@ -136,7 +136,7 @@ TRexSPCAResult TRexSPCA::select() {
 
         // EN is always forced (IEN is not used by TRexSPCA). The solver
         // variant is user-selectable via spca_ctrl_.en_solver
-        // (TENET / TENET_AUG / TCENET — all equivalent for lambda2 > 0);
+        // (TENET / TENET_AUG / TCDENET — all equivalent for lambda2 > 0);
         // solver_type is set to the matching enumerator so a conflicting
         // value in the forwarded gvs_ctrl can never reach GVS's derivation
         // check.

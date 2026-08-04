@@ -3,7 +3,7 @@
 # CMake configuration for the trex_tikhonov module.
 #
 # This module provides the general-Tikhonov T-Rex implementation
-# (TRexTikhonovSelector): TCIENET sparse-K dispatch through the base
+# (TRexTikhonovSelector): TCDIENET sparse-K dispatch through the base
 # machinery with a user-supplied penalty matrix K = Gamma^T Gamma.
 # ==================================================================================
 

@@ -77,20 +77,23 @@ enum class SolverTypeForTRex {
     TENET_AUG,  // Terminating ENET via augmented LASSO (GVS only)
     TIENET,     // Terminating Informed ENET, native pathwise (GVS only)
     TIENET_AUG, // Terminating Informed ENET via augmented LASSO (GVS only)
+    TIKNET,     // Terminating Tikhonov Net, native pathwise (sparse-K, FOLDED)
     TSTEPWISE,  // Terminating Stepwise
     TSTAGEWISE, // Terminating Stagewise
     // -------------------------------
 
     // CCD-based solvers (exact penalized-lasso minimizers per crossing)
     // -------------------------------
-    TCCD,       // Terminating Cyclic Coordinate Descent (LASSO)
-    TCENET,     // Terminating CCD Elastic Net (diagonal ridge)
-    TCIENET,    // Terminating CCD Informed Elastic Net (GVS only)
+    TCDLASSO,       // Terminating Cyclic Coordinate Descent (LASSO)
+    TCDENET,     // Terminating CCD Elastic Net (diagonal ridge)
+    TCDIENET,    // Terminating CCD Informed Elastic Net (GVS only)
+    TCDTIKNET,  // Terminating CCD Tikhonov Net (sparse-K, FOLDED or ridge)
     // -------------------------------
 
     // OMP-based solvers
     // -------------------------------
     TOMP,       // Terminating OMP
+    TIKOMP,     // Terminating Tikhonov-K OMP (sparse-K, FOLDED)
     TGP,        // Terminating Gradient Pursuit
     TACGP,      // Terminating Approximate Conjugate Gradient Pursuit
     TMP,        // Terminating Matching Pursuit
@@ -142,7 +145,7 @@ struct SolverHyperparameters {
      * tenet_aug_use_lars; ignored by every other solver. */
     bool tenet_aug_use_lars = false;
 
-    // --- CD-family knobs (TCCD / TCENET / TCIENET; ignored by other solvers) ---
+    // --- CD-family knobs (TCDLASSO / TCDENET / TCDIENET; ignored by other solvers) ---
 
     /** @brief Relative lambda tolerance of the CD crossing bisection.
      * The TRex-layer default (1e-5) is deliberately tighter than the
@@ -261,22 +264,34 @@ struct SolverConfig {
      *  solver is retained. */
     std::unique_ptr<tsolvers::TSolver_Base>* retain_sink = nullptr;
 
-    // --- General-Tikhonov penalty (TCIENET sparse-K dispatch) ---
+    // --- General-Tikhonov penalty (TCDTIKNET / TIKNET / TIKOMP dispatch) ---
 
     /** @brief Non-owning pointer to a general Tikhonov matrix K = Gamma^T
-     *  Gamma (p x p, PSD; nullptr = none). When set, TCIENET becomes
-     *  dispatchable through dispatchByType() via its sparse-K constructor
-     *  (used by TRexTikhonovSelector). Must outlive the dispatch call; on
-     *  serialized warm starts K travels inside the solver state instead. */
+     *  Gamma (p x p, PSD; nullptr = none). Required by the general-K
+     *  solvers TCDTIKNET / TIKNET / TIKOMP (used by TRexTikhonovSelector).
+     *  Must outlive the dispatch call; on serialized warm starts K travels
+     *  inside the solver state instead. */
     const Eigen::SparseMatrix<double>* tikhonov_K = nullptr;
 
-    /** @brief Dummy-coupling mode of the sparse-K TCIENET dispatch:
+    /** @brief Dummy-coupling mode of the sparse-K TCDTIKNET dispatch:
      *  false = INDEPENDENT_RIDGE (kappa_dummy * I dummy block; preserves
-     *  the K = I ≡ TCENET collapse), true = FOLDED (dummy copies join
+     *  the K = I ≡ TCDENET collapse), true = FOLDED (dummy copies join
      *  their originating variable's K-coupling — GVS layered convention;
      *  restores dummy/null exchangeability for arbitrary K). Ignored
-     *  when tikhonov_K is nullptr. */
+     *  when tikhonov_K is nullptr; TIKNET / TIKOMP are FOLDED-only. */
     bool tikhonov_fold_dummies = false;
+
+    /** @brief Structured fast path: when set (with tikhonov_groups), the
+     *  TCDTIKNET dispatch routes to TCDIENET's O(1) GROUP_CENTERING hooks
+     *  (K = blockdiag(I - J/p_m), FOLDED coupling by construction) instead
+     *  of the matrix-passing sparse path; tikhonov_K is then ignored by the
+     *  solver (it remains the tuner-side representation). */
+    bool tikhonov_group_centering = false;
+
+    /** @brief Non-owning pointer to the 0-based contiguous group ids
+     *  (length p) for the GROUP_CENTERING fast path. Must outlive the
+     *  dispatch call. */
+    const Eigen::VectorXi* tikhonov_groups = nullptr;
 
 };
 
@@ -298,7 +313,7 @@ namespace afs  = trex::tsolvers::linear_model::afs_based;
  *          Also used directly by TRexGVSSelector, which constructs its CCD
  *          solvers outside this dispatch.
  */
-inline void applyCdKnobs(cd::TCCD_Solver& solver,
+inline void applyCdKnobs(cd::TCDLASSO_Solver& solver,
                          const SolverHyperparameters& hp) {
     if (hp.cd_lambda_rel_tol > 0.0) {
         solver.setLambdaRelTol(hp.cd_lambda_rel_tol);
@@ -336,9 +351,9 @@ inline void applyCdKnobs(cd::TCCD_Solver& solver,
 template <typename TSolver>
 std::unique_ptr<TSolver> makeSolverForConfig(const SolverConfig& cfg) {
     if constexpr (std::is_same_v<TSolver, lars::TENET_Solver> ||
-                  std::is_same_v<TSolver, cd::TCENET_Solver>) {
+                  std::is_same_v<TSolver, cd::TCDENET_Solver>) {
 
-        // TENET / TCENET share the (X, D, y, lambda2, ...) signature.
+        // TENET / TCDENET share the (X, D, y, lambda2, ...) signature.
         return std::make_unique<TSolver>(
             cfg.X, cfg.D, cfg.y, cfg.hyperparams.lambda2, cfg.normalize,
             cfg.intercept, cfg.verbose, cfg.scaling_mode);
@@ -382,27 +397,64 @@ std::unique_ptr<TSolver> makeSolverForConfig(const SolverConfig& cfg) {
             cfg.X, cfg.D, cfg.y, cfg.normalize, cfg.intercept,
             cfg.verbose, lars::SolverTypeLarsBased::TLARS, cfg.scaling_mode);
 
-    } else if constexpr (std::is_same_v<TSolver, cd::TCIENET_Solver>) {
+    } else if constexpr (std::is_same_v<TSolver, cd::TCDIENET_Solver>) {
 
-        // General-Tikhonov CCD: requires the sparse penalty matrix K
-        // (group-mode construction stays GVS-internal).
+        // Structured fast path: within-group centering penalty with O(1)
+        // hooks (mathematically identical to TCDTIKNET FOLDED with K_GC).
+        // The group-mean (MEAN) construction stays GVS-internal.
+        if (cfg.tikhonov_groups == nullptr) {
+            throw std::invalid_argument(
+                "trex_solver_dispatch: the GROUP_CENTERING fast path "
+                "requires SolverConfig::tikhonov_groups.");
+        }
+        return std::make_unique<TSolver>(
+            cfg.X, cfg.D, cfg.y, cfg.hyperparams.lambda2,
+            *cfg.tikhonov_groups, cfg.normalize, cfg.intercept,
+            cfg.verbose, cfg.scaling_mode,
+            cd::GroupPenaltyVariant::CENTERING);
+
+    } else if constexpr (std::is_same_v<TSolver, cd::TCDTIKNET_Solver>) {
+
+        // General-Tikhonov CCD: requires the sparse penalty matrix K.
         if (cfg.tikhonov_K == nullptr) {
             throw std::invalid_argument(
-                "trex_solver_dispatch: TCIENET requires a Tikhonov matrix "
-                "(SolverConfig::tikhonov_K) on the general-K dispatch path.");
+                "trex_solver_dispatch: TCDTIKNET requires a Tikhonov matrix "
+                "(SolverConfig::tikhonov_K).");
         }
         return std::make_unique<TSolver>(
             cfg.X, cfg.D, cfg.y, cfg.hyperparams.lambda2, *cfg.tikhonov_K,
             cfg.normalize, cfg.intercept, cfg.verbose, cfg.scaling_mode,
             /*kappa_dummy=*/1.0, cfg.tikhonov_fold_dummies);
 
-    } else if constexpr (std::is_same_v<TSolver, cd::TCCD_Solver>) {
+    } else if constexpr (std::is_same_v<TSolver, lars::TIKNET_Solver> ||
+                         std::is_same_v<TSolver, omp::TIKOMP_Solver>) {
 
-        // Bare TCCD_Solver's public ctor carries an algorithm_type before
+        // Native sparse-K solvers (LARS homotopy / greedy OMP). Both
+        // implement the FOLDED dummy convention EXCLUSIVELY (dummy copy t
+        // couples as its base (t - p) mod p); there is no
+        // INDEPENDENT_RIDGE escape on these paths.
+        if (cfg.tikhonov_K == nullptr) {
+            throw std::invalid_argument(
+                "trex_solver_dispatch: TIKNET/TIKOMP require a Tikhonov "
+                "matrix (SolverConfig::tikhonov_K).");
+        }
+        if (!cfg.tikhonov_fold_dummies) {
+            throw std::invalid_argument(
+                "trex_solver_dispatch: TIKNET/TIKOMP implement FOLDED dummy "
+                "coupling only; set tikhonov_fold_dummies = true (the "
+                "INDEPENDENT_RIDGE escape exists only on the TCDIENET path).");
+        }
+        return std::make_unique<TSolver>(
+            cfg.X, cfg.D, cfg.y, cfg.hyperparams.lambda2, *cfg.tikhonov_K,
+            cfg.normalize, cfg.intercept, cfg.verbose, cfg.scaling_mode);
+
+    } else if constexpr (std::is_same_v<TSolver, cd::TCDLASSO_Solver>) {
+
+        // Bare TCDLASSO_Solver's public ctor carries an algorithm_type before
         // scaling_mode; pass it explicitly so scaling_mode binds correctly.
         return std::make_unique<TSolver>(
             cfg.X, cfg.D, cfg.y, cfg.normalize, cfg.intercept,
-            cfg.verbose, cd::SolverTypeCdBased::TCCD, cfg.scaling_mode);
+            cfg.verbose, cd::SolverTypeCdBased::TCDLASSO, cfg.scaling_mode);
 
     } else {
 
@@ -456,7 +508,7 @@ SparseBetaPath dispatchSolver(const SolverConfig& cfg) {
         solver.setTolerance(cfg.hyperparams.tol);
         solver.setExchangeableTie(cfg.hyperparams.exch_tie_alpha,
                                   cfg.hyperparams.exch_tie_floor);
-        if constexpr (std::is_base_of_v<cd::TCCD_Solver, TSolver>) {
+        if constexpr (std::is_base_of_v<cd::TCDLASSO_Solver, TSolver>) {
             applyCdKnobs(solver, cfg.hyperparams);
         }
         solver.executeStep(cfg.T_stop, cfg.early_stop);
@@ -470,7 +522,7 @@ SparseBetaPath dispatchSolver(const SolverConfig& cfg) {
     solver->setTolerance(cfg.hyperparams.tol);
     solver->setExchangeableTie(cfg.hyperparams.exch_tie_alpha,
                                cfg.hyperparams.exch_tie_floor);
-    if constexpr (std::is_base_of_v<cd::TCCD_Solver, TSolver>) {
+    if constexpr (std::is_base_of_v<cd::TCDLASSO_Solver, TSolver>) {
         applyCdKnobs(*solver, cfg.hyperparams);
     }
     if (cfg.tie_seed >= 0) {
@@ -515,25 +567,59 @@ inline SparseBetaPath dispatchByType(SolverTypeForTRex solver_type, const Solver
         case SolverTypeForTRex::TIENET_AUG: throw std::invalid_argument(
                 "trex_solver_dispatch: TIENET_AUG is a GVS-only solver; "
                 "use TRexGVSSelector with gvs_type=IEN.");
+        case SolverTypeForTRex::TIKNET:
+            // Dispatchable only with a Tikhonov matrix (TRexTikhonovSelector
+            // sets cfg.tikhonov_K; with penalty_structure GROUP_CENTERING
+            // the selector materializes K_GC for the tuners, which this
+            // sparse path consumes directly — no O(1) specialization).
+            if (cfg.tikhonov_K != nullptr) {
+                return dispatchSolver<lars::TIKNET_Solver>(cfg);
+            }
+            throw std::invalid_argument(
+                "trex_solver_dispatch: TIKNET needs a Tikhonov matrix "
+                "(TRexTikhonovSelector / SolverConfig::tikhonov_K).");
         case SolverTypeForTRex::TSTAGEWISE: return dispatchSolver<lars::TSTAGEWISE_Solver>(cfg);
 
         // CCD family
-        case SolverTypeForTRex::TCCD:       return dispatchSolver<cd::TCCD_Solver>(cfg);
-        case SolverTypeForTRex::TCENET:     return dispatchSolver<cd::TCENET_Solver>(cfg);
-        case SolverTypeForTRex::TCIENET:
-            // Dispatchable on the general-K path (TRexTikhonovSelector sets
-            // cfg.tikhonov_K); without a penalty matrix it stays a
-            // group-informed GVS-only solver.
-            if (cfg.tikhonov_K != nullptr) {
-                return dispatchSolver<cd::TCIENET_Solver>(cfg);
+        case SolverTypeForTRex::TCDLASSO:       return dispatchSolver<cd::TCDLASSO_Solver>(cfg);
+        case SolverTypeForTRex::TCDENET:     return dispatchSolver<cd::TCDENET_Solver>(cfg);
+        case SolverTypeForTRex::TCDIENET:
+            // Dispatchable only on the GROUP_CENTERING fast path
+            // (cfg.tikhonov_group_centering + cfg.tikhonov_groups, set by
+            // TRexTikhonovSelector); otherwise it stays a group-informed
+            // GVS-only solver.
+            if (cfg.tikhonov_group_centering) {
+                return dispatchSolver<cd::TCDIENET_Solver>(cfg);
             }
             throw std::invalid_argument(
-                "trex_solver_dispatch: TCIENET needs a group assignment "
-                "(TRexGVSSelector with gvs_type=IEN) or a Tikhonov matrix "
+                "trex_solver_dispatch: TCDIENET is a group-informed solver; "
+                "use TRexGVSSelector with gvs_type=IEN, or "
+                "TRexTikhonovSelector with penalty_structure = "
+                "GROUP_CENTERING. For a general Tikhonov matrix use "
+                "TCDTIKNET.");
+        case SolverTypeForTRex::TCDTIKNET:
+            // General-K CCD (TRexTikhonovSelector sets cfg.tikhonov_K); the
+            // GROUP_CENTERING fast path routes to TCDIENET's O(1) hooks.
+            if (cfg.tikhonov_group_centering) {
+                return dispatchSolver<cd::TCDIENET_Solver>(cfg);
+            }
+            if (cfg.tikhonov_K != nullptr) {
+                return dispatchSolver<cd::TCDTIKNET_Solver>(cfg);
+            }
+            throw std::invalid_argument(
+                "trex_solver_dispatch: TCDTIKNET needs a Tikhonov matrix "
                 "(TRexTikhonovSelector / SolverConfig::tikhonov_K).");
 
         // OMP family
         case SolverTypeForTRex::TOMP:       return dispatchSolver<omp::TOMP_Solver>(cfg);
+        case SolverTypeForTRex::TIKOMP:
+            // Same K contract as TIKNET (see above).
+            if (cfg.tikhonov_K != nullptr) {
+                return dispatchSolver<omp::TIKOMP_Solver>(cfg);
+            }
+            throw std::invalid_argument(
+                "trex_solver_dispatch: TIKOMP needs a Tikhonov matrix "
+                "(TRexTikhonovSelector / SolverConfig::tikhonov_K).");
         case SolverTypeForTRex::TGP:        return dispatchSolver<omp::TGP_Solver>(cfg);
         case SolverTypeForTRex::TACGP:      return dispatchSolver<omp::TACGP_Solver>(cfg);
         case SolverTypeForTRex::TMP:        return dispatchSolver<omp::TMP_Solver>(cfg);

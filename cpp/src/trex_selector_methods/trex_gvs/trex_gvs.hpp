@@ -40,8 +40,8 @@
  *                       tenet_aug_solver.hpp). GVS therefore passes the SAME
  *                       pre-normalized D_k as for plain TENET.
  *
- *                     - ENSolverType::TCENET — CCD elastic net
- *                       (TCENET_Solver): exact fixed-lambda1 EN minimizers
+ *                     - ENSolverType::TCDENET — CCD elastic net
+ *                       (TCDENET_Solver): exact fixed-lambda1 EN minimizers
  *                       recorded per dummy crossing (K = I diagonal ridge;
  *                       dummies get the same unit ridge, preserving
  *                       exchangeability). Same data convention as TENET.
@@ -53,7 +53,7 @@
  *                         group penalty into the Gram / correlation updates
  *                         (no augmented copies). GVS passes the center-only
  *                         dummy block and the solver runs AS CONSTRUCTED.
- *                       * TCIENET (CCD): exact fixed-lambda1 IEN minimizers
+ *                       * TCDIENET (CCD): exact fixed-lambda1 IEN minimizers
  *                         per dummy crossing via the O(1) group-sum penalty
  *                         hooks. Same center-only data convention as TIENET.
  *                       * TIENET_AUG: the solver internally builds the
@@ -86,7 +86,7 @@
  *    - GVS does NOT use the inherited `DummyGenerator` or `ExperimentRunner`.
  *      It owns a private K-experiment loop, a private per-experiment
  *      dummy-layer cache, and a private warm-start cache of in-memory solvers
- *      (TENET / TENETAug / TCENET / TIENET / TIENETAug / TCIENET). The
+ *      (TENET / TENETAug / TCDENET / TIENET / TIENETAug / TCDIENET). The
  *      inherited `MemmapManager` IS
  *      reused (re-allocated in `onSelectBegin()` with n rows, and torn down
  *      by the base class at the end of `select()`); see `gvs_use_mmap_`.
@@ -215,12 +215,12 @@ enum class ENSolverType {
      */
     TENET_AUG,
 
-    /** @brief CCD EN (TCENET_Solver): exact fixed-lambda1 elastic-net
+    /** @brief CCD EN (TCDENET_Solver): exact fixed-lambda1 elastic-net
      *  minimizers per dummy crossing (K = I diagonal ridge; dummies get the
      *  same unit ridge, preserving exchangeability). Same data convention as
      *  TENET (pre-normalized X, center-only D, centered y).
      */
-    TCENET
+    TCDENET
 };
 
 
@@ -234,7 +234,7 @@ enum class ENSolverType {
 inline constexpr sd::SolverTypeForTRex toSolverType(ENSolverType en_solver) {
     switch (en_solver) {
         case ENSolverType::TENET_AUG: return sd::SolverTypeForTRex::TENET_AUG;
-        case ENSolverType::TCENET:    return sd::SolverTypeForTRex::TCENET;
+        case ENSolverType::TCDENET:    return sd::SolverTypeForTRex::TCDENET;
         case ENSolverType::TENET:
         default:                      return sd::SolverTypeForTRex::TENET;
     }
@@ -303,7 +303,7 @@ struct TRexGVSControlParameter {
     GVSType gvs_type = GVSType::EN;
 
     /** @brief EN solver variant when gvs_type == GVSType::EN.
-     *  TENET (Gram-based), TENET_AUG (augmented LASSO), or TCENET (CCD).
+     *  TENET (Gram-based), TENET_AUG (augmented LASSO), or TCDENET (CCD).
      *  This is the SINGLE EN-solver knob: `trex_ctrl.solver_type` is derived
      *  from it via `toSolverType()` (an explicitly conflicting EN-family
      *  `solver_type` throws). Ignored when gvs_type == IEN. Default: TENET.
@@ -403,7 +403,7 @@ struct TRexGVSControlParameter {
      *      conflicting EN-family value throws, steering callers to the
      *      `en_solver` knob.
      *    - `GVSType::IEN` : `solver_type` IS the knob — TIENET (native
-     *      pathwise), TIENET_AUG (row-augmented), or TCIENET (CCD).
+     *      pathwise), TIENET_AUG (row-augmented), or TCDIENET (CCD).
      *  The default here overrides the base class's own default (TLARS) with
      *  TENET, matching the default `gvs_type = EN` / `en_solver = TENET`, so
      *  a fully-defaulted `TRexGVSControlParameter` constructs without

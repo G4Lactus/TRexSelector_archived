@@ -84,11 +84,13 @@ inline constexpr bool isGreedySolver(
         case sdx::SolverTypeForTRex::TENET_AUG:
         case sdx::SolverTypeForTRex::TIENET:
         case sdx::SolverTypeForTRex::TIENET_AUG:
+        case sdx::SolverTypeForTRex::TIKNET:
         // The CCD family records exact penalized-lasso minimizers per
         // crossing — same termination behavior as the equiangular paths.
-        case sdx::SolverTypeForTRex::TCCD:
-        case sdx::SolverTypeForTRex::TCENET:
-        case sdx::SolverTypeForTRex::TCIENET:
+        case sdx::SolverTypeForTRex::TCDLASSO:
+        case sdx::SolverTypeForTRex::TCDENET:
+        case sdx::SolverTypeForTRex::TCDIENET:
+        case sdx::SolverTypeForTRex::TCDTIKNET:
             return false;
         default:
             return true;
