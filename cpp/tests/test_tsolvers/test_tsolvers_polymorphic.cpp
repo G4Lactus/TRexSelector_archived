@@ -38,9 +38,9 @@
 #include <tsolvers/linear_model/omp_based/tools_solver.hpp>
 
 // CCD-based solvers
-#include <tsolvers/linear_model/cd_based/tccd_solver.hpp>
-#include <tsolvers/linear_model/cd_based/tcenet_solver.hpp>
-#include <tsolvers/linear_model/cd_based/tcienet_solver.hpp>
+#include <tsolvers/linear_model/cd_based/tcdlasso_solver.hpp>
+#include <tsolvers/linear_model/cd_based/tcdenet_solver.hpp>
+#include <tsolvers/linear_model/cd_based/tcdienet_solver.hpp>
 
 // AFS-based solver
 #include <tsolvers/linear_model/afs_based/tafs_solver.hpp>
@@ -67,7 +67,7 @@ namespace fs = std::filesystem;
 typedef ::testing::Types<
     TLARS_Solver, TLASSO_Solver, TENET_Solver, TENETAug_Solver, TIENET_Solver,
     TIENETAug_Solver, TSTEPWISE_Solver, TSTAGEWISE_Solver,
-    TCCD_Solver, TCENET_Solver, TCIENET_Solver,
+    TCDLASSO_Solver, TCDENET_Solver, TCDIENET_Solver,
     TOMP_Solver, TMP_Solver, TGP_Solver, TACGP_Solver, TNCGMP_Solver,
     TOOLS_Solver, TAFS_Solver
 > AllSolvers;
@@ -79,13 +79,13 @@ std::unique_ptr<T> create_solver(Eigen::Map<Eigen::MatrixXd>& X,
                                  Eigen::Map<Eigen::VectorXd>& y) {
     if constexpr (std::is_same_v<T, TENET_Solver> ||
                   std::is_same_v<T, TENETAug_Solver> ||
-                  std::is_same_v<T, TCENET_Solver>) {
-        // TENET / TENETAug / TCENET require lambda2
+                  std::is_same_v<T, TCDENET_Solver>) {
+        // TENET / TENETAug / TCDENET require lambda2
         return std::make_unique<T>(X, D, y, 0.5, true, true, false);
     } else if constexpr (std::is_same_v<T, TIENET_Solver> ||
                          std::is_same_v<T, TIENETAug_Solver> ||
-                         std::is_same_v<T, TCIENET_Solver>) {
-        // TIENET / TIENETAug / TCIENET require lambda2 + a group assignment.
+                         std::is_same_v<T, TCDIENET_Solver>) {
+        // TIENET / TIENETAug / TCDIENET require lambda2 + a group assignment.
         // Singleton groups (each variable its own group) exercise the full
         // group machinery; per Corollary 1 of the IEN paper this is the
         // EN-like special case.

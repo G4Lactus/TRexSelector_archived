@@ -4,9 +4,10 @@
 /**
  * @file test_tsolvers_cd.cpp
  *
- * @brief Unit tests for the CCD-based terminating solvers (TCCD, TCENET,
- * TCIENET): KKT certification, crossing-support equivalence against the
- * LARS-based family, degenerate collapses, warm starts, and full-path mode.
+ * @brief Unit tests for the CCD-based terminating solvers (TCDLASSO, TCDENET,
+ * TCDIENET, TCDTIKNET): KKT certification, crossing-support equivalence
+ * against the LARS-based family, degenerate collapses, warm starts, and
+ * full-path mode.
  */
 // ========================================================================================
 
@@ -24,9 +25,10 @@
 #include <Eigen/Sparse>
 
 // tsolvers includes
-#include <tsolvers/linear_model/cd_based/tccd_solver.hpp>
-#include <tsolvers/linear_model/cd_based/tcenet_solver.hpp>
-#include <tsolvers/linear_model/cd_based/tcienet_solver.hpp>
+#include <tsolvers/linear_model/cd_based/tcdlasso_solver.hpp>
+#include <tsolvers/linear_model/cd_based/tcdenet_solver.hpp>
+#include <tsolvers/linear_model/cd_based/tcdienet_solver.hpp>
+#include <tsolvers/linear_model/cd_based/tcdtiknet_solver.hpp>
 #include <tsolvers/linear_model/lars_based/tlasso_solver.hpp>
 #include <tsolvers/linear_model/lars_based/tenet_solver.hpp>
 #include <tsolvers/linear_model/lars_based/tienet_solver.hpp>
@@ -167,20 +169,20 @@ protected:
 TEST_F(TSolverCdTest, KktCertificateAtTermination) {
     {
         Mapped m(X, D, y);
-        TCCD_Solver s(m.Xm, m.Dm, m.ym, true, true, false);
+        TCDLASSO_Solver s(m.Xm, m.Dm, m.ym, true, true, false);
         s.executeStep(5, true);
         EXPECT_GT(s.getNumSteps(), 0u);
         EXPECT_LT(s.getKktViolation(), 1e-6);
     }
     {
         Mapped m(X, D, y);
-        TCENET_Solver s(m.Xm, m.Dm, m.ym, 0.5, true, true, false);
+        TCDENET_Solver s(m.Xm, m.Dm, m.ym, 0.5, true, true, false);
         s.executeStep(5, true);
         EXPECT_LT(s.getKktViolation(), 1e-6);
     }
     {
         Mapped m(X, D, y);
-        TCIENET_Solver s(m.Xm, m.Dm, m.ym, 1.0, groups, true, true, false);
+        TCDIENET_Solver s(m.Xm, m.Dm, m.ym, 1.0, groups, true, true, false);
         s.executeStep(5, true);
         EXPECT_LT(s.getKktViolation(), 1e-6);
     }
@@ -190,7 +192,7 @@ TEST_F(TSolverCdTest, KktCertificateAtTermination) {
 // Crossing-support equivalence against the LARS-based family
 // ========================================================================================
 
-/** @brief T-CCD and T-LASSO solve the same lasso path; the real supports at
+/** @brief T-CDLASSO and T-LASSO solve the same lasso path; the real supports at
  *  each dummy-count crossing (what T-Rex consumes) must coincide. The CD
  *  bisection runs at a tight lambda tolerance to exclude window artifacts. */
 TEST_F(TSolverCdTest, CrossingSupportsMatchTLASSO) {
@@ -198,7 +200,7 @@ TEST_F(TSolverCdTest, CrossingSupportsMatchTLASSO) {
     const std::size_t p = static_cast<std::size_t>(X.cols());
 
     Mapped mc(X, D, y);
-    TCCD_Solver ccd(mc.Xm, mc.Dm, mc.ym, true, true, false);
+    TCDLASSO_Solver ccd(mc.Xm, mc.Dm, mc.ym, true, true, false);
     ccd.setLambdaRelTol(1e-6);
     ccd.executeStep(T, true);
 
@@ -211,12 +213,12 @@ TEST_F(TSolverCdTest, CrossingSupportsMatchTLASSO) {
 
     for (std::size_t t = 1; t <= T; ++t) {
         EXPECT_EQ(sup_ccd[t - 1], sup_lasso[t - 1])
-            << "TCCD vs TLASSO real support diverged at dummy count t = " << t;
+            << "TCDLASSO vs TLASSO real support diverged at dummy count t = " << t;
     }
 }
 
 
-/** @brief T-CENET and T-ENET solve the same elastic-net path family (the
+/** @brief T-CDENET and T-ENET solve the same elastic-net path family (the
  *  Zou-Hastie rescaling changes values, never supports). */
 TEST_F(TSolverCdTest, CrossingSupportsMatchTENET) {
     const std::size_t T = 5;
@@ -224,7 +226,7 @@ TEST_F(TSolverCdTest, CrossingSupportsMatchTENET) {
     const double lambda2 = 0.5;
 
     Mapped mc(X, D, y);
-    TCENET_Solver ccd(mc.Xm, mc.Dm, mc.ym, lambda2, true, true, false);
+    TCDENET_Solver ccd(mc.Xm, mc.Dm, mc.ym, lambda2, true, true, false);
     ccd.setLambdaRelTol(1e-6);
     ccd.executeStep(T, true);
 
@@ -237,12 +239,12 @@ TEST_F(TSolverCdTest, CrossingSupportsMatchTENET) {
 
     for (std::size_t t = 1; t <= T; ++t) {
         EXPECT_EQ(sup_ccd[t - 1], sup_en[t - 1])
-            << "TCENET vs TENET real support diverged at dummy count t = " << t;
+            << "TCDENET vs TENET real support diverged at dummy count t = " << t;
     }
 }
 
 
-/** @brief T-CIENET (group mode) and the native pathwise T-IENET solve the
+/** @brief T-CDIENET (group mode) and the native pathwise T-IENET solve the
  *  identical IEN problem (same modified correlations, same group sums). */
 TEST_F(TSolverCdTest, CrossingSupportsMatchTIENET) {
     const std::size_t T = 5;
@@ -250,7 +252,7 @@ TEST_F(TSolverCdTest, CrossingSupportsMatchTIENET) {
     const double lambda2 = 1.0;
 
     Mapped mc(X, D, y);
-    TCIENET_Solver ccd(mc.Xm, mc.Dm, mc.ym, lambda2, groups, true, true, false);
+    TCDIENET_Solver ccd(mc.Xm, mc.Dm, mc.ym, lambda2, groups, true, true, false);
     ccd.setLambdaRelTol(1e-6);
     ccd.executeStep(T, true);
 
@@ -263,7 +265,7 @@ TEST_F(TSolverCdTest, CrossingSupportsMatchTIENET) {
 
     for (std::size_t t = 1; t <= T; ++t) {
         EXPECT_EQ(sup_ccd[t - 1], sup_ien[t - 1])
-            << "TCIENET vs TIENET real support diverged at dummy count t = " << t;
+            << "TCDIENET vs TIENET real support diverged at dummy count t = " << t;
     }
 }
 
@@ -271,14 +273,14 @@ TEST_F(TSolverCdTest, CrossingSupportsMatchTIENET) {
 // Degenerate collapses
 // ========================================================================================
 
-/** @brief lambda2 == 0 collapses T-CENET exactly onto plain T-CCD. */
-TEST_F(TSolverCdTest, TcenetLambda2ZeroReducesToTccd) {
+/** @brief lambda2 == 0 collapses T-CDENET exactly onto plain T-CDLASSO. */
+TEST_F(TSolverCdTest, TcdenetLambda2ZeroReducesToTcdlasso) {
     Mapped me(X, D, y);
-    TCENET_Solver enet(me.Xm, me.Dm, me.ym, 0.0, true, true, false);
+    TCDENET_Solver enet(me.Xm, me.Dm, me.ym, 0.0, true, true, false);
     enet.executeStep(5, true);
 
     Mapped mc(X, D, y);
-    TCCD_Solver ccd(mc.Xm, mc.Dm, mc.ym, true, true, false);
+    TCDLASSO_Solver ccd(mc.Xm, mc.Dm, mc.ym, true, true, false);
     ccd.executeStep(5, true);
 
     EXPECT_EQ(enet.getActions(), ccd.getActions());
@@ -286,10 +288,10 @@ TEST_F(TSolverCdTest, TcenetLambda2ZeroReducesToTccd) {
 }
 
 
-/** @brief The generalized Tikhonov constructor with K = I must reproduce the
+/** @brief The generalized Tikhonov solver with K = I must reproduce the
  *  diagonal elastic net exactly (exercises the SPARSE matrix-passing hooks
  *  against the DIAGONAL specialization). */
-TEST_F(TSolverCdTest, TikhonovIdentityMatchesTcenet) {
+TEST_F(TSolverCdTest, TikhonovIdentityMatchesTcdenet) {
     const double lambda2 = 0.5;
     const Eigen::Index p = X.cols();
 
@@ -297,11 +299,11 @@ TEST_F(TSolverCdTest, TikhonovIdentityMatchesTcenet) {
     K.setIdentity();
 
     Mapped mt(X, D, y);
-    TCIENET_Solver tik(mt.Xm, mt.Dm, mt.ym, lambda2, K, true, true, false);
+    TCDTIKNET_Solver tik(mt.Xm, mt.Dm, mt.ym, lambda2, K, true, true, false);
     tik.executeStep(5, true);
 
     Mapped me(X, D, y);
-    TCENET_Solver enet(me.Xm, me.Dm, me.ym, lambda2, true, true, false);
+    TCDENET_Solver enet(me.Xm, me.Dm, me.ym, lambda2, true, true, false);
     enet.executeStep(5, true);
 
     EXPECT_EQ(tik.getActions(), enet.getActions());
@@ -310,11 +312,11 @@ TEST_F(TSolverCdTest, TikhonovIdentityMatchesTcenet) {
 
 
 /** @brief WITHOUT dummies, all-singleton groups reduce the group-mean IEN
- *  penalty to the isotropic elastic net (Corollary 1): T-CIENET == T-CENET.
+ *  penalty to the isotropic elastic net (Corollary 1): T-CDIENET == T-CDENET.
  *  (With dummies the corollary does NOT hold: dummy copies join their
  *  originating variable's group and couple with it through the group sum.)
  *  Runs the full-path grid since termination needs no dummies here. */
-TEST_F(TSolverCdTest, SingletonGroupsNoDummiesMatchTcenet) {
+TEST_F(TSolverCdTest, SingletonGroupsNoDummiesMatchTcdenet) {
     const double lambda2 = 0.5;
     Eigen::VectorXi singleton = Eigen::VectorXi::LinSpaced(
         X.cols(), 0, static_cast<int>(X.cols()) - 1);
@@ -325,7 +327,7 @@ TEST_F(TSolverCdTest, SingletonGroupsNoDummiesMatchTcenet) {
     Eigen::Map<Eigen::MatrixXd> Xi_m(Xi.data(), Xi.rows(), Xi.cols());
     Eigen::Map<Eigen::MatrixXd> Di_m(D_empty.data(), D_empty.rows(), 0);
     Eigen::Map<Eigen::VectorXd> yi_m(yi.data(), yi.size());
-    TCIENET_Solver ien(Xi_m, Di_m, yi_m, lambda2, singleton,
+    TCDIENET_Solver ien(Xi_m, Di_m, yi_m, lambda2, singleton,
                        true, true, false);
     ien.setFullPathGrid(20, 1e-2);
     ien.executeStep(0, true);
@@ -335,12 +337,75 @@ TEST_F(TSolverCdTest, SingletonGroupsNoDummiesMatchTcenet) {
     Eigen::Map<Eigen::MatrixXd> Xe_m(Xe.data(), Xe.rows(), Xe.cols());
     Eigen::Map<Eigen::MatrixXd> De_m(D_empty.data(), D_empty.rows(), 0);
     Eigen::Map<Eigen::VectorXd> ye_m(ye.data(), ye.size());
-    TCENET_Solver enet(Xe_m, De_m, ye_m, lambda2, true, true, false);
+    TCDENET_Solver enet(Xe_m, De_m, ye_m, lambda2, true, true, false);
     enet.setFullPathGrid(20, 1e-2);
     enet.executeStep(0, true);
 
     EXPECT_EQ(ien.getActions(), enet.getActions());
     EXPECT_TRUE(ien.getBeta(-1).isApprox(enet.getBeta(-1), 1e-9));
+}
+
+
+/** @brief The O(1) GROUP_CENTERING hooks must reproduce the matrix-passing
+ *  TCDTIKNET FOLDED path with K_GC = blockdiag(I - J/p_m) (mathematically
+ *  identical penalties; FP accumulation orders differ, so beta is compared
+ *  with a tolerance while the action sequence is pinned exactly on this
+ *  wide-margin design — same convention as the GROUP vs FOLDED anchor). */
+TEST_F(TSolverCdTest, GroupCenteringMatchesSparseFoldedKgc) {
+    const double lambda2 = 2.0;
+    const Eigen::Index p = X.cols();
+
+    // K_GC from the fixture's 10 contiguous groups of 5.
+    std::vector<Eigen::Triplet<double>> trip;
+    for (int g = 0; g < 10; ++g) {
+        for (int a = 0; a < 5; ++a) {
+            for (int b = 0; b < 5; ++b) {
+                const double delta = (a == b) ? 1.0 : 0.0;
+                trip.emplace_back(g * 5 + a, g * 5 + b, delta - 0.2);
+            }
+        }
+    }
+    Eigen::SparseMatrix<double> K_gc(p, p);
+    K_gc.setFromTriplets(trip.begin(), trip.end());
+
+    Mapped ms(X, D, y);
+    TCDTIKNET_Solver sparse_path(ms.Xm, ms.Dm, ms.ym, lambda2, K_gc,
+                                 true, true, false, trex::tsolvers::ScalingMode::L2,
+                                 /*kappa_dummy=*/1.0, /*fold_dummies=*/true);
+    sparse_path.setLambdaRelTol(1e-6);
+    sparse_path.executeStep(5, true);
+
+    Mapped mg(X, D, y);
+    TCDIENET_Solver fast_path(mg.Xm, mg.Dm, mg.ym, lambda2, groups,
+                             true, true, false, trex::tsolvers::ScalingMode::L2,
+                             GroupPenaltyVariant::CENTERING);
+    fast_path.setLambdaRelTol(1e-6);
+    fast_path.executeStep(5, true);
+
+    EXPECT_EQ(fast_path.getActions(), sparse_path.getActions());
+    EXPECT_TRUE(fast_path.getBeta(-1).isApprox(sparse_path.getBeta(-1), 1e-8));
+}
+
+
+/** @brief All-singleton groups make the centering penalty vanish
+ *  (K_GC = 0): GROUP_CENTERING must reduce to plain T-CDLASSO exactly, dummies
+ *  included (nothing couples through a singleton). */
+TEST_F(TSolverCdTest, GroupCenteringSingletonGroupsMatchTcdlasso) {
+    Eigen::VectorXi singleton = Eigen::VectorXi::LinSpaced(
+        X.cols(), 0, static_cast<int>(X.cols()) - 1);
+
+    Mapped mg(X, D, y);
+    TCDIENET_Solver cen(mg.Xm, mg.Dm, mg.ym, /*lambda2=*/3.0, singleton,
+                       true, true, false, trex::tsolvers::ScalingMode::L2,
+                       GroupPenaltyVariant::CENTERING);
+    cen.executeStep(5, true);
+
+    Mapped mc(X, D, y);
+    TCDLASSO_Solver ccd(mc.Xm, mc.Dm, mc.ym, true, true, false);
+    ccd.executeStep(5, true);
+
+    EXPECT_EQ(cen.getActions(), ccd.getActions());
+    EXPECT_TRUE(cen.getBeta(-1).isApprox(ccd.getBeta(-1), 1e-9));
 }
 
 // ========================================================================================
@@ -351,12 +416,12 @@ TEST_F(TSolverCdTest, SingletonGroupsNoDummiesMatchTcenet) {
  *  path must equal the single-shot T = 6 run. */
 TEST_F(TSolverCdTest, WarmStartMatchesContinuous) {
     Mapped mw(X, D, y);
-    TCCD_Solver warm(mw.Xm, mw.Dm, mw.ym, true, true, false);
+    TCDLASSO_Solver warm(mw.Xm, mw.Dm, mw.ym, true, true, false);
     warm.executeStep(3, true);
     warm.executeStep(6, true);
 
     Mapped mc(X, D, y);
-    TCCD_Solver cont(mc.Xm, mc.Dm, mc.ym, true, true, false);
+    TCDLASSO_Solver cont(mc.Xm, mc.Dm, mc.ym, true, true, false);
     cont.executeStep(6, true);
 
     EXPECT_EQ(warm.getActions(), cont.getActions());
@@ -368,7 +433,7 @@ TEST_F(TSolverCdTest, WarmStartMatchesContinuous) {
  *  with strictly decreasing lambda and a growing support. */
 TEST_F(TSolverCdTest, FullPathModeRecordsGrid) {
     Mapped m(X, D, y);
-    TCCD_Solver s(m.Xm, m.Dm, m.ym, true, true, false);
+    TCDLASSO_Solver s(m.Xm, m.Dm, m.ym, true, true, false);
     s.setFullPathGrid(25, 1e-2);
     s.executeStep(0, true);
 
@@ -385,42 +450,42 @@ TEST_F(TSolverCdTest, FullPathModeRecordsGrid) {
 // Serialization: save -> load -> continue
 // ========================================================================================
 
-/** @brief T-CCD round trip (lasso, no penalty config). */
-TEST_F(TSolverCdTest, SerializeLoadContinueMatchesContinuous_TCCD) {
-    expectRoundTripMatchesContinuous<TCCD_Solver>(
+/** @brief T-CDLASSO round trip (lasso, no penalty config). */
+TEST_F(TSolverCdTest, SerializeLoadContinueMatchesContinuous_TCDLASSO) {
+    expectRoundTripMatchesContinuous<TCDLASSO_Solver>(
         [](Mapped& m) {
-            return TCCD_Solver(m.Xm, m.Dm, m.ym, true, true, false);
+            return TCDLASSO_Solver(m.Xm, m.Dm, m.ym, true, true, false);
         },
-        "tccd");
+        "tcdlasso");
 }
 
 
-/** @brief T-CENET round trip (diagonal ridge travels in the base state). */
-TEST_F(TSolverCdTest, SerializeLoadContinueMatchesContinuous_TCENET) {
-    expectRoundTripMatchesContinuous<TCENET_Solver>(
+/** @brief T-CDENET round trip (diagonal ridge travels in the base state). */
+TEST_F(TSolverCdTest, SerializeLoadContinueMatchesContinuous_TCDENET) {
+    expectRoundTripMatchesContinuous<TCDENET_Solver>(
         [](Mapped& m) {
-            return TCENET_Solver(m.Xm, m.Dm, m.ym, 0.5, true, true, false);
+            return TCDENET_Solver(m.Xm, m.Dm, m.ym, 0.5, true, true, false);
         },
-        "tcenet");
+        "tcdenet");
 }
 
 
-/** @brief T-CIENET group-mode round trip: group sums and lambda2/p_m are
+/** @brief T-CDIENET group-mode round trip: group sums and lambda2/p_m are
  *  transient and must be rebuilt by ensureCdState() after load. */
-TEST_F(TSolverCdTest, SerializeLoadContinueMatchesContinuous_TCIENET) {
-    expectRoundTripMatchesContinuous<TCIENET_Solver>(
+TEST_F(TSolverCdTest, SerializeLoadContinueMatchesContinuous_TCDIENET) {
+    expectRoundTripMatchesContinuous<TCDIENET_Solver>(
         [this](Mapped& m) {
-            return TCIENET_Solver(m.Xm, m.Dm, m.ym, 1.0, groups,
+            return TCDIENET_Solver(m.Xm, m.Dm, m.ym, 1.0, groups,
                                   true, true, false);
         },
-        "tcienet");
+        "tcdienet");
 }
 
 
-/** @brief T-CIENET sparse-K round trip: the Tikhonov matrix travels as
+/** @brief T-CDTIKNET sparse-K round trip: the Tikhonov matrix travels as
  *  triplets and must be rebuilt (compressed) on deserialization. Uses a
  *  discrete-Laplacian K so the off-diagonal structure is actually exercised. */
-TEST_F(TSolverCdTest, SerializeLoadContinueMatchesContinuous_TCIENET_SparseK) {
+TEST_F(TSolverCdTest, SerializeLoadContinueMatchesContinuous_TCDTIKNET) {
     const Eigen::Index p = X.cols();
     Eigen::SparseMatrix<double> K(p, p);
     std::vector<Eigen::Triplet<double>> trips;
@@ -433,12 +498,12 @@ TEST_F(TSolverCdTest, SerializeLoadContinueMatchesContinuous_TCIENET_SparseK) {
     }
     K.setFromTriplets(trips.begin(), trips.end());
 
-    expectRoundTripMatchesContinuous<TCIENET_Solver>(
+    expectRoundTripMatchesContinuous<TCDTIKNET_Solver>(
         [&K](Mapped& m) {
-            return TCIENET_Solver(m.Xm, m.Dm, m.ym, 0.5, K,
-                                  true, true, false);
+            return TCDTIKNET_Solver(m.Xm, m.Dm, m.ym, 0.5, K,
+                                    true, true, false);
         },
-        "tcienet_sparse_k");
+        "tcdtiknet_sparse_k");
 }
 
 
@@ -449,20 +514,20 @@ TEST_F(TSolverCdTest, SerializeLoadContinueMatchesContinuous_TCIENET_SparseK) {
  *  result-changing one). */
 TEST_F(TSolverCdTest, SerializeLoadGramCapFallbackMatchesDefault) {
     Mapped mr(X, D, y);
-    TCCD_Solver ref(mr.Xm, mr.Dm, mr.ym, true, true, false);
+    TCDLASSO_Solver ref(mr.Xm, mr.Dm, mr.ym, true, true, false);
     ref.executeStep(6, true);
 
     Mapped mp(X, D, y);
     const std::string file =
         ::testing::TempDir() + "cd_ckpt_gramcap.bin";
     {
-        TCCD_Solver part(mp.Xm, mp.Dm, mp.ym, true, true, false);
+        TCDLASSO_Solver part(mp.Xm, mp.Dm, mp.ym, true, true, false);
         part.setGramCap(2);   // forces naive sweeps almost immediately
         part.executeStep(3, true);
         part.save(file);
     }
 
-    TCCD_Solver res = TCCD_Solver::load(file, mp.Xm, mp.Dm);
+    TCDLASSO_Solver res = TCDLASSO_Solver::load(file, mp.Xm, mp.Dm);
     res.setGramCap(2);        // runtime knob: re-applied after load
     res.executeStep(6, true);
 

@@ -251,18 +251,18 @@ TEST(TRexDATest, Method_AR1_SKIPL) {
 }
 
 
-/** @brief DA with the CCD lasso solver (TCCD): the deflation loop drives
+/** @brief DA with the CCD lasso solver (TCDLASSO): the deflation loop drives
  *  the shared dispatch, so the CD path solver must run end-to-end. */
-TEST(TRexDATest, Param_Solvers_TCCD) {
+TEST(TRexDATest, Param_Solvers_TCDLASSO) {
     run_trex_da_test(150, 300, DAMethod::AR1, 3, LLoopStrategy::HCONCAT,
-                     sd::SolverTypeForTRex::TCCD);
+                     sd::SolverTypeForTRex::TCDLASSO);
 }
 
 
-/** @brief DA with the CCD elastic-net solver (TCENET). */
-TEST(TRexDATest, Param_Solvers_TCENET) {
+/** @brief DA with the CCD elastic-net solver (TCDENET). */
+TEST(TRexDATest, Param_Solvers_TCDENET) {
     run_trex_da_test(150, 300, DAMethod::AR1, 3, LLoopStrategy::HCONCAT,
-                     sd::SolverTypeForTRex::TCENET);
+                     sd::SolverTypeForTRex::TCDENET);
 }
 
 

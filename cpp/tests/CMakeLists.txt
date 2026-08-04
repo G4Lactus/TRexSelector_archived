@@ -64,6 +64,7 @@ add_trex_test(test_tsolvers_serialization test_tsolvers/test_tsolvers_serializat
 add_trex_test(test_tsolvers_mmap test_tsolvers/test_tsolvers_mmap.cpp)
 add_trex_test(test_tsolvers_polymorphic test_tsolvers/test_tsolvers_polymorphic.cpp)
 add_trex_test(test_tsolvers_cd test_tsolvers/test_tsolvers_cd.cpp)
+add_trex_test(test_tsolvers_tik test_tsolvers/test_tsolvers_tik.cpp)
 add_trex_test(test_sd_tsolvers test_tsolvers/test_sd_tsolvers.cpp)
 
 # 5. Add tests for TRex Selector Methods

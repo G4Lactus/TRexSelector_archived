@@ -167,12 +167,12 @@ TEST_F(TRexScreeningTest, Execution_OrdinaryScreenTRexDoesNotThrow) {
 }
 
 
-/** @brief Screening with the CD solvers (TCCD / TCENET): T is fixed at 1
+/** @brief Screening with the CD solvers (TCDLASSO / TCDENET): T is fixed at 1
  *  and no warm start engages, so this exercises the plain fresh-construction
  *  dispatch of the CD family under the screening loop. */
 TEST_F(TRexScreeningTest, Execution_CdFamilyDoesNotThrow) {
-    for (auto solver : {sd::SolverTypeForTRex::TCCD,
-                        sd::SolverTypeForTRex::TCENET}) {
+    for (auto solver : {sd::SolverTypeForTRex::TCDLASSO,
+                        sd::SolverTypeForTRex::TCDENET}) {
         ScreenTRexControlParameter screen_params;
         screen_params.trex_method = ScreenTRexMethod::TREX;
         screen_params.use_bootstrap_CI = false;

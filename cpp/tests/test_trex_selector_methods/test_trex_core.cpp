@@ -116,15 +116,15 @@ TEST(TRexCoreTest, Param_Solvers_TLASSO) {
 }
 
 
-/** @brief Test TRexSelector with the CCD lasso solver (TCCD). */
-TEST(TRexCoreTest, Param_Solvers_TCCD) {
-    run_trex_core_test(150, 200, sd::SolverTypeForTRex::TCCD);
+/** @brief Test TRexSelector with the CCD lasso solver (TCDLASSO). */
+TEST(TRexCoreTest, Param_Solvers_TCDLASSO) {
+    run_trex_core_test(150, 200, sd::SolverTypeForTRex::TCDLASSO);
 }
 
 
-/** @brief Test TRexSelector with the CCD elastic-net solver (TCENET). */
-TEST(TRexCoreTest, Param_Solvers_TCENET) {
-    run_trex_core_test(150, 200, sd::SolverTypeForTRex::TCENET);
+/** @brief Test TRexSelector with the CCD elastic-net solver (TCDENET). */
+TEST(TRexCoreTest, Param_Solvers_TCDENET) {
+    run_trex_core_test(150, 200, sd::SolverTypeForTRex::TCDENET);
 }
 
 
@@ -139,7 +139,7 @@ TEST(TRexCoreTest, Param_Solvers_TENET_AUG) {
  *  rule: an exception may not leave an `omp parallel` region — even an
  *  INACTIVE one (`if(false)`, single thread) — or the runtime calls
  *  std::terminate, which killed the R host session before the runner and
- *  GVS loops gained the capture-and-rethrow discipline. TCIENET without a
+ *  GVS loops gained the capture-and-rethrow discipline. TCDIENET without a
  *  Tikhonov matrix throws inside the experiment loop at dispatch time,
  *  making it the canonical trigger. */
 TEST(TRexCoreTest, SelectTimeThrowPropagatesInsteadOfTerminating) {
@@ -155,7 +155,7 @@ TEST(TRexCoreTest, SelectTimeThrowPropagatesInsteadOfTerminating) {
     TRexControlParameter trex_ctrl;
     trex_ctrl.K = 3;
     trex_ctrl.max_dummy_multiplier = 2;
-    trex_ctrl.solver_type = sd::SolverTypeForTRex::TCIENET;
+    trex_ctrl.solver_type = sd::SolverTypeForTRex::TCDIENET;
 
     // Serial path (parallel_rnd_experiments = false): the omp region is
     // inactive but still a structured block.
@@ -358,8 +358,8 @@ TEST(TRexCoreTest, StagnationStop_AutoDefaultResolvesBySolverFamily) {
     // Whether CD paths can stagnate in the T-loop is an open question under
     // investigation; these entries lock in the CURRENT default, not a
     // settled answer.
-    EXPECT_FALSE(resolved_default(sd::SolverTypeForTRex::TCCD,   std::nullopt));
-    EXPECT_FALSE(resolved_default(sd::SolverTypeForTRex::TCENET, std::nullopt));
+    EXPECT_FALSE(resolved_default(sd::SolverTypeForTRex::TCDLASSO,   std::nullopt));
+    EXPECT_FALSE(resolved_default(sd::SolverTypeForTRex::TCDENET, std::nullopt));
 
     // Explicit user choice overrides the family default in both directions.
     EXPECT_TRUE(resolved_default(sd::SolverTypeForTRex::TLARS, true));
@@ -555,7 +555,7 @@ TEST(TRexCoreTest, WarmStart_MemoryMappedMatchesInMemory) {
 
 
 /** @brief CD-family serialized warm start at the TRex level: memory-mapped
- *         runs save/load TCCD / TCENET checkpoints per T-step, so the
+ *         runs save/load TCDLASSO / TCDENET checkpoints per T-step, so the
  *         continuation goes through ensureCdState()'s gram re-entry after
  *         deserialization. The selection must reproduce the in-memory
  *         (retention-based) run exactly. */
@@ -563,8 +563,8 @@ TEST(TRexCoreTest, WarmStart_MemoryMappedMatchesInMemory_CdFamily) {
     std::vector<std::size_t> support = {1, 2, 3};
     std::vector<double> coefs = {5.0, -3.0, 2.0};
 
-    for (auto solver : {sd::SolverTypeForTRex::TCCD,
-                        sd::SolverTypeForTRex::TCENET}) {
+    for (auto solver : {sd::SolverTypeForTRex::TCDLASSO,
+                        sd::SolverTypeForTRex::TCDENET}) {
         SyntheticData data(200, 50, support, coefs, 1.0, 42);
 
         auto X_mem = data.getX();

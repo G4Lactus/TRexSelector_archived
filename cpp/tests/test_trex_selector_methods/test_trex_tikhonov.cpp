@@ -5,7 +5,7 @@
  * @file test_trex_tikhonov.cpp
  *
  * @brief Unit tests for TRexTikhonovSelector (general-Tikhonov T-Rex):
- * construction validation, the K = I collapse onto the TCENET base run
+ * construction validation, the K = I collapse onto the TCDENET base run
  * (i.i.d.-dummy escape hatch), the cluster-aware dummy path (gates, layer
  * correlation, prior-groups end-to-end), planted-group recovery with an
  * informed K, and the CV lambda_2 path.
@@ -125,8 +125,9 @@ protected:
 // Construction validation
 // ========================================================================================
 
-/** @brief An empty or mis-dimensioned K, or a non-TCIENET solver_type,
- *  must throw at construction. */
+/** @brief An empty or mis-dimensioned K, or a solver_type outside the
+ *  general-K trio (TCDTIKNET / TIKNET / TIKOMP), must throw at
+ *  construction. */
 TEST_F(TRexTikhonovTest, Validation_ThrowsOnBadKOrSolver) {
 
     // Default control: K is empty.
@@ -145,8 +146,8 @@ TEST_F(TRexTikhonovTest, Validation_ThrowsOnBadKOrSolver) {
     EXPECT_THROW(TRexTikhonovSelector(X_map, y_map, 0.1, ctrl),
                  std::invalid_argument);
 
-    // Correct K, default solver (TCIENET) constructs.
-    ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TCIENET;
+    // Correct K, default solver (TCDTIKNET) constructs.
+    ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TCDTIKNET;
     EXPECT_NO_THROW(TRexTikhonovSelector(X_map, y_map, 0.1, ctrl));
 }
 
@@ -175,19 +176,19 @@ TEST_F(TRexTikhonovTest, GammaToK_FirstDifferenceGivesLaplacian) {
 
 
 // ========================================================================================
-// K = I collapse: must reproduce the base TCENET run exactly
+// K = I collapse: must reproduce the base TCDENET run exactly
 // ========================================================================================
 
-/** @brief With K = I the TCIENET sparse-K penalty equals the diagonal
+/** @brief With K = I the TCDTIKNET sparse-K penalty equals the diagonal
  *  elastic net, and with the two validation escape hatches —
  *  `cluster_dummies = false` (i.i.d. dummy draws) and
  *  `fold_dummy_coupling = false` (INDEPENDENT_RIDGE dummy block) —
  *  TRexTikhonovSelector reuses the base machinery exactly, so a run with
  *  identical seed and lambda_2 must reproduce the plain TRexSelector +
- *  TCENET selection. This certifies the sparse-K solver dispatch and
+ *  TCDENET selection. This certifies the sparse-K solver dispatch and
  *  penalty math; the DEFAULT path (cluster dummies + FOLDED coupling) is
- *  covered by the ClusterDummies_* tests and the GVS-TCIENET anchor. */
-TEST_F(TRexTikhonovTest, Equivalence_IdentityKMatchesTcenetBaseRun) {
+ *  covered by the ClusterDummies_* tests and the GVS-TCDIENET anchor. */
+TEST_F(TRexTikhonovTest, Equivalence_IdentityKMatchesTcdenetBaseRun) {
     std::vector<std::size_t> support = {1, 2, 3};
     std::vector<double> coefs = {5.0, -3.0, 2.0};
     const double lambda2 = 0.5;
@@ -203,7 +204,7 @@ TEST_F(TRexTikhonovTest, Equivalence_IdentityKMatchesTcenetBaseRun) {
         ctrl.tikhonov_K = identityK(40);
         ctrl.lambda_2   = lambda2;
         ctrl.cluster_dummies     = false;  // i.i.d. dummies: base parity
-        ctrl.fold_dummy_coupling = false;  // independent dummy ridge: TCENET
+        ctrl.fold_dummy_coupling = false;  // independent dummy ridge: TCDENET
         ctrl.trex_ctrl.K = 5;
         ctrl.trex_ctrl.max_dummy_multiplier = 2;
         TRexTikhonovSelector trex(Xm, ym, 0.2, ctrl, 42, false);
@@ -218,7 +219,7 @@ TEST_F(TRexTikhonovTest, Equivalence_IdentityKMatchesTcenetBaseRun) {
         Eigen::Map<Eigen::VectorXd> ym(yd.data(), yd.size());
 
         TRexControlParameter ctrl;
-        ctrl.solver_type = sd::SolverTypeForTRex::TCENET;
+        ctrl.solver_type = sd::SolverTypeForTRex::TCDENET;
         ctrl.solver_params.lambda2 = lambda2;
         ctrl.K = 5;
         ctrl.max_dummy_multiplier = 2;
@@ -231,9 +232,9 @@ TEST_F(TRexTikhonovTest, Equivalence_IdentityKMatchesTcenetBaseRun) {
 
     ASSERT_EQ(sel_tik.size(), sel_cenet.size());
     EXPECT_TRUE((sel_tik.array() == sel_cenet.array()).all())
-        << "K = I Tikhonov run diverged from the TCENET base run.\n"
+        << "K = I Tikhonov run diverged from the TCDENET base run.\n"
         << "  Tikhonov n_selected = " << sel_tik.sum() << "\n"
-        << "  TCENET   n_selected = " << sel_cenet.sum();
+        << "  TCDENET   n_selected = " << sel_cenet.sum();
 }
 
 
@@ -503,13 +504,13 @@ TEST_F(TRexTikhonovTest, ClusterDummies_MemmapMatchesInMemory) {
 
 
 /** @brief FOLDED dummy coupling with the group-mean K must reproduce
- *  TRexGVSSelector(IEN, TCIENET) exactly: identical prior groups, lambda_2,
+ *  TRexGVSSelector(IEN, TCDIENET) exactly: identical prior groups, lambda_2,
  *  and seed give bit-identical cluster-dummy draws (shared makeLayerStream)
  *  and — with the folded K-coupling being the exact generalization of the
  *  GVS layered group convention — the identical solver problem, so the
  *  selected sets must coincide. This is the FOLDED-mode anchor
- *  complementing the K = I ≡ TCENET anchor of the INDEPENDENT_RIDGE mode. */
-TEST_F(TRexTikhonovTest, Equivalence_FoldedGroupKMatchesGvsTcienet) {
+ *  complementing the K = I ≡ TCDENET anchor of the INDEPENDENT_RIDGE mode. */
+TEST_F(TRexTikhonovTest, Equivalence_FoldedGroupKMatchesGvsTcdienet) {
     const Eigen::Index n = 150, p = 40;
 
     std::vector<Eigen::Index> prior_groups(static_cast<std::size_t>(p));
@@ -543,7 +544,7 @@ TEST_F(TRexTikhonovTest, Equivalence_FoldedGroupKMatchesGvsTcienet) {
         ctrl.gvs_type     = gvs::GVSType::IEN;
         ctrl.prior_groups = prior_groups;
         ctrl.lambda_2     = 1.0;
-        ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TCIENET;
+        ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TCDIENET;
         ctrl.trex_ctrl.K = 5;
         ctrl.trex_ctrl.max_dummy_multiplier = 2;
         gvs::TRexGVSSelector trex(Xm, ym, 0.2, ctrl, 42, false);
@@ -555,7 +556,7 @@ TEST_F(TRexTikhonovTest, Equivalence_FoldedGroupKMatchesGvsTcienet) {
 
     ASSERT_EQ(sel_tik.size(), sel_gvs.size());
     EXPECT_TRUE((sel_tik.array() == sel_gvs.array()).all())
-        << "FOLDED group-mean-K Tikhonov run diverged from GVS-TCIENET.\n"
+        << "FOLDED group-mean-K Tikhonov run diverged from GVS-TCDIENET.\n"
         << "  Tikhonov n_selected = " << sel_tik.sum() << "\n"
         << "  GVS      n_selected = " << sel_gvs.sum();
 }
@@ -618,6 +619,175 @@ TEST_F(TRexTikhonovTest, AutoLambda2_IenCcdResolvesAndRuns) {
 
     ASSERT_EQ(result.selected_var.size(), p);
     EXPECT_GT(trex.getLambda2Used(), 0.0);
+}
+
+
+/** @brief The GROUP_CENTERING structured fast path (O(1) solver hooks,
+ *  internally built K_GC) must reproduce the SPARSE_GENERAL + FOLDED run
+ *  with the explicit K_GC matrix: identical data, seed, lambda_2, and
+ *  cluster dummies give the mathematically identical solver problem, so
+ *  the selected sets must coincide on this wide-margin design (FP
+ *  accumulation orders differ between the two paths; see the GROUP vs
+ *  FOLDED caveat in tcdienet_solver.hpp). */
+TEST_F(TRexTikhonovTest, Equivalence_GroupCenteringFastPathMatchesSparse) {
+    const Eigen::Index n = 150, p = 40;
+
+    std::vector<Eigen::Index> prior_groups(static_cast<std::size_t>(p));
+    for (Eigen::Index j = 0; j < p; ++j) {
+        prior_groups[static_cast<std::size_t>(j)] = j / 5;
+    }
+
+    auto run_with = [&](TikPenaltyStructure structure) {
+        GroupedData d(n, p, 0.75, 1.0, 7);
+        Eigen::Map<Eigen::MatrixXd> Xm(d.X.data(), d.X.rows(), d.X.cols());
+        Eigen::Map<Eigen::VectorXd> ym(d.y.data(), d.y.size());
+
+        TRexTikhonovControlParameter ctrl;
+        ctrl.penalty_structure = structure;
+        if (structure == TikPenaltyStructure::SPARSE_GENERAL) {
+            ctrl.tikhonov_K =
+                TRexTikhonovSelector::buildGroupCenteringK(prior_groups);
+        }   // GROUP_CENTERING: K left empty -> built internally
+        ctrl.lambda_2     = 2.0;
+        ctrl.prior_groups = prior_groups;
+        // fold_dummy_coupling = true (default): FOLDED, matching the
+        // by-construction folding of the GROUP_CENTERING hooks.
+        ctrl.trex_ctrl.K = 5;
+        ctrl.trex_ctrl.max_dummy_multiplier = 2;
+        TRexTikhonovSelector trex(Xm, ym, 0.2, ctrl, 42, false);
+        return trex.select().selected_var;
+    };
+
+    const Eigen::VectorXi sel_sparse =
+        run_with(TikPenaltyStructure::SPARSE_GENERAL);
+    const Eigen::VectorXi sel_fast =
+        run_with(TikPenaltyStructure::GROUP_CENTERING);
+
+    ASSERT_EQ(sel_fast.size(), sel_sparse.size());
+    EXPECT_TRUE((sel_fast.array() == sel_sparse.array()).all())
+        << "GROUP_CENTERING fast path diverged from SPARSE + FOLDED K_GC.\n"
+        << "  fast   n_selected = " << sel_fast.sum() << "\n"
+        << "  sparse n_selected = " << sel_sparse.sum();
+}
+
+
+// ========================================================================================
+// TIKNET / TIKOMP solver routing (native sparse-K LARS and OMP)
+// ========================================================================================
+
+/** @brief The solver gate accepts the three general-K solvers and rejects
+ *  the INDEPENDENT_RIDGE escape for the FOLDED-only TIKNET/TIKOMP paths. */
+TEST_F(TRexTikhonovTest, SolverGate_TiknetTikompFoldedOnly) {
+
+    TRexTikhonovControlParameter base;
+    base.tikhonov_K = identityK(10);
+
+    {   // TIKNET constructs on the default (FOLDED) path.
+        auto ctrl = base;
+        ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TIKNET;
+        EXPECT_NO_THROW(TRexTikhonovSelector(X_map, y_map, 0.1, ctrl));
+    }
+    {   // TIKOMP likewise.
+        auto ctrl = base;
+        ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TIKOMP;
+        EXPECT_NO_THROW(TRexTikhonovSelector(X_map, y_map, 0.1, ctrl));
+    }
+    {   // INDEPENDENT_RIDGE exists only on the TCDTIKNET path.
+        auto ctrl = base;
+        ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TIKNET;
+        ctrl.fold_dummy_coupling   = false;
+        EXPECT_THROW(TRexTikhonovSelector(X_map, y_map, 0.1, ctrl),
+                     std::invalid_argument);
+    }
+    {   // Same for TIKOMP.
+        auto ctrl = base;
+        ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TIKOMP;
+        ctrl.fold_dummy_coupling   = false;
+        EXPECT_THROW(TRexTikhonovSelector(X_map, y_map, 0.1, ctrl),
+                     std::invalid_argument);
+    }
+}
+
+
+/** @brief End-to-end with the native LARS path solver (TIKNET) on the
+ *  K_GC penalty: the planted actives (cols 0-5, group-constant signs per
+ *  group) are recovered with few false selections. */
+TEST_F(TRexTikhonovTest, EndToEnd_TiknetKgcRecoversPlanted) {
+    const Eigen::Index n = 150, p = 40;
+    GroupedData d(n, p, 0.75, 1.0, 7);
+    Eigen::Map<Eigen::MatrixXd> Xm(d.X.data(), d.X.rows(), d.X.cols());
+    Eigen::Map<Eigen::VectorXd> ym(d.y.data(), d.y.size());
+
+    std::vector<Eigen::Index> prior_groups(static_cast<std::size_t>(p));
+    for (Eigen::Index j = 0; j < p; ++j) {
+        prior_groups[static_cast<std::size_t>(j)] = j / 5;
+    }
+
+    TRexTikhonovControlParameter ctrl;
+    ctrl.penalty_structure = TikPenaltyStructure::GROUP_CENTERING;
+    ctrl.prior_groups      = prior_groups;   // defines K_GC + cluster dummies
+    ctrl.lambda_2          = 2.0;
+    ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TIKNET;
+    ctrl.trex_ctrl.K = 5;
+    ctrl.trex_ctrl.max_dummy_multiplier = 2;
+
+    TRexTikhonovSelector trex(Xm, ym, 0.2, ctrl, 42, false);
+    auto result = trex.select();
+
+    ASSERT_EQ(result.selected_var.size(), p);
+    int hits = 0, false_sel = 0;
+    for (Eigen::Index j = 0; j < p; ++j) {
+        if (result.selected_var(j) == 1) {
+            if (j < 6) { ++hits; } else { ++false_sel; }
+        }
+    }
+    EXPECT_GE(hits, 4)
+        << "TIKNET + K_GC failed to recover the planted actives.";
+    EXPECT_LE(false_sel, 4)
+        << "TIKNET + K_GC selected too many null variables.";
+}
+
+
+/** @brief End-to-end with the greedy path solver (TIKOMP) on the K_GC
+ *  penalty: selection completes with calibrated Phi and recovers most of
+ *  the planted actives (greedy refits; thresholds mirror the LARS test). */
+TEST_F(TRexTikhonovTest, EndToEnd_TikompKgcRecoversPlanted) {
+    const Eigen::Index n = 150, p = 40;
+    GroupedData d(n, p, 0.75, 1.0, 7);
+    Eigen::Map<Eigen::MatrixXd> Xm(d.X.data(), d.X.rows(), d.X.cols());
+    Eigen::Map<Eigen::VectorXd> ym(d.y.data(), d.y.size());
+
+    std::vector<Eigen::Index> prior_groups(static_cast<std::size_t>(p));
+    for (Eigen::Index j = 0; j < p; ++j) {
+        prior_groups[static_cast<std::size_t>(j)] = j / 5;
+    }
+
+    TRexTikhonovControlParameter ctrl;
+    ctrl.penalty_structure = TikPenaltyStructure::GROUP_CENTERING;
+    ctrl.prior_groups      = prior_groups;
+    ctrl.lambda_2          = 2.0;
+    ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TIKOMP;
+    ctrl.trex_ctrl.K = 5;
+    ctrl.trex_ctrl.max_dummy_multiplier = 2;
+
+    TRexTikhonovSelector trex(Xm, ym, 0.2, ctrl, 42, false);
+    auto result = trex.select();
+
+    ASSERT_EQ(result.selected_var.size(), p);
+    for (Eigen::Index j = 0; j < result.Phi_prime.size(); ++j) {
+        EXPECT_GE(result.Phi_prime(j), 0.0);
+        EXPECT_LE(result.Phi_prime(j), 1.0);
+    }
+    int hits = 0, false_sel = 0;
+    for (Eigen::Index j = 0; j < p; ++j) {
+        if (result.selected_var(j) == 1) {
+            if (j < 6) { ++hits; } else { ++false_sel; }
+        }
+    }
+    EXPECT_GE(hits, 3)
+        << "TIKOMP + K_GC failed to recover the planted actives.";
+    EXPECT_LE(false_sel, 4)
+        << "TIKOMP + K_GC selected too many null variables.";
 }
 
 // ========================================================================================

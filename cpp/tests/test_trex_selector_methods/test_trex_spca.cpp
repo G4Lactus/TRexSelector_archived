@@ -162,11 +162,11 @@ TEST_F(TRexSPCATest, Execution_ThresholdedModeDoesNotThrow) {
 }
 
 
-/** @brief The CCD EN variant (en_solver = TCENET) runs the per-PC GVS
+/** @brief The CCD EN variant (en_solver = TCDENET) runs the per-PC GVS
  *  sub-selector without throwing. */
-TEST_F(TRexSPCATest, Execution_TcenetSolverDoesNotThrow) {
+TEST_F(TRexSPCATest, Execution_TcdenetSolverDoesNotThrow) {
     auto ctrl = fast_ctrl(SPCAMode::ActiveSet);
-    ctrl.en_solver = tg::ENSolverType::TCENET;
+    ctrl.en_solver = tg::ENSolverType::TCDENET;
     EXPECT_NO_THROW({
         TRexSPCA spca(X_map, M, 0.2, ctrl, seed);
         spca.select();
@@ -176,8 +176,8 @@ TEST_F(TRexSPCATest, Execution_TcenetSolverDoesNotThrow) {
 
 /** @brief All three EN solver variants solve the same elastic-net problem;
  *  with identical seeds and a fixed lambda_2 the per-PC active sets of the
- *  CCD variant (TCENET) must match the Gram-based TENET reference. */
-TEST_F(TRexSPCATest, ActiveSets_TcenetMatchesTenet) {
+ *  CCD variant (TCDENET) must match the Gram-based TENET reference. */
+TEST_F(TRexSPCATest, ActiveSets_TcdenetMatchesTenet) {
     auto run_variant = [](tg::ENSolverType en_solver) {
         Eigen::MatrixXd Xf = plantedFactorX();
         Eigen::Map<Eigen::MatrixXd> Xf_map(Xf.data(), n_f, p_f);
@@ -189,12 +189,12 @@ TEST_F(TRexSPCATest, ActiveSets_TcenetMatchesTenet) {
     };
 
     const auto sets_tenet  = run_variant(tg::ENSolverType::TENET);
-    const auto sets_tcenet = run_variant(tg::ENSolverType::TCENET);
+    const auto sets_tcdenet = run_variant(tg::ENSolverType::TCDENET);
 
-    ASSERT_EQ(sets_tenet.size(), sets_tcenet.size());
+    ASSERT_EQ(sets_tenet.size(), sets_tcdenet.size());
     for (std::size_t m = 0; m < sets_tenet.size(); ++m) {
-        EXPECT_EQ(sets_tenet[m], sets_tcenet[m])
-            << "TCENET and TENET active sets differ for PC " << m + 1;
+        EXPECT_EQ(sets_tenet[m], sets_tcdenet[m])
+            << "TCDENET and TENET active sets differ for PC " << m + 1;
     }
 }
 
