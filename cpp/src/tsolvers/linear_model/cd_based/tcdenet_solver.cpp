@@ -1,16 +1,16 @@
 // ============================================================================
-// tcenet_solver.cpp
+// tcdenet_solver.cpp
 // ============================================================================
 /**
- * @file tcenet_solver.cpp
+ * @file tcdenet_solver.cpp
  *
- * @brief Implementation of the Terminating CCD Elastic Net (T-CENET) solver
- * class, extending the T-CCD solver.
+ * @brief Implementation of the Terminating CCD Elastic Net (T-CDENET) solver
+ * class, extending the T-CDLASSO solver.
  */
 // ============================================================================
 
 // tsolvers includes
-#include <tsolvers/linear_model/cd_based/tcenet_solver.hpp>
+#include <tsolvers/linear_model/cd_based/tcdenet_solver.hpp>
 
 // ============================================================================
 
@@ -21,13 +21,13 @@ namespace trex::tsolvers::linear_model::cd_based {
 // Serialization
 // ============================================================================
 
-void TCENET_Solver::save(const std::string& filename) const { saveImpl(*this, filename); }
+void TCDENET_Solver::save(const std::string& filename) const { saveImpl(*this, filename); }
 
 
-TCENET_Solver TCENET_Solver::load(const std::string& filename,
+TCDENET_Solver TCDENET_Solver::load(const std::string& filename,
                                   Eigen::Map<Eigen::MatrixXd>& X,
                                   Eigen::Map<Eigen::MatrixXd>& D) {
-    return loadImpl<TCENET_Solver>(filename, X, D);
+    return loadImpl<TCDENET_Solver>(filename, X, D);
 }
 
 // ============================================================================

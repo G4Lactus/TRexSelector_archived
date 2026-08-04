@@ -1,11 +1,11 @@
 // ============================================================================
-// tccd_solver.cpp
+// tcdlasso_solver.cpp
 // ============================================================================
 /**
- * @file tccd_solver.cpp
+ * @file tcdlasso_solver.cpp
  *
  * @brief Implementation (.cpp) file for the Terminating Cyclic Coordinate
- * Descent (T-CCD) solver.
+ * Descent (T-CDLASSO) solver.
  */
 // ============================================================================
 
@@ -17,7 +17,7 @@
 #include <unordered_set>
 
 // tsolvers includes
-#include <tsolvers/linear_model/cd_based/tccd_solver.hpp>
+#include <tsolvers/linear_model/cd_based/tcdlasso_solver.hpp>
 #include <tsolvers/solver_utils/solver_preprocessing.hpp>
 
 // utils includes
@@ -47,7 +47,7 @@ inline double softThreshold(double z, double lambda1) {
 // Constructors
 // ============================================================================
 
-TCCD_Solver::TCCD_Solver(
+TCDLASSO_Solver::TCDLASSO_Solver(
     Eigen::Map<Eigen::MatrixXd>& X,
     Eigen::Map<Eigen::MatrixXd>& D,
     Eigen::Map<Eigen::VectorXd>& y,
@@ -98,15 +98,15 @@ TCCD_Solver::TCCD_Solver(
 }
 
 
-TCCD_Solver::TCCD_Solver(SolverTypeCdBased type) : TSolver_Base(), algo_type_(type) {}
-TCCD_Solver::TCCD_Solver() : TSolver_Base(), algo_type_(SolverTypeCdBased::TCCD) {}
+TCDLASSO_Solver::TCDLASSO_Solver(SolverTypeCdBased type) : TSolver_Base(), algo_type_(type) {}
+TCDLASSO_Solver::TCDLASSO_Solver() : TSolver_Base(), algo_type_(SolverTypeCdBased::TCDLASSO) {}
 
 
 // ============================================================================
 // Core Algorithm Implementation
 // ============================================================================
 
-void TCCD_Solver::executeStep(std::size_t T_stop, bool early_stop) {
+void TCDLASSO_Solver::executeStep(std::size_t T_stop, bool early_stop) {
     validateConnected();
 
     // Set openMP dominance for the entire algorithm
@@ -119,7 +119,7 @@ void TCCD_Solver::executeStep(std::size_t T_stop, bool early_stop) {
     const long point_budget = lambda_points_ +
                               static_cast<long>(max_lambda_points_);
 
-    // Main T-CCD loop with early stopping based on dummy variable count
+    // Main T-CDLASSO loop with early stopping based on dummy variable count
     while (
         currentStep_ < maxSteps_ &&
         actives_.size() < effective_n_ &&
@@ -228,7 +228,7 @@ void TCCD_Solver::executeStep(std::size_t T_stop, bool early_stop) {
 // Helper Implementations
 // ============================================================================
 
-void TCCD_Solver::ensureCdState() {
+void TCDLASSO_Solver::ensureCdState() {
     if (cd_ready_) { return; }
 
     const std::size_t p_total = p_original_ + num_dummies_;
@@ -302,15 +302,16 @@ void TCCD_Solver::ensureCdState() {
 }
 
 
-void TCCD_Solver::configurePenaltyDiag() {
+void TCDLASSO_Solver::configurePenaltyDiag() {
     const std::size_t p_total = p_original_ + num_dummies_;
     penalty_diag_.setZero(static_cast<Eigen::Index>(p_total));
     if (penalty_kind_ == PenaltyKind::NONE || lambda2_ <= 0.0) { return; }
-    if (penalty_kind_ == PenaltyKind::GROUP) {
+    if (penalty_kind_ == PenaltyKind::GROUP ||
+        penalty_kind_ == PenaltyKind::GROUP_CENTERING) {
         throw std::logic_error(concatMsg(
             solverTypeToString(),
-            "::configurePenaltyDiag: GROUP kind requires a specialized "
-            "descendant override."));
+            "::configurePenaltyDiag: GROUP/GROUP_CENTERING kinds require a "
+            "specialized descendant override."));
     }
 
     if (penalty_kind_ == PenaltyKind::DIAGONAL) {
@@ -343,7 +344,7 @@ void TCCD_Solver::configurePenaltyDiag() {
 }
 
 
-void TCCD_Solver::penaltyRankUpdate(std::size_t j, double delta) {
+void TCDLASSO_Solver::penaltyRankUpdate(std::size_t j, double delta) {
     switch (penalty_kind_) {
         case PenaltyKind::NONE:
             return;
@@ -365,15 +366,16 @@ void TCCD_Solver::penaltyRankUpdate(std::size_t j, double delta) {
             }
             return;
         case PenaltyKind::GROUP:
+        case PenaltyKind::GROUP_CENTERING:
             throw std::logic_error(concatMsg(
                 solverTypeToString(),
-                "::penaltyRankUpdate: GROUP kind requires a specialized "
-                "descendant override."));
+                "::penaltyRankUpdate: GROUP/GROUP_CENTERING kinds require a "
+                "specialized descendant override."));
     }
 }
 
 
-double TCCD_Solver::coordinateUpdate(std::size_t j, double xr, double lambda1) {
+double TCDLASSO_Solver::coordinateUpdate(std::size_t j, double xr, double lambda1) {
     const Eigen::Index ji = static_cast<Eigen::Index>(j);
     const double n2 = colnorm2_(ji);
     const double denom = n2 + penalty_diag_(ji);
@@ -389,7 +391,7 @@ double TCCD_Solver::coordinateUpdate(std::size_t j, double xr, double lambda1) {
 }
 
 
-void TCCD_Solver::refreshResidualCd() {
+void TCDLASSO_Solver::refreshResidualCd() {
     r_ = y_;
     for (std::size_t j : actives_) {
         const Eigen::Index ji = static_cast<Eigen::Index>(j);
@@ -399,7 +401,7 @@ void TCCD_Solver::refreshResidualCd() {
 }
 
 
-Eigen::Index TCCD_Solver::gramEnter(std::size_t j) {
+Eigen::Index TCDLASSO_Solver::gramEnter(std::size_t j) {
     if (slot_of_[j] >= 0) { return slot_of_[j]; }    // ever-active: free re-entry
 
     const Eigen::Index s = static_cast<Eigen::Index>(slot_var_.size());
@@ -427,7 +429,7 @@ Eigen::Index TCCD_Solver::gramEnter(std::size_t j) {
 }
 
 
-long TCCD_Solver::solveAtLambda(double lambda1, double cd_tol,
+long TCDLASSO_Solver::solveAtLambda(double lambda1, double cd_tol,
                                 const std::vector<std::size_t>* candidates) {
     const std::size_t p_total = p_original_ + num_dummies_;
     long sweeps = 0;
@@ -575,7 +577,7 @@ long TCCD_Solver::solveAtLambda(double lambda1, double cd_tol,
 }
 
 
-double TCCD_Solver::predictNextCrossing() {
+double TCDLASSO_Solver::predictNextCrossing() {
     const std::size_t p_total = p_original_ + num_dummies_;
 
     // Zeroth order: an inactive dummy enters when lambda1 falls to its
@@ -607,7 +609,7 @@ double TCCD_Solver::predictNextCrossing() {
 }
 
 
-std::size_t TCCD_Solver::countActiveDummiesCd() const {
+std::size_t TCDLASSO_Solver::countActiveDummiesCd() const {
     std::size_t cnt = 0;
     for (std::size_t j : actives_) {
         if (j >= dummy_start_idx_ &&
@@ -617,7 +619,7 @@ std::size_t TCCD_Solver::countActiveDummiesCd() const {
 }
 
 
-bool TCCD_Solver::supportOnlyDummyGrowth(
+bool TCDLASSO_Solver::supportOnlyDummyGrowth(
     const std::vector<std::size_t>& hi_support,
     const std::vector<std::size_t>& lo_support) const {
 
@@ -633,7 +635,7 @@ bool TCCD_Solver::supportOnlyDummyGrowth(
 }
 
 
-void TCCD_Solver::collectCandidates(double lambda_lo,
+void TCDLASSO_Solver::collectCandidates(double lambda_lo,
                                     std::vector<std::size_t>& candidates) const {
     const std::size_t p_total = p_original_ + num_dummies_;
     candidates.clear();
@@ -649,7 +651,7 @@ void TCCD_Solver::collectCandidates(double lambda_lo,
 }
 
 
-void TCCD_Solver::recordCrossingStep(double lambda1) {
+void TCDLASSO_Solver::recordCrossingStep(double lambda1) {
     currentStep_++;
     lambda_.push_back(lambda1);
 
@@ -696,7 +698,7 @@ void TCCD_Solver::recordCrossingStep(double lambda1) {
 }
 
 
-double TCCD_Solver::getKktViolation(double lambda1) {
+double TCDLASSO_Solver::getKktViolation(double lambda1) {
     validateConnected();
     ensureCdState();
     const double lam = (lambda1 > 0.0) ? lambda1 : lambda_current_;
@@ -723,7 +725,7 @@ double TCCD_Solver::getKktViolation(double lambda1) {
 // Setters
 // ============================================================================
 
-void TCCD_Solver::setLambdaRelTol(double tol) {
+void TCDLASSO_Solver::setLambdaRelTol(double tol) {
     if (!(tol > 0.0) || tol >= 1.0) {
         logWarning(concatMsg(
             "Lambda tolerance must be in (0, 1); keeping current value (",
@@ -735,7 +737,7 @@ void TCCD_Solver::setLambdaRelTol(double tol) {
 }
 
 
-void TCCD_Solver::setCdTolerances(double cd_tol, double cd_tol_probe) {
+void TCDLASSO_Solver::setCdTolerances(double cd_tol, double cd_tol_probe) {
     if (!(cd_tol > 0.0) || !(cd_tol_probe > 0.0)) {
         logWarning("CD tolerances must be positive; keeping current values.");
         return;
@@ -745,7 +747,7 @@ void TCCD_Solver::setCdTolerances(double cd_tol, double cd_tol_probe) {
 }
 
 
-void TCCD_Solver::setFullPathGrid(std::size_t grid_points,
+void TCDLASSO_Solver::setFullPathGrid(std::size_t grid_points,
                                   double lambda_min_ratio) {
     if (grid_points < 2 || !(lambda_min_ratio > 0.0) || lambda_min_ratio >= 1.0) {
         logWarning("Invalid full-path grid configuration; keeping current values.");
@@ -760,13 +762,13 @@ void TCCD_Solver::setFullPathGrid(std::size_t grid_points,
 // Serialization Implementation
 // ============================================================================
 
-void TCCD_Solver::save(const std::string& filename) const { saveImpl(*this, filename); }
+void TCDLASSO_Solver::save(const std::string& filename) const { saveImpl(*this, filename); }
 
 
-TCCD_Solver TCCD_Solver::load(const std::string& filename,
+TCDLASSO_Solver TCDLASSO_Solver::load(const std::string& filename,
                               Eigen::Map<Eigen::MatrixXd>& X,
                               Eigen::Map<Eigen::MatrixXd>& D) {
-    return loadImpl<TCCD_Solver>(filename, X, D);
+    return loadImpl<TCDLASSO_Solver>(filename, X, D);
 }
 
 // ==========================================================================

@@ -1,16 +1,16 @@
 // ===================================================================================
-// tccd_solver.hpp
+// tcdlasso_solver.hpp
 // ===================================================================================
-#ifndef TSOLVERS_LINEAR_MODEL_CD_BASED_TCCD_SOLVER_HPP
-#define TSOLVERS_LINEAR_MODEL_CD_BASED_TCCD_SOLVER_HPP
+#ifndef TSOLVERS_LINEAR_MODEL_CD_BASED_TCDLASSO_SOLVER_HPP
+#define TSOLVERS_LINEAR_MODEL_CD_BASED_TCDLASSO_SOLVER_HPP
 // ===================================================================================
 /**
- * @file tccd_solver.hpp
+ * @file tcdlasso_solver.hpp
  *
- * @brief Header file for the Terminating Cyclic Coordinate Descent (T-CCD)
+ * @brief Header file for the Terminating Cyclic Coordinate Descent (T-CDLASSO)
  * solver.
  *
- * @details The TCCD_Solver class implements a terminating pathwise coordinate
+ * @details The TCDLASSO_Solver class implements a terminating pathwise coordinate
  * descent for the penalized family
  *
  *     F(beta) = 1/2 ||y - X beta||^2 + lambda1 ||beta||_1
@@ -25,8 +25,11 @@
  * The quadratic penalty is passed as data (matrix-passing core): K enters only
  * through the coordinate denominator, an incrementally maintained lambda2*K*beta
  * vector, and the KKT/entry conditions. Descendants configure K:
- * - TCENET_Solver:  K = I (diagonal elastic net),
- * - TCIENET_Solver: K = Gamma^T Gamma sparse (Tikhonov-informed elastic net).
+ * - TCDENET_Solver:    K = I (diagonal elastic net),
+ * - TCDIENET_Solver:   structured group penalties (group-mean IEN / within-group
+ *                     centering) with O(1) bookkeeping hooks,
+ * - TCDTIKNET_Solver: K = Gamma^T Gamma sparse (general Tikhonov, optional
+ *                     FOLDED dummy coupling).
  *
  * It inherits state management, standardization, and diagnostics from the
  * TSolver_Base class. Path recording semantics: solutions are exact penalized
@@ -65,17 +68,18 @@ namespace trex::tsolvers::linear_model::cd_based {
  * Used for algorithm selection, configuration, and logging/reporting.
  */
 enum class SolverTypeCdBased: int {
-    TCCD = 0,     // Terminating Cyclic Coordinate Descent (LASSO)
-    TCENET = 1,   // T-CCD Elastic Net (diagonal ridge, K = I)
-    TCIENET = 2   // T-CCD Informed Elastic Net (group means / Tikhonov K)
+    TCDLASSO = 0,      // Terminating Cyclic Coordinate Descent (LASSO)
+    TCDENET = 1,    // T-CDLASSO Elastic Net (diagonal ridge, K = I)
+    TCDIENET = 2,   // T-CDLASSO Informed Elastic Net (structured group penalties)
+    TCDTIKNET = 3  // T-CDLASSO Tikhonov Net (general sparse K = Gamma^T Gamma)
 };
 
 
 /**
- * @brief Terminating Cyclic Coordinate Descent (T-CCD) solver.
+ * @brief Terminating Cyclic Coordinate Descent (T-CDLASSO) solver.
  * Supports in-memory and memory-mapped data over Eigen::Map.
  */
-class TCCD_Solver : public TSolver_Base {
+class TCDLASSO_Solver : public TSolver_Base {
 protected:
     // ==========================================================================
     // CCD specific state variables
@@ -91,11 +95,19 @@ protected:
     double lambda_current_{0.0};
 
     /** @brief Quadratic penalty kind. NONE/DIAGONAL/SPARSE are served by the
-     *  matrix-passing core; GROUP marks structurally specialized descendants
-     *  (TCIENET group mode) that override the penalty hooks entirely. */
-    enum class PenaltyKind : int { NONE = 0, DIAGONAL = 1, SPARSE = 2, GROUP = 3 };
+     *  matrix-passing core; GROUP (group-mean / IEN) and GROUP_CENTERING
+     *  (within-group centering, K = I - sum_m 1_m 1_m^T / p_m) mark
+     *  structurally specialized descendants (TCDIENET) that override the
+     *  penalty hooks entirely with O(1) group bookkeeping. */
+    enum class PenaltyKind : int {
+        NONE            = 0,
+        DIAGONAL        = 1,
+        SPARSE          = 2,
+        GROUP           = 3,
+        GROUP_CENTERING = 4
+    };
 
-    /** @brief Configured penalty kind (NONE for plain T-CCD/LASSO). */
+    /** @brief Configured penalty kind (NONE for plain T-CDLASSO/LASSO). */
     PenaltyKind penalty_kind_{PenaltyKind::NONE};
 
     /** @brief Quadratic penalty weight lambda2 (>= 0). */
@@ -131,6 +143,14 @@ protected:
 
     /** @brief r_ is stale w.r.t. beta_cd_ (gram-mode sweeps defer the update). */
     bool r_dirty_{false};
+
+    /** @brief Base variable of unified column t under the layered dummy
+     *  convention (identity for reals, (t - p) mod p for dummy copies).
+     *  Shared by the folding descendants (TCDIENET GROUP_CENTERING,
+     *  TCDTIKNET FOLDED coupling). */
+    std::size_t foldedBase(std::size_t t) const noexcept {
+        return (t < p_original_) ? t : (t - p_original_) % p_original_;
+    }
 
     // --- Gram / covariance cache over ever-active slots (transient, rebuilt) ---
 
@@ -219,10 +239,10 @@ protected:
     long cd_sweeps_{0};
 
     /** @brief Algorithm variant type. */
-    SolverTypeCdBased algo_type_{SolverTypeCdBased::TCCD};
+    SolverTypeCdBased algo_type_{SolverTypeCdBased::TCDLASSO};
 
     /** @brief Protected constructor for inheritance. */
-    explicit TCCD_Solver(SolverTypeCdBased type);
+    explicit TCDLASSO_Solver(SolverTypeCdBased type);
 
 public:
 
@@ -231,7 +251,7 @@ public:
     // ============================================================================
 
     /**
-     * @brief Construct a TCCD_Solver object using data and configuration.
+     * @brief Construct a TCDLASSO_Solver object using data and configuration.
      *
      * @param X Original design matrix (n x p).
      * @param D Dummy design matrix (n x num_dummies).
@@ -250,13 +270,13 @@ public:
      *       the remaining columns is tolerated by coordinate descent (the
      *       minimizer may be non-unique; convergence is unaffected).
      */
-    TCCD_Solver(Eigen::Map<Eigen::MatrixXd>& X,
+    TCDLASSO_Solver(Eigen::Map<Eigen::MatrixXd>& X,
                 Eigen::Map<Eigen::MatrixXd>& D,
                 Eigen::Map<Eigen::VectorXd>& y,
                 bool normalize = true,
                 bool intercept = true,
                 bool verbose = false,
-                SolverTypeCdBased algorithm_type = SolverTypeCdBased::TCCD,
+                SolverTypeCdBased algorithm_type = SolverTypeCdBased::TCDLASSO,
                 ScalingMode scaling_mode = ScalingMode::L2
                );
 
@@ -264,29 +284,29 @@ public:
      * @brief Default constructor for serialization or deferred initialization.
      * @note X_ must be set via reconnect() before running any algorithm.
      */
-    TCCD_Solver();
+    TCDLASSO_Solver();
 
     /** @brief Virtual destructor (X_ pointer is not owned, so not deleted). */
-    virtual ~TCCD_Solver() override = default;
+    virtual ~TCDLASSO_Solver() override = default;
 
     /** @brief Deleted copy constructor and assignment. */
-    TCCD_Solver(const TCCD_Solver&) = delete;
+    TCDLASSO_Solver(const TCDLASSO_Solver&) = delete;
 
     /** @brief Deleted copy assignment operator. */
-    TCCD_Solver& operator=(const TCCD_Solver&) = delete;
+    TCDLASSO_Solver& operator=(const TCDLASSO_Solver&) = delete;
 
     /** @brief Defaulted move constructor. */
-    TCCD_Solver(TCCD_Solver&&) = default;
+    TCDLASSO_Solver(TCDLASSO_Solver&&) = default;
 
     /** @brief Deleted move assignment operator. */
-    TCCD_Solver& operator=(TCCD_Solver&&) = delete;
+    TCDLASSO_Solver& operator=(TCDLASSO_Solver&&) = delete;
 
     // ============================================================================
     // Main Algorithm (Overrides Pure Virtual)
     // ============================================================================
 
     /**
-     * @brief Compute the T-CCD solution path with early stopping based on the
+     * @brief Compute the T-CDLASSO solution path with early stopping based on the
      * dummy threshold.
      *
      * @param T_stop Number of dummies for early stopping threshold
@@ -308,15 +328,16 @@ public:
      */
     std::string solverTypeToString() const override {
         switch(algo_type_) {
-            case SolverTypeCdBased::TCCD:     return "TCCD";
-            case SolverTypeCdBased::TCENET:   return "TCENET";
-            case SolverTypeCdBased::TCIENET:  return "TCIENET";
-            default:                          return "UnknownSolver";
+            case SolverTypeCdBased::TCDLASSO:      return "TCDLASSO";
+            case SolverTypeCdBased::TCDENET:    return "TCDENET";
+            case SolverTypeCdBased::TCDIENET:   return "TCDIENET";
+            case SolverTypeCdBased::TCDTIKNET: return "TCDTIKNET";
+            default:                           return "UnknownSolver";
         }
     }
 
     // ============================================================================
-    // Specific Getters and Setters for TCCD
+    // Specific Getters and Setters for TCDLASSO
     // ============================================================================
 
     /** @brief Get regularization parameter sequence (lambda1 per recorded step). */
@@ -497,7 +518,7 @@ public:
     }
 
     /**
-     * @brief Save the current TCCD solver/model state to file (binary
+     * @brief Save the current TCDLASSO solver/model state to file (binary
      * serialization).
      *
      * @details Must be class specific implemented because Cereal does not use
@@ -509,15 +530,15 @@ public:
     virtual void save(const std::string& filename) const;
 
     /**
-     * @brief Load TCCD solver state from file (binary serialization).
+     * @brief Load TCDLASSO solver state from file (binary serialization).
      *
      * @param filename Path to input file.
      * @param X Map to feature matrix.
      * @param D Map to dummy matrix.
      *
-     * @return Deserialized TCCD_Solver object connected to X and D.
+     * @return Deserialized TCDLASSO_Solver object connected to X and D.
      */
-    static TCCD_Solver load(const std::string& filename,
+    static TCDLASSO_Solver load(const std::string& filename,
                             Eigen::Map<Eigen::MatrixXd>& X,
                             Eigen::Map<Eigen::MatrixXd>& D);
 
@@ -533,7 +554,7 @@ protected:
      * and an empty gram cache. Called at the top of executeStep(); required
      * after construction and after reconnect()/load. Virtual so structurally
      * specialized descendants can rebuild their own penalty bookkeeping
-     * (e.g. TCIENET group sums) after deserialization.
+     * (e.g. TCDIENET group sums) after deserialization.
      */
     virtual void ensureCdState();
 
@@ -545,7 +566,7 @@ protected:
      * @brief Apply lambda2 * K * (delta e_j) to the maintained penalty state.
      * Matrix-passing core: updates l2kb_ (O(1) for NONE/DIAGONAL,
      * O(nnz(K col j)) for SPARSE). Virtual: specialized descendants maintain
-     * their own compressed state (TCIENET group mode: one group-sum scalar, O(1)).
+     * their own compressed state (TCDIENET group mode: one group-sum scalar, O(1)).
      */
     virtual void penaltyRankUpdate(std::size_t j, double delta);
 
@@ -553,7 +574,7 @@ protected:
      * @brief Quadratic penalty gradient component [lambda2 * K * beta]_j of
      * the current coefficients. Matrix-passing core: reads the maintained
      * l2kb_ vector. Virtual: specialized descendants compute it from their
-     * compressed state (TCIENET group mode: lambda2 * sigma_m / p_m).
+     * compressed state (TCDIENET group mode: lambda2 * sigma_m / p_m).
      */
     virtual double penaltyGradient(std::size_t j) const {
         return l2kb_(static_cast<Eigen::Index>(j));
@@ -637,4 +658,4 @@ protected:
 } /* End of namespace trex::tsolvers::linear_model::cd_based */
 
 
-#endif /* End of TSOLVERS_LINEAR_MODEL_CD_BASED_TCCD_SOLVER_HPP */
+#endif /* End of TSOLVERS_LINEAR_MODEL_CD_BASED_TCDLASSO_SOLVER_HPP */

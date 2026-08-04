@@ -10,9 +10,10 @@
 target_sources(trex_tsolvers PRIVATE
     # CCD based solvers
     # -----------------------------------------------
-    ${CMAKE_CURRENT_LIST_DIR}/tccd_solver.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/tcenet_solver.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/tcienet_solver.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/tcdlasso_solver.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/tcdenet_solver.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/tcdienet_solver.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/tcdtiknet_solver.cpp
 )
 # ==============================================================================
 
@@ -26,8 +27,9 @@ target_sources(trex_tsolvers PUBLIC
     FILES
         # CCD based solvers
         # -----------------------------------------------
-        ${CMAKE_CURRENT_LIST_DIR}/tccd_solver.hpp
-        ${CMAKE_CURRENT_LIST_DIR}/tcenet_solver.hpp
-        ${CMAKE_CURRENT_LIST_DIR}/tcienet_solver.hpp
+        ${CMAKE_CURRENT_LIST_DIR}/tcdlasso_solver.hpp
+        ${CMAKE_CURRENT_LIST_DIR}/tcdenet_solver.hpp
+        ${CMAKE_CURRENT_LIST_DIR}/tcdienet_solver.hpp
+        ${CMAKE_CURRENT_LIST_DIR}/tcdtiknet_solver.hpp
 )
 # ==============================================================================
