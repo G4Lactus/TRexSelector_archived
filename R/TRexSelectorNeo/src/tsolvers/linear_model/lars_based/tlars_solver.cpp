@@ -385,10 +385,14 @@ double TLARS_Solver::computeGammaSignChange(
 
 
 void TLARS_Solver::processLassoDrops(std::vector<bool>& drops) {
+    // Track this call's drops for the recovery-step candidate exclusion
+    last_dropped_vars_.clear();
+
     // Process drops in reverse order to maintain index stability
     for (std::size_t i = actives_.size(); i-- > 0;) {
         if (!drops[i]) { continue; }
         std::size_t dropped_var = actives_[i];
+        last_dropped_vars_.push_back(dropped_var);
 
         // Track if dropping a dummy
         if (dropped_var >= dummy_start_idx_ && count_active_dummies_ > 0) {
@@ -415,6 +419,31 @@ void TLARS_Solver::processLassoDrops(std::vector<bool>& drops) {
         Sign_.erase(Sign_.begin() + static_cast<Eigen::Index>(i));
         num_removals_++;
     }
+}
+
+
+double TLARS_Solver::capGammaByExcluded(
+    double gamma, double Cmax,
+    const std::vector<std::pair<double, double>>& ac,
+    double floor_rel) const {
+
+    const double floor = floor_rel * (Cmax / A_A_);
+    for (const auto& [a_v, c_v] : ac) {
+        // Same linear roots as computeStepSize; keep the smallest root
+        // above the relative floor -- the gamma ~ 0 root is the excluded
+        // variable's own fp-noise crossing at the breakpoint it just left.
+        const double denom1 = A_A_ - a_v;
+        const double denom2 = A_A_ + a_v;
+        if (std::abs(denom1) > eps_) {
+            const double g1 = (Cmax - c_v) / denom1;
+            if (g1 > floor && fpc::isfinite(g1) && g1 < gamma) { gamma = g1; }
+        }
+        if (std::abs(denom2) > eps_) {
+            const double g2 = (Cmax + c_v) / denom2;
+            if (g2 > floor && fpc::isfinite(g2) && g2 < gamma) { gamma = g2; }
+        }
+    }
+    return gamma;
 }
 
 

@@ -165,12 +165,38 @@ void TIENET_Solver::executeStep(std::size_t T_stop, bool early_stop) {
             lambda_.push_back(Cmax_active);
             actions_.emplace_back();  // no ADD; cascading drops append
 
+            // Exclude the just-dropped variables from candidacy for THIS
+            // step (see last_dropped_vars_); re-added with an exact
+            // correlation refresh after the move.
+            std::vector<std::size_t> excluded;
+            for (std::size_t v : last_dropped_vars_) {
+                auto it = std::find(inactives_.begin(), inactives_.end(), v);
+                if (it != inactives_.end()) {
+                    excluded.push_back(v);
+                    inactives_.erase(it);
+                }
+            }
+
             Eigen::VectorXd sign_vec = signVector();
             Eigen::VectorXd w_A = equiangularDirection(sign_vec);
             Eigen::VectorXd u = equiangularVector(w_A);
             computeGroupDirSums(w_A);
 
             auto [gamma_entry, a] = computeStepSizeIEN(Cmax_active, u);
+
+            // The excluded variables cannot be ADDED this step, but they
+            // still BOUND it (genuine mid-step catch-up on near-tie data)
+            std::vector<std::pair<double, double>> excluded_ac;
+            for (std::size_t v : excluded) {
+                const int g_v = group_of_unified_[v];
+                excluded_ac.emplace_back(
+                    getColumn(v).dot(u) +
+                        l2_over_pm_(g_v) * group_dir_sums_(g_v),
+                    correlations_(static_cast<Eigen::Index>(v)));
+            }
+            gamma_entry = capGammaByExcluded(gamma_entry, Cmax_active,
+                                             excluded_ac);
+
             std::vector<bool> drops(actives_.size(), false);
             double gamma = computeGammaSignChange(gamma_entry, drops, w_A);
 
@@ -179,6 +205,13 @@ void TIENET_Solver::executeStep(std::size_t T_stop, bool early_stop) {
             group_sums_ += gamma * group_dir_sums_;
 
             updateCorrelationsIEN(gamma, a);
+
+            // Re-admit the excluded variables with EXACT correlations
+            for (std::size_t v : excluded) {
+                inactives_.push_back(v);
+                refreshDroppedCorrelation(v);
+            }
+
             const std::size_t removals_before = num_removals_;
             processLassoDrops(drops);
             recordBetaStep();

@@ -11,6 +11,7 @@
 // ============================================================================
 
 // std includes
+#include <algorithm>
 #include <fstream>
 #include <stdexcept>
 
@@ -74,17 +75,46 @@ void TLASSO_Solver::executeStep(std::size_t T_stop, bool early_stop) {
             // below appends its negative action to this list.
             actions_.emplace_back();
 
+            // Exclude the just-dropped variables from candidacy for THIS
+            // step (see last_dropped_vars_); re-added with an exact
+            // correlation refresh after the move.
+            std::vector<std::size_t> excluded;
+            for (std::size_t v : last_dropped_vars_) {
+                auto it = std::find(inactives_.begin(), inactives_.end(), v);
+                if (it != inactives_.end()) {
+                    excluded.push_back(v);
+                    inactives_.erase(it);
+                }
+            }
+
             Eigen::VectorXd sign_vec = signVector();
             Eigen::VectorXd w_A = equiangularDirection(sign_vec);
             Eigen::VectorXd u = equiangularVector(w_A);
 
             auto [gamma_entry, a] = computeStepSize(Cmax_active, u);
+
+            // The excluded variables cannot be ADDED this step, but they
+            // still BOUND it (genuine mid-step catch-up on near-tie data)
+            std::vector<std::pair<double, double>> excluded_ac;
+            for (std::size_t v : excluded) {
+                excluded_ac.emplace_back(
+                    getColumn(v).dot(u),
+                    correlations_(static_cast<Eigen::Index>(v)));
+            }
+            gamma_entry = capGammaByExcluded(gamma_entry, Cmax_active,
+                                             excluded_ac);
             std::vector<bool> drops(actives_.size(), false);
             double gamma = computeGammaSignChange(gamma_entry, drops, w_A);
 
             updateBetaPath(w_A, gamma);
             r_ -= gamma * u;
             updateCorrelations(gamma, a);
+
+            // Re-admit the excluded variables with EXACT correlations
+            for (std::size_t v : excluded) {
+                inactives_.push_back(v);
+                refreshDroppedCorrelation(v);
+            }
 
             const std::size_t removals_before = num_removals_;
             processLassoDrops(drops);

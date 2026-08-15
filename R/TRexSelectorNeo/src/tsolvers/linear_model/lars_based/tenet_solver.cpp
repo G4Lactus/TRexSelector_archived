@@ -127,13 +127,38 @@ void TENET_Solver::executeStep(std::size_t T_stop, bool early_stop) {
             currentStep_++;
             actions_.emplace_back();  // no ADD; cascading drops append
 
+            // Exclude the just-dropped variables from candidacy for THIS
+            // step (see last_dropped_vars_); re-added with an exact
+            // correlation refresh after the move.
+            std::vector<std::size_t> excluded;
+            for (std::size_t v : last_dropped_vars_) {
+                auto it = std::find(inactives_.begin(), inactives_.end(), v);
+                if (it != inactives_.end()) {
+                    excluded.push_back(v);
+                    inactives_.erase(it);
+                }
+            }
+
             Eigen::VectorXd sign_vec = signVector();
             Eigen::VectorXd w_A = equiangularDirection(sign_vec);
             Eigen::VectorXd u1 = equiangularVectorU1(w_A);
             Eigen::VectorXd u2 = equiangularVectorU2(w_A);
 
-            std::vector<bool> drops(actives_.size(), false);
             double gamma_entry = computeStepSizeEN(Cmax_active, u1, u2);
+
+            // The excluded variables cannot be ADDED this step, but they
+            // still BOUND it (genuine mid-step catch-up on near-tie data)
+            std::vector<std::pair<double, double>> excluded_ac;
+            for (std::size_t v : excluded) {
+                const Eigen::Index vi = static_cast<Eigen::Index>(v);
+                excluded_ac.emplace_back(
+                    d2_ * (getColumn(v).dot(u1) + d1_ * u2(vi)),
+                    correlations_(vi));
+            }
+            gamma_entry = capGammaByExcluded(gamma_entry, Cmax_active,
+                                             excluded_ac);
+
+            std::vector<bool> drops(actives_.size(), false);
             double gamma = computeGammaSignChange(gamma_entry, drops, w_A);
 
             updateBetaPath(w_A, gamma);
@@ -152,6 +177,10 @@ void TENET_Solver::executeStep(std::size_t T_stop, bool early_stop) {
                 l1norm_ += std::abs(runningBeta(j));
             }
             l1norm_ /= d2_;
+
+            // Re-admit the excluded variables; the full EN recompute
+            // below refreshes their correlations exactly.
+            for (std::size_t v : excluded) { inactives_.push_back(v); }
 
             updateCorrelationsENET();
             const std::size_t removals_before = num_removals_;

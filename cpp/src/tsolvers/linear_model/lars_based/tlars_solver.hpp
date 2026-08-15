@@ -24,6 +24,7 @@
 
 // std includes
 #include <string>
+#include <utility>
 #include <vector>
 
 // Eigen includes
@@ -107,6 +108,15 @@ protected:
      *  Stays false in plain T-LARS (no drops). Serialized so warm starts
      *  resume correctly. */
     bool drop_recovery_pending_{false};
+
+    /** @brief Variables dropped by the MOST RECENT processLassoDrops call.
+     *  The following recovery step excludes them from candidacy: a dropped
+     *  variable cannot catch up at the very breakpoint it left (its
+     *  correlation falls strictly below the active level along the reduced
+     *  direction -- Efron's lemma); only a scale-DEPENDENT fp-noise root of
+     *  the step-size computation says otherwise. Genuine re-entry happens
+     *  at a later breakpoint. Serialized for warm-start correctness. */
+    std::vector<std::size_t> last_dropped_vars_{};
 
     /** @brief Protected constructor for inheritance. */
     explicit TLARS_Solver(SolverTypeLarsBased type);
@@ -278,7 +288,8 @@ public:
             CEREAL_NVP(Sign_),
             CEREAL_NVP(kahan_refresh_interval_),
             CEREAL_NVP(num_removals_),
-            CEREAL_NVP(drop_recovery_pending_)
+            CEREAL_NVP(drop_recovery_pending_),
+            CEREAL_NVP(last_dropped_vars_)
         );
         algo_type_ = static_cast<SolverTypeLarsBased>(algo_type);
     }
@@ -437,6 +448,27 @@ protected:
      * Kahan-compensation reset. Penalized descendants (T-ENET) override with
      * their augmented formula.
      */
+    /**
+     * @brief Cap a recovery-step gamma at the earliest GENUINE catch-up of
+     * the excluded (just-dropped) variables. They cannot be ADDED during
+     * the recovery step, but they still BOUND it: on near-tie data a
+     * dropped variable can genuinely overtake the decaying active level
+     * mid-step, and overshooting past that point makes the next entry
+     * lambda jump upward (non-monotone path). Roots below
+     * floor_rel * (Cmax / A_A) are the scale-invariant fp-noise band of
+     * the just-dropped variable's gamma = 0 crossing and are ignored.
+     *
+     * @param gamma Step size from the (excluded-free) entry computation.
+     * @param Cmax Current active correlation level.
+     * @param ac Per-excluded-variable (a_v, c_v) pairs in the solver's
+     *           modified-correlation convention.
+     * @param floor_rel Relative root floor (default 1e-6).
+     */
+    double capGammaByExcluded(
+        double gamma, double Cmax,
+        const std::vector<std::pair<double, double>>& ac,
+        double floor_rel = 1e-6) const;
+
     virtual void refreshDroppedCorrelation(std::size_t dropped_var);
 };
 
