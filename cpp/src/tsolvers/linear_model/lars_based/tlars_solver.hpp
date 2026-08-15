@@ -96,6 +96,18 @@ protected:
      *  maintained by cycling descendants (T-LASSO, T-ENET, T-Stagewise). */
     std::size_t num_removals_{0};
 
+    /** @brief Pending drop-recovery step (FIX 2026-08-15), shared by the
+     *  cycling descendants (T-LASSO, T-ENET, T-IENET): set when the previous
+     *  step ended in a LASSO-style drop. The next executeStep iteration then
+     *  adds NO variable and moves along the REDUCED active set until an
+     *  inactive genuinely catches up -- the R-lars / CRAN-tlars
+     *  drop-breakpoint semantics. Without it, the just-dropped variable
+     *  (still exactly at the equicorrelation level) was re-added immediately
+     *  and its coefficient rode a non-lasso branch (sign(beta) != sign(c)).
+     *  Stays false in plain T-LARS (no drops). Serialized so warm starts
+     *  resume correctly. */
+    bool drop_recovery_pending_{false};
+
     /** @brief Protected constructor for inheritance. */
     explicit TLARS_Solver(SolverTypeLarsBased type);
 
@@ -265,7 +277,8 @@ public:
             CEREAL_NVP(A_A_),
             CEREAL_NVP(Sign_),
             CEREAL_NVP(kahan_refresh_interval_),
-            CEREAL_NVP(num_removals_)
+            CEREAL_NVP(num_removals_),
+            CEREAL_NVP(drop_recovery_pending_)
         );
         algo_type_ = static_cast<SolverTypeLarsBased>(algo_type);
     }

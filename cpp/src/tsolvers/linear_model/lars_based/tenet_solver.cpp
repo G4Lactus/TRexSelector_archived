@@ -98,6 +98,75 @@ void TENET_Solver::executeStep(std::size_t T_stop, bool early_stop) {
     ) {
 
         // ========================================================
+        // STEP 0: Drop-recovery step (R-lars drop-breakpoint
+        // semantics, FIX 2026-08-15; see TLASSO_Solver::executeStep).
+        // The previous step ended in a drop, so NO variable joins:
+        // the path moves along the REDUCED active set with the
+        // EN-modified correlation level until an inactive genuinely
+        // catches up.
+        // ========================================================
+        if (drop_recovery_pending_ && !actives_.empty()) {
+            drop_recovery_pending_ = false;
+
+            // EN-modified correlation level of the reduced active set
+            const Eigen::Index n_obs = static_cast<Eigen::Index>(y_.size());
+            double Cmax_active = 0.0;
+            for (std::size_t a_idx : actives_) {
+                const double corr_obs =
+                    getColumn(a_idx).dot(r_.head(n_obs));
+                const double corr_pen =
+                    d1_ * r_(n_obs + static_cast<Eigen::Index>(a_idx));
+                Cmax_active = std::max(
+                    Cmax_active, std::abs((corr_obs + corr_pen) * d2_));
+            }
+            if (Cmax_active < 100 * eps_) {
+                logInfo("Active |corr| approx 0 after drop; exiting.");
+                break;
+            }
+
+            currentStep_++;
+            actions_.emplace_back();  // no ADD; cascading drops append
+
+            Eigen::VectorXd sign_vec = signVector();
+            Eigen::VectorXd w_A = equiangularDirection(sign_vec);
+            Eigen::VectorXd u1 = equiangularVectorU1(w_A);
+            Eigen::VectorXd u2 = equiangularVectorU2(w_A);
+
+            std::vector<bool> drops(actives_.size(), false);
+            double gamma_entry = computeStepSizeEN(Cmax_active, u1, u2);
+            double gamma = computeGammaSignChange(gamma_entry, drops, w_A);
+
+            updateBetaPath(w_A, gamma);
+            r_.head(u1.size()) -= gamma * u1;
+            r_.tail(u2.size()) -= gamma * u2;
+
+            double next_lambda = lambda_.back() - std::abs(gamma * A_A_);
+            lambda_.push_back(std::max(0.0, next_lambda));
+
+            double rss_rec = r_.head(y_.size()).dot(r_.head(y_.size()));
+            RSS_.push_back(rss_rec);
+            R2_.push_back(1.0 - rss_rec / RSS_[0]);
+
+            l1norm_ = 0.0;
+            for (std::size_t j : actives_) {
+                l1norm_ += std::abs(runningBeta(j));
+            }
+            l1norm_ /= d2_;
+
+            updateCorrelationsENET();
+            const std::size_t removals_before = num_removals_;
+            processLassoDrops(drops);
+            recordBetaStep();
+            drop_recovery_pending_ = (num_removals_ > removals_before);
+
+            updateDummyTracking();
+            DoF_.push_back(actives_.size() + (intercept_ ? 1 : 0));
+            updateInactiveSet();
+            continue;
+        }
+        drop_recovery_pending_ = false;  // actives emptied: fall through
+
+        // ========================================================
         // STEP 1: Extract correlations for inactives
         // ========================================================
 
@@ -201,10 +270,14 @@ void TENET_Solver::executeStep(std::size_t T_stop, bool early_stop) {
         // STEP 9: Handle LASSO drops
         // ========================================================
         updateCorrelationsENET();
+        const std::size_t removals_before = num_removals_;
         processLassoDrops(drops);
         // Record after the drops so this step's snapshot has the dropped
         // coefficients at exactly zero (absent from the support).
         recordBetaStep();
+        // A drop ends the breakpoint: the NEXT iteration is a recovery
+        // step along the reduced active set (no addition; see STEP 0).
+        drop_recovery_pending_ = (num_removals_ > removals_before);
 
         // T-ENET: Record dummy count and DoF after all adds/removes
         updateDummyTracking();

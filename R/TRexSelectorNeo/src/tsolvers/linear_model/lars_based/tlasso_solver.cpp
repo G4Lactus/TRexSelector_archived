@@ -39,6 +39,69 @@ void TLASSO_Solver::executeStep(std::size_t T_stop, bool early_stop) {
            (!early_stop || T_stop == 0 || count_active_dummies_ < T_stop)) {
 
         // ========================================================
+        // STEP 0: Drop-recovery step (R-lars drop-breakpoint
+        // semantics, FIX 2026-08-15). The previous step ended in a
+        // LASSO drop, so NO variable joins here: the path moves along
+        // the REDUCED active set until an inactive genuinely catches
+        // up. Without this step the just-dropped variable — whose
+        // correlation is still exactly at the equicorrelation level —
+        // is re-added immediately and its coefficient rides a
+        // non-lasso branch (sign(beta) != sign(c) for many steps; the
+        // instant zero crossing z = 0 is filtered by z > eps). CRAN
+        // tlars records the drop as its own step and moves without an
+        // addition; this branch restores that path column-for-column
+        // (the drop action itself stays attached to the truncating
+        // step, so the FLATTENED action stream matches CRAN's).
+        // ========================================================
+        if (drop_recovery_pending_ && !actives_.empty()) {
+            drop_recovery_pending_ = false;
+
+            // Correlation level of the reduced active set (all members
+            // share it up to fp noise; the max is the robust choice).
+            double Cmax_active = 0.0;
+            for (std::size_t a_idx : actives_) {
+                Cmax_active = std::max(
+                    Cmax_active, std::abs(getColumn(a_idx).dot(r_)));
+            }
+            if (Cmax_active < 100 * eps_) {
+                logInfo("Active |corr| approx 0 after drop; exiting.");
+                break;
+            }
+
+            currentStep_++;
+            lambda_.push_back(Cmax_active);
+            // The recovery step emits no ADD action; a cascading drop
+            // below appends its negative action to this list.
+            actions_.emplace_back();
+
+            Eigen::VectorXd sign_vec = signVector();
+            Eigen::VectorXd w_A = equiangularDirection(sign_vec);
+            Eigen::VectorXd u = equiangularVector(w_A);
+
+            auto [gamma_entry, a] = computeStepSize(Cmax_active, u);
+            std::vector<bool> drops(actives_.size(), false);
+            double gamma = computeGammaSignChange(gamma_entry, drops, w_A);
+
+            updateBetaPath(w_A, gamma);
+            r_ -= gamma * u;
+            updateCorrelations(gamma, a);
+
+            const std::size_t removals_before = num_removals_;
+            processLassoDrops(drops);
+            recordBetaStep();
+            drop_recovery_pending_ = (num_removals_ > removals_before);
+
+            double rss_rec = r_.dot(r_);
+            RSS_.push_back(rss_rec);
+            R2_.push_back(1.0 - rss_rec / RSS_[0]);
+            updateDummyTracking();
+            DoF_.push_back(actives_.size() + (intercept_ ? 1 : 0));
+            updateInactiveSet();
+            continue;
+        }
+        drop_recovery_pending_ = false;  // actives emptied: fall through
+
+        // ========================================================
         // STEP 1: Find maximum correlation
         // ========================================================
         auto [Cmax, new_vars] = findTiedMaxCorrelations();
@@ -104,10 +167,14 @@ void TLASSO_Solver::executeStep(std::size_t T_stop, bool early_stop) {
         // ========================================================
         // STEP 9: T-LASSO drops and update inactives internally
         // ========================================================
+        const std::size_t removals_before = num_removals_;
         processLassoDrops(drops);
         // Record after the drops so this step's snapshot has the dropped
         // coefficients at exactly zero (absent from the support).
         recordBetaStep();
+        // A drop ends the breakpoint: the NEXT iteration is a recovery
+        // step along the reduced active set (no addition; see STEP 0).
+        drop_recovery_pending_ = (num_removals_ > removals_before);
 
         // ========================================================
         // STEP 10: Update diagnostics and tracking

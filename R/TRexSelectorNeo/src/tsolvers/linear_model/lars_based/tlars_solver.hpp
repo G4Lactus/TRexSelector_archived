@@ -51,12 +51,13 @@ namespace trex::tsolvers::linear_model::lars_based {
  * Used for algorithm selection, configuration, and logging/reporting.
  */
 enum class SolverTypeLarsBased: int {
-    TLARS = 0,      // Terminating Least Angle Regression (T-LARS)
-    TLASSO = 1,     // T-LARS/LASSO with variable removal
-    TSTEPWISE = 2,  // T-Stepwise selection (forward stepwise without variable removal)
-    TENET = 3,      // T-Elastic Net (L1 + L2) regularization
-    TIENET = 4,      // T-Informed Elastic Net
-    TSTAGEWISE = 5  // T-Stagewise regression
+    TLARS      = 0,       // Terminating Least Angle Regression (T-LARS)
+    TLASSO     = 1,       // T-LARS/LASSO with variable removal
+    TSTEPWISE  = 2,       // T-Stepwise selection (forward stepwise without variable removal)
+    TENET      = 3,       // T-Elastic Net (L1 + L2) regularization
+    TIENET     = 4,       // T-Informed Elastic Net
+    TSTAGEWISE = 5,       // T-Stagewise regression
+    TIKNET     = 6        // T-Tikhonov Net (general sparse-K quadratic penalty)
 };
 
 
@@ -94,6 +95,18 @@ protected:
     /** @brief Monotonic counter of variable removals. Stays 0 in plain T-LARS;
      *  maintained by cycling descendants (T-LASSO, T-ENET, T-Stagewise). */
     std::size_t num_removals_{0};
+
+    /** @brief Pending drop-recovery step (FIX 2026-08-15), shared by the
+     *  cycling descendants (T-LASSO, T-ENET, T-IENET): set when the previous
+     *  step ended in a LASSO-style drop. The next executeStep iteration then
+     *  adds NO variable and moves along the REDUCED active set until an
+     *  inactive genuinely catches up -- the R-lars / CRAN-tlars
+     *  drop-breakpoint semantics. Without it, the just-dropped variable
+     *  (still exactly at the equicorrelation level) was re-added immediately
+     *  and its coefficient rode a non-lasso branch (sign(beta) != sign(c)).
+     *  Stays false in plain T-LARS (no drops). Serialized so warm starts
+     *  resume correctly. */
+    bool drop_recovery_pending_{false};
 
     /** @brief Protected constructor for inheritance. */
     explicit TLARS_Solver(SolverTypeLarsBased type);
@@ -190,6 +203,7 @@ public:
             case SolverTypeLarsBased::TLASSO:      return "TLASSO";
             case SolverTypeLarsBased::TSTEPWISE:   return "TSTEPWISE";
             case SolverTypeLarsBased::TSTAGEWISE:  return "TSTAGEWISE";
+            case SolverTypeLarsBased::TIKNET:      return "TIKNET";
             default:                               return "UnknownSolver";
         }
     }
@@ -263,7 +277,8 @@ public:
             CEREAL_NVP(A_A_),
             CEREAL_NVP(Sign_),
             CEREAL_NVP(kahan_refresh_interval_),
-            CEREAL_NVP(num_removals_)
+            CEREAL_NVP(num_removals_),
+            CEREAL_NVP(drop_recovery_pending_)
         );
         algo_type_ = static_cast<SolverTypeLarsBased>(algo_type);
     }

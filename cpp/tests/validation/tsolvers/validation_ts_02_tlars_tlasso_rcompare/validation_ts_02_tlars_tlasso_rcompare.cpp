@@ -118,11 +118,12 @@ static std::vector<int> read_actions(const std::filesystem::path& path)
 // Solver-action -> R format (signed, 1-based)
 // ============================================================================
 /**
- * @brief Flatten getActions() into R's signed-1-based convention.
- *  C++ records 0-based combined indices: added var j -> +j, dropped var j -> -j.
- *  R records 1-based: added -> +(j+1), dropped -> -(j+1).  Mapping a>=0 -> a+1,
- *  a<0 -> a-1.  (A "drop of variable 0" encoded as -0 == 0 does not occur here:
- *  index 0 is a strong predictor and is never dropped.)
+ * @brief Flatten getActions() into a single signed action stream.
+ *  FIX 2026-08-15: the tsolvers actions are ALREADY R's signed-1-based
+ *  convention (TSolver_Base::actionAdd(j) = +(j+1), actionDrop(j) =
+ *  -(j+1)); the previous +1/-1 remap here double-shifted every index and
+ *  made the action comparison report DIFFER even for paths matching at
+ *  1e-13. Pass through verbatim.
  */
 static std::vector<int> flatten_actions_to_r(
     const std::vector<std::vector<int>>& actions)
@@ -130,7 +131,7 @@ static std::vector<int> flatten_actions_to_r(
     std::vector<int> out;
     for (const auto& step : actions)
         for (int a : step)
-            out.push_back(a >= 0 ? a + 1 : a - 1);
+            out.push_back(a);
     return out;
 }
 
@@ -341,18 +342,22 @@ int main(int argc, char** argv)
               << "   EN ridge-damped tie tol = " << EN_TIE_TOL << "\n\n";
 
     std::cout <<
-        "  Interpretation:\n"
+        "  Interpretation (post drop-recovery FIX 2026-08-15):\n"
         "   * TLARS matches CRAN to machine precision throughout the full-rank\n"
         "     region (steps < n); p+L>n means the path tail is non-unique\n"
         "     (null-space extrapolation), so it is excluded from the gate.\n"
-        "   * TLASSO forks on strongly collinear columns because sign-change\n"
-        "     DROP timing is tie-fragile (R itself wanders to 100-270 steps);\n"
-        "     both produce valid -- but different -- lasso paths. Not gated.\n"
-        "   * TENET and TENET_AUG reproduce CRAN's augmented elastic-net path\n"
-        "     to machine precision on most datasets; the ridge damps the few\n"
-        "     remaining tie-forks to <= " ;
-    std::cout << EN_TIE_TOL << ". The two C++ EN solvers are\n"
-        "     identical to each other on every dataset.\n\n";
+        "   * TLASSO matches CRAN to machine precision: a drop now ends the\n"
+        "     breakpoint and the next step moves along the REDUCED active set\n"
+        "     (drop-recovery semantics; previously the just-dropped variable\n"
+        "     was re-added immediately and forked onto a non-lasso branch).\n"
+        "     Residual action-stream DIFFERs stem from collinearity-rejection\n"
+        "     actions the C++ stream records and CRAN does not. Not gated.\n"
+        "   * TENET, TENET_AUG (and the native TIENET sharing the same\n"
+        "     recovery machinery) reproduce CRAN's augmented elastic-net path\n"
+        "     to machine precision; the ridge-damped tie tolerance <= ";
+    std::cout << EN_TIE_TOL << "\n"
+        "     remains as a safety margin. The C++ EN solvers are identical\n"
+        "     to each other on every dataset.\n\n";
 
     // Regression gate: the solvers actually used by the SPCA/GVS pipeline are
     // the elastic-net ones (lambda2>0).  Gate on EN agreement (ridge-damped)
