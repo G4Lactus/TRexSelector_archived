@@ -194,6 +194,16 @@ public:
         }
 
 
+        // Dimensional regime: with round-robin folds the largest test fold is
+        // ceil(n / n_folds), so the smallest training fold is what decides
+        // whether the lambda -> 0 end interpolates. See interpolates().
+        {
+            const Eigen::Index n_test_max =
+                (n + static_cast<Eigen::Index>(n_folds) - 1) /
+                static_cast<Eigen::Index>(n_folds);
+            interpolates_ = (p >= n - n_test_max);
+        }
+
         // ---- Per-fold: preprocess → SVD → predict_path → MSE -----------------
         // fold_mse(k, f) = MSE of fold f at lambda k
         Eigen::MatrixXd fold_mse(K, n_folds);
@@ -407,6 +417,35 @@ public:
     /** @brief Index of the largest lambda within one SE of the minimum. */
     Eigen::Index index_1se() const noexcept { return idx_1se_; }
 
+    /** @brief True when the ridge fit INTERPOLATES its training folds in the
+     *         lambda -> 0 limit, i.e. p >= the smallest training-fold size.
+     *
+     * @details The dimensional checker of this family. For p >= n_train the
+     *  lambda -> 0 end of the grid tends to the minimum-norm interpolator of
+     *  the training fold rather than to an ordinary least-squares fit, so the
+     *  low-lambda end of the CV curve is an interpolation regime. That is NOT
+     *  an error and the curve still has a genuine interior minimum (unlike
+     *  `tikhonov_cv_svd::contrast_interpolates()`, where the curve goes flat
+     *  and any pick is floor-driven) — but combined with
+     *  `selection_at_grid_edge()` it tells you whether `cv_min()` is a real
+     *  minimum or the grid simply running out.
+     *
+     *  Measured (2026-08-05) on both regimes of the T-Rex demo designs, the
+     *  picks are comfortably interior — idx_min 558/1000 at n=150,p=100 and
+     *  179/1000 at n=200,p=500 — so no grid retuning was warranted. This
+     *  accessor exists to make that verifiable per run rather than assumed. */
+    bool interpolates() const noexcept { return interpolates_; }
+
+    /** @brief True when `cv_min()` or `cv_1se()` landed on the FIRST or LAST
+     *         grid point — the pick is then the grid boundary, not an
+     *         optimum, and `lambda_ratio` / `n_lambda` need widening. */
+    bool selection_at_grid_edge() const noexcept {
+        const Eigen::Index K = lambdas_.size();
+        if (K == 0) { return false; }
+        return idx_min_ == 0 || idx_min_ == K - 1 ||
+               idx_1se_ == 0 || idx_1se_ == K - 1;
+    }
+
 
 private:
 
@@ -441,6 +480,7 @@ private:
 
     /** @brief Index of the largest lambda within one SE of the minimum. */
     Eigen::Index idx_1se_ = 0;
+    bool         interpolates_ = false;
 };
 
 // ===================================================================================

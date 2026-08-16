@@ -12,7 +12,7 @@
  *        implemented analytically via per-fold SVDs.  Companion of
  *        `ridge_cv_svd` for the Informed Elastic Net geometry: the selected
  *        lambda2 is on the solver scale and is consumable AS-IS by the
- *        `TIENET_Solver` / `TCIENET_Solver` constructors (no p/2 conversion).
+ *        `TIENET_Solver` / `TCDIENET_Solver` constructors (no p/2 conversion).
  *
  * @details
  *   **Estimator.**  For a PSD penalty matrix K (p x p) the per-fold model is
@@ -28,7 +28,7 @@
  *   penalty leaves free, leaving the K-penalized directions untouched.
  *
  *   **Specializations.**
- *   - Group mode (TIENET / T-CIENET): `fit(X, y, groups, ...)` uses the IEN
+ *   - Group mode (TIENET / T-CDIENET): `fit(X, y, groups, ...)` uses the IEN
  *     group-mean penalty W = sum_m 1_m 1_m^T / p_m.  W is the orthogonal
  *     projector onto span{ 1_m / sqrt(p_m) }, so its eigenstructure is known
  *     in closed form: the penalized block is spanned by the M normalized
@@ -181,7 +181,7 @@ public:
     const Eigen::VectorXd& cv_sem() const noexcept { return cv_sem_; }
 
     /** @brief Lambda2 minimising the mean CV-MSE (`lambda.min`), directly
-     *         consumable by TIENET_Solver / TCIENET_Solver. */
+     *         consumable by TIENET_Solver / TCDIENET_Solver. */
     double cv_min() const { check_fitted(); return lambdas_(idx_min_); }
 
     /** @brief Largest lambda2 within one SE of the CV-min (`lambda.1se`). */
@@ -192,6 +192,22 @@ public:
 
     /** @brief Index of the largest lambda2 within one SE of the minimum. */
     Eigen::Index index_1se() const noexcept { return idx_1se_; }
+
+    /** @brief True when `cv_min()` or `cv_1se()` landed on the FIRST or LAST
+     *         grid point — the pick is the grid boundary, not an optimum.
+     *
+     * @details Complements `contrast_interpolates()`, which reports the
+     *  DIMENSIONAL failure (p - M >= n_train: the curve goes flat and any
+     *  pick is floor-driven). This one reports the GRID failure, which can
+     *  occur independently of it. Reading both: interpolating AND at-edge is
+     *  the degenerate case where the answer is meaningless and
+     *  `ienet_cv_ccd` should be used instead. */
+    bool selection_at_grid_edge() const noexcept {
+        const Eigen::Index K = lambdas_.size();
+        if (K == 0) { return false; }
+        return idx_min_ == 0 || idx_min_ == K - 1 ||
+               idx_1se_ == 0 || idx_1se_ == K - 1;
+    }
 
     /** @brief Null-space floor actually used (after auto-selection). */
     double epsilon() const noexcept { return epsilon_used_; }

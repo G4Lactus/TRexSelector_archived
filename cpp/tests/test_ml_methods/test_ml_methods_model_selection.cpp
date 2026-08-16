@@ -621,6 +621,57 @@ TEST(IenGaussianTest, GroupMatchesSparseW) {
     EXPECT_TRUE(grp.intercepts().isApprox(spk.intercepts(), 1e-8));
 }
 
+/** @brief The glmnet-style `dfmax` support cap truncates the path at the
+ *  first point whose support exceeds the cap, leaves the fitted prefix
+ *  bit-identical to the uncapped fit, and constant-extends the remainder. */
+TEST(IenGaussianTest, DfmaxCapTruncatesPathWithoutChangingThePrefix) {
+    const Eigen::Index n = 40, p = 120;          // p > n: support saturates
+    Eigen::MatrixXd X = random_matrix(n, p, 61);
+    Eigen::VectorXd y = 2.0 * X.col(0) - X.col(3) + 0.5 * random_vector(n, 62);
+    Eigen::VectorXi groups(p);
+    for (Eigen::Index j = 0; j < p; ++j) groups(j) = static_cast<int>(j / 4);
+
+    Eigen::MatrixXd Xs = X.rowwise() - X.colwise().mean();
+    for (Eigen::Index j = 0; j < p; ++j) Xs.col(j) /= Xs.col(j).norm();
+    const Eigen::VectorXd yc = y.array() - y.mean();
+    const double c_max = (Xs.transpose() * yc).cwiseAbs().maxCoeff();
+
+    const Eigen::Index K1 = 40;
+    Eigen::VectorXd grid(K1);
+    for (Eigen::Index i = 0; i < K1; ++i)
+        grid(i) = std::exp(std::log(c_max)
+                           - std::log(1e2) * static_cast<double>(i)
+                                 / static_cast<double>(K1 - 1));
+
+    const Eigen::Index dfmax = 12;
+    ien_gaussian full, capped;
+    full.fit(X, y, 0.5, groups, grid);
+    capped.fit(X, y, 0.5, groups, grid, 100000, 1e-7, 0.0, 1.0, dfmax);
+
+    // The cap bit, and it was the cap (not a deviance rule) that stopped it.
+    const Eigen::Index len = capped.n_computed();
+    ASSERT_LT(len, K1);
+    ASSERT_GT(len, 0);
+    EXPECT_TRUE(capped.stopped_on_dfmax());
+    EXPECT_EQ(full.n_computed(), K1);
+
+    // Stop point is the FIRST path point exceeding the cap: the one before
+    // it is still within budget, the last computed one is over.
+    EXPECT_GT((capped.coef_std().col(len - 1).array() != 0.0).count(), dfmax);
+    if (len > 1)
+        EXPECT_LE((capped.coef_std().col(len - 2).array() != 0.0).count(),
+                  dfmax);
+
+    // Fitted prefix identical to the uncapped path (same iterations).
+    EXPECT_TRUE(capped.coef().leftCols(len).isApprox(
+        full.coef().leftCols(len), 0.0));
+
+    // Remainder is constant-extended with the last computed solution.
+    for (Eigen::Index l = len; l < K1; ++l)
+        EXPECT_TRUE(capped.coef().col(l).isApprox(
+            capped.coef().col(len - 1), 0.0));
+}
+
 // ==================================================================================
 // ienet_cv_ccd (2D CV with lambda1 profiled out)
 // ==================================================================================
@@ -709,6 +760,206 @@ TEST(IenetCvCcdTest, SparseKOverloadMatchesGroupMode) {
                      grp.lambda1_profile()(grp.index_min()));
     EXPECT_DOUBLE_EQ(grp.lambda1_at_1se(),
                      grp.lambda1_profile()(grp.index_1se()));
+}
+
+
+/** @brief The support cap must be a pure speed mechanism: on a p > n design
+ *  where it genuinely bites, the capped tuner has to reproduce the uncapped
+ *  tuner's picks and profiled curve.  It removes only the deep-lambda1 tail
+ *  in which nnz exceeds the fold training size — overfit territory whose
+ *  held-out MSE lies above the profiled optimum, so the row minimum cannot
+ *  live there.  `n_profile_at_edge() == 0` certifies exactly that for this
+ *  design; a nonzero count would mean the cap WAS binding on the answer. */
+TEST(IenetCvCcdTest, SupportCapPreservesPicks) {
+    const Eigen::Index n = 50, p = 150;
+    Eigen::MatrixXd X = random_matrix(n, p, 71);
+    Eigen::VectorXd y = 2.5 * X.col(0) + 1.5 * X.col(1) - X.col(9)
+                        + 0.5 * random_vector(n, 72);
+    Eigen::VectorXi groups(p);
+    for (Eigen::Index j = 0; j < p; ++j) groups(j) = static_cast<int>(j / 5);
+
+    ienet_cv_ccd capped, uncapped;
+    capped.fit(X, y, groups, 4, 6, 1e3, 25, -1.0, 7, 100000, 1e-7, 0.8);
+    uncapped.fit(X, y, groups, 4, 6, 1e3, 25, -1.0, 7, 100000, 1e-7, -1.0);
+
+    // The cap must actually have bitten, or the test proves nothing.
+    ASSERT_LT(capped.path_lengths().minCoeff(), 25);
+    EXPECT_EQ(capped.path_lengths().size(), capped.lambdas().size());
+
+    // ... and it must not have been binding on any profiled optimum.
+    EXPECT_EQ(capped.n_profile_at_edge(), 0);
+
+    // Same answer: identical picks and identical profiled curve.
+    EXPECT_EQ(capped.index_min(), uncapped.index_min());
+    EXPECT_EQ(capped.index_1se(), uncapped.index_1se());
+    EXPECT_DOUBLE_EQ(capped.cv_min(), uncapped.cv_min());
+    EXPECT_DOUBLE_EQ(capped.cv_1se(), uncapped.cv_1se());
+    EXPECT_TRUE(capped.cv_mse().isApprox(uncapped.cv_mse(), 1e-12));
+    EXPECT_TRUE(capped.lambda1_profile().isApprox(
+        uncapped.lambda1_profile(), 1e-12));
+}
+
+
+/** @brief ridge_cv_svd's dimensional checker: `interpolates()` is decided by
+ *  p vs the SMALLEST training fold, and the grid-edge checker fires only when
+ *  a pick really sits on a grid boundary. Ridge is used at alpha = 0 only, so
+ *  it has no support to saturate and needs no cap — these two accessors are
+ *  the whole dimensional surface. */
+TEST(RidgeCvSvdTest, DimensionalAndGridCheckers) {
+    // n = 60, 4 folds -> n_test_max = 15, n_train_min = 45.
+    Eigen::VectorXd y_lo, y_hi;
+    {   // p = 20 < 45: does not interpolate.
+        Eigen::MatrixXd X = random_matrix(60, 20, 121);
+        Eigen::VectorXd y = 2.0 * X.col(0) - X.col(4)
+                            + 0.5 * random_vector(60, 122);
+        ridge_cv_svd cv;
+        cv.fit(X, y, 4, 200, 1e3);
+        EXPECT_FALSE(cv.interpolates());
+        EXPECT_FALSE(cv.selection_at_grid_edge());
+    }
+    {   // p = 80 >= 45: the lambda -> 0 end interpolates the training folds.
+        Eigen::MatrixXd X = random_matrix(60, 80, 123);
+        Eigen::VectorXd y = 2.0 * X.col(0) - X.col(4)
+                            + 0.5 * random_vector(60, 124);
+        ridge_cv_svd cv;
+        cv.fit(X, y, 4, 200, 1e3);
+        EXPECT_TRUE(cv.interpolates());
+    }
+    {   // A one-point grid is by construction both ends at once.
+        Eigen::MatrixXd X = random_matrix(60, 20, 121);
+        Eigen::VectorXd y = 2.0 * X.col(0) + 0.5 * random_vector(60, 122);
+        ridge_cv_svd cv;
+        cv.fit(X, y, 4, 1, 1e3);
+        EXPECT_TRUE(cv.selection_at_grid_edge());
+    }
+}
+
+
+/** @brief enet_cv_ccd keeps glmnet's (n < p ? 1e-2 : 1e-4) rule ON PURPOSE —
+ *  the opposite of ienet_cv_ccd. Its lambda is the selection target of a 1-D
+ *  CV, not a nuisance profiled out, so the deep end is a region the answer
+ *  may legitimately occupy, and the flat 1e-2 that ienet_cv_ccd uses would be
+ *  wrong here. Pinned so the two classes do not get "harmonized".
+ *
+ *  This test ALSO pins a KNOWN DEFICIENCY that `selection_at_grid_edge()`
+ *  was added to surface (found 2026-08-05). At alpha = 0 the grid anchor is
+ *  lambda_max = max|X^T y| / (n * alpha_eff) with alpha_eff = 1e-3, i.e.
+ *  inflated ~1000x above the natural ridge scale, so glmnet's 1e-4 span
+ *  reaches only ~0.1x that scale. On this problem that is not deep enough:
+ *  the grid is NOT truncated by the deviance rules, yet cv_min pins to the
+ *  very last grid point. Widening the range moves the pick interior and
+ *  changes the answer materially (lambda_1se 0.3024 -> 0.1576, a factor
+ *  1.9). CV_1SE_CCD is the DEFAULT EN lambda_2 tuner and its output is
+ *  multiplied by p/2, so this propagates. The grid has NOT been changed —
+ *  that is a pipeline-wide decision. If it ever is, this test should start
+ *  failing at the "still pinned" assertion, which is the point. */
+TEST(EnetCvCcdTest, KeepsGlmnetLambdaRuleAndDetectsGridFloorPin) {
+    Eigen::MatrixXd X = random_matrix(60, 20, 131);          // n > p
+    Eigen::VectorXd y = 2.0 * X.col(0) - X.col(6)
+                        + 0.5 * random_vector(60, 132);
+
+    enet_cv_ccd cv;
+    cv.fit(X, y, 0.0, 4, 100);
+    const Eigen::Index K = cv.lambdas().size();
+    ASSERT_GT(K, 1);
+
+    // The glmnet rule is intact: n > p gives the DEEP 1e-4 span, untruncated.
+    ASSERT_FALSE(cv.grid_truncated());
+    EXPECT_NEAR(cv.lambdas()(K - 1) / cv.lambdas()(0), 1e-4, 1e-10);
+
+    // ... and on this problem it is still not deep enough: the checker fires,
+    // with the pick on the deep end rather than at the range ceiling.
+    EXPECT_TRUE(cv.selection_at_grid_edge());
+    EXPECT_EQ(cv.index_min(), K - 1);
+    EXPECT_NE(cv.index_min(), 0);
+
+    // Widening the range moves the pick interior and materially changes it —
+    // i.e. the flag above is a true positive, not a formality.
+    enet_cv_ccd wide;
+    wide.fit(X, y, 0.0, 4, 100, 1e-6);
+    EXPECT_FALSE(wide.selection_at_grid_edge());
+    EXPECT_LT(wide.cv_min(), cv.cv_min());
+    EXPECT_LT(wide.cv_1se(), cv.cv_1se());
+    EXPECT_GT(cv.cv_1se() / wide.cv_1se(), 1.5);
+}
+
+
+/** @brief The dimensional switcher must classify both regimes correctly and
+ *  report the cap it actually applied.
+ *
+ *  LOW-dimensional means the support cap CANNOT bind because p <= dfmax; the
+ *  path then has no adaptive truncation from it and every path length is
+ *  governed by the deviance rules alone. HIGH-dimensional is the regime the
+ *  cap was built for. This mirrors tikhonov_cv_svd::contrast_interpolates(),
+ *  which flags the opposite boundary. */
+TEST(IenetCvCcdTest, DimensionalRegimeSwitch) {
+    Eigen::VectorXi groups_lo(20), groups_hi(150);
+    for (Eigen::Index j = 0; j < 20; ++j)
+        groups_lo(j) = static_cast<int>(j / 4);
+    for (Eigen::Index j = 0; j < 150; ++j)
+        groups_hi(j) = static_cast<int>(j / 5);
+
+    // n = 60, p = 20, 4 folds -> n_train_min = 45, dfmax = 0.8*45 = 36 >= p.
+    {
+        Eigen::MatrixXd X = random_matrix(60, 20, 101);
+        Eigen::VectorXd y = 2.0 * X.col(0) - X.col(7)
+                            + 0.5 * random_vector(60, 102);
+        ienet_cv_ccd cv;
+        cv.fit(X, y, groups_lo, 4, 6, 1e3, 20, -1.0, 5);
+        EXPECT_TRUE(cv.is_low_dimensional());
+        EXPECT_EQ(cv.support_cap(), 36);
+        // Inert by construction: no path may end on the cap.
+        for (Eigen::Index k = 0; k < cv.path_lengths().size(); ++k)
+            EXPECT_LE(cv.path_lengths()(k), cv.lambda1s().size());
+    }
+
+    // n = 50, p = 150, 4 folds -> n_test_max = 13, n_train_min = 37,
+    // dfmax = floor(0.8 * 37) = 29 < p.
+    {
+        Eigen::MatrixXd X = random_matrix(50, 150, 103);
+        Eigen::VectorXd y = 2.5 * X.col(0) + X.col(3)
+                            + 0.5 * random_vector(50, 104);
+        ienet_cv_ccd cv;
+        cv.fit(X, y, groups_hi, 4, 6, 1e3, 20, -1.0, 5);
+        EXPECT_FALSE(cv.is_low_dimensional());
+        EXPECT_EQ(cv.support_cap(), 29);
+    }
+
+    // Disabling the cap classifies as low-dimensional whatever p/n is: there
+    // is then no cap that could ever bind.
+    {
+        Eigen::MatrixXd X = random_matrix(50, 150, 103);
+        Eigen::VectorXd y = 2.5 * X.col(0) + X.col(3)
+                            + 0.5 * random_vector(50, 104);
+        ienet_cv_ccd cv;
+        cv.fit(X, y, groups_hi, 4, 6, 1e3, 20, -1.0, 5, 100000, 1e-7, -1.0);
+        EXPECT_TRUE(cv.is_low_dimensional());
+        EXPECT_LT(cv.support_cap(), 0);
+    }
+}
+
+
+/** @brief The auto lambda1 range is 1e-2 in BOTH regimes — deliberately not
+ *  glmnet's (n < p ? 1e-2 : 1e-4). Pinning it here so the departure is not
+ *  silently "corrected" back to the glmnet rule later: with lambda1 profiled
+ *  out, the deep tail costs grid resolution in a region the CV profile never
+ *  selects (measured on the scenario-A shape: the deep range made the answer
+ *  WORSE at fixed grid size, not just slower). */
+TEST(IenetCvCcdTest, AutoLambda1RangeIsRegimeIndependent) {
+    Eigen::MatrixXd X = random_matrix(60, 20, 111);   // n > p: glmnet -> 1e-4
+    Eigen::VectorXd y = 2.0 * X.col(0) - X.col(5)
+                        + 0.5 * random_vector(60, 112);
+    Eigen::VectorXi groups(20);
+    for (Eigen::Index j = 0; j < 20; ++j) groups(j) = static_cast<int>(j / 4);
+
+    ienet_cv_ccd cv_auto, cv_explicit;
+    cv_auto.fit(X, y, groups, 4, 6, 1e3, 20, -1.0, 5);
+    cv_explicit.fit(X, y, groups, 4, 6, 1e3, 20, 1e-2, 5);
+
+    ASSERT_TRUE(cv_auto.is_low_dimensional());
+    EXPECT_TRUE(cv_auto.lambda1s().isApprox(cv_explicit.lambda1s(), 1e-12));
+    const Eigen::Index last = cv_auto.lambda1s().size() - 1;
+    EXPECT_NEAR(cv_auto.lambda1s()(last) / cv_auto.lambda1s()(0), 1e-2, 1e-12);
 }
 
 

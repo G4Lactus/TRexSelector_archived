@@ -14,10 +14,11 @@
  *  Method:
  *  -------
  *  TRexTikhonovSelector runs the standard T-Rex calibration with the CCD
- *  Informed-Elastic-Net solver (TCIENET_Solver) in its general sparse-K
+ *  Tikhonov-Net solver (TCDTIKNET_Solver) in its general sparse-K
  *  mode: the quadratic penalty is (lambda_2 / 2) * beta^T K beta for a
- *  user-supplied PSD matrix K = Gamma^T Gamma (p x p). This generalizes:
- *    - K = I                     -> plain elastic net (TCENET),
+ *  user-supplied PSD matrix K = Gamma^T Gamma (p x p).
+ *  This generalizes:
+ *    - K = I                     -> plain elastic net (TCDENET),
  *    - K = sum_m 1_m 1_m^T / p_m -> the group-informed IEN penalty that
  *      TRexGVSSelector builds from a clustering (kept separate on purpose:
  *      GVS owns the cluster-aware K-experiment loop; this class runs the
@@ -27,9 +28,10 @@
  *  Dummy coupling (default FOLDED, `fold_dummy_coupling`): dummy copies
  *  join their originating variable's K-coupling — the exact generalization
  *  of GVS's layered group convention — so dummy/null exchangeability holds
- *  for arbitrary K. The INDEPENDENT_RIDGE escape (decoupled kappa_dummy = 1
- *  dummy block) preserves the K = I ≡ TCENET collapse for validation runs;
- *  under it, prefer diag(K) = 1 (see tcienet_solver.hpp).
+ *  for arbitrary K.
+ *  The INDEPENDENT_RIDGE escape (decoupled kappa_dummy = 1
+ *  dummy block) preserves the K = I ≡ TCDENET collapse for validation runs;
+ *  under it, prefer diag(K) = 1 (see tcdtiknet_solver.hpp).
  *
  *  Dummy generation:
  *  -----------------
@@ -37,11 +39,13 @@
  *  variables are partitioned into clusters (user-supplied `prior_groups`,
  *  else correlation-HAC with `corr_max` / `hc_linkage`), and dummies are
  *  drawn as per-cluster colored MVN layers via the shared machinery in
- *  trex_cluster_dummies.hpp — same seed_seq scheme, same center-only /
- *  realized-norms convention as TRexGVSSelector. An informed K encodes
- *  structure among correlated variables; i.i.d. dummies would be
- *  systematically less competitive than correlated null reals there,
- *  deforming the dummy/null exchangeability the FDR calibration relies on.
+ *  trex_cluster_dummies.hpp.
+ *  The same seed_seq scheme, same center-only / realized-norms convention
+ *  as TRexGVSSelector.
+ *  An informed K encodes structure among correlated variables;
+ *  i.i.d. dummies would be systematically less competitive than correlated
+ *  null reals there, deforming the dummy/null exchangeability the FDR
+ *  calibration relies on.
  *  `cluster_dummies = false` restores the canonical i.i.d. dummy path
  *  (validation / equivalence runs only). The model is installed into the
  *  base DummyGenerator (`setClusterModel`), whose cluster mode serves
@@ -60,8 +64,8 @@
  *  by injecting the penalty matrix into the shared solver dispatch:
  *  `buildRunnerConfig()` is overridden to set
  *  `ExperimentRunnerConfig::tikhonov_K` (forwarded to
- *  `SolverConfig::tikhonov_K`, where dispatchByType() routes TCIENET through
- *  its sparse-K constructor) and to overwrite `solver_params.lambda2` with
+ *  `SolverConfig::tikhonov_K`, where dispatchByType() routes TCDTIKNET
+ *  through its sparse-K constructor) and to overwrite `solver_params.lambda2` with
  *  the resolved penalty weight. Cluster-aware dummies enter through the
  *  DummyGenerator cluster mode (`setClusterModel()` in `onSelectBegin()`),
  *  so the base dummy hook, the ExperimentRunner, and the memory-mapped
@@ -95,6 +99,9 @@
 // Hierarchical clustering types (LinkageMethod for the dummy clustering)
 #include <ml_methods/clustering/hierarchical/agglomerative/agglomerative_types.hpp>
 
+// lambda_2 tuner health record
+#include <ml_methods/model_selection/lambda2_cv_diagnostics.hpp>
+
 // ===================================================================================
 
 // Embedded into namespace trex::trex_selector_methods::trex_tikhonov
@@ -105,6 +112,7 @@ namespace tc = trex::trex_selector_methods::trex_core;
 namespace sd = trex::trex_selector_methods::utils::solver_dispatch;
 namespace er = trex::trex_selector_methods::utils::experiment_runner;
 namespace hac = trex::ml_methods::clustering::hierarchical::agglomerative;
+namespace ms = trex::ml_methods::model_selection;
 
 
 // ===================================================================================
@@ -129,6 +137,20 @@ enum class TikLambda2Method {
 };
 
 
+/**
+ * @brief Structural form of the Tikhonov penalty (solver routing).
+ *
+ * @details SPARSE_GENERAL passes `tikhonov_K` to the solver's matrix-passing
+ *  core (O(nnz(K col)) per coordinate update). GROUP_CENTERING declares
+ *  K = blockdiag(I_{p_m} - 1_m 1_m^T / p_m) over `prior_groups` and routes
+ *  the solver through the O(1) group-centering hooks instead — the
+ *  mathematically identical fast path (FOLDED coupling by construction).
+ *  With GROUP_CENTERING, `tikhonov_K` may be left empty: the selector builds
+ *  it internally for the lambda_2 CV tuners.
+ */
+enum class TikPenaltyStructure { SPARSE_GENERAL, GROUP_CENTERING };
+
+
 // ===================================================================================
 // Control Parameters
 // ===================================================================================
@@ -138,17 +160,27 @@ enum class TikLambda2Method {
  */
 struct TRexTikhonovControlParameter {
 
+    /** @brief Structural form of the penalty (see TikPenaltyStructure).
+     *  Default SPARSE_GENERAL (matrix-passing). GROUP_CENTERING requires
+     *  non-empty `prior_groups` and routes the solver through the O(1)
+     *  group-centering hooks. */
+    TikPenaltyStructure penalty_structure = TikPenaltyStructure::SPARSE_GENERAL;
+
     /** @brief General Tikhonov matrix K = Gamma^T Gamma (p x p, sparse,
-     *  PSD). REQUIRED: an empty matrix throws at construction. Build from a
-     *  regularization operator Gamma (m x p) via
+     *  PSD). REQUIRED for SPARSE_GENERAL: an empty matrix throws at
+     *  construction. Build from a regularization operator Gamma (m x p) via
      *  `TRexTikhonovSelector::gammaToK()`. Prefer diag(K) = 1 so the real
-     *  columns carry the same ridge as the dummies (kappa_dummy = 1). */
+     *  columns carry the same ridge as the dummies (kappa_dummy = 1).
+     *  OPTIONAL for GROUP_CENTERING: when empty, the selector builds
+     *  K_GC = blockdiag(I - J/p_m) from `prior_groups` internally (the CV
+     *  tuners consume it); when supplied it must equal that structure —
+     *  the solver runs on the O(1) hooks either way. */
     Eigen::SparseMatrix<double> tikhonov_K;
 
     /** @brief User-supplied lambda_2 on the solver scale.
      *  - `< 0` (default `-1.0`): "not supplied" sentinel; triggers
      *    auto-computation via `lambda2_method`.
-     *  - `== 0`: degenerate case -> pure TCCD lasso path (no penalty).
+     *  - `== 0`: degenerate case -> pure TCDLASSO lasso path (no penalty).
      *  - `> 0` : fixed penalty weight. */
     double lambda_2 = -1.0;
 
@@ -161,23 +193,39 @@ struct TRexTikhonovControlParameter {
     int cv_n_folds = 10;
 
     /** @brief lambda_2 grid size for the CV_*_TIK_SVD analytic scan.
-     *  (CV_*_IEN_CCD scans a 2D surface and uses its class defaults,
-     *  25 x 100.) Default: 100. */
+     *  Default: 100. */
     Eigen::Index cv_n_lambda = 100;
+
+    /** @brief lambda_2 grid size for the CV_*_IEN_CCD 2D tuner. The scan is
+     *  warm-started across the lambda_2 grid with glmnet-style path
+     *  truncation decided by a full-data reference scan (cv.glmnet
+     *  grid-once semantics), so cost grows sublinearly in this value.
+     *  Default: 100 — resolution parity with the tuner's internal lambda_1
+     *  path and glmnet's nlambda. */
+    Eigen::Index cv_n_lambda2 = 100;
+
+    /** @brief Length of the internal lambda_1 path of the CV_*_IEN_CCD 2D
+     *  tuner. lambda_1 is a NUISANCE parameter there — profiled out, needed
+     *  only to keep the contrast space well-posed — so it does not need
+     *  glmnet's nlambda = 100 resolution. Cost in this value is U-shaped
+     *  (coarser steps degrade the pathwise warm starts faster than the point
+     *  count falls); 40 is the smallest length that still reproduces the
+     *  100-point grid's lambda_2 picks exactly. Default: 40. */
+    Eigen::Index cv_n_lambda1 = 40;
 
     /** @brief Seed for the deterministic CV fold-permutation RNG.
      *  - `-1` (default): derived from the T-Rex `seed` parameter.
      *  - `>= 0`: explicit fold seed; overrides `seed` for CV only. */
     int cv_seed = -1;
 
-    /** @brief Dummy-coupling mode of the sparse-K TCIENET penalty.
+    /** @brief Dummy-coupling mode of the sparse-K TCDTIKNET penalty.
      *  Default: true (FOLDED) — dummy copy t joins its originating
      *  variable (t - p) mod p in the K-coupling, the exact generalization
      *  of GVS's layered group convention; dummy/null exchangeability then
      *  holds for arbitrary K (with K = sum_m 1_m 1_m^T / p_m the solver
-     *  reproduces GVS-TCIENET bit-exactly). Set to false
+     *  reproduces GVS-TCDIENET bit-exactly). Set to false
      *  (INDEPENDENT_RIDGE: decoupled unit-ridge dummy block) ONLY for
-     *  validation / equivalence runs — it preserves the K = I ≡ TCENET
+     *  validation / equivalence runs — it preserves the K = I ≡ TCDENET
      *  collapse but deforms exchangeability whenever K has off-diagonals
      *  (conservative for positive off-diagonals such as group-mean K,
      *  anti-conservative for negative ones such as Laplacians). */
@@ -188,7 +236,7 @@ struct TRexTikhonovControlParameter {
      *  the clustering below via the DummyGenerator cluster mode — all
      *  strategies and memory mapping supported; only the PERMUTATION
      *  variants throw. Set to false ONLY for validation / equivalence runs
-     *  against the canonical i.i.d. dummy path (e.g. the K = I ≡ TCENET
+     *  against the canonical i.i.d. dummy path (e.g. the K = I ≡ TCDENET
      *  anchor test): with an informed K, i.i.d. dummies deform the
      *  dummy/null exchangeability the FDR calibration relies on. */
     bool cluster_dummies = true;
@@ -211,13 +259,19 @@ struct TRexTikhonovControlParameter {
     hac::LinkageMethod hc_linkage = hac::LinkageMethod::Single;
 
     /** @brief Base T-Rex algorithmic control parameters (nested).
-     *  `solver_type` must remain TCIENET (the only solver with a general-K
-     *  mode); the default here overrides the base class's own default
-     *  (TLARS) accordingly. All other base knobs (K, L-loop strategy, warm
-     *  starts, memory mapping, CD hyperparameters, ...) apply unchanged. */
+     *  `solver_type` must be one of the general-K solvers: TCDTIKNET (CCD,
+     *  default), TIKNET (native LARS homotopy), or TIKOMP (greedy
+     *  generalized-ridge OMP); TIKNET/TIKOMP are FOLDED-coupling only.
+     *  With penalty_structure = GROUP_CENTERING, the TCDTIKNET dispatch
+     *  routes to TCDIENET's O(1) group-centering hooks, while TIKNET/TIKOMP
+     *  consume the internally built K_GC on their sparse path (the O(1)
+     *  fast-path hooks are CCD-only). The default here overrides the base
+     *  class's own default (TLARS) accordingly. All other base knobs (K,
+     *  L-loop strategy, warm starts, memory mapping, CD hyperparameters,
+     *  ...) apply unchanged. */
     tc::TRexControlParameter trex_ctrl = [] {
         tc::TRexControlParameter t;
-        t.solver_type = sd::SolverTypeForTRex::TCIENET;
+        t.solver_type = sd::SolverTypeForTRex::TCDTIKNET;
         return t;
     }();
 };
@@ -230,8 +284,9 @@ struct TRexTikhonovControlParameter {
 /**
  * @class TRexTikhonovSelector
  *
- * @brief T-Rex variant driving the CCD IEN solver with a user-supplied
- *        general Tikhonov penalty matrix (see the file header).
+ * @brief T-Rex variant driving the CCD Tikhonov-Net solver with a
+ *        user-supplied general Tikhonov penalty matrix (see the file
+ *        header).
  */
 class TRexTikhonovSelector : public tc::TRexSelector {
 
@@ -250,9 +305,9 @@ public:
      * @param verbose Progress output.
      *
      * @throws std::invalid_argument on an empty or mis-dimensioned
-     *         `tikhonov_K`, a `solver_type` other than TCIENET, malformed
-     *         `prior_groups` / `corr_max`, or — with `cluster_dummies` on —
-     *         a PERMUTATION-family L-loop strategy.
+     *         `tikhonov_K`, a `solver_type` other than TCDTIKNET / TIKNET /
+     *         TIKOMP, malformed `prior_groups` / `corr_max`, or — with
+     *         `cluster_dummies` on — a PERMUTATION-family L-loop strategy.
      */
     TRexTikhonovSelector(Eigen::Map<Eigen::MatrixXd>& X,
                          Eigen::Map<Eigen::VectorXd>& y,
@@ -267,9 +322,23 @@ public:
     static Eigen::SparseMatrix<double> gammaToK(
         const Eigen::SparseMatrix<double>& gamma);
 
+    /** @brief Build the within-group centering matrix
+     *  K_GC = blockdiag(I_{p_m} - 1_m 1_m^T / p_m) from a 0-based
+     *  contiguous group assignment (length p; singleton groups contribute
+     *  nothing). The canonical GROUP_CENTERING penalty representation
+     *  (used by the CV tuners; the solver runs on the O(1) hooks). */
+    static Eigen::SparseMatrix<double> buildGroupCenteringK(
+        const std::vector<Eigen::Index>& prior_groups);
+
     /** @brief The lambda_2 actually used by the last select() run
      *  (user-supplied or CV-resolved); -1 before select(). */
     double getLambda2Used() const noexcept { return lambda2_; }
+
+    /** @brief Health record of the lambda_2 resolution of the last
+     *  `select()` call (`ran == false`: the value came from the caller). */
+    const ms::lambda2_cv_diagnostics& getLambda2CVDiagnostics() const noexcept {
+        return lambda2_cv_diag_;
+    }
 
 protected:
 
@@ -313,6 +382,15 @@ private:
 
     /** @brief Resolved penalty weight for the current select() run. */
     double lambda2_{-1.0};
+
+    /** @brief Health record of the last `computeLambda2()` call. Mutable
+     *  because `computeLambda2()` is const — it reports what it did
+     *  alongside the value it returns. */
+    mutable ms::lambda2_cv_diagnostics lambda2_cv_diag_;
+
+    /** @brief GROUP_CENTERING: group ids as VectorXi for the solver
+     *  dispatch (owned; runner configs point into it). */
+    Eigen::VectorXi groups_vec_i_{};
 
     // ----- Cluster-aware dummy state (cluster_dummies == true) -----
 

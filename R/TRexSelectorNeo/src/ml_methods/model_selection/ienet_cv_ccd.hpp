@@ -11,7 +11,7 @@
  *        T-solver objective scaling, plus a K-fold cross-validation wrapper
  *        that selects lambda2 over a DIRECT grid by profiling the lambda1
  *        path.  Companion of `enet_cv_ccd` for the IEN geometry: the selected
- *        lambda2 is consumable AS-IS by `TIENET_Solver` / `TCIENET_Solver`
+ *        lambda2 is consumable AS-IS by `TIENET_Solver` / `TCDIENET_Solver`
  *        (no p/2 conversion).
  *
  * @details
@@ -22,7 +22,7 @@
  *
  *   on the standardized (centered, column-L2-normalized) scale used by the
  *   LARS/CD T-solvers — NOT glmnet's 1/(2n) parameterization.  Two penalty
- *   specializations mirror `TCIENET_Solver`:
+ *   specializations mirror `TCDIENET_Solver`:
  *
  *   - Group mode: the IEN group-mean penalty K = W = sum_m 1_m 1_m^T / p_m,
  *     maintained through the O(M) group-sum bookkeeping
@@ -37,7 +37,7 @@
  *                    lambda1 ) / (d_j + lambda2 K_jj) ,
  *
  *   whose fixed points satisfy exactly the IEN KKT conditions with the
- *   modified correlation c_j = x_j^T r - lambda2 (K beta)_j of the T-CIENET /
+ *   modified correlation c_j = x_j^T r - lambda2 (K beta)_j of the T-CDIENET /
  *   LARS-IEN solvers.
  *
  *   **Well-posedness.**  Unlike the pure Tikhonov backbone of
@@ -47,10 +47,40 @@
  *   lambda1 > 0, so the estimator is well-defined in any p/n regime.  This is
  *   the recommended lambda2 prediction-CV tuner for the T-Rex p > n setting.
  *
- *   **CV wrapper.**  `ienet_cv_ccd` fits, for every lambda2 candidate on an
- *   ascending geometric grid, the full descending lambda1 path per training
- *   fold (warm-started), scores held-out MSE at every (lambda2, lambda1),
- *   and PROFILES over lambda1:
+ *   **CV wrapper.**  `ienet_cv_ccd` transplants the speed mechanisms of
+ *   `enet_cv_ccd` / cv.glmnet onto the 2D (lambda2 x lambda1) scan:
+ *
+ *   1. GRID-ONCE: a warm-started full-data reference scan over the ascending
+ *      lambda2 grid truncates each descending lambda1 path with glmnet's
+ *      fdev/devmax/dfmax rules and fixes the informative lambda1 prefix per
+ *      lambda2; every fold then evaluates exactly that (ragged) grid.
+ *   2. WARM STARTS across lambda2: each (lambda2, lambda1_l) fit starts from
+ *      the previous lambda2's solution at the same lambda1 — the outer-grid
+ *      analog of glmnet's pathwise warm starts (the CD fixed point is
+ *      unchanged; only the iteration count shrinks).
+ *   3. TRUNCATION: folds never fit the deviance-saturated lambda1 tail; the
+ *      held-out MSE surface is constant-extended there (duplicating the last
+ *      computed value, which cannot create a spurious minimum).
+ *   4. SUPPORT CAP (glmnet `dfmax`): the path additionally stops once the
+ *      support exceeds `dfmax_ratio * n_train`.  This is the decisive
+ *      mechanism for the IEN geometry and has no counterpart in the
+ *      ridge-only EN tuner.  Past nnz ~ n_train the active-set system is
+ *      rank-deficient; large lambda2 blocks the group-mean explanation and
+ *      forces a dense within-group CONTRAST fit, which lives in the
+ *      near-null space of X_A^T X_A + lambda2 K_AA.  Cyclic CD then zigzags
+ *      through flat valleys for tens of thousands of (legitimately
+ *      converging, `max_iter` never hit) sweeps per path point.  Measured on
+ *      the demo_01 scenario-B design (n = 200, p = 500, three rho = 0.7
+ *      blocks of 50 + 350 white singletons), one cold lambda1 path at
+ *      lambda2 = c_max costs 2.38 M sweeps / 64 s, of which 98.2 % fall past
+ *      the cap frontier — while the held-out MSE minimum sits nine grid
+ *      points BEFORE it and rises monotonically thereafter.  The capped tail
+ *      is overfit territory the CV profile cannot select;
+ *      `n_profile_at_edge()` reports any lambda2 whose profiled optimum did
+ *      land on a truncation edge.
+ *
+ *   Held-out MSE is scored at every (lambda2, lambda1) of the fixed grid and
+ *   PROFILED over lambda1:
  *
  *       cv_mse(lambda2) = min_{lambda1}  mean-fold MSE(lambda2, lambda1) .
  *
@@ -88,6 +118,9 @@
 #include <Eigen/Core>
 #include <Eigen/SparseCore>
 
+// Model-selection includes
+#include <ml_methods/model_selection/lambda2_cv_diagnostics.hpp>
+
 // ===================================================================================
 
 // Namespace embedding: trex::ml_methods::model_selection
@@ -122,19 +155,38 @@ public:
      * @param tol          Convergence tolerance on the max coordinate change
      *                     in standardized units of the unit-SD response
      *                     (default 1e-7).
+     * @param fdev         glmnet-style path truncation: stop once the
+     *                     fractional deviance gain between consecutive
+     *                     lambda1 points drops below `fdev` (0 = disabled,
+     *                     the default; glmnet's factory value is 1e-5).
+     * @param devmax       Companion truncation rule: stop once the fraction
+     *                     of null deviance explained exceeds `devmax`
+     *                     (1 = disabled, the default; glmnet uses 0.999).
+     *                     Truncated path columns are constant-extended with
+     *                     the last computed solution; `n_computed()` reports
+     *                     the number of genuinely fitted points.
+     * @param dfmax        glmnet-style SUPPORT cap: stop once the number of
+     *                     nonzero coefficients exceeds `dfmax` (negative =
+     *                     disabled, the default).  The trigger point itself
+     *                     is retained, so the fitted prefix ends at the
+     *                     first path point with nnz > dfmax.  Same
+     *                     constant-extension semantics as fdev/devmax.
      */
     void fit(Eigen::Ref<const Eigen::MatrixXd> X,
              Eigen::Ref<const Eigen::VectorXd> y,
              double lambda2,
              const Eigen::VectorXi& groups,
              Eigen::Ref<const Eigen::VectorXd> lambda1_grid,
-             int    max_iter = 100000,
-             double tol      = 1e-7)
+             int          max_iter = 100000,
+             double       tol      = 1e-7,
+             double       fdev     = 0.0,
+             double       devmax   = 1.0,
+             Eigen::Index dfmax    = -1)
     {
         validate(X, y, lambda2, lambda1_grid);
         setup_group_penalty(groups, X.cols());
         preprocess(X, y);
-        solve(lambda2, lambda1_grid, max_iter, tol);
+        solve(lambda2, lambda1_grid, max_iter, tol, fdev, devmax, dfmax);
     }
 
     /**
@@ -146,14 +198,30 @@ public:
              double lambda2,
              const Eigen::SparseMatrix<double>& K,
              Eigen::Ref<const Eigen::VectorXd> lambda1_grid,
-             int    max_iter = 100000,
-             double tol      = 1e-7)
+             int          max_iter = 100000,
+             double       tol      = 1e-7,
+             double       fdev     = 0.0,
+             double       devmax   = 1.0,
+             Eigen::Index dfmax    = -1)
     {
         validate(X, y, lambda2, lambda1_grid);
         setup_sparse_penalty(K, X.cols());
         preprocess(X, y);
-        solve(lambda2, lambda1_grid, max_iter, tol);
+        solve(lambda2, lambda1_grid, max_iter, tol, fdev, devmax, dfmax);
     }
+
+    /**
+     * @brief Provide a warm-start path for the NEXT fit() call (consumed
+     *        once, then cleared).
+     *
+     * @details `warm` must be on the STANDARDIZED/solver scale (a previous
+     *  fit's `coef_std()` on the same data, e.g. at a neighboring lambda2)
+     *  with p rows; path point l is initialized from column min(l, cols-1),
+     *  so a shorter (truncated) warm path extends with its last column.
+     *  The matrix must stay alive through the fit() call. The CD fixed
+     *  point is unchanged — warm starts only shorten the iteration.
+     */
+    void set_warm_start(const Eigen::MatrixXd* warm) noexcept { warm_ = warm; }
 
     // public member accessors ------------------------------------------------
 
@@ -175,6 +243,27 @@ public:
 
     /** @brief Number of lambda1 points that hit `max_iter`. */
     int n_nonconverged() const noexcept { return n_nonconverged_; }
+
+    /** @brief Fraction of null deviance explained per lambda1 point (full
+     *         grid length; constant past a truncation). */
+    const Eigen::VectorXd& dev_ratios() const noexcept { return dev_ratio_; }
+
+    /** @brief CD sweeps spent per lambda1 point (outer + inner active-set;
+     *         diagnostic, zero past a truncation). */
+    const Eigen::VectorXi& sweeps_per_point() const noexcept {
+        return sweeps_per_point_;
+    }
+
+    /** @brief Total CD sweeps of the last fit. */
+    long n_sweeps() const noexcept { return n_sweeps_total_; }
+
+    /** @brief Number of lambda1 points genuinely fitted (== grid size unless
+     *         the fdev/devmax/dfmax rules truncated the path). */
+    Eigen::Index n_computed() const noexcept { return n_computed_; }
+
+    /** @brief True if the fitted prefix ended on the `dfmax` support cap
+     *         rather than on a deviance rule or the end of the grid. */
+    bool stopped_on_dfmax() const noexcept { return stopped_on_dfmax_; }
 
     /** @brief Predictions for new data: (X_new * beta).colwise() + a0. */
     Eigen::MatrixXd predict(Eigen::Ref<const Eigen::MatrixXd> X_new) const {
@@ -265,7 +354,8 @@ private:
     // ---- pathwise CD core ---------------------------------------------------
 
     void solve(double lambda2, Eigen::Ref<const Eigen::VectorXd> grid,
-               int max_iter, double tol)
+               int max_iter, double tol, double fdev, double devmax,
+               Eigen::Index dfmax)
     {
         lambda1s_ = grid;
         std::sort(lambda1s_.data(), lambda1s_.data() + lambda1s_.size(),
@@ -281,6 +371,18 @@ private:
         Eigen::VectorXd r    = yc_;
         beta_std_.setZero(p_, K1);
         n_nonconverged_ = 0;
+        dev_ratio_.setZero(K1);
+        sweeps_per_point_.setZero(K1);
+        n_sweeps_total_ = 0;
+        n_computed_ = K1;
+        stopped_on_dfmax_ = false;
+        const bool allow_early_stop = (fdev > 0.0) || (devmax < 1.0);
+        const bool allow_dfmax_stop = (dfmax >= 0);
+        double rsq_prev = 0.0;
+        if (warm_ != nullptr && (warm_->rows() != p_ || warm_->cols() == 0))
+            throw std::invalid_argument(
+                "ien_gaussian: warm-start matrix must be p x k (k >= 1) on "
+                "the standardized/solver scale");
 
         // penalty state
         std::vector<double> sigma;                 // group sums (group mode)
@@ -316,6 +418,18 @@ private:
             }
         };
 
+        // NOTE (negative result, 2026-08-05): an exact line search along each
+        // group's 1_m direction after every sweep — intended to remove the
+        // stiff group-mean mode of the block Hessian d*I + (lambda2/p_m)*11^T
+        // — was implemented and measured to fire ZERO times on the
+        // scenario-B design at any lambda2.  Cyclic CD does not choke on
+        // STIFF directions here, it chokes on FLAT ones (the within-group
+        // contrast space in the near-null space of X_A^T X_A + lambda2 K_AA
+        // once nnz > n_train); a singleton-group control probe is fast even
+        // at lambda2 = c_max.  The acceleration was removed again; the
+        // `dfmax` support cap addresses the actual mechanism.  Archived under
+        // TRex_Research/ienet_cv_ccd_speedup_2026-08-05/.
+
         // one coordinate update; returns the standardized |change|.
         const auto update_coord = [&](Eigen::Index j, double l1) -> double {
             const double old_b = beta(j);
@@ -332,9 +446,41 @@ private:
             return 0.0;
         };
 
+        // Inner-loop support buffer, hoisted out of the path loop: the
+        // active set is rebuilt every outer sweep, but the allocation is not.
+        std::vector<Eigen::Index> active;
+        active.reserve(static_cast<std::size_t>(p_));
+
         const double inv_yscale = 1.0 / y_scale_;
         for (Eigen::Index l = 0; l < K1; ++l) {
             const double l1 = lambda1s_(l) * inv_yscale;  // internal scale
+
+            // Warm start: initialize this path point from the caller-provided
+            // neighboring-lambda2 solution at the SAME lambda1 (column
+            // min(l, cols-1)); residual and penalty state are rebuilt to
+            // match. The fixed point is unchanged — only the iteration count
+            // shrinks.
+            if (warm_ != nullptr) {
+                const Eigen::Index wl = std::min(l, warm_->cols() - 1);
+                beta = warm_->col(wl) * inv_yscale;
+                // Residual rebuilt via level-1 column ops, NOT a GEMV: with
+                // EIGEN_USE_BLAS a threaded Accelerate gemv is not
+                // run-to-run deterministic at the ULP level, and this feeds
+                // the CD iteration (breaks the same-seed => identical-curves
+                // contract of the CV wrapper).
+                r = yc_;
+                for (Eigen::Index j = 0; j < p_; ++j)
+                    if (beta(j) != 0.0) r.noalias() -= Xs_.col(j) * beta(j);
+                if (use_group_) {
+                    std::fill(sigma.begin(), sigma.end(), 0.0);
+                    for (Eigen::Index j = 0; j < p_; ++j)
+                        if (beta(j) != 0.0)
+                            sigma[static_cast<std::size_t>(group_of_[
+                                static_cast<std::size_t>(j)])] += beta(j);
+                } else {
+                    Kbeta.noalias() = K_ * beta;
+                }
+            }
 
             // Full sweeps with an inner active-set loop (glmnet's covariance-
             // free scheme without the strong rule): a full sweep both makes
@@ -349,8 +495,7 @@ private:
                 if (max_change < tol) { converged = true; break; }
 
                 // inner loop on the current support
-                std::vector<Eigen::Index> active;
-                active.reserve(static_cast<std::size_t>(p_));
+                active.clear();
                 for (Eigen::Index j = 0; j < p_; ++j)
                     if (beta(j) != 0.0) active.push_back(j);
                 while (it < max_iter) {
@@ -362,9 +507,34 @@ private:
                 }
             }
             if (!converged && it >= max_iter) ++n_nonconverged_;
+            sweeps_per_point_(l) = it;
+            n_sweeps_total_     += it;
 
             beta_std_.col(l) = beta * y_scale_;   // solver (unscaled-y) scale
+
+            // glmnet path truncation (only when fdev/devmax/dfmax are armed).
+            // Null deviance == n (yc_ has unit population SD). Truncated
+            // columns are constant-extended with this solution.
+            const double rsq =
+                1.0 - r.squaredNorm() / static_cast<double>(n_);
+            dev_ratio_(l) = rsq;
+            const bool dev_stop = allow_early_stop && l > 0 &&
+                (rsq > devmax || (rsq - rsq_prev) < fdev * rsq);
+            const bool df_stop  = allow_dfmax_stop &&
+                (beta.array() != 0.0).count() > dfmax;
+            if (dev_stop || df_stop) {
+                n_computed_       = l + 1;
+                stopped_on_dfmax_ = df_stop && !dev_stop;
+                for (Eigen::Index ll = l + 1; ll < K1; ++ll) {
+                    beta_std_.col(ll) = beta_std_.col(l);
+                    dev_ratio_(ll)    = rsq;
+                }
+                break;
+            }
+            rsq_prev = rsq;
         }
+
+        warm_ = nullptr;   // consumed by this fit
 
         // back-scale to original predictor space + intercepts
         beta_.resize(p_, K1);
@@ -420,7 +590,16 @@ private:
     Eigen::MatrixXd beta_;       ///< original scale (p x K1)
     Eigen::MatrixXd beta_std_;   ///< standardized/solver scale (p x K1)
     Eigen::VectorXd a0_;
-    int             n_nonconverged_ = 0;
+    Eigen::VectorXd dev_ratio_;  ///< deviance ratio per lambda1 point
+    Eigen::VectorXi sweeps_per_point_;  ///< CD sweeps per lambda1 point
+    Eigen::Index    n_computed_ = 0;  ///< genuinely fitted path length
+    long            n_sweeps_total_   = 0;
+    int             n_nonconverged_   = 0;
+    bool            stopped_on_dfmax_ = false;
+
+    /// Optional warm-start path (standardized scale) for the next fit();
+    /// non-owning, consumed once. See set_warm_start().
+    const Eigen::MatrixXd* warm_ = nullptr;
 };
 
 // ===================================================================================
@@ -444,34 +623,71 @@ public:
      * @param y                 Response vector (n).
      * @param groups            0-based contiguous group ids, length p.
      * @param n_folds           Number of folds (default 10).
-     * @param n_lambda2         lambda2 grid size (default 25).
+     * @param n_lambda2         lambda2 grid size (default 100 — resolution
+     *                          parity with the lambda1 path and glmnet's
+     *                          nlambda; the scan is warm-started across
+     *                          lambda2, so cost grows sublinearly).
      * @param lambda2_ratio     Grid spans `[l2_max / ratio, l2_max]` with
      *                          l2_max = c_max = max_j |x_{s,j}^T y_c|
      *                          (default 1e4).
-     * @param n_lambda1         lambda1 path length (default 100).
+     * @param n_lambda1         lambda1 path length (default 40); per
+     *                          lambda2 the fitted prefix is decided by the
+     *                          full-data reference scan (fdev/devmax/dfmax).
+     *                          lambda1 is a NUISANCE parameter here — it is
+     *                          profiled out and only has to keep the
+     *                          contrast space well-posed — so it does not
+     *                          need glmnet's nlambda = 100 resolution.  Cost
+     *                          in this parameter is U-SHAPED, not monotone:
+     *                          a coarser grid means fewer path points but
+     *                          larger lambda1 steps, which degrade the
+     *                          pathwise warm starts faster than the point
+     *                          count falls.  Measured at B scale
+     *                          (n_lambda2 = 25): 100 -> 18.8 s, 60 -> 13.9 s,
+     *                          40 -> 10.1 s, 25 -> 7.2 s, 15 -> 8.3 s,
+     *                          10 -> 9.9 s.  40 is the smallest value that
+     *                          still reproduces the lambda2 picks of the
+     *                          100-point grid exactly; below it the profiled
+     *                          cv_min starts shifting by a grid point.
      * @param lambda1_min_ratio lambda1_min / lambda1_max.  Negative (default)
-     *                          auto-selects glmnet's rule
-     *                          (1e-2 if n < p else 1e-4).
+     *                          auto-selects 1e-2 in BOTH dimensional
+     *                          regimes — deliberately not glmnet's
+     *                          (1e-2 if n < p else 1e-4) rule, because
+     *                          lambda1 is profiled out here rather than
+     *                          reported, so the deep tail only spends grid
+     *                          points where the CV profile never looks. In
+     *                          the low-dimensional regime
+     *                          (`is_low_dimensional()`) that matters most:
+     *                          the support cap is structurally inert there,
+     *                          so nothing else truncates the tail.  See the
+     *                          measurement table at the rule's use site.
      * @param seed              Fold-permutation seed (default 0).
      * @param max_iter          CD sweeps per lambda1 (default 100000).
      * @param tol               CD tolerance (default 1e-7).
+     * @param dfmax_ratio       Support cap as a fraction of the (smallest)
+     *                          fold training size: the reference scan stops
+     *                          each lambda1 path at the first point with
+     *                          nnz > dfmax_ratio * n_train (default 0.8;
+     *                          <= 0 disables the cap).  See mechanism 4 in
+     *                          the file header — this is the dominant speed
+     *                          mechanism of the tuner.
      */
     void fit(Eigen::Ref<const Eigen::MatrixXd> X,
              Eigen::Ref<const Eigen::VectorXd> y,
              const Eigen::VectorXi& groups,
              int          n_folds           = 10,
-             Eigen::Index n_lambda2         = 25,
+             Eigen::Index n_lambda2         = 100,
              double       lambda2_ratio     = 1e4,
-             Eigen::Index n_lambda1         = 100,
+             Eigen::Index n_lambda1         = 40,
              double       lambda1_min_ratio = -1.0,
              unsigned int seed              = 0,
              int          max_iter          = 100000,
-             double       tol               = 1e-7)
+             double       tol               = 1e-7,
+             double       dfmax_ratio       = 0.8)
     {
         groups_ = groups;
         use_group_ = true;
         run_cv(X, y, n_folds, n_lambda2, lambda2_ratio, n_lambda1,
-               lambda1_min_ratio, seed, max_iter, tol);
+               lambda1_min_ratio, seed, max_iter, tol, dfmax_ratio);
     }
 
     /**
@@ -481,18 +697,19 @@ public:
              Eigen::Ref<const Eigen::VectorXd> y,
              const Eigen::SparseMatrix<double>& K,
              int          n_folds           = 10,
-             Eigen::Index n_lambda2         = 25,
+             Eigen::Index n_lambda2         = 100,
              double       lambda2_ratio     = 1e4,
-             Eigen::Index n_lambda1         = 100,
+             Eigen::Index n_lambda1         = 40,
              double       lambda1_min_ratio = -1.0,
              unsigned int seed              = 0,
              int          max_iter          = 100000,
-             double       tol               = 1e-7)
+             double       tol               = 1e-7,
+             double       dfmax_ratio       = 0.8)
     {
         K_ = K;
         use_group_ = false;
         run_cv(X, y, n_folds, n_lambda2, lambda2_ratio, n_lambda1,
-               lambda1_min_ratio, seed, max_iter, tol);
+               lambda1_min_ratio, seed, max_iter, tol, dfmax_ratio);
     }
 
     // public member accessors ------------------------------------------------
@@ -507,7 +724,7 @@ public:
     const Eigen::VectorXd& cv_sem() const noexcept { return cv_sem_; }
 
     /** @brief lambda2 minimising the profiled CV-MSE (`lambda.min`),
-     *         directly consumable by TIENET_Solver / TCIENET_Solver. */
+     *         directly consumable by TIENET_Solver / TCDIENET_Solver. */
     double cv_min() const { check_fitted(); return lambdas_(idx_min_); }
 
     /** @brief Largest lambda2 within one SE of the CV-min (`lambda.1se`). */
@@ -536,13 +753,64 @@ public:
     /** @brief Full mean CV-MSE surface (n_lambda2 x n_lambda1). */
     const Eigen::MatrixXd& cv_mse_full() const noexcept { return cv_mse_full_; }
 
+    /** @brief Genuinely fitted lambda1 prefix length per lambda2, as decided
+     *         once by the full-data reference scan (fdev/devmax/dfmax).
+     *         Entries below `lambda1s().size()` mark a truncated path whose
+     *         MSE row is constant-extended. */
+    const Eigen::VectorXi& path_lengths() const noexcept {
+        return path_lengths_;
+    }
+
+    /** @brief True when the run was LOW-DIMENSIONAL, i.e. the support cap
+     *         could not possibly bind because p <= dfmax (or the cap was
+     *         disabled outright).
+     *
+     * @details The companion of `tikhonov_cv_svd::contrast_interpolates()`,
+     *  which flags the opposite boundary. In this regime nnz <= p < the cap
+     *  at every path point, so mechanism 4 (the support cap) contributes
+     *  nothing and the deviance rules carry the truncation alone. Not an
+     *  error — the CV curve is fully valid — but it explains why the tuner
+     *  costs what it costs on small-p problems, and it is the reason the
+     *  auto lambda1 range does not follow glmnet's n-vs-p rule. */
+    bool is_low_dimensional() const noexcept { return low_dimensional_; }
+
+    /** @brief The support cap actually applied (glmnet dfmax), or -1 when
+     *         disabled. Compare against `lambda1s().size()` and p to see
+     *         whether it could bind; see `is_low_dimensional()`. */
+    Eigen::Index support_cap() const noexcept { return support_cap_; }
+
+    /** @brief Number of lambda2 values whose profiled lambda1 optimum landed
+     *         on the last computed path point.
+     *
+     * @details Zero is the healthy case: every profiled optimum was interior,
+     *  so the truncation rules only removed lambda1 values the CV would not
+     *  have selected anyway. A nonzero count means the support cap (or a
+     *  deviance rule, or the end of the lambda1 grid) was binding for that
+     *  many lambda2 values — the tuner's answer there is a boundary solution.
+     *  Raise `dfmax_ratio` or lower `lambda1_min_ratio` if it is not zero. */
+    Eigen::Index n_profile_at_edge() const noexcept {
+        return n_profile_at_edge_;
+    }
+
+    /** @brief The structural half of the tuner health record; `seconds` is
+     *         the caller's to fill (this class does not time itself). */
+    lambda2_cv_diagnostics diagnostics() const {
+        lambda2_cv_diagnostics d;
+        d.ran               = true;
+        d.n_profile_at_edge = n_profile_at_edge_;
+        d.support_cap       = support_cap_;
+        d.low_dimensional   = low_dimensional_;
+        return d;
+    }
+
 private:
 
     void run_cv(Eigen::Ref<const Eigen::MatrixXd> X,
                 Eigen::Ref<const Eigen::VectorXd> y,
                 int n_folds, Eigen::Index n_lambda2, double lambda2_ratio,
                 Eigen::Index n_lambda1, double lambda1_min_ratio,
-                unsigned int seed, int max_iter, double tol)
+                unsigned int seed, int max_iter, double tol,
+                double dfmax_ratio)
     {
         if (X.rows() != y.size())
             throw std::invalid_argument(
@@ -595,9 +863,54 @@ private:
                               / static_cast<double>(n_lambda2 - 1));
             }
         }
+        // ---- support cap (glmnet dfmax) + dimensional regime ---------------
+        // The cap is sized on the SMALLEST fold training set, not on the full
+        // n: the reference scan only decides path lengths, but those lengths
+        // are consumed by the folds, whose active-set systems become
+        // rank-deficient at their own n_train. Round-robin assignment gives a
+        // largest test fold of ceil(n / n_folds).
+        const Eigen::Index n_test_max  = (n + n_folds - 1) / n_folds;
+        const Eigen::Index n_train_min = n - n_test_max;
+        const Eigen::Index dfmax =
+            (dfmax_ratio > 0.0)
+                ? std::max<Eigen::Index>(
+                      1, static_cast<Eigen::Index>(
+                             dfmax_ratio * static_cast<double>(n_train_min)))
+                : Eigen::Index{-1};
+
+        // LOW-DIMENSIONAL regime: the support can never exceed p, so if
+        // p <= dfmax the cap is structurally INERT and the path has no
+        // adaptive truncation from it at all (only the deviance rules).
+        // Mirrors tikhonov_cv_svd::contrast_interpolates(), which reports the
+        // opposite boundary; reported here by is_low_dimensional().
+        low_dimensional_ = (dfmax < 0) || (p <= dfmax);
+        support_cap_     = dfmax;
+
+        // lambda1 range: DELIBERATELY NOT glmnet's rule (n < p ? 1e-2 : 1e-4).
+        // glmnet descends to 1e-4 when n > p because there the nearly
+        // unpenalized end is a meaningful fit worth reporting. This class does
+        // not report the lambda1 path — it PROFILES lambda1 out to select
+        // lambda2 — so the only thing the deep tail can do is consume grid
+        // points in a region the CV profile never selects. In the low-
+        // dimensional regime that is doubly wasteful because the support cap
+        // is inert there, so nothing truncates the tail either.
+        //
+        // Measured (scenario-A shape n=150, p=100, rho=0.75, K2=100, K1=40;
+        // reference = the same run at K1=100 with the deep range, lambda2_1se
+        // = 1.0992):
+        //     1e-4 (glmnet)  21.3 s   lambda2_1se 1.2064  <- MISSES the ref
+        //     1e-3           16.9 s   lambda2_1se 1.0992
+        //     1e-2            9.5 s   lambda2_1se 1.0992  <- shipped
+        //     3e-2            5.5 s   lambda2_1se 1.0992
+        // The deep range is not merely slower, it is LESS accurate at fixed
+        // grid size: the 40 points land where the profile is flat instead of
+        // where it turns. n_profile_at_edge() stayed 0 throughout, i.e. the
+        // truncation never bound on the answer — that accessor is the guard
+        // if a future design does push the range too far.
         const double l1mr = (lambda1_min_ratio > 0.0)
                           ? lambda1_min_ratio
-                          : (n < p ? 1e-2 : 1e-4);
+                          : kLambda1MinRatio;
+
         lambda1s_.resize(n_lambda1);
         {
             const double log_hi = std::log(c_max);
@@ -625,6 +938,31 @@ private:
             fold_idx[static_cast<std::size_t>(i % n_folds)].push_back(
                 perm[static_cast<std::size_t>(i)]);
 
+        // ---- full-data reference scan (cv.glmnet grid-once semantics) ------
+        // One warm-started pass over the ASCENDING lambda2 grid on the full
+        // data, truncating each lambda1 path with glmnet's fdev/devmax/dfmax
+        // rules: this decides, once, the informative lambda1 prefix per
+        // lambda2. The folds then evaluate exactly this fixed (ragged) grid
+        // — no per-fold stopping decisions, full fold comparability.
+        path_lengths_.resize(K2);
+        std::vector<Eigen::Index> k1_len(static_cast<std::size_t>(K2), K1);
+        {
+            Eigen::MatrixXd warm_ref;
+            for (Eigen::Index k2 = 0; k2 < K2; ++k2) {
+                ien_gaussian ref;
+                if (k2 > 0) ref.set_warm_start(&warm_ref);
+                if (use_group_)
+                    ref.fit(X, y, lambdas_(k2), groups_, lambda1s_,
+                            max_iter, tol, kPathFdev, kPathDevMax, dfmax);
+                else
+                    ref.fit(X, y, lambdas_(k2), K_, lambda1s_,
+                            max_iter, tol, kPathFdev, kPathDevMax, dfmax);
+                k1_len[static_cast<std::size_t>(k2)] = ref.n_computed();
+                path_lengths_(k2) = static_cast<int>(ref.n_computed());
+                warm_ref = ref.coef_std();
+            }
+        }
+
         // fold-wise MSE surfaces
         std::vector<Eigen::MatrixXd> fold_mse(
             static_cast<std::size_t>(n_folds));
@@ -648,19 +986,32 @@ private:
                 }
             }
 
+            // Warm-started ascending-lambda2 scan over the reference-fixed
+            // ragged grid. Beyond a lambda2's truncated lambda1 prefix the
+            // MSE row is constant-extended (duplicates the last computed
+            // value — cannot create a spurious row minimum), keeping the
+            // rectangular surface contract intact.
             Eigen::MatrixXd mse(K2, K1);
+            Eigen::MatrixXd warm_fold;
             for (Eigen::Index k2 = 0; k2 < K2; ++k2) {
+                const Eigen::Index len =
+                    k1_len[static_cast<std::size_t>(k2)];
                 ien_gaussian en;
+                if (k2 > 0) en.set_warm_start(&warm_fold);
                 if (use_group_)
-                    en.fit(X_tr, y_tr, lambdas_(k2), groups_, lambda1s_,
-                           max_iter, tol);
+                    en.fit(X_tr, y_tr, lambdas_(k2), groups_,
+                           lambda1s_.head(len), max_iter, tol);
                 else
-                    en.fit(X_tr, y_tr, lambdas_(k2), K_, lambda1s_,
-                           max_iter, tol);
-                const Eigen::MatrixXd preds = en.predict(X_te); // n_test x K1
-                mse.row(k2) =
+                    en.fit(X_tr, y_tr, lambdas_(k2), K_,
+                           lambda1s_.head(len), max_iter, tol);
+                warm_fold = en.coef_std();
+                const Eigen::MatrixXd preds = en.predict(X_te); // n_test x len
+                const Eigen::RowVectorXd row =
                     (preds.colwise() - y_te).colwise().squaredNorm()
                     / static_cast<double>(n_test);
+                mse.row(k2).head(len) = row;
+                if (len < K1)
+                    mse.row(k2).tail(K1 - len).setConstant(row(len - 1));
             }
             fold_mse[static_cast<std::size_t>(f)] = std::move(mse);
         }
@@ -690,9 +1041,16 @@ private:
         }
 
         // ---- profile over lambda1 per lambda2 ------------------------------
+        // The row minimum is taken over the FULL grid, but past a truncation
+        // the row is constant, so the argmin can only land on the last
+        // COMPUTED point (index len - 1) — never deeper. A profiled optimum
+        // sitting exactly there means the truncation was binding for that
+        // lambda2 and the tuner would have preferred a smaller lambda1;
+        // n_profile_at_edge() surfaces that instead of hiding it.
         cv_mse_.resize(K2);
         cv_sem_.resize(K2);
         lambda1_profile_.resize(K2);
+        n_profile_at_edge_ = 0;
         for (Eigen::Index k2 = 0; k2 < K2; ++k2) {
             Eigen::Index k1_best = 0;
             double best = std::numeric_limits<double>::max();
@@ -704,6 +1062,8 @@ private:
             cv_mse_(k2)          = best;
             cv_sem_(k2)          = sem_full(k2, k1_best);
             lambda1_profile_(k2) = lambda1s_(k1_best);
+            if (k1_best == k1_len[static_cast<std::size_t>(k2)] - 1)
+                ++n_profile_at_edge_;
         }
 
         // ---- lambda.min / lambda.1se on the profiled curve -----------------
@@ -730,6 +1090,19 @@ private:
                 "ienet_cv_ccd: call fit() before using this method");
     }
 
+    // glmnet factory truncation constants for the full-data reference scan
+    // (glmnet.control: fdev = 1e-5, devmax = 0.999). Folds never truncate —
+    // they inherit the reference scan's per-lambda2 path lengths.
+    static constexpr double kPathFdev   = 1.0e-5;
+    static constexpr double kPathDevMax = 0.999;
+
+    /// Auto lambda1_min_ratio for BOTH dimensional regimes — see the
+    /// derivation at its use site in run_cv(). Not glmnet's n-vs-p rule:
+    /// lambda1 is profiled out here, so the deep tail only wastes grid
+    /// points (and in the low-dimensional regime nothing truncates it,
+    /// because the support cap is inert once p <= dfmax).
+    static constexpr double kLambda1MinRatio = 1.0e-2;
+
     // private member variables ----------------------------------------------
     bool                        fitted_    = false;
     bool                        use_group_ = true;
@@ -742,8 +1115,12 @@ private:
     Eigen::VectorXd cv_sem_;
     Eigen::VectorXd lambda1_profile_;
     Eigen::MatrixXd cv_mse_full_;      ///< K2 x K1 surface
+    Eigen::VectorXi path_lengths_;     ///< fitted lambda1 prefix per lambda2
     Eigen::Index    idx_min_ = 0;
     Eigen::Index    idx_1se_ = 0;
+    Eigen::Index    n_profile_at_edge_ = 0;
+    Eigen::Index    support_cap_       = -1;
+    bool            low_dimensional_   = false;
 };
 
 // ===================================================================================

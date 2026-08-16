@@ -193,6 +193,22 @@ public:
     /** @brief Index of the largest lambda2 within one SE of the minimum. */
     Eigen::Index index_1se() const noexcept { return idx_1se_; }
 
+    /** @brief True when `cv_min()` or `cv_1se()` landed on the FIRST or LAST
+     *         grid point — the pick is the grid boundary, not an optimum.
+     *
+     * @details Complements `contrast_interpolates()`, which reports the
+     *  DIMENSIONAL failure (p - M >= n_train: the curve goes flat and any
+     *  pick is floor-driven). This one reports the GRID failure, which can
+     *  occur independently of it. Reading both: interpolating AND at-edge is
+     *  the degenerate case where the answer is meaningless and
+     *  `ienet_cv_ccd` should be used instead. */
+    bool selection_at_grid_edge() const noexcept {
+        const Eigen::Index K = lambdas_.size();
+        if (K == 0) { return false; }
+        return idx_min_ == 0 || idx_min_ == K - 1 ||
+               idx_1se_ == 0 || idx_1se_ == K - 1;
+    }
+
     /** @brief Null-space floor actually used (after auto-selection). */
     double epsilon() const noexcept { return epsilon_used_; }
 

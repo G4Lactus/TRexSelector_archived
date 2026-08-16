@@ -99,6 +99,9 @@
 // Hierarchical clustering types (LinkageMethod for the dummy clustering)
 #include <ml_methods/clustering/hierarchical/agglomerative/agglomerative_types.hpp>
 
+// lambda_2 tuner health record
+#include <ml_methods/model_selection/lambda2_cv_diagnostics.hpp>
+
 // ===================================================================================
 
 // Embedded into namespace trex::trex_selector_methods::trex_tikhonov
@@ -109,6 +112,7 @@ namespace tc = trex::trex_selector_methods::trex_core;
 namespace sd = trex::trex_selector_methods::utils::solver_dispatch;
 namespace er = trex::trex_selector_methods::utils::experiment_runner;
 namespace hac = trex::ml_methods::clustering::hierarchical::agglomerative;
+namespace ms = trex::ml_methods::model_selection;
 
 
 // ===================================================================================
@@ -189,9 +193,25 @@ struct TRexTikhonovControlParameter {
     int cv_n_folds = 10;
 
     /** @brief lambda_2 grid size for the CV_*_TIK_SVD analytic scan.
-     *  (CV_*_IEN_CCD scans a 2D surface and uses its class defaults,
-     *  25 x 100.) Default: 100. */
+     *  Default: 100. */
     Eigen::Index cv_n_lambda = 100;
+
+    /** @brief lambda_2 grid size for the CV_*_IEN_CCD 2D tuner. The scan is
+     *  warm-started across the lambda_2 grid with glmnet-style path
+     *  truncation decided by a full-data reference scan (cv.glmnet
+     *  grid-once semantics), so cost grows sublinearly in this value.
+     *  Default: 100 — resolution parity with the tuner's internal lambda_1
+     *  path and glmnet's nlambda. */
+    Eigen::Index cv_n_lambda2 = 100;
+
+    /** @brief Length of the internal lambda_1 path of the CV_*_IEN_CCD 2D
+     *  tuner. lambda_1 is a NUISANCE parameter there — profiled out, needed
+     *  only to keep the contrast space well-posed — so it does not need
+     *  glmnet's nlambda = 100 resolution. Cost in this value is U-shaped
+     *  (coarser steps degrade the pathwise warm starts faster than the point
+     *  count falls); 40 is the smallest length that still reproduces the
+     *  100-point grid's lambda_2 picks exactly. Default: 40. */
+    Eigen::Index cv_n_lambda1 = 40;
 
     /** @brief Seed for the deterministic CV fold-permutation RNG.
      *  - `-1` (default): derived from the T-Rex `seed` parameter.
@@ -314,6 +334,12 @@ public:
      *  (user-supplied or CV-resolved); -1 before select(). */
     double getLambda2Used() const noexcept { return lambda2_; }
 
+    /** @brief Health record of the lambda_2 resolution of the last
+     *  `select()` call (`ran == false`: the value came from the caller). */
+    const ms::lambda2_cv_diagnostics& getLambda2CVDiagnostics() const noexcept {
+        return lambda2_cv_diag_;
+    }
+
 protected:
 
     /** @brief Builds the dummy cluster model (prior groups or
@@ -356,6 +382,11 @@ private:
 
     /** @brief Resolved penalty weight for the current select() run. */
     double lambda2_{-1.0};
+
+    /** @brief Health record of the last `computeLambda2()` call. Mutable
+     *  because `computeLambda2()` is const — it reports what it did
+     *  alongside the value it returns. */
+    mutable ms::lambda2_cv_diagnostics lambda2_cv_diag_;
 
     /** @brief GROUP_CENTERING: group ids as VectorXi for the solver
      *  dispatch (owned; runner configs point into it). */

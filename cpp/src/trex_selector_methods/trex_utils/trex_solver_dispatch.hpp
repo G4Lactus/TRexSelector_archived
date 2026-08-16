@@ -148,12 +148,18 @@ struct SolverHyperparameters {
     // --- CD-family knobs (TCDLASSO / TCDENET / TCDIENET; ignored by other solvers) ---
 
     /** @brief Relative lambda tolerance of the CD crossing bisection.
-     * The TRex-layer default (1e-5) is deliberately tighter than the
-     * solver's own generic default (1e-3): exact crossing localization
-     * keeps the recorded supports aligned with the LARS-path variants
-     * (a loose lambda window can pull a borderline real into the crossing
-     * step). <= 0 keeps the solver's own default. */
-    double cd_lambda_rel_tol = 1e-5;
+     * The TRex-layer default is deliberately tighter than the solver's own
+     * generic default (1e-3): exact crossing localization keeps the recorded
+     * supports aligned with the LARS-path variants (a loose lambda window can
+     * pull a borderline real into the crossing step). <= 0 keeps the solver's
+     * own default.
+     *
+     * 1e-6 rather than the former 1e-5: measured on the TENET/TCDENET
+     * agreement reproducer (Demos "TRex CCD"/demo_03_trex_gvs_study Part 3b,
+     * Hastie blocks n=200 p=500 rho=0.70 SNR=2, 50 MC), exact-match rose
+     * 0.880 -> 0.900 at no runtime cost, and saturated there — 1e-8 gives the
+     * same answer as 1e-6, while loosening to 1e-4 drops it to 0.620. */
+    double cd_lambda_rel_tol = 1e-6;
 
     /** @brief CD certification-sweep tolerance (recorded steps). Applied
      * together with cd_tol_probe; <= 0 (default) keeps the solver's own

@@ -13,6 +13,7 @@
 
 // std includes
 #include <algorithm>
+#include <chrono>
 #include <cstdint>
 #include <random>
 #include <sstream>
@@ -90,8 +91,8 @@ TRexTikhonovSelector::TRexTikhonovSelector(
         trex_tik_ctrl_.tikhonov_K.cols() != p_idx) {
         throw std::invalid_argument(
             "TRexTikhonovSelector: tikhonov_K must be p x p "
-            "(p = X.cols(); PSD symmetry is validated by the CV tuner / "
-            "consumed as-is by the solver).");
+            "(p = X.cols(); finiteness, symmetry, and PSD are enforced by "
+            "the solver constructors).");
     }
     trex_tik_ctrl_.tikhonov_K.makeCompressed();
 
@@ -227,8 +228,16 @@ void TRexTikhonovSelector::onSelectBegin() {
         }
     }
 
-    // 2. lambda_2 (solver scale).
-    lambda2_ = computeLambda2();
+    // 2. lambda_2 (solver scale). Timed here rather than inside
+    //    computeLambda2(), so a CV tuner's cost is attributable on its own
+    //    instead of hiding inside the first solver run.
+    {
+        const auto t0 = std::chrono::steady_clock::now();
+        lambda2_ = computeLambda2();
+        lambda2_cv_diag_.seconds =
+            std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - t0).count();
+    }
     if (verbose_) {
         std::ostringstream oss;
         oss << "Tikhonov: lambda_2 (solver scale) = " << lambda2_;
@@ -308,6 +317,8 @@ er::ExperimentRunnerConfig TRexTikhonovSelector::buildRunnerConfig(
 
 double TRexTikhonovSelector::computeLambda2() const {
 
+    lambda2_cv_diag_ = ms::lambda2_cv_diagnostics{};
+
     if (trex_tik_ctrl_.lambda_2 >= 0.0) {
         // Fixed user value (>= 0); lambda_2 == 0 -> pure lasso path.
         // Interpreted in the WORKING column scale (trex_ctrl_.scaling_mode).
@@ -329,17 +340,20 @@ double TRexTikhonovSelector::computeLambda2() const {
         case TikLambda2Method::CV_1SE_IEN_CCD:
         case TikLambda2Method::CV_MIN_IEN_CCD: {
             // 2D (lambda_2 x lambda_1) CV with lambda_1 profiled out;
-            // well-posed in any p/n regime. Grid sizes are the class
-            // defaults (25 x 100) — the scan is a 2D surface, not a 1D
-            // analytic grid.
+            // well-posed in any p/n regime. The lambda_2 grid size is
+            // ctrl.cv_n_lambda2; the nuisance lambda_1 path length is
+            // ctrl.cv_n_lambda1. Warm-started across lambda_2 with the
+            // glmnet fdev/devmax/dfmax truncation of a full-data reference
+            // scan; the dfmax support cap is what makes it affordable.
             ms::ienet_cv_ccd cv;
             cv.fit(*X_, y_, trex_tik_ctrl_.tikhonov_K,
                    trex_tik_ctrl_.cv_n_folds,
-                   /*n_lambda2=*/25,
+                   trex_tik_ctrl_.cv_n_lambda2,
                    /*lambda2_ratio=*/1e4,
-                   /*n_lambda1=*/100,
+                   trex_tik_ctrl_.cv_n_lambda1,
                    /*lambda1_min_ratio=*/-1.0,
                    resolved_cv_seed_);
+            lambda2_cv_diag_ = cv.diagnostics();
             const double l2 =
                 (trex_tik_ctrl_.lambda2_method ==
                  TikLambda2Method::CV_MIN_IEN_CCD)
@@ -365,6 +379,7 @@ double TRexTikhonovSelector::computeLambda2() const {
                     "interpolates the training folds). Use CV_*_IEN_CCD "
                     "instead.");
             }
+            lambda2_cv_diag_.ran = true;
             const double l2 =
                 (trex_tik_ctrl_.lambda2_method ==
                  TikLambda2Method::CV_MIN_TIK_SVD)

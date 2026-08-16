@@ -12,6 +12,8 @@
 #include <trex_selector_methods/trex_tikhonov/trex_tikhonov.hpp>
 
 // std includes
+#include <algorithm>
+#include <chrono>
 #include <cstdint>
 #include <random>
 #include <sstream>
@@ -55,8 +57,31 @@ TRexTikhonovSelector::TRexTikhonovSelector(
     tc::TRexSelector(X, y, tFDR, trex_tik_ctrl.trex_ctrl, seed, verbose),
     trex_tik_ctrl_(std::move(trex_tik_ctrl))
 {
-    // ---- Penalty matrix ---------------------------------------------------
+    // ---- Penalty matrix / structure ---------------------------------------
     const auto p_idx = static_cast<Eigen::Index>(p_);
+    if (trex_tik_ctrl_.penalty_structure ==
+        TikPenaltyStructure::GROUP_CENTERING) {
+        // Structured fast path: groups are REQUIRED (they define K_GC and
+        // feed the O(1) solver hooks); K is built internally when absent
+        // (the CV tuners consume it).
+        if (trex_tik_ctrl_.prior_groups.empty()) {
+            throw std::invalid_argument(
+                "TRexTikhonovSelector: penalty_structure = GROUP_CENTERING "
+                "requires prior_groups (they define K_GC and the O(1) "
+                "solver hooks).");
+        }
+        cdum::validatePriorGroups(trex_tik_ctrl_.prior_groups, p_,
+                                  "TRexTikhonovSelector");
+        if (trex_tik_ctrl_.tikhonov_K.nonZeros() == 0) {
+            trex_tik_ctrl_.tikhonov_K =
+                buildGroupCenteringK(trex_tik_ctrl_.prior_groups);
+        }
+        groups_vec_i_.resize(p_idx);
+        for (std::size_t j = 0; j < p_; ++j) {
+            groups_vec_i_(static_cast<Eigen::Index>(j)) =
+                static_cast<int>(trex_tik_ctrl_.prior_groups[j]);
+        }
+    }
     if (trex_tik_ctrl_.tikhonov_K.nonZeros() == 0) {
         throw std::invalid_argument(
             "TRexTikhonovSelector: tikhonov_K is empty; supply a p x p PSD "
@@ -66,19 +91,31 @@ TRexTikhonovSelector::TRexTikhonovSelector(
         trex_tik_ctrl_.tikhonov_K.cols() != p_idx) {
         throw std::invalid_argument(
             "TRexTikhonovSelector: tikhonov_K must be p x p "
-            "(p = X.cols(); PSD symmetry is validated by the CV tuner / "
-            "consumed as-is by the solver).");
+            "(p = X.cols(); finiteness, symmetry, and PSD are enforced by "
+            "the solver constructors).");
     }
     trex_tik_ctrl_.tikhonov_K.makeCompressed();
 
     // ---- Solver gate ------------------------------------------------------
-    // TCIENET is the only solver with a general sparse-K mode; the shared
+    // Three solvers implement the general sparse-K mode: TCDTIKNET (CCD,
+    // exact fixed-lambda1 minimizers; FOLDED or INDEPENDENT_RIDGE dummy
+    // coupling), TIKNET (native LARS homotopy), and TIKOMP (greedy
+    // generalized-ridge OMP) — the latter two FOLDED-only. The shared
     // dispatch would reject anything K-aware for other enumerators anyway,
     // so fail fast with a precise message.
-    if (trex_ctrl_.solver_type != sd::SolverTypeForTRex::TCIENET) {
+    if (trex_ctrl_.solver_type != sd::SolverTypeForTRex::TCDTIKNET &&
+        trex_ctrl_.solver_type != sd::SolverTypeForTRex::TIKNET &&
+        trex_ctrl_.solver_type != sd::SolverTypeForTRex::TIKOMP) {
         throw std::invalid_argument(
-            "TRexTikhonovSelector: solver_type must be TCIENET (the general "
-            "Tikhonov penalty is only implemented by the CCD IEN solver).");
+            "TRexTikhonovSelector: solver_type must be TCDTIKNET, TIKNET, "
+            "or TIKOMP (the only solvers with a general Tikhonov-K mode).");
+    }
+    if (!trex_tik_ctrl_.fold_dummy_coupling &&
+        trex_ctrl_.solver_type != sd::SolverTypeForTRex::TCDTIKNET) {
+        throw std::invalid_argument(
+            "TRexTikhonovSelector: fold_dummy_coupling = false "
+            "(INDEPENDENT_RIDGE) exists only on the TCDTIKNET path; TIKNET "
+            "and TIKOMP implement FOLDED coupling exclusively.");
     }
 
     // ---- Cluster-aware dummy gates ----------------------------------------
@@ -137,6 +174,42 @@ Eigen::SparseMatrix<double> TRexTikhonovSelector::gammaToK(
 
 
 // ===================================================================================
+// buildGroupCenteringK — K_GC = blockdiag(I - J/p_m)
+// ===================================================================================
+
+Eigen::SparseMatrix<double> TRexTikhonovSelector::buildGroupCenteringK(
+    const std::vector<Eigen::Index>& prior_groups)
+{
+    const auto p = static_cast<Eigen::Index>(prior_groups.size());
+
+    // Per-group column lists (ids validated by the caller / constructor).
+    Eigen::Index M = 0;
+    for (const Eigen::Index g : prior_groups) { M = std::max(M, g + 1); }
+    std::vector<std::vector<Eigen::Index>> cols(static_cast<std::size_t>(M));
+    for (std::size_t j = 0; j < prior_groups.size(); ++j) {
+        cols[static_cast<std::size_t>(prior_groups[j])]
+            .push_back(static_cast<Eigen::Index>(j));
+    }
+
+    std::vector<Eigen::Triplet<double>> trip;
+    for (const auto& members : cols) {
+        if (members.size() < 2) { continue; }   // singleton: no penalty
+        const double w = 1.0 / static_cast<double>(members.size());
+        for (const Eigen::Index a : members) {
+            for (const Eigen::Index b : members) {
+                const double delta = (a == b) ? 1.0 : 0.0;
+                trip.emplace_back(a, b, delta - w);
+            }
+        }
+    }
+    Eigen::SparseMatrix<double> K(p, p);
+    K.setFromTriplets(trip.begin(), trip.end());
+    K.makeCompressed();
+    return K;
+}
+
+
+// ===================================================================================
 // onSelectBegin — resolve lambda_2 before the L-loop
 // ===================================================================================
 
@@ -155,8 +228,16 @@ void TRexTikhonovSelector::onSelectBegin() {
         }
     }
 
-    // 2. lambda_2 (solver scale).
-    lambda2_ = computeLambda2();
+    // 2. lambda_2 (solver scale). Timed here rather than inside
+    //    computeLambda2(), so a CV tuner's cost is attributable on its own
+    //    instead of hiding inside the first solver run.
+    {
+        const auto t0 = std::chrono::steady_clock::now();
+        lambda2_ = computeLambda2();
+        lambda2_cv_diag_.seconds =
+            std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - t0).count();
+    }
     if (verbose_) {
         std::ostringstream oss;
         oss << "Tikhonov: lambda_2 (solver scale) = " << lambda2_;
@@ -218,6 +299,14 @@ er::ExperimentRunnerConfig TRexTikhonovSelector::buildRunnerConfig(
     cfg.tikhonov_fold_dummies = trex_tik_ctrl_.fold_dummy_coupling;
     cfg.solver_params.lambda2 = lambda2_;
 
+    // GROUP_CENTERING fast path: route the solver through the O(1) hooks
+    // (groups_vec_i_ is owned by this selector and outlives the run).
+    if (trex_tik_ctrl_.penalty_structure ==
+        TikPenaltyStructure::GROUP_CENTERING) {
+        cfg.tikhonov_group_centering = true;
+        cfg.tikhonov_groups          = &groups_vec_i_;
+    }
+
     return cfg;
 }
 
@@ -227,6 +316,8 @@ er::ExperimentRunnerConfig TRexTikhonovSelector::buildRunnerConfig(
 // ===================================================================================
 
 double TRexTikhonovSelector::computeLambda2() const {
+
+    lambda2_cv_diag_ = ms::lambda2_cv_diagnostics{};
 
     if (trex_tik_ctrl_.lambda_2 >= 0.0) {
         // Fixed user value (>= 0); lambda_2 == 0 -> pure lasso path.
@@ -249,17 +340,20 @@ double TRexTikhonovSelector::computeLambda2() const {
         case TikLambda2Method::CV_1SE_IEN_CCD:
         case TikLambda2Method::CV_MIN_IEN_CCD: {
             // 2D (lambda_2 x lambda_1) CV with lambda_1 profiled out;
-            // well-posed in any p/n regime. Grid sizes are the class
-            // defaults (25 x 100) — the scan is a 2D surface, not a 1D
-            // analytic grid.
+            // well-posed in any p/n regime. The lambda_2 grid size is
+            // ctrl.cv_n_lambda2; the nuisance lambda_1 path length is
+            // ctrl.cv_n_lambda1. Warm-started across lambda_2 with the
+            // glmnet fdev/devmax/dfmax truncation of a full-data reference
+            // scan; the dfmax support cap is what makes it affordable.
             ms::ienet_cv_ccd cv;
             cv.fit(*X_, y_, trex_tik_ctrl_.tikhonov_K,
                    trex_tik_ctrl_.cv_n_folds,
-                   /*n_lambda2=*/25,
+                   trex_tik_ctrl_.cv_n_lambda2,
                    /*lambda2_ratio=*/1e4,
-                   /*n_lambda1=*/100,
+                   trex_tik_ctrl_.cv_n_lambda1,
                    /*lambda1_min_ratio=*/-1.0,
                    resolved_cv_seed_);
+            lambda2_cv_diag_ = cv.diagnostics();
             const double l2 =
                 (trex_tik_ctrl_.lambda2_method ==
                  TikLambda2Method::CV_MIN_IEN_CCD)
@@ -285,6 +379,7 @@ double TRexTikhonovSelector::computeLambda2() const {
                     "interpolates the training folds). Use CV_*_IEN_CCD "
                     "instead.");
             }
+            lambda2_cv_diag_.ran = true;
             const double l2 =
                 (trex_tik_ctrl_.lambda2_method ==
                  TikLambda2Method::CV_MIN_TIK_SVD)

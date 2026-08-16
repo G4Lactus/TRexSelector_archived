@@ -10,6 +10,7 @@
 
 // std includes
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <exception>
@@ -54,8 +55,8 @@
 #include <tsolvers/linear_model/lars_based/tenet_aug_solver.hpp>
 #include <tsolvers/linear_model/lars_based/tienet_solver.hpp>
 #include <tsolvers/linear_model/lars_based/tienet_aug_solver.hpp>
-#include <tsolvers/linear_model/cd_based/tcenet_solver.hpp>
-#include <tsolvers/linear_model/cd_based/tcienet_solver.hpp>
+#include <tsolvers/linear_model/cd_based/tcdenet_solver.hpp>
+#include <tsolvers/linear_model/cd_based/tcdienet_solver.hpp>
 #include <tsolvers/linear_model/lars_based/tlars_solver.hpp>
 #include <tsolvers/linear_model/lars_based/tlasso_solver.hpp>
 
@@ -87,7 +88,7 @@ namespace mm   = trex::trex_selector_methods::utils::memmap_manager;
 //   2. For `gvs_type == EN`, `solver_type` is DERIVED from `en_solver`
 //      (the single EN-solver knob). The pre-derivation value may only be
 //      the neutral default (TENET) or already consistent; an explicitly
-//      conflicting EN-family value throws so a legacy `solver_type = TCENET`
+//      conflicting EN-family value throws so a legacy `solver_type = TCDENET`
 //      / `TENET_AUG` request is never silently downgraded. Non-EN-family
 //      values are left for the constructor's IEN/EN family check to reject
 //      with the appropriate message.
@@ -102,13 +103,13 @@ static tc::TRexControlParameter prepareBaseCtrl(
         const bool en_family =
             q.solver_type == sd::SolverTypeForTRex::TENET ||
             q.solver_type == sd::SolverTypeForTRex::TENET_AUG ||
-            q.solver_type == sd::SolverTypeForTRex::TCENET;
+            q.solver_type == sd::SolverTypeForTRex::TCDENET;
         if (en_family &&
             q.solver_type != sd::SolverTypeForTRex::TENET &&  // neutral default
             q.solver_type != derived) {
             throw std::invalid_argument(
                 "TRexGVSSelector: gvs_type = EN selects its solver via "
-                "en_solver (TENET / TENET_AUG / TCENET); trex_ctrl.solver_type "
+                "en_solver (TENET / TENET_AUG / TCDENET); trex_ctrl.solver_type "
                 "is derived from it. Set en_solver instead of solver_type."
             );
         }
@@ -154,11 +155,11 @@ TRexGVSSelector::TRexGVSSelector(
         // the derivation deliberately left untouched (e.g. TLARS, TOMP).
         if (trex_ctrl_.solver_type != sd::SolverTypeForTRex::TENET &&
             trex_ctrl_.solver_type != sd::SolverTypeForTRex::TENET_AUG &&
-            trex_ctrl_.solver_type != sd::SolverTypeForTRex::TCENET) {
+            trex_ctrl_.solver_type != sd::SolverTypeForTRex::TCDENET) {
             throw std::invalid_argument(
                 "TRexGVSSelector: gvs_type = EN drives the ENET solver "
                 "family only; select the variant via en_solver "
-                "(TENET / TENET_AUG / TCENET) and leave solver_type at its "
+                "(TENET / TENET_AUG / TCDENET) and leave solver_type at its "
                 "default."
             );
         }
@@ -166,15 +167,15 @@ TRexGVSSelector::TRexGVSSelector(
         // IEN drives its concrete solver from solver_type directly:
         // TIENET (native pathwise LARS-IEN), TIENET_AUG (group penalty
         // absorbed into the row-augmented system built by TIENETAug_Solver),
-        // or TCIENET (pathwise CCD with the O(1) group-sum penalty hooks).
+        // or TCDIENET (pathwise CCD with the O(1) group-sum penalty hooks).
         // All three solve the same IEN problem family.
         if (trex_ctrl_.solver_type != sd::SolverTypeForTRex::TIENET &&
             trex_ctrl_.solver_type != sd::SolverTypeForTRex::TIENET_AUG &&
-            trex_ctrl_.solver_type != sd::SolverTypeForTRex::TCIENET) {
+            trex_ctrl_.solver_type != sd::SolverTypeForTRex::TCDIENET) {
             throw std::invalid_argument(
                 "TRexGVSSelector: gvs_type = IEN requires solver_type = "
                 "TIENET (native pathwise), TIENET_AUG (row-augmented), or "
-                "TCIENET (CCD)."
+                "TCDIENET (CCD)."
             );
         }
     }
@@ -413,6 +414,8 @@ void TRexGVSSelector::finalizeSetup() {
 
 double TRexGVSSelector::computeLambda2() const {
 
+    lambda2_cv_diag_ = ms::lambda2_cv_diagnostics{};
+
     if (trex_gvs_ctrl_.lambda_2 >= 0.0) {
         // Fixed user value (>= 0). lambda_2 == 0 -> degenerate TLASSO (no ridge).
         // Interpreted in the WORKING column scale (trex_ctrl_.scaling_mode):
@@ -468,12 +471,11 @@ double TRexGVSSelector::computeLambda2() const {
     // nearly collinear with the active itself and the FDP estimate never
     // drops below the target. If the IEN track selects nothing, supply a
     // smaller fixed lambda_2 (see the EndToEnd_IEN test for a worked example).
-    namespace ms = trex::ml_methods::model_selection;
 
     // ---- IEN-geometry tuners (solver scale; NO p/2 conversion) -------------
     // Both consume the group structure (gvs_setup_ is populated before this
     // call) and return lambda_2 on the unit-L2 solver scale — directly
-    // consumable by TIENET / TIENET_AUG / TCIENET; only the ZSCORE
+    // consumable by TIENET / TIENET_AUG / TCDIENET; only the ZSCORE
     // working-scale factor (n-1) applies (X_ columns then have squared norm
     // n-1 instead of 1).
     const bool ien_method =
@@ -498,18 +500,22 @@ double TRexGVSSelector::computeLambda2() const {
             case LambdaSelectionMethod::CV_1SE_IEN_CCD:
             case LambdaSelectionMethod::CV_MIN_IEN_CCD: {
                 // 2D (lambda_2 x lambda_1) CV with lambda_1 profiled out;
-                // well-posed in any p/n regime. The lambda_2 grid size and
-                // the lambda_1 path length use the class defaults (25 x 100)
-                // rather than cv_n_lambda — the scan is a 2D surface, not a
-                // 1D analytic grid.
+                // well-posed in any p/n regime. The lambda_2 grid size is
+                // ctrl.cv_n_lambda2 (NOT cv_n_lambda — the scan is a 2D
+                // surface); the nuisance lambda_1 path length is
+                // ctrl.cv_n_lambda1. The scan is warm-started across
+                // lambda_2 with the glmnet fdev/devmax/dfmax truncation of a
+                // full-data reference scan (cv.glmnet grid-once semantics);
+                // the dfmax support cap is what makes it affordable.
                 ms::ienet_cv_ccd cv;
                 cv.fit(*X_, y_, gvs_setup_.groups_vec,
                        trex_gvs_ctrl_.cv_n_folds,
-                       /*n_lambda2=*/25,
+                       trex_gvs_ctrl_.cv_n_lambda2,
                        /*lambda2_ratio=*/1e4,
-                       /*n_lambda1=*/100,
+                       trex_gvs_ctrl_.cv_n_lambda1,
                        /*lambda1_min_ratio=*/-1.0,
                        resolved_cv_seed_);
+                lambda2_cv_diag_ = cv.diagnostics();
                 const double l2 =
                     (trex_gvs_ctrl_.lambda2_method ==
                      LambdaSelectionMethod::CV_MIN_IEN_CCD)
@@ -536,6 +542,7 @@ double TRexGVSSelector::computeLambda2() const {
                         "interpolates the training folds and the CV curve is "
                         "floor-driven). Use CV_*_IEN_CCD instead.");
                 }
+                lambda2_cv_diag_.ran = true;
                 const double l2 =
                     (trex_gvs_ctrl_.lambda2_method ==
                      LambdaSelectionMethod::CV_MIN_TIK_SVD)
@@ -599,6 +606,8 @@ double TRexGVSSelector::computeLambda2() const {
             throw std::invalid_argument(
                 "TRexGVSSelector::computeLambda2: unknown LambdaSelectionMethod.");
     }
+
+    lambda2_cv_diag_.ran = true;
 
     // Working-scale conversion (see the scale_adjust note above).
     const double scale_adjust =
@@ -694,6 +703,18 @@ Eigen::MatrixXd TRexGVSSelector::extractPhiContribFromPath(
     // For each t in [1, T_stop], find the FIRST step where exactly t dummy
     // variables are non-zero.  At that step, every active original feature
     // gets a +1 contribution.
+    //
+    // NOTE (tested and REVERTED, 2026-08-06): relaxing this to first-reach
+    // (`>= t`) was tried, on the hypothesis that a CD path stepping from
+    // t-1 straight to t+1 skips t and leaves its phi column at zero. The
+    // change had ZERO measured effect — Demos "TRex CCD"/
+    // demo_03_trex_gvs_study Part 3d, TENET vs TCDENET, 50 MC, identical
+    // before and after at K = 2/5/20. The zero columns are real and
+    // one-sided, but they come from the OTHER branch below
+    // (`found_col == n_steps`): the CD path never reaches t dummies at all.
+    // Measured: the mass deficit sits at relative row position 0.94, i.e.
+    // the tail, not scattered at 0.5 as skipping would give. So this is a CD
+    // path-length question, not a phi-extraction one.
     for (std::size_t t = 1; t <= T_stop; ++t) {
 
         std::size_t found_col = n_steps;
@@ -741,11 +762,11 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
     const bool ien_native = ien &&
         (trex_ctrl_.solver_type == sd::SolverTypeForTRex::TIENET);
     const bool ien_ccd = ien &&
-        (trex_ctrl_.solver_type == sd::SolverTypeForTRex::TCIENET);
+        (trex_ctrl_.solver_type == sd::SolverTypeForTRex::TCDIENET);
     // EN variants branch on en_solver, the single EN axis (the frozen
     // trex_ctrl_.solver_type was derived from it in prepareBaseCtrl()).
     const bool en_ccd    = (trex_gvs_ctrl_.gvs_type == GVSType::EN &&
-                            trex_gvs_ctrl_.en_solver == ENSolverType::TCENET);
+                            trex_gvs_ctrl_.en_solver == ENSolverType::TCDENET);
     const bool en_aug    = (trex_gvs_ctrl_.gvs_type == GVSType::EN &&
                             trex_gvs_ctrl_.en_solver == ENSolverType::TENET_AUG);
 
@@ -840,7 +861,7 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
                     // convention as the native pathwise TIENET: shared
                     // pre-normalized X, center-only D_k, centered y —
                     // normalize/intercept=false.
-                    auto ccd_solver = std::make_unique<ccd::TCIENET_Solver>(
+                    auto ccd_solver = std::make_unique<ccd::TCDIENET_Solver>(
                         *X_solver_map_,
                         *D_solver_maps_[k],
                         *y_solver_map_,
@@ -885,7 +906,7 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
                     // preserving exchangeability). Same data convention as
                     // plain TENET: pre-normalized X, center-only D_k,
                     // centered y — normalize/intercept=false.
-                    auto ccd_solver = std::make_unique<ccd::TCENET_Solver>(
+                    auto ccd_solver = std::make_unique<ccd::TCDENET_Solver>(
                         *X_solver_map_,
                         *D_solver_maps_[k],
                         *y_solver_map_,
@@ -895,7 +916,7 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
                         /*verbose=*/false,
                         solver_scaling
                     );
-                    // Shared CD knobs (see the TCIENET branch).
+                    // Shared CD knobs (see the TCDIENET branch).
                     sd::applyCdKnobs(*ccd_solver, trex_ctrl_.solver_params);
                     solver = std::move(ccd_solver);
                 } else if (en_aug) {
@@ -946,7 +967,7 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
             // milestone and, for solvers reporting RAW minimizers (the CCD
             // family, no Zou-Hastie rescaling), erases coefficients of scale
             // ~1/(1+lambda2) once lambda2 approaches 1/tol — punctured dummy
-            // counts then zero whole phi columns (the demo_02 TCENET
+            // counts then zero whole phi columns (the demo_02 TCDENET
             // collapse at the CV-chosen lambda2 ~ 1e6).
             phi_T_per_k[k] = extractPhiContribFromPath(
                 beta_path, p_, num_dummies, T_stop,
@@ -1042,7 +1063,7 @@ void TRexGVSSelector::prepareDummiesForLStep(LStepContext& ctx)
     // the center-only D_k directly; only the TIENETAug wrapper takes it raw.
     const bool ien_native = ien &&
         (trex_ctrl_.solver_type == sd::SolverTypeForTRex::TIENET ||
-         trex_ctrl_.solver_type == sd::SolverTypeForTRex::TCIENET);
+         trex_ctrl_.solver_type == sd::SolverTypeForTRex::TCDIENET);
 
     // Fresh dummy data invalidates the cached solvers. Clear them BEFORE the
     // dummy buffers they view are reassigned below, so no dangling view
@@ -1148,7 +1169,7 @@ void TRexGVSSelector::prepareDummiesForLStep(LStepContext& ctx)
             // keeps the fluctuation) to ~0.13. Center-only matches the R
             // pipeline (dummies are centered by the augmented scale() there).
             // Applies to the EN variants AND the native-convention IEN
-            // solvers (TIENET / TCIENET); only the TIENETAug wrapper takes
+            // solvers (TIENET / TCDIENET); only the TIENETAug wrapper takes
             // the block raw and reaches the same state via its own centering.
                 dmap.rowwise() -= dmap.colwise().mean();
             }
@@ -1218,8 +1239,16 @@ void TRexGVSSelector::onSelectBegin() {
                       ", M = " + std::to_string(gvs_setup_.max_clusters));
     }
 
-    // 2. lambda_2 (LARS units).
-    lambda2_ = computeLambda2();
+    // 2. lambda_2 (LARS units). Timed here rather than inside
+    //    computeLambda2(), so a CV tuner's cost is attributable on its own
+    //    instead of hiding inside the first solver run.
+    {
+        const auto t0 = std::chrono::steady_clock::now();
+        lambda2_ = computeLambda2();
+        lambda2_cv_diag_.seconds =
+            std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - t0).count();
+    }
     if (verbose_) {
         std::ostringstream oss;
         oss << "GVS: lambda_2 (LARS units) = " << lambda2_;
@@ -1277,6 +1306,7 @@ TRexGVSSelector::SelectionResult TRexGVSSelector::finalizeSelectionResult(
 
     // GVS-specific fields.
     gvs_result_.lambda2_used   = lambda2_;
+    gvs_result_.lambda2_cv     = lambda2_cv_diag_;
     gvs_result_.gvs_type       = trex_gvs_ctrl_.gvs_type;
     gvs_result_.max_clusters   = gvs_setup_.max_clusters;
     gvs_result_.hc_method_used = gvs_setup_.hc_method_used;

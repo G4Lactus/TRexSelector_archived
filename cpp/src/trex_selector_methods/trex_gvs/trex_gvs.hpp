@@ -160,6 +160,7 @@
 #include <ml_methods/clustering/hierarchical/agglomerative/agglomerative_types.hpp>
 #include <ml_methods/clustering/hierarchical/agglomerative/dendrogram_utils.hpp>
 #include <ml_methods/clustering/hierarchical/agglomerative/distance_policy.hpp>
+#include <ml_methods/model_selection/lambda2_cv_diagnostics.hpp>
 
 // Solver base for warm-start cache
 #include <tsolvers/tsolver_base.hpp>
@@ -172,6 +173,7 @@ namespace trex::trex_selector_methods::trex_gvs {
 namespace tc  = trex::trex_selector_methods::trex_core;
 namespace sd  = trex::trex_selector_methods::utils::solver_dispatch;
 namespace hac = trex::ml_methods::clustering::hierarchical::agglomerative;
+namespace ms  = trex::ml_methods::model_selection;
 
 // ===================================================================================
 // Enums
@@ -367,6 +369,26 @@ struct TRexGVSControlParameter {
      */
     Eigen::Index cv_n_lambda = 1000;
 
+    /** @brief Number of points on the geometric lambda_2 grid searched by
+     *  the IEN-geometry 2D tuner (CV_*_IEN_CCD). The scan is warm-started
+     *  across the lambda_2 grid with glmnet-style path truncation decided
+     *  by a full-data reference scan (cv.glmnet grid-once semantics), so
+     *  the cost grows sublinearly in this value. Default: 100 — resolution
+     *  parity with the tuner's internal lambda_1 path and glmnet's nlambda.
+     */
+    Eigen::Index cv_n_lambda2 = 100;
+
+    /** @brief Length of the internal lambda_1 path of the IEN-geometry 2D
+     *  tuner (CV_*_IEN_CCD). lambda_1 is a NUISANCE parameter there — it is
+     *  profiled out and only has to keep the contrast space well-posed — so
+     *  it does not need glmnet's nlambda = 100 resolution. Cost in this
+     *  value is U-shaped (coarser steps degrade the pathwise warm starts
+     *  faster than the point count falls); 40 is the smallest length that
+     *  still reproduces the 100-point grid's lambda_2 picks exactly.
+     *  Default: 40.
+     */
+    Eigen::Index cv_n_lambda1 = 40;
+
     /** @brief Seed for the deterministic fold-permutation RNG used by the
      *  `lambda2_method` CV paths.
      *
@@ -495,6 +517,10 @@ public:
         /** @brief lambda_2 actually used (resolved from user or GCV). */
         double lambda2_used = 0.0;
 
+        /** @brief What the lambda_2 tuner did to arrive at `lambda2_used`
+         *  (`ran == false`: the value came from the caller). */
+        ms::lambda2_cv_diagnostics lambda2_cv;
+
         /** @brief Augmentation policy that was applied. */
         GVSType gvs_type = GVSType::EN;
 
@@ -572,6 +598,13 @@ public:
      */
     const GVSSelectionResult& getGVSResult() const noexcept { return gvs_result_; }
 
+    /** @brief Health record of the lambda_2 resolution of the last
+     *  `select()` call. Available after `select()`; also mirrored into
+     *  `getGVSResult().lambda2_cv`. */
+    const ms::lambda2_cv_diagnostics& getLambda2CVDiagnostics() const noexcept {
+        return lambda2_cv_diag_;
+    }
+
 
 protected:
 
@@ -587,6 +620,11 @@ protected:
 
     /** @brief Resolved lambda_2 in LARS units (> 0 after computeLambda2()). */
     double lambda2_{0.0};
+
+    /** @brief Health record of the last `computeLambda2()` call. Mutable
+     *  because `computeLambda2()` is const — it reports what it did
+     *  alongside the value it returns. */
+    mutable ms::lambda2_cv_diagnostics lambda2_cv_diag_;
 
     /** @brief Resolved CV fold-permutation seed.
      *

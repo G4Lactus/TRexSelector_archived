@@ -10,6 +10,7 @@
 
 // std includes
 #include <atomic>
+#include <chrono>
 #include <cmath>
 #include <cstddef>
 #include <exception>
@@ -413,6 +414,8 @@ void TRexGVSSelector::finalizeSetup() {
 
 double TRexGVSSelector::computeLambda2() const {
 
+    lambda2_cv_diag_ = ms::lambda2_cv_diagnostics{};
+
     if (trex_gvs_ctrl_.lambda_2 >= 0.0) {
         // Fixed user value (>= 0). lambda_2 == 0 -> degenerate TLASSO (no ridge).
         // Interpreted in the WORKING column scale (trex_ctrl_.scaling_mode):
@@ -468,7 +471,6 @@ double TRexGVSSelector::computeLambda2() const {
     // nearly collinear with the active itself and the FDP estimate never
     // drops below the target. If the IEN track selects nothing, supply a
     // smaller fixed lambda_2 (see the EndToEnd_IEN test for a worked example).
-    namespace ms = trex::ml_methods::model_selection;
 
     // ---- IEN-geometry tuners (solver scale; NO p/2 conversion) -------------
     // Both consume the group structure (gvs_setup_ is populated before this
@@ -498,18 +500,22 @@ double TRexGVSSelector::computeLambda2() const {
             case LambdaSelectionMethod::CV_1SE_IEN_CCD:
             case LambdaSelectionMethod::CV_MIN_IEN_CCD: {
                 // 2D (lambda_2 x lambda_1) CV with lambda_1 profiled out;
-                // well-posed in any p/n regime. The lambda_2 grid size and
-                // the lambda_1 path length use the class defaults (25 x 100)
-                // rather than cv_n_lambda — the scan is a 2D surface, not a
-                // 1D analytic grid.
+                // well-posed in any p/n regime. The lambda_2 grid size is
+                // ctrl.cv_n_lambda2 (NOT cv_n_lambda — the scan is a 2D
+                // surface); the nuisance lambda_1 path length is
+                // ctrl.cv_n_lambda1. The scan is warm-started across
+                // lambda_2 with the glmnet fdev/devmax/dfmax truncation of a
+                // full-data reference scan (cv.glmnet grid-once semantics);
+                // the dfmax support cap is what makes it affordable.
                 ms::ienet_cv_ccd cv;
                 cv.fit(*X_, y_, gvs_setup_.groups_vec,
                        trex_gvs_ctrl_.cv_n_folds,
-                       /*n_lambda2=*/25,
+                       trex_gvs_ctrl_.cv_n_lambda2,
                        /*lambda2_ratio=*/1e4,
-                       /*n_lambda1=*/100,
+                       trex_gvs_ctrl_.cv_n_lambda1,
                        /*lambda1_min_ratio=*/-1.0,
                        resolved_cv_seed_);
+                lambda2_cv_diag_ = cv.diagnostics();
                 const double l2 =
                     (trex_gvs_ctrl_.lambda2_method ==
                      LambdaSelectionMethod::CV_MIN_IEN_CCD)
@@ -536,6 +542,7 @@ double TRexGVSSelector::computeLambda2() const {
                         "interpolates the training folds and the CV curve is "
                         "floor-driven). Use CV_*_IEN_CCD instead.");
                 }
+                lambda2_cv_diag_.ran = true;
                 const double l2 =
                     (trex_gvs_ctrl_.lambda2_method ==
                      LambdaSelectionMethod::CV_MIN_TIK_SVD)
@@ -599,6 +606,8 @@ double TRexGVSSelector::computeLambda2() const {
             throw std::invalid_argument(
                 "TRexGVSSelector::computeLambda2: unknown LambdaSelectionMethod.");
     }
+
+    lambda2_cv_diag_.ran = true;
 
     // Working-scale conversion (see the scale_adjust note above).
     const double scale_adjust =
@@ -694,6 +703,18 @@ Eigen::MatrixXd TRexGVSSelector::extractPhiContribFromPath(
     // For each t in [1, T_stop], find the FIRST step where exactly t dummy
     // variables are non-zero.  At that step, every active original feature
     // gets a +1 contribution.
+    //
+    // NOTE (tested and REVERTED, 2026-08-06): relaxing this to first-reach
+    // (`>= t`) was tried, on the hypothesis that a CD path stepping from
+    // t-1 straight to t+1 skips t and leaves its phi column at zero. The
+    // change had ZERO measured effect — Demos "TRex CCD"/
+    // demo_03_trex_gvs_study Part 3d, TENET vs TCDENET, 50 MC, identical
+    // before and after at K = 2/5/20. The zero columns are real and
+    // one-sided, but they come from the OTHER branch below
+    // (`found_col == n_steps`): the CD path never reaches t dummies at all.
+    // Measured: the mass deficit sits at relative row position 0.94, i.e.
+    // the tail, not scattered at 0.5 as skipping would give. So this is a CD
+    // path-length question, not a phi-extraction one.
     for (std::size_t t = 1; t <= T_stop; ++t) {
 
         std::size_t found_col = n_steps;
@@ -1218,8 +1239,16 @@ void TRexGVSSelector::onSelectBegin() {
                       ", M = " + std::to_string(gvs_setup_.max_clusters));
     }
 
-    // 2. lambda_2 (LARS units).
-    lambda2_ = computeLambda2();
+    // 2. lambda_2 (LARS units). Timed here rather than inside
+    //    computeLambda2(), so a CV tuner's cost is attributable on its own
+    //    instead of hiding inside the first solver run.
+    {
+        const auto t0 = std::chrono::steady_clock::now();
+        lambda2_ = computeLambda2();
+        lambda2_cv_diag_.seconds =
+            std::chrono::duration<double>(
+                std::chrono::steady_clock::now() - t0).count();
+    }
     if (verbose_) {
         std::ostringstream oss;
         oss << "GVS: lambda_2 (LARS units) = " << lambda2_;
@@ -1277,6 +1306,7 @@ TRexGVSSelector::SelectionResult TRexGVSSelector::finalizeSelectionResult(
 
     // GVS-specific fields.
     gvs_result_.lambda2_used   = lambda2_;
+    gvs_result_.lambda2_cv     = lambda2_cv_diag_;
     gvs_result_.gvs_type       = trex_gvs_ctrl_.gvs_type;
     gvs_result_.max_clusters   = gvs_setup_.max_clusters;
     gvs_result_.hc_method_used = gvs_setup_.hc_method_used;

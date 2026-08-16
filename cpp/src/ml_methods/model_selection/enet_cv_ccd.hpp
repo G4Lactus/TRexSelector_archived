@@ -459,6 +459,7 @@ public:
         if (n_lambda <= 0)          throw std::invalid_argument("enet_cv_ccd::fit: n_lambda > 0");
 
         // ---- full-data grid (descending), reused across folds --------------
+        n_lambda_requested_ = n_lambda;
         {
             enet_gaussian full;
             full.fit(X, y, alpha, n_lambda, lambda_min_ratio,
@@ -550,6 +551,52 @@ public:
     Eigen::Index index_min() const noexcept { return idx_min_; }
     Eigen::Index index_1se() const noexcept { return idx_1se_; }
 
+    /** @brief True when `cv_min()` or `cv_1se()` landed on the FIRST or LAST
+     *         grid point — the pick is the grid boundary, not an optimum.
+     *
+     * @details Deliberately the ONLY dimensional diagnostic on this class.
+     *  The support cap and the regime-dependent lambda range that
+     *  `ienet_cv_ccd` needs do NOT apply here, for two structural reasons:
+     *
+     *   1. The T-Rex pipeline calls this class only at alpha = 0 (pure
+     *      ridge). There is then no support at all — every coefficient is
+     *      nonzero at every lambda — so no support saturation, no
+     *      rank-deficient active set, and none of the flat-valley cost that
+     *      motivated the cap. Measured: this tuner costs 0.357 s on the same
+     *      design where the IEN tuner cost 3108 s before the cap.
+     *   2. Its lambda is the SELECTION TARGET of a 1-D CV, not a nuisance
+     *      profiled out. The deep end of the grid is therefore a region the
+     *      answer may legitimately occupy, so glmnet's
+     *      (n < p ? 1e-2 : 1e-4) rule is right here and must NOT be replaced
+     *      by the flat 1e-2 that `ienet_cv_ccd` uses.
+     *
+     *  Verified 2026-08-05 on both regimes (n=150,p=100 and n=200,p=500):
+     *  picks interior at idx_min 61/100 and 88/100, idx_1se 50/100 and
+     *  53/100 — no edge, no retuning warranted. */
+    bool selection_at_grid_edge() const noexcept {
+        const Eigen::Index K = lambdas_.size();
+        if (K == 0) { return false; }
+        return idx_min_ == 0 || idx_min_ == K - 1 ||
+               idx_1se_ == 0 || idx_1se_ == K - 1;
+    }
+
+    /** @brief True when glmnet's fdev/devmax rules truncated the full-data
+     *         grid, so `lambdas()` is shorter than the requested `n_lambda`.
+     *
+     * @details Read this together with `selection_at_grid_edge()`, because on
+     *  this class the two causes of a last-index pick are different things:
+     *
+     *   - at-edge AND truncated  -> BENIGN. The deviance rules stopped the
+     *     path because decreasing lambda further stopped improving the fit;
+     *     the CV is simply indifferent over the tail it never saw.
+     *   - at-edge AND NOT truncated -> the requested lambda RANGE ran out
+     *     with the CV still improving; widen `lambda_min_ratio`.
+     *   - idx_min_ == 0 (largest lambda) is always the range ceiling,
+     *     truncation cannot cause it. */
+    bool grid_truncated() const noexcept {
+        return lambdas_.size() < n_lambda_requested_;
+    }
+
 private:
 
     void check_fitted() const {
@@ -563,6 +610,7 @@ private:
     Eigen::VectorXd cv_sem_;
     Eigen::Index    idx_min_ = 0;
     Eigen::Index    idx_1se_ = 0;
+    Eigen::Index    n_lambda_requested_ = 0;
 };
 
 // ===================================================================================
