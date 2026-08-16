@@ -477,7 +477,9 @@ public:
     /**
      * @brief Return all warnings recorded so far (dropped columns, collinear
      * rejections, numerical issues). Warnings are always recorded and printed
-     * to the warning stream regardless of the verbose flag.
+     * to the warning stream regardless of the verbose flag (unless the
+     * stream is muted process-wide via
+     * trex::utils::logging::setWarningsEnabled(false) — MC harness use).
      */
     const std::vector<std::string>& getWarnings() const noexcept { return warnings_; }
 
@@ -768,8 +770,9 @@ protected:
     * @brief Log a warning message.
     *
     * @details Warnings are printed to the warning stream unconditionally
-    * (NOT gated by verbose_) and recorded in warnings_ for programmatic
-    * retrieval via getWarnings().
+    * (NOT gated by verbose_; muteable process-wide via
+    * trex::utils::logging::setWarningsEnabled) and recorded in warnings_
+    * for programmatic retrieval via getWarnings().
     *
     * @param msg The warning message to log.
     */

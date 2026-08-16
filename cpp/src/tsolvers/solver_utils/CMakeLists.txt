@@ -22,5 +22,6 @@ target_sources(trex_tsolvers PUBLIC
     BASE_DIRS ${PROJECT_SOURCE_DIR}/src      # project root src/
     FILES
         ${CMAKE_CURRENT_LIST_DIR}/solver_preprocessing.hpp
+        ${CMAKE_CURRENT_LIST_DIR}/tikhonov_validation.hpp
 )
 # ==================================================================================

@@ -16,6 +16,7 @@
 
 // tsolvers includes
 #include <tsolvers/linear_model/lars_based/tiknet_solver.hpp>
+#include <tsolvers/solver_utils/tikhonov_validation.hpp>
 
 // utils includes
 #include <utils/fp_classify/fp_classify.hpp>
@@ -66,6 +67,9 @@ TIKNET_Solver::TIKNET_Solver(
             "TIKNET_Solver: D.cols() must be a multiple of X.cols() "
             "(FOLDED layered dummy convention).");
     }
+    // Finiteness, symmetry, PSD within tolerance (shared trio helper).
+    solver_utils::tikhonov::validateTikhonovK(tikhonov_matrix,
+                                              "TIKNET_Solver");
     tikhonov_K_ = tikhonov_matrix;
     tikhonov_K_.makeCompressed();
 
@@ -113,6 +117,97 @@ void TIKNET_Solver::executeStep(std::size_t T_stop, bool early_stop) {
            !inactives_.empty() &&
            actives_.size() < max_actives_ &&
            (!early_stop || T_stop == 0 || count_active_dummies_ < T_stop)) {
+
+        // ========================================================
+        // STEP 0: Drop-recovery step (R-lars drop-breakpoint
+        // semantics, FIX 2026-08-16; see TLASSO_Solver::executeStep).
+        // The previous step ended in a drop, so NO variable joins:
+        // the path moves along the REDUCED active set with the
+        // TIK-modified correlation level until an inactive genuinely
+        // catches up.
+        // ========================================================
+        if (drop_recovery_pending_ && !actives_.empty()) {
+            drop_recovery_pending_ = false;
+
+            // TIK-modified correlation level of the reduced active set
+            double Cmax_active = 0.0;
+            for (std::size_t a_idx : actives_) {
+                const double c_a = getColumn(a_idx).dot(r_) -
+                                   lambda2_ * ks_(static_cast<Eigen::Index>(
+                                       foldedBase(a_idx)));
+                Cmax_active = std::max(Cmax_active, std::abs(c_a));
+            }
+            if (Cmax_active < 100 * eps_) {
+                logInfo("Active |corr| approx 0 after drop; exiting.");
+                break;
+            }
+
+            currentStep_++;
+            lambda_.push_back(Cmax_active);
+            actions_.emplace_back();  // no ADD; cascading drops append
+
+            // Exclude the just-dropped variables from candidacy for THIS
+            // step (see last_dropped_vars_); re-added with an exact
+            // correlation refresh after the move.
+            std::vector<std::size_t> excluded;
+            for (std::size_t v : last_dropped_vars_) {
+                auto it = std::find(inactives_.begin(), inactives_.end(), v);
+                if (it != inactives_.end()) {
+                    excluded.push_back(v);
+                    inactives_.erase(it);
+                }
+            }
+
+            Eigen::VectorXd sign_vec = signVector();
+            Eigen::VectorXd w_A = equiangularDirection(sign_vec);
+            Eigen::VectorXd u = equiangularVector(w_A);
+            computeFoldedDirSums(w_A);
+
+            auto [gamma_entry, a] = computeStepSizeTIK(Cmax_active, u);
+
+            // The excluded variables cannot be ADDED this step, but they
+            // still BOUND it (genuine mid-step catch-up on near-tie data)
+            std::vector<std::pair<double, double>> excluded_ac;
+            for (std::size_t v : excluded) {
+                excluded_ac.emplace_back(
+                    getColumn(v).dot(u) +
+                        lambda2_ * ktau_(static_cast<Eigen::Index>(
+                            foldedBase(v))),
+                    correlations_(static_cast<Eigen::Index>(v)));
+            }
+            gamma_entry = capGammaByExcluded(gamma_entry, Cmax_active,
+                                             excluded_ac);
+
+            std::vector<bool> drops(actives_.size(), false);
+            double gamma = computeGammaSignChange(gamma_entry, drops, w_A);
+
+            updateBetaPath(w_A, gamma);
+            r_ -= gamma * u;
+            folded_s_ += gamma * tau_;    // s drift along step
+            ks_       += gamma * ktau_;   // v = K s drift along step
+
+            updateCorrelationsTIK(gamma, a);
+
+            // Re-admit the excluded variables with EXACT correlations
+            for (std::size_t v : excluded) {
+                inactives_.push_back(v);
+                refreshDroppedCorrelation(v);
+            }
+
+            const std::size_t removals_before = num_removals_;
+            processLassoDrops(drops);
+            recordBetaStep();
+            drop_recovery_pending_ = (num_removals_ > removals_before);
+
+            double rss_rec = r_.dot(r_);
+            RSS_.push_back(rss_rec);
+            R2_.push_back(1.0 - rss_rec / RSS_[0]);
+            updateDummyTracking();
+            DoF_.push_back(actives_.size() + (intercept_ ? 1 : 0));
+            updateInactiveSet();
+            continue;
+        }
+        drop_recovery_pending_ = false;  // actives emptied: fall through
 
         // ========================================================
         // STEP 1: Find maximum modified correlation
@@ -184,10 +279,14 @@ void TIKNET_Solver::executeStep(std::size_t T_stop, bool early_stop) {
         // ========================================================
         // STEP 9: T-LASSO drops and update inactives internally
         // ========================================================
+        const std::size_t removals_before = num_removals_;
         processLassoDrops(drops);
         // Record after the drops so this step's snapshot has the dropped
         // coefficients at exactly zero (absent from the support).
         recordBetaStep();
+        // A drop ends the breakpoint: the NEXT iteration is a recovery
+        // step along the reduced active set (no addition; see STEP 0).
+        drop_recovery_pending_ = (num_removals_ > removals_before);
 
         // ========================================================
         // STEP 10: Update diagnostics and tracking
@@ -345,6 +444,13 @@ std::pair<double, Eigen::VectorXd> TIKNET_Solver::computeStepSizeTIK(
     Eigen::VectorXd a(num_inactives);
     double gamma = std::numeric_limits<double>::max();
 
+    // Active set saturated at the rank bound: joining is disabled, but the
+    // path still owes the terminal LS segment -- a zero crossing can
+    // truncate it and re-open the bound (R lars: gamhat <- Cmax / A at
+    // saturation). The joining rates are still needed for the incremental
+    // correlation update, so only the entry roots are skipped.
+    const bool saturated = actives_.size() >= max_actives_;
+
     #pragma omp parallel
     {
         double local_gamma = std::numeric_limits<double>::max();
@@ -361,6 +467,7 @@ std::pair<double, Eigen::VectorXd> TIKNET_Solver::computeStepSizeTIK(
                          lambda2_ * ktau_(static_cast<Eigen::Index>(
                              foldedBase(j)));
             a(static_cast<Eigen::Index>(i)) = a_j;
+            if (saturated) { continue; }
             double c_j = correlations_(static_cast<Eigen::Index>(j));
 
             double g1 = (Cmax - c_j) / (A_A_ - a_j);
@@ -378,6 +485,12 @@ std::pair<double, Eigen::VectorXd> TIKNET_Solver::computeStepSizeTIK(
         {
             if (local_gamma < gamma) { gamma = local_gamma; }
         }
+    }
+
+    if (saturated) {
+        logInfo("Active set at rank bound; joining disabled, "
+                "terminal LS step.");
+        return {Cmax / A_A_, a};
     }
 
     if (gamma == std::numeric_limits<double>::max()) {

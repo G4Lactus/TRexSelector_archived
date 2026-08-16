@@ -432,6 +432,13 @@ std::pair<double, Eigen::VectorXd> TIENET_Solver::computeStepSizeIEN(
     Eigen::VectorXd a(num_inactives);
     double gamma = std::numeric_limits<double>::max();
 
+    // Active set saturated at the rank bound: joining is disabled, but the
+    // path still owes the terminal LS segment -- a zero crossing can
+    // truncate it and re-open the bound (R lars: gamhat <- Cmax / A at
+    // saturation). The joining rates are still needed for the incremental
+    // correlation update, so only the entry roots are skipped.
+    const bool saturated = actives_.size() >= max_actives_;
+
     #pragma omp parallel
     {
         double local_gamma = std::numeric_limits<double>::max();
@@ -449,6 +456,7 @@ std::pair<double, Eigen::VectorXd> TIENET_Solver::computeStepSizeIEN(
             double a_j = getColumn(j).dot(u) +
                          l2_over_pm_(g_j) * group_dir_sums_(g_j);
             a(static_cast<Eigen::Index>(i)) = a_j;
+            if (saturated) { continue; }
             double c_j = correlations_(static_cast<Eigen::Index>(j));
 
             double g1 = (Cmax - c_j) / (A_A_ - a_j);
@@ -466,6 +474,12 @@ std::pair<double, Eigen::VectorXd> TIENET_Solver::computeStepSizeIEN(
         {
             if (local_gamma < gamma) { gamma = local_gamma; }
         }
+    }
+
+    if (saturated) {
+        logInfo("Active set at rank bound; joining disabled, "
+                "terminal LS step.");
+        return {Cmax / A_A_, a};
     }
 
     if (gamma == std::numeric_limits<double>::max()) {

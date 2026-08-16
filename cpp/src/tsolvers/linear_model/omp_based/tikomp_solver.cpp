@@ -16,6 +16,7 @@
 
 // tsolvers includes
 #include <tsolvers/linear_model/omp_based/tikomp_solver.hpp>
+#include <tsolvers/solver_utils/tikhonov_validation.hpp>
 
 // utils includes
 #include <utils/openmp/utils_openmp.hpp>
@@ -63,6 +64,9 @@ TIKOMP_Solver::TIKOMP_Solver(
             "TIKOMP_Solver: D.cols() must be a multiple of X.cols() "
             "(FOLDED layered dummy convention).");
     }
+    // Finiteness, symmetry, PSD within tolerance (shared trio helper).
+    solver_utils::tikhonov::validateTikhonovK(tikhonov_matrix,
+                                              "TIKOMP_Solver");
     tikhonov_K_ = tikhonov_matrix;
     tikhonov_K_.makeCompressed();
 

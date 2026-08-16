@@ -135,15 +135,24 @@ struct ExperimentRunnerConfig {
     int max_outer_threads = 1;
     int max_inner_threads = 1;
 
-    // --- General-Tikhonov penalty (TCIENET sparse-K dispatch) ---
+    // --- General-Tikhonov penalty (TCDTIKNET / TIKNET / TIKOMP dispatch) ---
     /** @brief Non-owning pointer to the Tikhonov matrix K (nullptr = none).
      *  Set by TRexTikhonovSelector::buildRunnerConfig(); forwarded verbatim
      *  into SolverConfig::tikhonov_K. Must outlive the run() call. */
     const Eigen::SparseMatrix<double>* tikhonov_K = nullptr;
 
-    /** @brief Dummy-coupling mode for the sparse-K TCIENET dispatch;
+    /** @brief Dummy-coupling mode for the sparse-K TCDTIKNET dispatch;
      *  forwarded verbatim into SolverConfig::tikhonov_fold_dummies. */
     bool tikhonov_fold_dummies = false;
+
+    /** @brief GROUP_CENTERING fast path (O(1) hooks); forwarded verbatim
+     *  into SolverConfig::tikhonov_group_centering. */
+    bool tikhonov_group_centering = false;
+
+    /** @brief Non-owning pointer to the 0-based contiguous group ids
+     *  (length p) for the GROUP_CENTERING fast path; forwarded verbatim
+     *  into SolverConfig::tikhonov_groups. Must outlive the run() call. */
+    const Eigen::VectorXi* tikhonov_groups = nullptr;
 
     // --- Diagnostics ---
     bool verbose = false;
@@ -702,7 +711,9 @@ private:
                       & 0x7FFFFFFFULL)
                 : -1LL,
             .tikhonov_K = cfg.tikhonov_K,
-            .tikhonov_fold_dummies = cfg.tikhonov_fold_dummies
+            .tikhonov_fold_dummies = cfg.tikhonov_fold_dummies,
+            .tikhonov_group_centering = cfg.tikhonov_group_centering,
+            .tikhonov_groups = cfg.tikhonov_groups
         };
 
         std::unique_ptr<trex::tsolvers::TSolver_Base> retained;

@@ -11,9 +11,10 @@
  */
 // ====================================================================
 
-#include <tsolvers/linear_model/cd_based/tccd_solver.hpp>
-#include <tsolvers/linear_model/cd_based/tcenet_solver.hpp>
-#include <tsolvers/linear_model/cd_based/tcienet_solver.hpp>
+#include <tsolvers/linear_model/cd_based/tcdlasso_solver.hpp>
+#include <tsolvers/linear_model/cd_based/tcdenet_solver.hpp>
+#include <tsolvers/linear_model/cd_based/tcdienet_solver.hpp>
+#include <tsolvers/linear_model/cd_based/tcdtiknet_solver.hpp>
 
 // ====================================================================
 #endif /* End of TSOLVERS_LINEAR_MODEL_CD_BASED_HPP */

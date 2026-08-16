@@ -25,6 +25,7 @@
 
 // tsolvers includes
 #include <tsolvers/linear_model/cd_based/tcdenet_solver.hpp>
+#include <tsolvers/solver_utils/tikhonov_validation.hpp>
 
 // =============================================================================
 
@@ -165,6 +166,9 @@ public:
                 "to be a multiple of X.cols() (layered dummy convention); "
                 "got L = ", num_dummies_, ", p = ", p_original_));
         }
+        // Finiteness, symmetry, PSD within tolerance (shared trio helper).
+        solver_utils::tikhonov::validateTikhonovK(tikhonov_matrix,
+                                                  "TCDTIKNET_Solver");
         penalty_kind_ = PenaltyKind::SPARSE;
         fold_dummies_ = fold_dummies;
         tikhonov_K_ = tikhonov_matrix;

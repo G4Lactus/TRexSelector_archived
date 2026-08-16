@@ -19,6 +19,7 @@
 #include <tsolvers/linear_model/lars_based/tenet_aug_solver.hpp>
 #include <tsolvers/linear_model/lars_based/tienet_solver.hpp>
 #include <tsolvers/linear_model/lars_based/tienet_aug_solver.hpp>
+#include <tsolvers/linear_model/lars_based/tiknet_solver.hpp>
 
 // ====================================================================
 #endif /* End of TSOLVERS_LINEAR_MODEL_LARS_BASED_HPP */

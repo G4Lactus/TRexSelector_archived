@@ -126,7 +126,7 @@ struct TRexSPCAControlParameter {
      *  gvs_ctrl.gvs_type is always overridden to EN, and both
      *  gvs_ctrl.en_solver and gvs_ctrl.trex_ctrl.solver_type are overridden
      *  internally to match the top-level `en_solver` knob
-     *  (TENET / TENET_AUG / TCENET). (IEN is not used by TRexSPCA.)
+     *  (TENET / TENET_AUG / TCDENET). (IEN is not used by TRexSPCA.)
      *
      *  The GVS ridge penalty is controlled via:
      *    - gvs_ctrl.lambda_2       : < 0 (default -1.0) is the "not supplied"
@@ -147,7 +147,7 @@ struct TRexSPCAControlParameter {
      *  - ENSolverType::TENET_AUG : augmented-LASSO EN (default) — builds the
      *                              row-augmented system internally and solves with
      *                              an inner TLASSO.
-     *  - ENSolverType::TCENET    : CCD EN — exact fixed-lambda1 elastic-net
+     *  - ENSolverType::TCDENET    : CCD EN — exact fixed-lambda1 elastic-net
      *                              minimizers per dummy crossing.
      *
      *  All variants are mathematically equivalent for lambda2 > 0 and should

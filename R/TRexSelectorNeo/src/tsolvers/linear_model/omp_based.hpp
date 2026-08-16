@@ -17,6 +17,7 @@
 #include <tsolvers/linear_model/omp_based/tmp_solver.hpp>
 #include <tsolvers/linear_model/omp_based/tools_solver.hpp>
 #include <tsolvers/linear_model/omp_based/tncgmp_solver.hpp>
+#include <tsolvers/linear_model/omp_based/tikomp_solver.hpp>
 
 // ====================================================================
 #endif /* End of TSOLVERS_LINEAR_MODEL_OMP_BASED_HPP */
