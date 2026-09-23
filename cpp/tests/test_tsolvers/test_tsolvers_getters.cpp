@@ -344,7 +344,7 @@ TEST(TSolverGettersTest, TENETCpIsNaNInHighDimensionalRegime) {
     ASSERT_FALSE(cp.empty());
     for (std::size_t k = 0; k < cp.size(); ++k) {
         // Bit-level NaN check: std::isnan is constant-folded to false under
-        // the Release build's -ffast-math (-ffinite-math-only).
+        // -ffast-math (-ffinite-math-only); the bit test holds everywhere.
         EXPECT_TRUE(trex::utils::fp_classify::isnan(cp[k]))
             << "Cp[" << k << "] = " << cp[k] << " but n <= p_total + 1";
     }
