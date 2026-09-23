@@ -10,6 +10,7 @@
 // ============================================================================
 
 // std includes
+#include <algorithm>
 #include <stdexcept>
 
 // tsolvers includes
@@ -165,6 +166,68 @@ void TCDIENET_Solver::penaltyRankUpdate(std::size_t j, double delta) {
         return;
     }
     TCDLASSO_Solver::penaltyRankUpdate(j, delta);
+}
+
+// ============================================================================
+// Certified-localization penalty hooks (unified index space)
+// ============================================================================
+
+double TCDIENET_Solver::penaltyPair(std::size_t i, std::size_t j) const {
+    if (penalty_kind_ != PenaltyKind::GROUP &&
+        penalty_kind_ != PenaltyKind::GROUP_CENTERING) {
+        return TCDLASSO_Solver::penaltyPair(i, j);
+    }
+    if (lambda2_ <= 0.0) { return 0.0; }
+    const int gi = group_of_[i];
+    const int gj = group_of_[j];
+    const double same_group = (gi == gj)
+        ? lambda2_over_pm_[static_cast<std::size_t>(gi)] : 0.0;
+    if (penalty_kind_ == PenaltyKind::GROUP) { return same_group; }
+    // GROUP_CENTERING: lambda2 * ([base(i) == base(j)] - [same group] / p_m)
+    const double same_base = (foldedBase(i) == foldedBase(j)) ? lambda2_ : 0.0;
+    return same_base - same_group;
+}
+
+
+void TCDIENET_Solver::penaltyMatVec(const std::vector<std::size_t>& A,
+                                    const Eigen::VectorXd& vA,
+                                    Eigen::VectorXd& out) const {
+    if (penalty_kind_ != PenaltyKind::GROUP &&
+        penalty_kind_ != PenaltyKind::GROUP_CENTERING) {
+        TCDLASSO_Solver::penaltyMatVec(A, vA, out);
+        return;
+    }
+    const std::size_t p_total = p_original_ + num_dummies_;
+    out.setZero(static_cast<Eigen::Index>(p_total));
+    if (lambda2_ <= 0.0) { return; }
+
+    // Group sums of v over A (dummies included), and folded base sums.
+    const std::size_t M = group_size_.size();
+    std::vector<double> sig(M, 0.0);
+    Eigen::VectorXd sbase;
+    const bool centering = (penalty_kind_ == PenaltyKind::GROUP_CENTERING);
+    if (centering) { sbase.setZero(static_cast<Eigen::Index>(p_original_)); }
+    for (std::size_t k = 0; k < A.size(); ++k) {
+        const std::size_t j = A[k];
+        const double vk = vA(static_cast<Eigen::Index>(k));
+        sig[static_cast<std::size_t>(group_of_[j])] += vk;
+        if (centering) { sbase(static_cast<Eigen::Index>(foldedBase(j))) += vk; }
+    }
+    for (std::size_t j = 0; j < p_total; ++j) {
+        const std::size_t m = static_cast<std::size_t>(group_of_[j]);
+        double v = lambda2_over_pm_[m] * sig[m];           // GROUP: lambda2 sigma_m / p_m
+        if (centering) {
+            v = lambda2_ * sbase(static_cast<Eigen::Index>(foldedBase(j))) - v;
+        }
+        out(static_cast<Eigen::Index>(j)) = v;
+    }
+}
+
+
+void TCDIENET_Solver::zeroPenaltyState() {
+    TCDLASSO_Solver::zeroPenaltyState();
+    std::fill(group_sums_.begin(), group_sums_.end(), 0.0);
+    if (folded_s_.size() > 0) { folded_s_.setZero(); }
 }
 
 // ============================================================================

@@ -277,6 +277,19 @@ protected:
         }
         return TCDLASSO_Solver::penaltyGradient(j);
     }
+
+    /** @brief FOLDED: lambda2 * K(base(i), base(j)); otherwise the base
+     *  Tikhonov pair (real block) / dummy ridge. */
+    double penaltyPair(std::size_t i, std::size_t j) const override;
+
+    /** @brief FOLDED: out_j = [lambda2 K s(v)]_base(j) with the folded base
+     *  sums s(v) of v over A; otherwise the base mat-vec. */
+    void penaltyMatVec(const std::vector<std::size_t>& A,
+                       const Eigen::VectorXd& vA,
+                       Eigen::VectorXd& out) const override;
+
+    /** @brief Zero the folded coupling state before a rebuild. */
+    void zeroPenaltyState() override;
 };
 
 // =============================================================================

@@ -18,9 +18,21 @@
  *
  * with support for dummy variable augmentation. Termination follows the T-Rex
  * contract: the lambda1 path is traversed until T_stop dummies are active,
- * localizing each dummy-count crossing by KKT-guided jumps plus bisection with
- * a support-nesting early stop. One path step is recorded per localized
- * crossing (per lambda1 grid point in full-path mode).
+ * one path step being recorded per dummy-count crossing (per lambda1 grid
+ * point in full-path mode).
+ *
+ * Crossing localization (default CERTIFIED, see the T-CD theory note
+ * `tccd_definitions_events_certificates.md`, Part II): every bracket endpoint
+ * is a *certified point* — a fixed-lambda1 solve carrying a duality-gap
+ * certificate and coordinate-status certificates (certified OUT / IN with
+ * sign) until the signed support is exact — and every stretch of the path
+ * between consecutive certified points is covered by a bracket certificate:
+ * knot-free (closed-form affine continuation from the Gram cache), dummy-
+ * bounded (interval screen), or single-knot (two-sided continuation). A
+ * crossing is recorded AT the knot, with the certified signed support of the
+ * segment below it; ties within the lambda tolerance form one batch. The
+ * LEGACY mode (KKT-guided jumps plus probe bisection with a support-nesting
+ * early stop) stays available behind setCertifiedLocalization(false).
  *
  * The quadratic penalty is passed as data (matrix-passing core): K enters only
  * through the coordinate denominator, an incrementally maintained lambda2*K*beta
@@ -39,7 +51,9 @@
 // ===================================================================================
 
 // std includes
+#include <limits>
 #include <string>
+#include <utility>
 #include <vector>
 
 // Eigen includes
@@ -50,6 +64,7 @@
 #include <cereal/archives/portable_binary.hpp>
 #include <cereal/types/base_class.hpp>
 #include <cereal/types/polymorphic.hpp>
+#include <cereal/types/vector.hpp>
 
 // TSolver Base class include
 #include <tsolvers/tsolver_base.hpp>
@@ -185,7 +200,9 @@ protected:
 
     // --- Algorithm knobs (setters below) ---
 
-    /** @brief Relative lambda tolerance of the crossing bisection. */
+    /** @brief Relative lambda tolerance: the tie tolerance of the certified
+     *  localization (knots closer than this are one batch; margin of the
+     *  bracket certificates), and the width stop of the LEGACY bisection. */
     double lambda_rel_tol_{1e-3};
 
     /** @brief Overshoot margin applied to the predicted crossing lambda. */
@@ -237,6 +254,124 @@ protected:
 
     /** @brief Coordinate sweeps over the support. */
     long cd_sweeps_{0};
+
+    // --- Certified crossing localization (T-CD theory note, Part II) ---
+
+    /** @brief Crossing-localization mode.
+     *  LEGACY:    probe bisection with the support-nesting early stop and
+     *             the relative-width fallback (pre-2026-08 behaviour).
+     *  CERTIFIED: certified points (duality gap + coordinate-status
+     *             certificates), closed-form affine continuation from the
+     *             Gram cache, bracket certificates (knot-free / dummy-bounded
+     *             / single-knot), records located at the knot and carrying
+     *             the certified signed support. */
+    enum class LocalizationMode : int { LEGACY = 0, CERTIFIED = 1 };
+
+    /** @brief Active localization mode (default CERTIFIED). */
+    LocalizationMode localization_{LocalizationMode::CERTIFIED};
+
+    /** @brief A certified point: exact signed support at lambda (Def. 11),
+     *  issued by certifyPoint(). `conventional` marks the path start
+     *  lambda_max (support empty by Def. 1; it is a knot and cannot anchor a
+     *  downward continuation). */
+    struct CertifiedPoint {
+        double lambda{0.0};
+        std::vector<std::size_t> support{};   // sorted unified indices (certified IN)
+        std::vector<int> sign{};              // aligned signs (+1/-1)
+        std::vector<double> beta{};           // aligned coefficient values
+        std::size_t num_dummies{0};
+        double gap{0.0};                      // duality gap at certification
+        double kkt{0.0};                      // KKT violation at certification
+        double rss{0.0};
+        bool conventional{false};
+
+        template<class Archive>
+        void serialize(Archive& ar) {
+            ar(CEREAL_NVP(lambda), CEREAL_NVP(support), CEREAL_NVP(sign),
+               CEREAL_NVP(beta), CEREAL_NVP(num_dummies), CEREAL_NVP(gap),
+               CEREAL_NVP(kkt), CEREAL_NVP(rss), CEREAL_NVP(conventional));
+        }
+    };
+
+    /** @brief Closed-form affine continuation from a certified point
+     *  (Def. 5 / Prop. 2): anchor beta*_A, direction d_A, penalized
+     *  correlation and its slope, and the next-knot time with the
+     *  candidates attaining it. */
+    struct Continuation {
+        bool ok{false};
+        bool downward{true};
+        double lambda0{0.0};
+        bool has_next{false};                  // false: no candidate (no knot in this direction)
+        double t_next{std::numeric_limits<double>::max()};   // finite sentinel when !has_next (fast-math safe)
+        std::vector<std::size_t> event_vars{}; // candidates within eta of t_next
+        std::vector<int> event_kind{};         // +1 entry / -1 exit (aligned)
+        std::vector<int> event_sign{};         // entry sign / exit sign (aligned)
+        Eigen::VectorXd beta_star{};           // over the point's support
+        Eigen::VectorXd dir{};                 // over the point's support
+        Eigen::VectorXd c_exact{};             // penalized correlation at lambda0
+        Eigen::VectorXd cdot{};                // d c / d(-lambda) along the continuation
+    };
+
+    /** @brief Bracket certificate tag (Defs. 12-13, Prop. 3). */
+    enum class BracketTag : int { KF = 0, DB = 1, SK = 2, UNRESOLVED = 3 };
+
+    /** @brief Result of certifyBracket(). */
+    struct BracketResult {
+        BracketTag tag{BracketTag::UNRESOLVED};
+        double knot{0.0};          // SK: largest knot of the batch (kappa_down)
+        double kappa_down{0.0};    // first knot below the upper point (0 if unknown)
+        double kappa_up{0.0};      // first knot above the lower point (0 if unknown)
+        bool supports_differ{false};
+    };
+
+    /** @brief Ledger top P_cur: lower point of the last record (or the
+     *  conventional point lambda_max). Persists across warm restarts. */
+    CertifiedPoint frontier_top_{};
+
+    /** @brief Certified points below the ledger top not yet consumed,
+     *  sorted by decreasing lambda (spare cuts / overshoot probes). */
+    std::vector<CertifiedPoint> frontier_below_{};
+
+    /** @brief Frontier initialized (conventional top installed). */
+    bool frontier_init_{false};
+
+    /** @brief Certification became unavailable along the path (A0-w boundary,
+     *  e.g. lasso saturation |A| -> n): the solver fell back to the LEGACY
+     *  localization for the remaining path; those records carry gap/kkt = -1
+     *  (uncertified). Persistent across warm restarts. */
+    bool certified_degraded_{false};
+
+    /** @brief Transient cache of continuations keyed by (lambda, direction):
+     *  a certified point is re-tested against several brackets after cuts;
+     *  its continuation is exact and can be reused. Not serialized. */
+    std::vector<Continuation> cont_cache_{};
+
+    /** @brief Cache capacity (entries); oldest evicted first. */
+    std::size_t cont_cache_cap_{32};
+
+    /** @brief Certification rounds per point before STALL (lambda at a knot). */
+    std::size_t max_certify_rounds_{8};
+
+    /** @brief Nudges of a stalled certification point before giving up. */
+    std::size_t max_nudges_{8};
+
+    /** @brief Max size of the unscreened set for the restricted radius
+     *  lambda_min(H_SS) (O(|S|^3) eigen-solve); larger sets keep tightening. */
+    std::size_t mu_s_cap_{400};
+
+    // --- Certified-mode diagnostics ---
+    long certified_solves_{0};
+    long certify_stalls_{0};
+    long brackets_kf_{0};
+    long brackets_db_{0};
+    long brackets_sk_{0};
+    long brackets_cut_{0};
+    long continuations_{0};
+
+    /** @brief Duality gap / KKT violation of every recorded step (certified
+     *  mode; 0 for the initial step). */
+    std::vector<double> record_gap_{};
+    std::vector<double> record_kkt_{};
 
     /** @brief Algorithm variant type. */
     SolverTypeCdBased algo_type_{SolverTypeCdBased::TCDLASSO};
@@ -314,10 +449,12 @@ public:
      * @param early_stop If true, stop when count_active_dummies_ >= T_stop.
      *
      * @note Internal state is updated in-place; supports warm-starts (a later
-     * call with a larger T_stop continues the path from lambda_current_) and
-     * serialization. One path step is recorded per localized dummy-count
-     * crossing; simultaneous entries within the lambda tolerance are recorded
-     * at a single step (dummies_at_step_ then advances by more than one).
+     * call with a larger T_stop continues the path from the ledger top /
+     * lambda_current_) and serialization. One path step is recorded per
+     * dummy-count crossing, at the knot, carrying the certified signed
+     * support of the segment below it (CERTIFIED mode); simultaneous entries
+     * within the lambda tolerance are recorded at a single step
+     * (dummies_at_step_ then advances by more than one).
      */
     void executeStep(std::size_t T_stop = 0, bool early_stop = true) override;
 
@@ -363,12 +500,14 @@ public:
     }
 
     /**
-     * @brief Set the relative lambda tolerance of the crossing bisection.
-     * @note Must be called before executeStep(); typical range 1e-4 - 1e-2.
+     * @brief Set the relative lambda tolerance: tie tolerance of the certified
+     * localization (knots closer than tol * lambda are recorded as one batch)
+     * and width stop of the LEGACY bisection.
+     * @note Must be called before executeStep(); typical range 1e-6 - 1e-2.
      */
     void setLambdaRelTol(double tol);
 
-    /** @brief Get the relative lambda tolerance of the crossing bisection. */
+    /** @brief Get the relative lambda tolerance (tie tolerance). */
     double getLambdaRelTol() const noexcept { return lambda_rel_tol_; }
 
     /**
@@ -426,6 +565,63 @@ public:
      */
     double getKktViolation(double lambda1 = -1.0);
 
+    /**
+     * @brief Select the crossing-localization mode (default: certified).
+     * @param certified true = CERTIFIED (certificates, closed-form
+     *        continuation, records at the knot), false = LEGACY (probe
+     *        bisection with support-nesting stop). Must be set before the
+     *        first executeStep(); switching mid-path re-certifies the current
+     *        state at the next call.
+     */
+    void setCertifiedLocalization(bool certified) {
+        localization_ = certified ? LocalizationMode::CERTIFIED
+                                  : LocalizationMode::LEGACY;
+    }
+
+    /** @brief True if the solver localizes crossings with certificates. */
+    bool isCertifiedLocalization() const noexcept {
+        return localization_ == LocalizationMode::CERTIFIED;
+    }
+
+    /** @brief True once certification became unavailable along the path
+     *  (A0-w boundary) and the solver fell back to LEGACY localization;
+     *  records from the fallback carry gap/kkt = -1 in getRecordGaps() /
+     *  getRecordKktViolations(). */
+    bool isCertifiedDegraded() const noexcept { return certified_degraded_; }
+
+    /** @brief Certified-mode diagnostics (zeros in LEGACY mode). */
+    struct CertifiedDiagnostics {
+        long certified_solves{0};   // certifyPoint() calls
+        long certify_stalls{0};     // points that stalled (lambda at a knot) and were nudged
+        long brackets_kf{0};        // knot-free brackets
+        long brackets_db{0};        // dummy-bounded brackets
+        long brackets_sk{0};        // single-knot brackets
+        long brackets_cut{0};       // unresolved brackets that were cut
+        long continuations{0};      // closed-form continuations computed
+    };
+
+    /** @brief Get the certified-mode diagnostics. */
+    CertifiedDiagnostics getCertifiedDiagnostics() const noexcept {
+        return CertifiedDiagnostics{certified_solves_, certify_stalls_,
+                                    brackets_kf_, brackets_db_, brackets_sk_,
+                                    brackets_cut_, continuations_};
+    }
+
+    /** @brief Duality gap (Def. 9) of every recorded step (certified mode). */
+    const std::vector<double>& getRecordGaps() const noexcept { return record_gap_; }
+
+    /** @brief KKT violation (Def. 8) of every recorded step (certified mode). */
+    const std::vector<double>& getRecordKktViolations() const noexcept { return record_kkt_; }
+
+    /**
+     * @brief Certified signed support of the ledger top (the lower point of
+     * the last recorded crossing): unified indices and aligned signs.
+     * Empty before the first record or in LEGACY mode.
+     */
+    std::pair<std::vector<std::size_t>, std::vector<int>> getCertifiedSupport() const {
+        return {frontier_top_.support, frontier_top_.sign};
+    }
+
     // ============================================================================
     // De-/Serialization
     // ============================================================================
@@ -448,6 +644,7 @@ public:
         // no-op round-trips on save.
         int algo_type = static_cast<int>(algo_type_);
         int penalty_kind = static_cast<int>(penalty_kind_);
+        int localization = static_cast<int>(localization_);
 
         // Sparse K passes through triplets (portable, no Eigen-sparse adapter).
         std::vector<int> K_rows, K_cols;
@@ -495,11 +692,28 @@ public:
             CEREAL_NVP(restricted_kkt_passes_),
             CEREAL_NVP(cd_sweeps_),
             CEREAL_NVP(max_sweeps_per_solve_),
-            CEREAL_NVP(sweep_cap_hits_)
+            CEREAL_NVP(sweep_cap_hits_),
+            // Certified localization state (resumption carries the ledger
+            // top and the spare certified points below it; Prop. 4).
+            cereal::make_nvp("localization", localization),
+            CEREAL_NVP(frontier_top_),
+            CEREAL_NVP(frontier_below_),
+            CEREAL_NVP(frontier_init_),
+            CEREAL_NVP(certified_degraded_),
+            CEREAL_NVP(certified_solves_),
+            CEREAL_NVP(certify_stalls_),
+            CEREAL_NVP(brackets_kf_),
+            CEREAL_NVP(brackets_db_),
+            CEREAL_NVP(brackets_sk_),
+            CEREAL_NVP(brackets_cut_),
+            CEREAL_NVP(continuations_),
+            CEREAL_NVP(record_gap_),
+            CEREAL_NVP(record_kkt_)
         );
 
         algo_type_ = static_cast<SolverTypeCdBased>(algo_type);
         penalty_kind_ = static_cast<PenaltyKind>(penalty_kind);
+        localization_ = static_cast<LocalizationMode>(localization);
 
         // Rebuild sparse K from the (de)serialized triplets (no-op on save).
         if (K_dim > 0) {
@@ -651,6 +865,142 @@ protected:
      */
     void collectCandidates(double lambda_lo,
                            std::vector<std::size_t>& candidates) const;
+
+    // ============================================================================
+    // Certified localization (T-CD theory note, Part II; §6 pseudocode)
+    // ============================================================================
+
+    /** @brief The LEGACY crossing loop (probe bisection, support-nesting stop). */
+    void executeStepLegacy(std::size_t T_stop, long point_budget,
+                           std::size_t active_cap);
+
+    /** @brief The CERTIFIED crossing loop (Algorithm 4: frontier / ledger). */
+    void executeStepCertified(std::size_t T_stop, long point_budget,
+                              std::size_t active_cap);
+
+    /**
+     * @brief lambda2 * K_ij over the unified index space (penalty pair hook
+     * for the active-set Hessian H_AA = X_A^T X_A + lambda2 K_AA). Virtual:
+     * structurally specialized descendants (group / folded kinds) override.
+     */
+    virtual double penaltyPair(std::size_t i, std::size_t j) const;
+
+    /**
+     * @brief out = lambda2 * K_{:,A} v_A over the unified index space
+     * (penalty part of the continuation's data pass). Virtual as penaltyPair.
+     */
+    virtual void penaltyMatVec(const std::vector<std::size_t>& A,
+                               const Eigen::VectorXd& vA,
+                               Eigen::VectorXd& out) const;
+
+    /** @brief Zero the maintained penalty state (l2kb_ and descendants'
+     *  compressed state) before a rebuild from beta_cd_. */
+    virtual void zeroPenaltyState();
+
+    /** @brief Rebuild the maintained penalty state from beta_cd_ over the
+     *  current support (zeroPenaltyState + penaltyRankUpdate per active). */
+    void rebuildPenaltyState();
+
+    /**
+     * @brief Lower bound mu on lambda_min(H) when known (A0-s): the diagonal
+     * penalty floor for DIAGONAL kinds; 0 = unknown (restricted radius used).
+     */
+    virtual double strongConvexityMu() const;
+
+    /** @brief x_i^T x_j from the Gram cache when both are slotted, else a dot. */
+    double dataGram(std::size_t i, std::size_t j) const;
+
+    /** @brief Coefficient of sqrt(2G) in the OUT / interval-screen tests:
+     *  sqrt(H_jj) in general, ||x_j|| for diagonal penalty kinds (sharper,
+     *  see the implementation note). */
+    double outTestCoefficient(std::size_t j) const;
+
+    /**
+     * @brief Duality gap of the live iterate at lambda1 (Def. 9, augmented
+     * form): requires fresh r_ and correlations_ = X^T r over ALL columns
+     * (a full-pass solveAtLambda leaves them so). Also returns ||c||_inf of
+     * the penalized correlation.
+     */
+    double currentGap(double lambda1, double& c_inf);
+
+    /**
+     * @brief Certification solve at lambda1 (Algorithm 1, CERTIFY): CD to
+     * tolerance, full pass, gap, OUT/IN statuses (Def. 10) with the global
+     * (A0-s) or restricted (Lemma 2(d)) radius; tightens until no
+     * coordinate is undecided (Def. 11) or the round budget is hit (STALL:
+     * lambda1 is within the tie tolerance of a knot, Lemma 3/4).
+     */
+    bool certifyPoint(double lambda1, CertifiedPoint& P);
+
+    /**
+     * @brief certifyPoint with the nudge rule: on STALL move lambda1 down by
+     * twice the tie tolerance (staying above lambda_floor) and retry.
+     * @return true on success (lambda1 holds the certified level).
+     */
+    bool certifyPointNudged(double& lambda1, double lambda_floor,
+                            CertifiedPoint& P);
+
+    /**
+     * @brief Closed-form continuation from a certified point (Algorithm 2):
+     * H_AA from the Gram cache + penalty pairs, one Cholesky, two solves,
+     * one data pass; candidate event times; t_next and the attaining
+     * candidates. Not defined for the conventional point.
+     */
+    bool continuation(const CertifiedPoint& P, bool downward,
+                      Continuation& C);
+
+    /** @brief continuation() through the transient cache (keyed by lambda
+     *  and direction; support sizes must match). */
+    bool continuationCached(const CertifiedPoint& P, bool downward,
+                            Continuation& C);
+
+    /**
+     * @brief Bracket certificate (Algorithm 3): KF (Def. 12, from above or
+     * below), DB (Prop. 3), SK (Def. 13 item 3), else UNRESOLVED with the
+     * two first knots for the cut. `C_down` is the downward continuation of
+     * P_hi if already computed (nullptr: computed here).
+     */
+    BracketResult certifyBracket(const CertifiedPoint& P_hi,
+                                 const CertifiedPoint& P_lo,
+                                 const Continuation* C_down);
+
+    /**
+     * @brief Install a certified point as the live CD iterate: beta_cd_,
+     * actives_, penalty state, Gram q, lambda_current_ (count_active_dummies_
+     * is NOT touched: it tracks the last recorded step).
+     */
+    void loadIterate(const CertifiedPoint& P);
+
+    /**
+     * @brief Install the continuation's solution at decrease t (warm start
+     * for the next solve below the point): beta = beta* + t d on the support.
+     */
+    void loadContinuation(const CertifiedPoint& P, const Continuation& C,
+                          double t);
+
+    /**
+     * @brief Tie rule (§4 of the note): extend the record at `knot` down over
+     * every further knot within the tie tolerance, merging supports; P_lo is
+     * replaced by the new lower point. Points of frontier_below_ at or above
+     * the new P_lo are discarded (covered).
+     */
+    void closeBatch(CertifiedPoint& P_lo, double knot);
+
+    /** @brief Jump predictor from exact penalized correlations (R5). */
+    double predictNextCrossingFrom(const Eigen::VectorXd& c_pen, double lambda_cur);
+
+    /** @brief Insert a certified point into frontier_below_ (sorted desc). */
+    void frontierInsert(CertifiedPoint P);
+
+    /** @brief Switch to the LEGACY localization for the remaining path
+     *  (certification unavailable: A0-w boundary) and finish the call there;
+     *  further records are flagged uncertified. */
+    void fallBackToLegacy(std::size_t T_stop, long point_budget,
+                          std::size_t active_cap);
+
+    /** @brief Align record_gap_/record_kkt_ with the step count using -1
+     *  sentinels for uncertified (LEGACY-fallback) records. */
+    void padUncertifiedRecords();
 };
 
 // ===================================================================================

@@ -310,6 +310,20 @@ protected:
         }
         return TCDLASSO_Solver::penaltyGradient(j);
     }
+
+    /** @brief GROUP: lambda2/p_m for two columns of one group (dummies
+     *  included), else 0; GROUP_CENTERING: lambda2 ([base(i)=base(j)] -
+     *  [same group]/p_m). Other kinds: base. */
+    double penaltyPair(std::size_t i, std::size_t j) const override;
+
+    /** @brief out = lambda2 K_{:,A} v_A for the group kinds (group sums /
+     *  folded base sums of v). Other kinds: base. */
+    void penaltyMatVec(const std::vector<std::size_t>& A,
+                       const Eigen::VectorXd& vA,
+                       Eigen::VectorXd& out) const override;
+
+    /** @brief Zero the group sums (and folded sums) before a rebuild. */
+    void zeroPenaltyState() override;
 };
 
 // =============================================================================

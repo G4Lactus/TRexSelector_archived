@@ -85,6 +85,43 @@ void TCDTIKNET_Solver::penaltyRankUpdate(std::size_t j, double delta) {
 }
 
 // ============================================================================
+// Certified-localization penalty hooks (FOLDED dummy coupling)
+// ============================================================================
+
+double TCDTIKNET_Solver::penaltyPair(std::size_t i, std::size_t j) const {
+    if (!fold_dummies_) { return TCDLASSO_Solver::penaltyPair(i, j); }
+    if (lambda2_ <= 0.0) { return 0.0; }
+    return lambda2_ * tikhonov_K_.coeff(static_cast<Eigen::Index>(foldedBase(i)),
+                                        static_cast<Eigen::Index>(foldedBase(j)));
+}
+
+
+void TCDTIKNET_Solver::penaltyMatVec(const std::vector<std::size_t>& A,
+                                     const Eigen::VectorXd& vA,
+                                     Eigen::VectorXd& out) const {
+    if (!fold_dummies_) { TCDLASSO_Solver::penaltyMatVec(A, vA, out); return; }
+    const std::size_t p_total = p_original_ + num_dummies_;
+    out.setZero(static_cast<Eigen::Index>(p_total));
+    if (lambda2_ <= 0.0) { return; }
+
+    // Folded base sums of v over A, then w = lambda2 K s and out_j = w_base(j).
+    Eigen::VectorXd s = Eigen::VectorXd::Zero(static_cast<Eigen::Index>(p_original_));
+    for (std::size_t k = 0; k < A.size(); ++k) {
+        s(static_cast<Eigen::Index>(foldedBase(A[k]))) += vA(static_cast<Eigen::Index>(k));
+    }
+    const Eigen::VectorXd w = lambda2_ * (tikhonov_K_ * s);
+    for (std::size_t t = 0; t < p_total; ++t) {
+        out(static_cast<Eigen::Index>(t)) = w(static_cast<Eigen::Index>(foldedBase(t)));
+    }
+}
+
+
+void TCDTIKNET_Solver::zeroPenaltyState() {
+    TCDLASSO_Solver::zeroPenaltyState();
+    if (folded_w_.size() > 0) { folded_w_.setZero(); }
+}
+
+// ============================================================================
 // Serialization
 // ============================================================================
 
