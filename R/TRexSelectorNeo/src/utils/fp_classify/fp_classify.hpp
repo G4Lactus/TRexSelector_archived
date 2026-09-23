@@ -17,8 +17,21 @@
  *
  *  These helpers instead inspect IEEE 754 bit patterns directly via
  *  std::memcpy — well-defined type-punning in C++20 — and use only integer
- *  arithmetic, making them completely immune to any floating-point compiler
- *  options. No <cmath> classification functions are needed.
+ *  arithmetic. No <cmath> classification functions are needed.
+ *
+ *  The bit test alone is NOT enough under -ffinite-math-only with a recent
+ *  Clang (17+; GCC alike): every floating-point parameter and return value
+ *  is tagged `nofpclass(nan inf)`, the optimizer knows the class of the
+ *  argument before the memcpy, and the whole classifier folds to a
+ *  constant — observed 2026-09-23 (Homebrew LLVM, Release -ffast-math):
+ *  isfinite(+inf) == true for an infinity handed in by a caller, so a
+ *  validator using it let an infinite lambda_2 through. The argument is
+ *  therefore read back through a `volatile` first (detail::to_bits): the
+ *  value loaded from volatile storage carries no class assumption, and the
+ *  bit test survives. One store and one load per call — the same idiom as
+ *  quiet_nan() below. Verified against a true infinity passed in from a
+ *  non-fast-math translation unit and against an infinity produced by
+ *  fast-math arithmetic (1/0) inside the fast-math unit, Clang and GCC.
  *
  *  IEEE 754 double layout (64-bit):
  *    bit 63      : sign
@@ -44,10 +57,15 @@ namespace trex::utils::fp_classify {
 
 namespace detail {
 
-/** @brief Reinterpret a double as its raw uint64 bit pattern (well-defined via memcpy). */
+/** @brief Reinterpret a double as its raw uint64 bit pattern (well-defined
+ *  via memcpy). The value is read back through a volatile first so that the
+ *  -ffinite-math-only class assumption on the parameter (nofpclass) cannot
+ *  fold the classification (file header). */
 [[nodiscard]] inline std::uint64_t to_bits(double x) noexcept {
+    volatile double opaque = x;
+    const double u = opaque;
     std::uint64_t bits;
-    std::memcpy(&bits, &x, sizeof(bits));
+    std::memcpy(&bits, &u, sizeof(bits));
     return bits;
 }
 
