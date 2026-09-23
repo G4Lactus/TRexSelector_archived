@@ -26,6 +26,10 @@ class DistanceMetric:
     Euclidean: typing.ClassVar[DistanceMetric]  # value = <DistanceMetric.Euclidean: 0>
     Manhattan: typing.ClassVar[DistanceMetric]  # value = <DistanceMetric.Manhattan: 2>
     __members__: typing.ClassVar[dict[str, DistanceMetric]]  # value = {'Euclidean': <DistanceMetric.Euclidean: 0>, 'Correlation': <DistanceMetric.Correlation: 1>, 'Manhattan': <DistanceMetric.Manhattan: 2>, 'Correlation_LSH_Filter': <DistanceMetric.Correlation_LSH_Filter: 3>, 'Correlation_LSH_Approx': <DistanceMetric.Correlation_LSH_Approx: 4>}
+    @typing.overload
+    def __eq__(self, other: DistanceMetric) -> bool:
+        ...
+    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -38,6 +42,10 @@ class DistanceMetric:
         ...
     def __int__(self) -> int:
         ...
+    @typing.overload
+    def __ne__(self, other: DistanceMetric) -> bool:
+        ...
+    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
@@ -78,6 +86,10 @@ class LinkageMethod:
     WPGMA: typing.ClassVar[LinkageMethod]  # value = <LinkageMethod.WPGMA: 4>
     Ward: typing.ClassVar[LinkageMethod]  # value = <LinkageMethod.Ward: 0>
     __members__: typing.ClassVar[dict[str, LinkageMethod]]  # value = {'Ward': <LinkageMethod.Ward: 0>, 'Average': <LinkageMethod.Average: 1>, 'Complete': <LinkageMethod.Complete: 2>, 'Single': <LinkageMethod.Single: 3>, 'WPGMA': <LinkageMethod.WPGMA: 4>, 'Median': <LinkageMethod.Median: 5>, 'Centroid': <LinkageMethod.Centroid: 6>}
+    @typing.overload
+    def __eq__(self, other: LinkageMethod) -> bool:
+        ...
+    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -90,6 +102,10 @@ class LinkageMethod:
         ...
     def __int__(self) -> int:
         ...
+    @typing.overload
+    def __ne__(self, other: LinkageMethod) -> bool:
+        ...
+    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:

@@ -6,7 +6,7 @@ import collections.abc
 import numpy
 import numpy.typing
 import typing
-__all__: list[str] = ['AR1', 'ActiveSet', 'BT', 'BTSelectionMode', 'BiobankScreenTRexControl', 'BiobankScreenTRexResult', 'CV_1SE_CCD', 'CV_1SE_IEN_CCD', 'CV_1SE_SVD', 'CV_1SE_TIK_SVD', 'CV_MIN_CCD', 'CV_MIN_IEN_CCD', 'CV_MIN_SVD', 'CV_MIN_TIK_SVD', 'DAMethod', 'DASelectionResult', 'DummyDistribution', 'EN', 'ENSolverType', 'EQUI', 'FeasibleOnly', 'GVSSelectionResult', 'GVSType', 'HCONCAT', 'IEN', 'L2', 'LLoopStrategy', 'LambdaSelectionMethod', 'NN', 'PERMUTATION', 'PERMUTATION_SEEDED', 'PRIOR_GROUPS', 'RFaithful', 'SEEDED', 'SKIPL', 'SPCAMode', 'STANDARD', 'ScalingMode', 'ScreenTRexControlParameter', 'ScreenTRexMethod', 'ScreenTRexSelectionResult', 'SelectionResult', 'SolverHyperparameters', 'SolverTypeForTRex', 'TACGP', 'TAFS', 'TCCD', 'TCENET', 'TCIENET', 'TENET', 'TENET_AUG', 'TGP', 'TIENET', 'TIENET_AUG', 'TLARS', 'TLASSO', 'TMP', 'TNCGMP', 'TOMP', 'TOOLS', 'TREX', 'TREX_DA_AR1', 'TREX_DA_BLOCK_EQUI', 'TREX_DA_EQUI', 'TRexBiobankScreeningSelector', 'TRexControlParameter', 'TRexDAControlParameter', 'TRexDASelector', 'TRexGVSControlParameter', 'TRexGVSSelector', 'TRexSPCAControlParameter', 'TRexSPCAResult', 'TRexSPCASelector', 'TRexScreeningSelector', 'TRexSelector', 'TSTAGEWISE', 'TSTEPWISE', 'Thresholded', 'ZSCORE']
+__all__: list[str] = ['AR1', 'ActiveSet', 'BT', 'BTSelectionMode', 'BiobankScreenTRexControl', 'BiobankScreenTRexResult', 'CV_1SE_CCD', 'CV_1SE_IEN_CCD', 'CV_1SE_SVD', 'CV_1SE_TIK_SVD', 'CV_MIN_CCD', 'CV_MIN_IEN_CCD', 'CV_MIN_SVD', 'CV_MIN_TIK_SVD', 'DAMethod', 'DASelectionResult', 'DummyDistribution', 'EN', 'ENSolverType', 'EQUI', 'FeasibleOnly', 'GVSSelectionResult', 'GVSType', 'HCONCAT', 'IEN', 'L2', 'LLoopStrategy', 'Lambda2CVDiagnostics', 'LambdaSelectionMethod', 'NN', 'PERMUTATION', 'PERMUTATION_SEEDED', 'PRIOR_GROUPS', 'RFaithful', 'SEEDED', 'SKIPL', 'SPCAMode', 'STANDARD', 'ScalingMode', 'ScreenTRexControlParameter', 'ScreenTRexMethod', 'ScreenTRexSelectionResult', 'SelectionResult', 'SolverHyperparameters', 'SolverTypeForTRex', 'TACGP', 'TAFS', 'TCDENET', 'TCDIENET', 'TCDLASSO', 'TCDTIKNET', 'TENET', 'TENET_AUG', 'TGP', 'TIENET', 'TIENET_AUG', 'TIKNET', 'TIKOMP', 'TLARS', 'TLASSO', 'TMP', 'TNCGMP', 'TOMP', 'TOOLS', 'TREX', 'TREX_DA_AR1', 'TREX_DA_BLOCK_EQUI', 'TREX_DA_EQUI', 'TRexBiobankScreeningSelector', 'TRexControlParameter', 'TRexDAControlParameter', 'TRexDASelector', 'TRexGVSControlParameter', 'TRexGVSSelector', 'TRexSPCAControlParameter', 'TRexSPCAResult', 'TRexSPCASelector', 'TRexScreeningSelector', 'TRexSelector', 'TSTAGEWISE', 'TSTEPWISE', 'Thresholded', 'ZSCORE']
 class BTSelectionMode:
     """
     Cell-selection policy for the BT (binary-tree) DA method.
@@ -20,6 +20,10 @@ class BTSelectionMode:
     FeasibleOnly: typing.ClassVar[BTSelectionMode]  # value = <BTSelectionMode.FeasibleOnly: 0>
     RFaithful: typing.ClassVar[BTSelectionMode]  # value = <BTSelectionMode.RFaithful: 1>
     __members__: typing.ClassVar[dict[str, BTSelectionMode]]  # value = {'FeasibleOnly': <BTSelectionMode.FeasibleOnly: 0>, 'RFaithful': <BTSelectionMode.RFaithful: 1>}
+    @typing.overload
+    def __eq__(self, other: BTSelectionMode) -> bool:
+        ...
+    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -32,6 +36,10 @@ class BTSelectionMode:
         ...
     def __int__(self) -> int:
         ...
+    @typing.overload
+    def __ne__(self, other: BTSelectionMode) -> bool:
+        ...
+    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
@@ -155,6 +163,10 @@ class DAMethod:
     NN: typing.ClassVar[DAMethod]  # value = <DAMethod.NN: 3>
     PRIOR_GROUPS: typing.ClassVar[DAMethod]  # value = <DAMethod.PRIOR_GROUPS: 4>
     __members__: typing.ClassVar[dict[str, DAMethod]]  # value = {'AR1': <DAMethod.AR1: 0>, 'EQUI': <DAMethod.EQUI: 1>, 'BT': <DAMethod.BT: 2>, 'NN': <DAMethod.NN: 3>, 'PRIOR_GROUPS': <DAMethod.PRIOR_GROUPS: 4>}
+    @typing.overload
+    def __eq__(self, other: DAMethod) -> bool:
+        ...
+    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -167,6 +179,10 @@ class DAMethod:
         ...
     def __int__(self) -> int:
         ...
+    @typing.overload
+    def __ne__(self, other: DAMethod) -> bool:
+        ...
+    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
@@ -264,6 +280,10 @@ class DummyDistribution:
         Uniform: typing.ClassVar[DummyDistribution.Type]  # value = <Type.Uniform: 1>
         UniformSphere: typing.ClassVar[DummyDistribution.Type]  # value = <Type.UniformSphere: 7>
         __members__: typing.ClassVar[dict[str, DummyDistribution.Type]]  # value = {'Normal': <Type.Normal: 0>, 'Uniform': <Type.Uniform: 1>, 'Rademacher': <Type.Rademacher: 2>, 'StudentT': <Type.StudentT: 3>, 'Laplace': <Type.Laplace: 4>, 'Gumbel': <Type.Gumbel: 5>, 'Triangle': <Type.Triangle: 6>, 'UniformSphere': <Type.UniformSphere: 7>, 'Mammen': <Type.Mammen: 8>, 'ConstrainedSparseRademacher': <Type.ConstrainedSparseRademacher: 9>, 'Logistic': <Type.Logistic: 10>}
+        @typing.overload
+        def __eq__(self, other: DummyDistribution.Type) -> bool:
+            ...
+        @typing.overload
         def __eq__(self, other: typing.Any) -> bool:
             ...
         def __getstate__(self) -> int:
@@ -276,6 +296,10 @@ class DummyDistribution:
             ...
         def __int__(self) -> int:
             ...
+        @typing.overload
+        def __ne__(self, other: DummyDistribution.Type) -> bool:
+            ...
+        @typing.overload
         def __ne__(self, other: typing.Any) -> bool:
             ...
         def __repr__(self) -> str:
@@ -464,12 +488,16 @@ class ENSolverType:
     
       TENET_AUG : Augmented-LASSO Elastic Net (row-augmented system).
     
-      TCENET : CCD Elastic Net (exact fixed-lambda1 minimizers per dummy crossing).
+      TCDENET : Coordinate-descent Elastic Net (exact fixed-lambda1 minimizers per dummy crossing).
     """
-    TCENET: typing.ClassVar[ENSolverType]  # value = <ENSolverType.TCENET: 2>
+    TCDENET: typing.ClassVar[ENSolverType]  # value = <ENSolverType.TCDENET: 2>
     TENET: typing.ClassVar[ENSolverType]  # value = <ENSolverType.TENET: 0>
     TENET_AUG: typing.ClassVar[ENSolverType]  # value = <ENSolverType.TENET_AUG: 1>
-    __members__: typing.ClassVar[dict[str, ENSolverType]]  # value = {'TENET': <ENSolverType.TENET: 0>, 'TENET_AUG': <ENSolverType.TENET_AUG: 1>, 'TCENET': <ENSolverType.TCENET: 2>}
+    __members__: typing.ClassVar[dict[str, ENSolverType]]  # value = {'TENET': <ENSolverType.TENET: 0>, 'TENET_AUG': <ENSolverType.TENET_AUG: 1>, 'TCDENET': <ENSolverType.TCDENET: 2>}
+    @typing.overload
+    def __eq__(self, other: ENSolverType) -> bool:
+        ...
+    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -482,6 +510,10 @@ class ENSolverType:
         ...
     def __int__(self) -> int:
         ...
+    @typing.overload
+    def __ne__(self, other: ENSolverType) -> bool:
+        ...
+    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
@@ -521,6 +553,11 @@ class GVSSelectionResult(SelectionResult):
         Hierarchical clustering linkage method used.
         """
     @property
+    def lambda2_cv(self) -> Lambda2CVDiagnostics:
+        """
+        Health record of the lambda_2 tuner (Lambda2CVDiagnostics).
+        """
+    @property
     def lambda2_used(self) -> float:
         """
         L2 penalty lambda2 used (auto-selected via GCV if not specified).
@@ -538,11 +575,15 @@ class GVSType:
     
       EN : Elastic-Net group variable selection (uses TENET solver).
     
-      IEN : Informed Elastic-Net using group structure from clustering (solver via trex_control.solver_type: TIENET default, TIENET_AUG, TCIENET).
+      IEN : Informed Elastic-Net using group structure from clustering (solver via trex_control.solver_type: TIENET default, TIENET_AUG, TCDIENET).
     """
     EN: typing.ClassVar[GVSType]  # value = <GVSType.EN: 0>
     IEN: typing.ClassVar[GVSType]  # value = <GVSType.IEN: 1>
     __members__: typing.ClassVar[dict[str, GVSType]]  # value = {'EN': <GVSType.EN: 0>, 'IEN': <GVSType.IEN: 1>}
+    @typing.overload
+    def __eq__(self, other: GVSType) -> bool:
+        ...
+    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -555,6 +596,10 @@ class GVSType:
         ...
     def __int__(self) -> int:
         ...
+    @typing.overload
+    def __ne__(self, other: GVSType) -> bool:
+        ...
+    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
@@ -594,6 +639,10 @@ class LLoopStrategy:
     SKIPL: typing.ClassVar[LLoopStrategy]  # value = <LLoopStrategy.SKIPL: 0>
     STANDARD: typing.ClassVar[LLoopStrategy]  # value = <LLoopStrategy.STANDARD: 1>
     __members__: typing.ClassVar[dict[str, LLoopStrategy]]  # value = {'SKIPL': <LLoopStrategy.SKIPL: 0>, 'STANDARD': <LLoopStrategy.STANDARD: 1>, 'HCONCAT': <LLoopStrategy.HCONCAT: 2>, 'PERMUTATION': <LLoopStrategy.PERMUTATION: 3>, 'PERMUTATION_SEEDED': <LLoopStrategy.PERMUTATION_SEEDED: 4>, 'SEEDED': <LLoopStrategy.SEEDED: 5>}
+    @typing.overload
+    def __eq__(self, other: LLoopStrategy) -> bool:
+        ...
+    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -606,6 +655,10 @@ class LLoopStrategy:
         ...
     def __int__(self) -> int:
         ...
+    @typing.overload
+    def __ne__(self, other: LLoopStrategy) -> bool:
+        ...
+    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
@@ -620,6 +673,37 @@ class LLoopStrategy:
     @property
     def value(self) -> int:
         ...
+class Lambda2CVDiagnostics:
+    """
+    Health record of a lambda_2 tuner run: whether it ran, its cost, and whether the profiled optimum sat on a truncation edge.
+    """
+    def __init__(self) -> None:
+        ...
+    @property
+    def low_dimensional(self) -> bool:
+        """
+        p <= cap: the cap was inert.
+        """
+    @property
+    def n_profile_at_edge(self) -> int:
+        """
+        lambda_2 values whose profiled lambda_1 optimum landed on a truncation edge (0 = healthy).
+        """
+    @property
+    def ran(self) -> bool:
+        """
+        A tuner ran (False: lambda_2 came from the caller).
+        """
+    @property
+    def seconds(self) -> float:
+        """
+        Wall-clock seconds spent resolving lambda_2.
+        """
+    @property
+    def support_cap(self) -> int:
+        """
+        Support cap (glmnet dfmax) applied, or -1 when disabled.
+        """
 class LambdaSelectionMethod:
     """
     Rule for auto-selecting the ridge parameter lambda_2 when lambda_2 < 0.
@@ -651,6 +735,10 @@ class LambdaSelectionMethod:
     CV_MIN_SVD: typing.ClassVar[LambdaSelectionMethod]  # value = <LambdaSelectionMethod.CV_MIN_SVD: 1>
     CV_MIN_TIK_SVD: typing.ClassVar[LambdaSelectionMethod]  # value = <LambdaSelectionMethod.CV_MIN_TIK_SVD: 7>
     __members__: typing.ClassVar[dict[str, LambdaSelectionMethod]]  # value = {'CV_1SE_SVD': <LambdaSelectionMethod.CV_1SE_SVD: 0>, 'CV_MIN_SVD': <LambdaSelectionMethod.CV_MIN_SVD: 1>, 'CV_1SE_CCD': <LambdaSelectionMethod.CV_1SE_CCD: 2>, 'CV_MIN_CCD': <LambdaSelectionMethod.CV_MIN_CCD: 3>, 'CV_1SE_IEN_CCD': <LambdaSelectionMethod.CV_1SE_IEN_CCD: 4>, 'CV_MIN_IEN_CCD': <LambdaSelectionMethod.CV_MIN_IEN_CCD: 5>, 'CV_1SE_TIK_SVD': <LambdaSelectionMethod.CV_1SE_TIK_SVD: 6>, 'CV_MIN_TIK_SVD': <LambdaSelectionMethod.CV_MIN_TIK_SVD: 7>}
+    @typing.overload
+    def __eq__(self, other: LambdaSelectionMethod) -> bool:
+        ...
+    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -663,6 +751,10 @@ class LambdaSelectionMethod:
         ...
     def __int__(self) -> int:
         ...
+    @typing.overload
+    def __ne__(self, other: LambdaSelectionMethod) -> bool:
+        ...
+    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
@@ -688,6 +780,10 @@ class SPCAMode:
     ActiveSet: typing.ClassVar[SPCAMode]  # value = <SPCAMode.ActiveSet: 0>
     Thresholded: typing.ClassVar[SPCAMode]  # value = <SPCAMode.Thresholded: 1>
     __members__: typing.ClassVar[dict[str, SPCAMode]]  # value = {'ActiveSet': <SPCAMode.ActiveSet: 0>, 'Thresholded': <SPCAMode.Thresholded: 1>}
+    @typing.overload
+    def __eq__(self, other: SPCAMode) -> bool:
+        ...
+    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -700,6 +796,10 @@ class SPCAMode:
         ...
     def __int__(self) -> int:
         ...
+    @typing.overload
+    def __ne__(self, other: SPCAMode) -> bool:
+        ...
+    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
@@ -727,6 +827,10 @@ class ScalingMode:
     L2: typing.ClassVar[ScalingMode]  # value = <ScalingMode.L2: 0>
     ZSCORE: typing.ClassVar[ScalingMode]  # value = <ScalingMode.ZSCORE: 1>
     __members__: typing.ClassVar[dict[str, ScalingMode]]  # value = {'L2': <ScalingMode.L2: 0>, 'ZSCORE': <ScalingMode.ZSCORE: 1>}
+    @typing.overload
+    def __eq__(self, other: ScalingMode) -> bool:
+        ...
+    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -739,6 +843,10 @@ class ScalingMode:
         ...
     def __int__(self) -> int:
         ...
+    @typing.overload
+    def __ne__(self, other: ScalingMode) -> bool:
+        ...
+    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
@@ -842,6 +950,10 @@ class ScreenTRexMethod:
     TREX_DA_BLOCK_EQUI: typing.ClassVar[ScreenTRexMethod]  # value = <ScreenTRexMethod.TREX_DA_BLOCK_EQUI: 3>
     TREX_DA_EQUI: typing.ClassVar[ScreenTRexMethod]  # value = <ScreenTRexMethod.TREX_DA_EQUI: 2>
     __members__: typing.ClassVar[dict[str, ScreenTRexMethod]]  # value = {'TREX': <ScreenTRexMethod.TREX: 0>, 'TREX_DA_AR1': <ScreenTRexMethod.TREX_DA_AR1: 1>, 'TREX_DA_EQUI': <ScreenTRexMethod.TREX_DA_EQUI: 2>, 'TREX_DA_BLOCK_EQUI': <ScreenTRexMethod.TREX_DA_BLOCK_EQUI: 3>}
+    @typing.overload
+    def __eq__(self, other: ScreenTRexMethod) -> bool:
+        ...
+    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -854,6 +966,10 @@ class ScreenTRexMethod:
         ...
     def __int__(self) -> int:
         ...
+    @typing.overload
+    def __ne__(self, other: ScreenTRexMethod) -> bool:
+        ...
+    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
@@ -961,6 +1077,14 @@ class SolverHyperparameters:
     Hyperparameters for the selected T-Rex solver.
     """
     def __init__(self) -> None:
+        ...
+    @property
+    def cd_certified_localization(self) -> bool:
+        """
+        CCD family: True (default) = certified crossing localization (duality-gap and coordinate-status certificates, closed-form continuation, records at the knot); False = LEGACY probe bisection with the support-nesting stop.
+        """
+    @cd_certified_localization.setter
+    def cd_certified_localization(self, arg0: bool) -> None:
         ...
     @property
     def cd_gram_cap(self) -> int:
@@ -1090,35 +1214,48 @@ class SolverTypeForTRex:
     
       TENET_AUG : Terminating Elastic Net via augmented LASSO; accepted wherever TENET runs (LASSO inner path standard, LARS via tenet_aug_use_lars).
     
-      TCCD : Terminating CCD LASSO (exact penalized-lasso minimizers per crossing).
+      TCDLASSO : Terminating coordinate-descent LASSO (exact penalized-lasso minimizers per crossing; certified crossing localization by default).
     
-      TCENET : Terminating CCD Elastic Net.
+      TCDENET : Terminating coordinate-descent Elastic Net.
     
       TIENET : Terminating Informed Elastic Net, native pathwise (GVS-only, gvs_type=IEN; IEN default).
     
       TIENET_AUG : Terminating Informed Elastic Net via augmented LASSO (GVS-only, gvs_type=IEN).
     
-      TCIENET : Terminating CCD Informed Elastic Net (GVS gvs_type=IEN, or sparse-K Tikhonov).
+      TCDIENET : Terminating coordinate-descent Informed Elastic Net (GVS-only, gvs_type=IEN).
+    
+      TCDTIKNET : Terminating coordinate-descent Tikhonov Net (sparse-K; needs a penalty matrix, TRexTikhonovSelector only — not yet bound in Python).
+    
+      TIKNET : Terminating Tikhonov Net, native pathwise (sparse-K, FOLDED; TRexTikhonovSelector only).
+    
+      TIKOMP : Terminating Tikhonov-K OMP (sparse-K, FOLDED; TRexTikhonovSelector only).
     """
-    TACGP: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TACGP: 13>
-    TAFS: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TAFS: 17>
-    TCCD: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TCCD: 8>
-    TCENET: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TCENET: 9>
-    TCIENET: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TCIENET: 10>
+    TACGP: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TACGP: 16>
+    TAFS: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TAFS: 20>
+    TCDENET: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TCDENET: 10>
+    TCDIENET: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TCDIENET: 11>
+    TCDLASSO: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TCDLASSO: 9>
+    TCDTIKNET: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TCDTIKNET: 12>
     TENET: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TENET: 2>
     TENET_AUG: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TENET_AUG: 3>
-    TGP: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TGP: 12>
+    TGP: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TGP: 15>
     TIENET: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TIENET: 4>
     TIENET_AUG: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TIENET_AUG: 5>
+    TIKNET: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TIKNET: 6>
+    TIKOMP: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TIKOMP: 14>
     TLARS: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TLARS: 0>
     TLASSO: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TLASSO: 1>
-    TMP: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TMP: 14>
-    TNCGMP: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TNCGMP: 15>
-    TOMP: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TOMP: 11>
-    TOOLS: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TOOLS: 16>
-    TSTAGEWISE: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TSTAGEWISE: 7>
-    TSTEPWISE: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TSTEPWISE: 6>
-    __members__: typing.ClassVar[dict[str, SolverTypeForTRex]]  # value = {'TLARS': <SolverTypeForTRex.TLARS: 0>, 'TLASSO': <SolverTypeForTRex.TLASSO: 1>, 'TENET': <SolverTypeForTRex.TENET: 2>, 'TSTEPWISE': <SolverTypeForTRex.TSTEPWISE: 6>, 'TSTAGEWISE': <SolverTypeForTRex.TSTAGEWISE: 7>, 'TOMP': <SolverTypeForTRex.TOMP: 11>, 'TGP': <SolverTypeForTRex.TGP: 12>, 'TACGP': <SolverTypeForTRex.TACGP: 13>, 'TMP': <SolverTypeForTRex.TMP: 14>, 'TNCGMP': <SolverTypeForTRex.TNCGMP: 15>, 'TOOLS': <SolverTypeForTRex.TOOLS: 16>, 'TAFS': <SolverTypeForTRex.TAFS: 17>, 'TENET_AUG': <SolverTypeForTRex.TENET_AUG: 3>, 'TCCD': <SolverTypeForTRex.TCCD: 8>, 'TCENET': <SolverTypeForTRex.TCENET: 9>, 'TIENET': <SolverTypeForTRex.TIENET: 4>, 'TIENET_AUG': <SolverTypeForTRex.TIENET_AUG: 5>, 'TCIENET': <SolverTypeForTRex.TCIENET: 10>}
+    TMP: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TMP: 17>
+    TNCGMP: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TNCGMP: 18>
+    TOMP: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TOMP: 13>
+    TOOLS: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TOOLS: 19>
+    TSTAGEWISE: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TSTAGEWISE: 8>
+    TSTEPWISE: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TSTEPWISE: 7>
+    __members__: typing.ClassVar[dict[str, SolverTypeForTRex]]  # value = {'TLARS': <SolverTypeForTRex.TLARS: 0>, 'TLASSO': <SolverTypeForTRex.TLASSO: 1>, 'TENET': <SolverTypeForTRex.TENET: 2>, 'TSTEPWISE': <SolverTypeForTRex.TSTEPWISE: 7>, 'TSTAGEWISE': <SolverTypeForTRex.TSTAGEWISE: 8>, 'TOMP': <SolverTypeForTRex.TOMP: 13>, 'TGP': <SolverTypeForTRex.TGP: 15>, 'TACGP': <SolverTypeForTRex.TACGP: 16>, 'TMP': <SolverTypeForTRex.TMP: 17>, 'TNCGMP': <SolverTypeForTRex.TNCGMP: 18>, 'TOOLS': <SolverTypeForTRex.TOOLS: 19>, 'TAFS': <SolverTypeForTRex.TAFS: 20>, 'TENET_AUG': <SolverTypeForTRex.TENET_AUG: 3>, 'TCDLASSO': <SolverTypeForTRex.TCDLASSO: 9>, 'TCDENET': <SolverTypeForTRex.TCDENET: 10>, 'TIENET': <SolverTypeForTRex.TIENET: 4>, 'TIENET_AUG': <SolverTypeForTRex.TIENET_AUG: 5>, 'TCDIENET': <SolverTypeForTRex.TCDIENET: 11>, 'TCDTIKNET': <SolverTypeForTRex.TCDTIKNET: 12>, 'TIKNET': <SolverTypeForTRex.TIKNET: 6>, 'TIKOMP': <SolverTypeForTRex.TIKOMP: 14>}
+    @typing.overload
+    def __eq__(self, other: SolverTypeForTRex) -> bool:
+        ...
+    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -1131,6 +1268,10 @@ class SolverTypeForTRex:
         ...
     def __int__(self) -> int:
         ...
+    @typing.overload
+    def __ne__(self, other: SolverTypeForTRex) -> bool:
+        ...
+    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:
@@ -1400,10 +1541,26 @@ class TRexGVSControlParameter:
     @property
     def cv_n_lambda(self) -> int:
         """
-        Number of points on the lambda grid searched during CV.
+        Number of points on the lambda grid searched during CV (EN-shaped rules).
         """
     @cv_n_lambda.setter
     def cv_n_lambda(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def cv_n_lambda1(self) -> int:
+        """
+        IEN-geometry CD tuners (CV_*_IEN_CCD): points on the profiled lambda_1 path per lambda_2 value (default 40).
+        """
+    @cv_n_lambda1.setter
+    def cv_n_lambda1(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def cv_n_lambda2(self) -> int:
+        """
+        IEN-geometry CD tuners: points on the lambda_2 grid (default 100).
+        """
+    @cv_n_lambda2.setter
+    def cv_n_lambda2(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
         ...
     @property
     def cv_seed(self) -> int:
@@ -1416,7 +1573,7 @@ class TRexGVSControlParameter:
     @property
     def en_solver(self) -> ENSolverType:
         """
-        EN solver variant when gvs_type == EN: TENET (default), TENET_AUG, or TCENET.
+        EN solver variant when gvs_type == EN: TENET (default), TENET_AUG, or TCDENET.
         """
     @en_solver.setter
     def en_solver(self, arg0: ENSolverType) -> None:
@@ -1496,6 +1653,10 @@ class TRexGVSSelector(TRexSelector):
     def getGVSResult(self) -> GVSSelectionResult:
         """
         Return the GVSSelectionResult after calling select().
+        """
+    def getLambda2CVDiagnostics(self) -> Lambda2CVDiagnostics:
+        """
+        Return the lambda_2 tuner health record of the last select().
         """
 class TRexSPCAControlParameter:
     """
@@ -1722,27 +1883,30 @@ RFaithful: BTSelectionMode  # value = <BTSelectionMode.RFaithful: 1>
 SEEDED: LLoopStrategy  # value = <LLoopStrategy.SEEDED: 5>
 SKIPL: LLoopStrategy  # value = <LLoopStrategy.SKIPL: 0>
 STANDARD: LLoopStrategy  # value = <LLoopStrategy.STANDARD: 1>
-TACGP: SolverTypeForTRex  # value = <SolverTypeForTRex.TACGP: 13>
-TAFS: SolverTypeForTRex  # value = <SolverTypeForTRex.TAFS: 17>
-TCCD: SolverTypeForTRex  # value = <SolverTypeForTRex.TCCD: 8>
-TCENET: ENSolverType  # value = <ENSolverType.TCENET: 2>
-TCIENET: SolverTypeForTRex  # value = <SolverTypeForTRex.TCIENET: 10>
+TACGP: SolverTypeForTRex  # value = <SolverTypeForTRex.TACGP: 16>
+TAFS: SolverTypeForTRex  # value = <SolverTypeForTRex.TAFS: 20>
+TCDENET: ENSolverType  # value = <ENSolverType.TCDENET: 2>
+TCDIENET: SolverTypeForTRex  # value = <SolverTypeForTRex.TCDIENET: 11>
+TCDLASSO: SolverTypeForTRex  # value = <SolverTypeForTRex.TCDLASSO: 9>
+TCDTIKNET: SolverTypeForTRex  # value = <SolverTypeForTRex.TCDTIKNET: 12>
 TENET: ENSolverType  # value = <ENSolverType.TENET: 0>
 TENET_AUG: ENSolverType  # value = <ENSolverType.TENET_AUG: 1>
-TGP: SolverTypeForTRex  # value = <SolverTypeForTRex.TGP: 12>
+TGP: SolverTypeForTRex  # value = <SolverTypeForTRex.TGP: 15>
 TIENET: SolverTypeForTRex  # value = <SolverTypeForTRex.TIENET: 4>
 TIENET_AUG: SolverTypeForTRex  # value = <SolverTypeForTRex.TIENET_AUG: 5>
+TIKNET: SolverTypeForTRex  # value = <SolverTypeForTRex.TIKNET: 6>
+TIKOMP: SolverTypeForTRex  # value = <SolverTypeForTRex.TIKOMP: 14>
 TLARS: SolverTypeForTRex  # value = <SolverTypeForTRex.TLARS: 0>
 TLASSO: SolverTypeForTRex  # value = <SolverTypeForTRex.TLASSO: 1>
-TMP: SolverTypeForTRex  # value = <SolverTypeForTRex.TMP: 14>
-TNCGMP: SolverTypeForTRex  # value = <SolverTypeForTRex.TNCGMP: 15>
-TOMP: SolverTypeForTRex  # value = <SolverTypeForTRex.TOMP: 11>
-TOOLS: SolverTypeForTRex  # value = <SolverTypeForTRex.TOOLS: 16>
+TMP: SolverTypeForTRex  # value = <SolverTypeForTRex.TMP: 17>
+TNCGMP: SolverTypeForTRex  # value = <SolverTypeForTRex.TNCGMP: 18>
+TOMP: SolverTypeForTRex  # value = <SolverTypeForTRex.TOMP: 13>
+TOOLS: SolverTypeForTRex  # value = <SolverTypeForTRex.TOOLS: 19>
 TREX: ScreenTRexMethod  # value = <ScreenTRexMethod.TREX: 0>
 TREX_DA_AR1: ScreenTRexMethod  # value = <ScreenTRexMethod.TREX_DA_AR1: 1>
 TREX_DA_BLOCK_EQUI: ScreenTRexMethod  # value = <ScreenTRexMethod.TREX_DA_BLOCK_EQUI: 3>
 TREX_DA_EQUI: ScreenTRexMethod  # value = <ScreenTRexMethod.TREX_DA_EQUI: 2>
-TSTAGEWISE: SolverTypeForTRex  # value = <SolverTypeForTRex.TSTAGEWISE: 7>
-TSTEPWISE: SolverTypeForTRex  # value = <SolverTypeForTRex.TSTEPWISE: 6>
+TSTAGEWISE: SolverTypeForTRex  # value = <SolverTypeForTRex.TSTAGEWISE: 8>
+TSTEPWISE: SolverTypeForTRex  # value = <SolverTypeForTRex.TSTEPWISE: 7>
 Thresholded: SPCAMode  # value = <SPCAMode.Thresholded: 1>
 ZSCORE: ScalingMode  # value = <ScalingMode.ZSCORE: 1>

@@ -18,6 +18,10 @@ class AccessMode:
     ReadOnly: typing.ClassVar[AccessMode]  # value = <AccessMode.ReadOnly: 0>
     ReadWrite: typing.ClassVar[AccessMode]  # value = <AccessMode.ReadWrite: 1>
     __members__: typing.ClassVar[dict[str, AccessMode]]  # value = {'ReadOnly': <AccessMode.ReadOnly: 0>, 'ReadWrite': <AccessMode.ReadWrite: 1>}
+    @typing.overload
+    def __eq__(self, other: AccessMode) -> bool:
+        ...
+    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -30,6 +34,10 @@ class AccessMode:
         ...
     def __int__(self) -> int:
         ...
+    @typing.overload
+    def __ne__(self, other: AccessMode) -> bool:
+        ...
+    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:

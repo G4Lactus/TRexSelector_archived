@@ -52,10 +52,15 @@ def _validate_core_solver_type(trex_control: "TRexControlParameter") -> None:
         raise ValueError(
             'solver_type = TIENET_AUG is a GVS-only solver; use '
             'TRexGVSSelector with gvs_type = IEN.')
-    if st == SolverTypeForTRex.TCIENET:
+    if st == SolverTypeForTRex.TCDIENET:
         raise ValueError(
-            'solver_type = TCIENET needs a group assignment; use '
+            'solver_type = TCDIENET needs a group assignment; use '
             'TRexGVSSelector with gvs_type = IEN.')
+    if st in (SolverTypeForTRex.TCDTIKNET, SolverTypeForTRex.TIKNET,
+              SolverTypeForTRex.TIKOMP):
+        raise ValueError(
+            f'solver_type = {st.name} needs a Tikhonov penalty matrix '
+            '(TRexTikhonovSelector, which is not yet bound in Python).')
 
 
 class TRexSelector:
@@ -203,30 +208,30 @@ class TRexGVSSelector(TRexSelector):
             trex_control = TRexControlParameter()
 
         # Solver selection mirrors the R surface:
-        #   EN  -> derived from en_solver (TENET / TENET_AUG / TCENET);
+        #   EN  -> derived from en_solver (TENET / TENET_AUG / TCDENET);
         #          trex_control.solver_type is ignored (warn on an explicit
         #          non-matching value; TLARS is the default and cannot be
         #          distinguished from an explicit choice, so it never warns).
         #   IEN -> trex_control.solver_type IS the IEN-solver choice:
-        #          TIENET (native pathwise, default), TIENET_AUG, TCIENET.
+        #          TIENET (native pathwise, default), TIENET_AUG, TCDIENET.
         #          The default TLARS maps to TIENET; any other value warns
         #          and falls back to TIENET (in the C++ glue).
         _ien_family = (SolverTypeForTRex.TIENET, SolverTypeForTRex.TIENET_AUG,
-                       SolverTypeForTRex.TCIENET)
+                       SolverTypeForTRex.TCDIENET)
         if gvs_control.gvs_type == GVSType.IEN:
             if trex_control.solver_type not in (SolverTypeForTRex.TLARS,) + _ien_family:
                 warnings.warn(
                     f"trex_control.solver_type = {trex_control.solver_type.name} "
                     f"is not an IEN-family solver; gvs_type = IEN accepts "
-                    f"TIENET, TIENET_AUG, or TCIENET. Using TIENET.",
+                    f"TIENET, TIENET_AUG, or TCDIENET. Using TIENET.",
                     UserWarning,
                     stacklevel=2,
                 )
         else:
             if gvs_control.en_solver == ENSolverType.TENET_AUG:
                 derived_solver = SolverTypeForTRex.TENET_AUG
-            elif gvs_control.en_solver == ENSolverType.TCENET:
-                derived_solver = SolverTypeForTRex.TCENET
+            elif gvs_control.en_solver == ENSolverType.TCDENET:
+                derived_solver = SolverTypeForTRex.TCDENET
             else:
                 derived_solver = SolverTypeForTRex.TENET
             if trex_control.solver_type not in (SolverTypeForTRex.TLARS, derived_solver):
@@ -282,6 +287,18 @@ class TRexGVSSelector(TRexSelector):
     def select(self) -> GVSSelectionResult:
         self._selector.select()
         return self._selector.getGVSResult()
+
+    def getLambda2CVDiagnostics(self):
+        """Health record of the lambda_2 tuner of the last select().
+
+        Returns a Lambda2CVDiagnostics: ``ran`` (a tuner ran; False when
+        lambda_2 came from the caller), ``seconds``, ``n_profile_at_edge``
+        (lambda_2 values whose profiled lambda_1 optimum sat on a
+        truncation edge; 0 is healthy), ``support_cap`` (-1 = disabled) and
+        ``low_dimensional``. The same record is carried in
+        ``GVSSelectionResult.lambda2_cv``.
+        """
+        return self._selector.getLambda2CVDiagnostics()
 
 
 class TRexScreeningSelector(TRexSelector):

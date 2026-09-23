@@ -17,6 +17,7 @@
 #include <pybind11/stl.h>
 
 // trex includes
+#include <ml_methods/model_selection/lambda2_cv_diagnostics.hpp>
 #include <trex_selector_methods/trex_gvs/trex_gvs.hpp>
 #include "trex_core_bindings.hpp"
 
@@ -64,9 +65,9 @@ public:
         // base algorithmic parameters as `trex_ctrl`. Merge the separately-
         // supplied `trex_control` and set the solver_type GVS requires,
         // mirroring the R surface:
-        //   EN  -> derived from en_solver (TENET / TENET_AUG / TCENET);
+        //   EN  -> derived from en_solver (TENET / TENET_AUG / TCDENET);
         //   IEN -> honors an IEN-family trex_control.solver_type (TIENET /
-        //          TIENET_AUG / TCIENET), defaulting anything else to
+        //          TIENET_AUG / TCDIENET), defaulting anything else to
         //          TIENET (the native pathwise IEN solver).
         TRexGVSControlParameter gvs_ctrl = gvs_control;
         gvs_ctrl.trex_ctrl = trex_control;
@@ -75,7 +76,7 @@ public:
             const bool ien_family =
                 st == gvs_sd::SolverTypeForTRex::TIENET ||
                 st == gvs_sd::SolverTypeForTRex::TIENET_AUG ||
-                st == gvs_sd::SolverTypeForTRex::TCIENET;
+                st == gvs_sd::SolverTypeForTRex::TCDIENET;
             if (!ien_family) {
                 gvs_ctrl.trex_ctrl.solver_type =
                     gvs_sd::SolverTypeForTRex::TIENET;
@@ -86,9 +87,9 @@ public:
                     gvs_ctrl.trex_ctrl.solver_type =
                         gvs_sd::SolverTypeForTRex::TENET_AUG;
                     break;
-                case ENSolverType::TCENET:
+                case ENSolverType::TCDENET:
                     gvs_ctrl.trex_ctrl.solver_type =
-                        gvs_sd::SolverTypeForTRex::TCENET;
+                        gvs_sd::SolverTypeForTRex::TCDENET;
                     break;
                 default:
                     gvs_ctrl.trex_ctrl.solver_type =
@@ -107,6 +108,15 @@ public:
     const TRexGVSSelector::GVSSelectionResult& getGVSResult() const {
         return static_cast<TRexGVSSelector*>(this->selector_.get())->getGVSResult();
     }
+
+    /**
+     * @brief The lambda_2 tuner health record of the last select().
+     */
+    const trex::ml_methods::model_selection::lambda2_cv_diagnostics&
+    getLambda2CVDiagnostics() const {
+        return static_cast<TRexGVSSelector*>(this->selector_.get())
+            ->getLambda2CVDiagnostics();
+    }
 };
 
 
@@ -118,14 +128,23 @@ public:
 inline void bind_trex_gvs(py::module& m) {
     py::enum_<GVSType>(m, "GVSType", "Group Variable Selection method variants.")
         .value("EN", GVSType::EN, "Elastic-Net group variable selection (uses TENET solver).")
-        .value("IEN", GVSType::IEN, "Informed Elastic-Net using group structure from clustering (solver via trex_control.solver_type: TIENET default, TIENET_AUG, TCIENET).")
+        .value("IEN", GVSType::IEN, "Informed Elastic-Net using group structure from clustering (solver via trex_control.solver_type: TIENET default, TIENET_AUG, TCDIENET).")
         .export_values();
 
     py::enum_<ENSolverType>(m, "ENSolverType", "Elastic-Net solver variant used when gvs_type == EN.")
         .value("TENET",     ENSolverType::TENET,     "Gram-based Elastic Net (ridge absorbed via Cholesky update).")
         .value("TENET_AUG", ENSolverType::TENET_AUG, "Augmented-LASSO Elastic Net (row-augmented system).")
-        .value("TCENET",    ENSolverType::TCENET,    "CCD Elastic Net (exact fixed-lambda1 minimizers per dummy crossing).")
+        .value("TCDENET",   ENSolverType::TCDENET,   "Coordinate-descent Elastic Net (exact fixed-lambda1 minimizers per dummy crossing).")
         .export_values();
+
+    py::class_<trex::ml_methods::model_selection::lambda2_cv_diagnostics>(m, "Lambda2CVDiagnostics",
+        "Health record of a lambda_2 tuner run: whether it ran, its cost, and whether the profiled optimum sat on a truncation edge.")
+        .def(py::init<>())
+        .def_readonly("ran", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::ran, "A tuner ran (False: lambda_2 came from the caller).")
+        .def_readonly("seconds", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::seconds, "Wall-clock seconds spent resolving lambda_2.")
+        .def_readonly("n_profile_at_edge", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::n_profile_at_edge, "lambda_2 values whose profiled lambda_1 optimum landed on a truncation edge (0 = healthy).")
+        .def_readonly("support_cap", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::support_cap, "Support cap (glmnet dfmax) applied, or -1 when disabled.")
+        .def_readonly("low_dimensional", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::low_dimensional, "p <= cap: the cap was inert.");
 
     py::enum_<LambdaSelectionMethod>(m, "LambdaSelectionMethod", "Rule for auto-selecting the ridge parameter lambda_2 when lambda_2 < 0.")
         .value("CV_1SE_SVD", LambdaSelectionMethod::CV_1SE_SVD, "JacobiSVD ridge CV, 1-SE rule.")
@@ -141,13 +160,15 @@ inline void bind_trex_gvs(py::module& m) {
     py::class_<TRexGVSControlParameter>(m, "TRexGVSControlParameter", "Control parameters for TRexGVSSelector.")
         .def(py::init<>())
         .def_readwrite("gvs_type",    &TRexGVSControlParameter::gvs_type,    "GVS method variant (EN = Elastic Net, IEN = Informed Elastic Net).")
-        .def_readwrite("en_solver",   &TRexGVSControlParameter::en_solver,   "EN solver variant when gvs_type == EN: TENET (default), TENET_AUG, or TCENET.")
+        .def_readwrite("en_solver",   &TRexGVSControlParameter::en_solver,   "EN solver variant when gvs_type == EN: TENET (default), TENET_AUG, or TCDENET.")
         .def_readwrite("corr_max",    &TRexGVSControlParameter::corr_max,    "Maximum pairwise correlation for automatic cluster formation.")
         .def_readwrite("hc_linkage",  &TRexGVSControlParameter::hc_linkage,  "Hierarchical clustering linkage method.")
         .def_readwrite("lambda_2", &TRexGVSControlParameter::lambda_2, "Ridge L2 penalty in LARS units (< 0 = auto-select, 0 = pure TLASSO, > 0 = fixed).")
         .def_readwrite("lambda2_method", &TRexGVSControlParameter::lambda2_method, "Rule for auto-selecting lambda_2 when lambda_2 < 0.")
         .def_readwrite("cv_n_folds", &TRexGVSControlParameter::cv_n_folds, "Number of folds for cross-validated lambda_2 selection.")
-        .def_readwrite("cv_n_lambda", &TRexGVSControlParameter::cv_n_lambda, "Number of points on the lambda grid searched during CV.")
+        .def_readwrite("cv_n_lambda", &TRexGVSControlParameter::cv_n_lambda, "Number of points on the lambda grid searched during CV (EN-shaped rules).")
+        .def_readwrite("cv_n_lambda1", &TRexGVSControlParameter::cv_n_lambda1, "IEN-geometry CD tuners (CV_*_IEN_CCD): points on the profiled lambda_1 path per lambda_2 value (default 40).")
+        .def_readwrite("cv_n_lambda2", &TRexGVSControlParameter::cv_n_lambda2, "IEN-geometry CD tuners: points on the lambda_2 grid (default 100).")
         .def_readwrite("cv_seed", &TRexGVSControlParameter::cv_seed, "Seed for the CV fold-permutation RNG (-1 = derive from the T-Rex seed).")
         .def_readwrite("prior_groups", &TRexGVSControlParameter::prior_groups, "Manually specified group assignments (0-based; empty = auto-cluster).")
         .def_readwrite("group_labels", &TRexGVSControlParameter::group_labels, "Optional human-readable cluster names (size must equal number of clusters).")
@@ -160,7 +181,8 @@ inline void bind_trex_gvs(py::module& m) {
         .def_readonly("max_clusters", &TRexGVSSelector::GVSSelectionResult::max_clusters, "Number of variable groups identified by hierarchical clustering.")
         .def_readonly("hc_method_used", &TRexGVSSelector::GVSSelectionResult::hc_method_used, "Hierarchical clustering linkage method used.")
         .def_readonly("groups_vec", &TRexGVSSelector::GVSSelectionResult::groups_vec, "Group assignment vector (0-based group index per predictor).")
-        .def_readonly("group_labels", &TRexGVSSelector::GVSSelectionResult::group_labels, "Unique group label integers.");
+        .def_readonly("group_labels", &TRexGVSSelector::GVSSelectionResult::group_labels, "Unique group label integers.")
+        .def_readonly("lambda2_cv", &TRexGVSSelector::GVSSelectionResult::lambda2_cv, "Health record of the lambda_2 tuner (Lambda2CVDiagnostics).");
 
     py::class_<PyTRexGVSSelector, PyTRexSelector>(m, "TRexGVSSelector", "TRex Selector with Group Variable Selection support.")
         .def(py::init<Eigen::Ref<Eigen::MatrixXd>, Eigen::Ref<Eigen::VectorXd>, double, const TRexGVSControlParameter&, const TRexControlParameter&, int, bool>(),
@@ -170,7 +192,8 @@ inline void bind_trex_gvs(py::module& m) {
              py::arg("seed") = -1, py::arg("verbose") = true,
              py::keep_alive<1, 2>(), py::keep_alive<1, 3>(),
              "Construct the GVS selector. X and y are accessed zero-copy via Eigen::Map.")
-        .def("getGVSResult", &PyTRexGVSSelector::getGVSResult, "Return the GVSSelectionResult after calling select().");
+        .def("getGVSResult", &PyTRexGVSSelector::getGVSResult, "Return the GVSSelectionResult after calling select().")
+        .def("getLambda2CVDiagnostics", &PyTRexGVSSelector::getLambda2CVDiagnostics, "Return the lambda_2 tuner health record of the last select().");
 }
 // =====================================================================================
 #endif /* End of TREX_PYTHON_TREX_GVS_BINDINGS_HPP */

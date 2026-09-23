@@ -20,6 +20,10 @@ class ScalingMode:
     L2: typing.ClassVar[ScalingMode]  # value = <ScalingMode.L2: 0>
     ZSCORE: typing.ClassVar[ScalingMode]  # value = <ScalingMode.ZSCORE: 1>
     __members__: typing.ClassVar[dict[str, ScalingMode]]  # value = {'L2': <ScalingMode.L2: 0>, 'ZSCORE': <ScalingMode.ZSCORE: 1>}
+    @typing.overload
+    def __eq__(self, other: ScalingMode) -> bool:
+        ...
+    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -32,6 +36,10 @@ class ScalingMode:
         ...
     def __int__(self) -> int:
         ...
+    @typing.overload
+    def __ne__(self, other: ScalingMode) -> bool:
+        ...
+    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:

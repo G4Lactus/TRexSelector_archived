@@ -133,6 +133,10 @@ class NormType:
     L1: typing.ClassVar[NormType]  # value = <NormType.L1: 0>
     L2: typing.ClassVar[NormType]  # value = <NormType.L2: 1>
     __members__: typing.ClassVar[dict[str, NormType]]  # value = {'L1': <NormType.L1: 0>, 'L2': <NormType.L2: 1>}
+    @typing.overload
+    def __eq__(self, other: NormType) -> bool:
+        ...
+    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -145,6 +149,10 @@ class NormType:
         ...
     def __int__(self) -> int:
         ...
+    @typing.overload
+    def __ne__(self, other: NormType) -> bool:
+        ...
+    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:

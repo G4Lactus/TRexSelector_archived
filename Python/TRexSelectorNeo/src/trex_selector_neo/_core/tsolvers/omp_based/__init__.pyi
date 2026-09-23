@@ -18,6 +18,10 @@ class NCGMPVariant:
     FullyCorrective: typing.ClassVar[NCGMPVariant]  # value = <NCGMPVariant.FullyCorrective: 1>
     LineSearch: typing.ClassVar[NCGMPVariant]  # value = <NCGMPVariant.LineSearch: 0>
     __members__: typing.ClassVar[dict[str, NCGMPVariant]]  # value = {'LineSearch': <NCGMPVariant.LineSearch: 0>, 'FullyCorrective': <NCGMPVariant.FullyCorrective: 1>}
+    @typing.overload
+    def __eq__(self, other: NCGMPVariant) -> bool:
+        ...
+    @typing.overload
     def __eq__(self, other: typing.Any) -> bool:
         ...
     def __getstate__(self) -> int:
@@ -30,6 +34,10 @@ class NCGMPVariant:
         ...
     def __int__(self) -> int:
         ...
+    @typing.overload
+    def __ne__(self, other: NCGMPVariant) -> bool:
+        ...
+    @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
         ...
     def __repr__(self) -> str:

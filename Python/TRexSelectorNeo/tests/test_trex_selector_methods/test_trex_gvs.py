@@ -267,12 +267,12 @@ def test_lambda2_method_ien_tuner_rejected_on_en_track(signal_data):
         trex_selector_neo.TRexGVSSelector(X, y, gvs_control=gvs_ctrl, verbose=False)
 
 
-def test_gvs_en_tcenet_runs(signal_data):
+def test_gvs_en_tcdenet_runs(signal_data):
     X, y, n, p = signal_data
     ctrl = trex_selector_neo.TRexControlParameter()
     ctrl.K = 3
     gvs_ctrl = trex_selector_neo.TRexGVSControlParameter()
-    gvs_ctrl.en_solver = trex_selector_neo.ENSolverType.TCENET
+    gvs_ctrl.en_solver = trex_selector_neo.ENSolverType.TCDENET
     gvs_ctrl.lambda_2 = 1.0
     sel = trex_selector_neo.TRexGVSSelector(X, y, gvs_control=gvs_ctrl,
                                             trex_control=ctrl, verbose=False)
@@ -280,11 +280,11 @@ def test_gvs_en_tcenet_runs(signal_data):
     assert res is not None
 
 
-def test_gvs_ien_solver_choice_tcienet(signal_data):
+def test_gvs_ien_solver_choice_tcdienet(signal_data):
     X, y, n, p = signal_data
     ctrl = trex_selector_neo.TRexControlParameter()
     ctrl.K = 3
-    ctrl.solver_type = trex_selector_neo.SolverTypeForTRex.TCIENET
+    ctrl.solver_type = trex_selector_neo.SolverTypeForTRex.TCDIENET
     gvs_ctrl = trex_selector_neo.TRexGVSControlParameter()
     gvs_ctrl.gvs_type = trex_selector_neo.GVSType.IEN
     gvs_ctrl.lambda_2 = 1.0
@@ -292,3 +292,35 @@ def test_gvs_ien_solver_choice_tcienet(signal_data):
                                             trex_control=ctrl, verbose=False)
     res = sel.select()
     assert res is not None
+
+
+def test_gvs_ien_tuner_grids_and_diagnostics(signal_data):
+    X, y, n, p = signal_data
+    ctrl = trex_selector_neo.TRexControlParameter()
+    ctrl.K = 3
+
+    # Fixed lambda_2: no tuner ran.
+    fixed = trex_selector_neo.TRexGVSControlParameter()
+    fixed.gvs_type = trex_selector_neo.GVSType.IEN
+    fixed.lambda_2 = 1.0
+    sel = trex_selector_neo.TRexGVSSelector(X, y, gvs_control=fixed,
+                                            trex_control=ctrl, verbose=False)
+    res = sel.select()
+    assert res.lambda2_cv.ran is False
+    assert sel.getLambda2CVDiagnostics().ran is False
+
+    # IEN-geometry CV with reduced grids: the tuner ran and is reported.
+    gvs_ctrl = trex_selector_neo.TRexGVSControlParameter()
+    gvs_ctrl.gvs_type = trex_selector_neo.GVSType.IEN
+    gvs_ctrl.lambda_2 = -1.0
+    gvs_ctrl.cv_n_lambda1 = 20
+    gvs_ctrl.cv_n_lambda2 = 10
+    assert gvs_ctrl.cv_n_lambda1 == 20 and gvs_ctrl.cv_n_lambda2 == 10
+    sel = trex_selector_neo.TRexGVSSelector(X, y, gvs_control=gvs_ctrl,
+                                            trex_control=ctrl, verbose=False)
+    res = sel.select()
+    diag = res.lambda2_cv
+    assert diag.ran is True
+    assert diag.seconds >= 0.0
+    assert diag.n_profile_at_edge >= 0
+    assert res.lambda2_used > 0

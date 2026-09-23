@@ -357,7 +357,7 @@ class TestSolverHyperparameters:
 # CCD family + construction gates (bindings-parity additions)
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("solver", ["TCCD", "TCENET", "TENET_AUG"])
+@pytest.mark.parametrize("solver", ["TCDLASSO", "TCDENET", "TENET_AUG"])
 def test_ccd_and_aug_solvers_run(signal_data, solver):
     X, y, n, p = signal_data
     ctrl = trex_selector_neo.TRexControlParameter()
@@ -376,9 +376,12 @@ def test_cd_knobs_and_tenet_aug_use_lars_bound():
     assert hp.tenet_aug_use_lars is False
     hp.tenet_aug_use_lars = True
     assert hp.tenet_aug_use_lars is True
+    assert hp.cd_certified_localization is True
+    hp.cd_certified_localization = False
+    assert hp.cd_certified_localization is False
 
 
-@pytest.mark.parametrize("solver", ["TIENET", "TIENET_AUG", "TCIENET"])
+@pytest.mark.parametrize("solver", ["TIENET", "TIENET_AUG", "TCDIENET"])
 def test_ien_family_gated_at_construction(signal_data, solver):
     X, y, n, p = signal_data
     ctrl = trex_selector_neo.TRexControlParameter()
@@ -386,3 +389,26 @@ def test_ien_family_gated_at_construction(signal_data, solver):
     ctrl.solver_type = getattr(trex_selector_neo.SolverTypeForTRex, solver)
     with pytest.raises(ValueError, match="GVS|group assignment"):
         trex_selector_neo.TRexSelector(X, y, trex_control=ctrl, verbose=False)
+
+
+@pytest.mark.parametrize("solver", ["TCDTIKNET", "TIKNET", "TIKOMP"])
+def test_tikhonov_family_gated_at_construction(signal_data, solver):
+    X, y, n, p = signal_data
+    ctrl = trex_selector_neo.TRexControlParameter()
+    ctrl.K = 3
+    ctrl.solver_type = getattr(trex_selector_neo.SolverTypeForTRex, solver)
+    with pytest.raises(ValueError, match="Tikhonov"):
+        trex_selector_neo.TRexSelector(X, y, trex_control=ctrl, verbose=False)
+
+
+@pytest.mark.parametrize("certified", [True, False])
+def test_cd_localization_modes_run(signal_data, certified):
+    X, y, n, p = signal_data
+    ctrl = trex_selector_neo.TRexControlParameter()
+    ctrl.K = 3
+    ctrl.solver_type = trex_selector_neo.SolverTypeForTRex.TCDLASSO
+    ctrl.solver_params.cd_certified_localization = certified
+    sel = trex_selector_neo.TRexSelector(X, y, trex_control=ctrl, verbose=False)
+    res = sel.select()
+    assert res is not None
+    assert res.selected_var.shape[0] == p

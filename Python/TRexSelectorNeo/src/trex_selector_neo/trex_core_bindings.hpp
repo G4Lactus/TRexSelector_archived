@@ -194,11 +194,14 @@ inline void bind_trex_core(py::module& m_tsm) {
         .value("TOOLS",      sd::SolverTypeForTRex::TOOLS,      "Terminating Orthogonal Least Squares.")
         .value("TAFS",       sd::SolverTypeForTRex::TAFS,       "Terminating AFS.")
         .value("TENET_AUG",  sd::SolverTypeForTRex::TENET_AUG,  "Terminating Elastic Net via augmented LASSO; accepted wherever TENET runs (LASSO inner path standard, LARS via tenet_aug_use_lars).")
-        .value("TCCD",       sd::SolverTypeForTRex::TCCD,       "Terminating CCD LASSO (exact penalized-lasso minimizers per crossing).")
-        .value("TCENET",     sd::SolverTypeForTRex::TCENET,     "Terminating CCD Elastic Net.")
+        .value("TCDLASSO",   sd::SolverTypeForTRex::TCDLASSO,   "Terminating coordinate-descent LASSO (exact penalized-lasso minimizers per crossing; certified crossing localization by default).")
+        .value("TCDENET",    sd::SolverTypeForTRex::TCDENET,    "Terminating coordinate-descent Elastic Net.")
         .value("TIENET",     sd::SolverTypeForTRex::TIENET,     "Terminating Informed Elastic Net, native pathwise (GVS-only, gvs_type=IEN; IEN default).")
         .value("TIENET_AUG", sd::SolverTypeForTRex::TIENET_AUG, "Terminating Informed Elastic Net via augmented LASSO (GVS-only, gvs_type=IEN).")
-        .value("TCIENET",    sd::SolverTypeForTRex::TCIENET,    "Terminating CCD Informed Elastic Net (GVS gvs_type=IEN, or sparse-K Tikhonov).")
+        .value("TCDIENET",   sd::SolverTypeForTRex::TCDIENET,   "Terminating coordinate-descent Informed Elastic Net (GVS-only, gvs_type=IEN).")
+        .value("TCDTIKNET",  sd::SolverTypeForTRex::TCDTIKNET,  "Terminating coordinate-descent Tikhonov Net (sparse-K; needs a penalty matrix, TRexTikhonovSelector only — not yet bound in Python).")
+        .value("TIKNET",     sd::SolverTypeForTRex::TIKNET,     "Terminating Tikhonov Net, native pathwise (sparse-K, FOLDED; TRexTikhonovSelector only).")
+        .value("TIKOMP",     sd::SolverTypeForTRex::TIKOMP,     "Terminating Tikhonov-K OMP (sparse-K, FOLDED; TRexTikhonovSelector only).")
         .export_values();
 
     // Bind SolverHyperparameters struct
@@ -215,7 +218,8 @@ inline void bind_trex_core(py::module& m_tsm) {
         .def_readwrite("cd_tol_certify", &sd::SolverHyperparameters::cd_tol_certify, "CCD family: KKT certification tolerance; applied only when set together with cd_tol_probe (both > 0).")
         .def_readwrite("cd_tol_probe", &sd::SolverHyperparameters::cd_tol_probe, "CCD family: probing tolerance; applied only when set together with cd_tol_certify (both > 0).")
         .def_readwrite("cd_gram_cap", &sd::SolverHyperparameters::cd_gram_cap, "CCD family: column cap for the cached Gram matrix (0 keeps the solver default).")
-        .def_readwrite("cd_max_sweeps", &sd::SolverHyperparameters::cd_max_sweeps, "CCD family: maximum coordinate sweeps per subproblem (0 keeps the solver default).");
+        .def_readwrite("cd_max_sweeps", &sd::SolverHyperparameters::cd_max_sweeps, "CCD family: maximum coordinate sweeps per subproblem (0 keeps the solver default).")
+        .def_readwrite("cd_certified_localization", &sd::SolverHyperparameters::cd_certified_localization, "CCD family: True (default) = certified crossing localization (duality-gap and coordinate-status certificates, closed-form continuation, records at the knot); False = LEGACY probe bisection with the support-nesting stop.");
 
     // Bind DummyDistribution (wraps C++ dummygen::Distribution)
     py::class_<dg::Distribution> dummy_dist(m_tsm, "DummyDistribution",
