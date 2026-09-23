@@ -87,6 +87,8 @@ target_sources(trex_selector_methods PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/trex_screening/trex_biobank_screening.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/trex_spca/trex_spca.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/trex_tikhonov/trex_tikhonov.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/trex_tikhonov/tik_lambda2_pick.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/trex_tikhonov/tik_lambda2_power_rule.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/trex_vd/trex_vd.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/trex_utils/trex_data_normalizer.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/trex_utils/trex_dummy_generator.hpp

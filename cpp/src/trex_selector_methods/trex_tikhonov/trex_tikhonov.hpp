@@ -82,6 +82,25 @@
  *      interpolates the training folds.
  *  The selected lambda_2 is on the unit-L2 SOLVER scale (no p/2
  *  conversion); only the ZSCORE working-scale factor (n - 1) applies.
+ *
+ *  The PILOT rules (PILOT_MAX / PILOT_KNEE) decide lambda_2 from the random
+ *  experiments themselves, still in `onSelectBegin()` and before the main
+ *  L-loop: for every candidate of `pilot_grid` the shared ExperimentRunner
+ *  runs `pilot_K` experiments with L_0 = p dummies to the stopping time
+ *  `pilot_T`, on ONE dummy set common to every candidate, and the count of
+ *  originals ahead of the T-th dummy in more than half of the experiments
+ *  (the T-Rex's own count at voting level 1/2; or the calibrated pilot
+ *  selection, `pilot_statistic`) is read off. The pick is the selector's
+ *  own principle applied to lambda_2 — the largest FDR-controlled selection
+ *  — at a fraction of the cost of one full selection per candidate: about
+ *  |grid| x pilot_K paths at (L_0, pilot_T) against |grid| x K x (L-steps +
+ *  T-steps) paths. The pilot dummies live in a reserved seed stream, so the
+ *  main run is a standard T-Rex at a fixed lambda_2 whose dummies are
+ *  independent of the pick; the pick itself depends on y and is outside
+ *  the fixed-lambda_2 FDR proof — its cost was measured to be nil under the
+ *  global null and within 0.01 of the oracle under the alternatives in the
+ *  Tikhonov T-Rex workspace (demo_14). The record is in
+ *  `getLambda2PilotResult()`.
  */
 // ===================================================================================
 
@@ -102,6 +121,9 @@
 // lambda_2 tuner health record
 #include <ml_methods/model_selection/lambda2_cv_diagnostics.hpp>
 
+// The pick of the power / pilot rules (selector-free)
+#include <trex_selector_methods/trex_tikhonov/tik_lambda2_pick.hpp>
+
 // ===================================================================================
 
 // Embedded into namespace trex::trex_selector_methods::trex_tikhonov
@@ -121,9 +143,12 @@ namespace ms = trex::ml_methods::model_selection;
 
 /**
  * @brief Selection rule for the Tikhonov penalty weight `lambda_2` when no
- *        user-supplied value is given. All four rules consume the penalty
- *        matrix K and return lambda_2 on the solver scale (no p/2
- *        conversion; see the file header).
+ *        user-supplied value is given. The four CV rules consume the penalty
+ *        matrix K on the normalized data before the random experiments and
+ *        return lambda_2 on the solver scale (no p/2 conversion; see the
+ *        file header). The two PILOT rules read lambda_2 off a few random
+ *        experiments per candidate of `pilot_grid` (see the file header,
+ *        "lambda_2 selection").
  */
 enum class TikLambda2Method {
     /** @brief IEN-geometry coordinate-descent CV (lambda1 profiled), 1SE. */
@@ -133,7 +158,95 @@ enum class TikLambda2Method {
     /** @brief Generalized-Tikhonov SVD ridge CV (lambda1 = 0 backbone), 1SE. */
     CV_1SE_TIK_SVD,
     /** @brief Generalized-Tikhonov SVD ridge CV (lambda1 = 0 backbone), min. */
-    CV_MIN_TIK_SVD
+    CV_MIN_TIK_SVD,
+    /** @brief Pilot rule: over `pilot_grid`, the lambda_2 with the LARGEST
+     *  pilot selection count (ties toward the smallest lambda_2). */
+    PILOT_MAX,
+    /** @brief Pilot rule: the smallest lambda_2 whose pilot selection count
+     *  is within `pilot_knee_tolerance` of the largest. */
+    PILOT_KNEE
+};
+
+/** @brief The count the pilot rule picks on, per grid point. Both are
+ *  always recorded in `Lambda2PilotResult`. */
+enum class PilotStatistic {
+    /** @brief The number of originals ahead of the T_pilot-th dummy in more
+     *  than half of the pilot experiments — the T-Rex's own count at voting
+     *  level 1/2, without the FDP gate. Zero under the global null. */
+    MAJORITY,
+    /** @brief The T-Rex selection rule applied to the pilot data (Phi',
+     *  FDP-hat on a grid of step 1/K_pilot, the largest selection subject
+     *  to FDP-hat <= tFDR over t <= T_pilot). Coarser at a small K_pilot. */
+    CALIBRATED,
+    /** @brief The MAJORITY count restricted to the groups of `prior_groups`
+     *  in which at least `pilot_group_fraction` of the members are ahead:
+     *  a group that enters as a whole contributes all of its members
+     *  ahead, a group that enters as a minority contributes nothing. The
+     *  false positives a group prior admits under crosstalk are scattered
+     *  members of null groups correlated with an active one (a few per
+     *  touched group); they inflate MAJORITY as lambda_2 grows and pull a
+     *  count-based pick upward in exactly the trials that are false-
+     *  positive-prone, whereas an active group crosses the fraction as a
+     *  whole. Needs `prior_groups` (refused otherwise). Falls to zero when
+     *  no group reaches the fraction (very low SNR): the pick is then the
+     *  grid's first point. */
+    GROUP_MAJORITY
+};
+
+/** @brief What the pilot of the last select() / runPilotOnly() did. */
+struct Lambda2PilotResult {
+
+    /** @brief A pilot executed (false: lambda_2 came from the caller or a
+     *  CV tuner). */
+    bool ran = false;
+
+    /** @brief The grid, ascending and de-duplicated. */
+    std::vector<double> grid;
+
+    /** @brief The count the pick was read off (MAJORITY or CALIBRATED),
+     *  per grid point. */
+    std::vector<std::size_t> counts;
+
+    /** @brief The majority count per grid point and pilot stopping time
+     *  t = 1 .. T_pilot (`curve_majority[g][t - 1]`). */
+    std::vector<std::vector<std::size_t>> curve_majority;
+
+    /** @brief The mean number of originals ahead of the t-th dummy, per
+     *  grid point and t (the column sums of phi_T_mat; diagnostic). */
+    std::vector<std::vector<double>> curve_soft;
+
+    /** @brief The calibrated pilot selection count per grid point. */
+    std::vector<std::size_t> calibrated;
+
+    /** @brief The group-majority count per grid point (members ahead of the
+     *  T_pilot-th dummy in the majority of experiments, summed over the
+     *  groups in which at least `pilot_group_fraction` of the members are
+     *  ahead), and the number of such groups; zeros without `prior_groups`. */
+    std::vector<std::size_t> group_majority;
+    std::vector<std::size_t> groups_qualifying;
+
+    /** @brief Wall-clock seconds per grid point. */
+    std::vector<double> probe_seconds;
+
+    /** @brief The pick diagnostics on `counts`. */
+    Lambda2PickInfo pick;
+
+    /** @brief Index of the pick into `grid`, and the picked lambda_2. */
+    std::size_t index   = 0;
+    double      lambda2 = 0.0;
+
+    /** @brief The pick sits on the first / last grid point. */
+    bool at_lower_end = false;
+    bool at_upper_end = false;
+
+    /** @brief The budget actually used. */
+    std::size_t K_pilot   = 0;
+    std::size_t T_pilot   = 0;
+    std::size_t L_0       = 0;
+    std::size_t dummy_tag = 0;
+
+    /** @brief Wall-clock seconds of the whole pilot. */
+    double seconds = 0.0;
 };
 
 
@@ -217,6 +330,50 @@ struct TRexTikhonovControlParameter {
      *  - `-1` (default): derived from the T-Rex `seed` parameter.
      *  - `>= 0`: explicit fold seed; overrides `seed` for CV only. */
     int cv_seed = -1;
+
+    // ----- Pilot rule (lambda2_method = PILOT_MAX / PILOT_KNEE) -----
+
+    /** @brief lambda_2 candidates on the WORKING column scale (the scale of
+     *  `lambda_2`; the pilot runs the solver at these values verbatim, so no
+     *  (n - 1) ZSCORE conversion applies, unlike the CV tuners). Sorted and
+     *  de-duplicated internally. Keep 0 on it so that "no penalty" is an
+     *  admissible answer: a prior that misfits the truth loses power
+     *  monotonically and the rule then switches it off. */
+    std::vector<double> pilot_grid = {0.0, 1.0, 3.0, 10.0, 30.0, 100.0, 300.0,
+                                      1000.0, 3000.0};
+
+    /** @brief Pilot experiments per grid point (>= 2; capped at
+     *  `trex_ctrl.K`). The majority count has resolution 1/pilot_K. */
+    std::size_t pilot_K = 10;
+
+    /** @brief Stopping time of the pilot paths (>= 1; capped at
+     *  min(L_0, ceil(n / 2)) as the T-loop caps T). The pick reads the
+     *  count at this t; the counts at every t <= pilot_T are recorded. */
+    std::size_t pilot_T = 5;
+
+    /** @brief Pilot dummies L_0 = pilot_L_multiplier * p (in
+     *  [1, trex_ctrl.max_dummy_multiplier]). */
+    std::size_t pilot_L_multiplier = 1;
+
+    /** @brief PILOT_KNEE: selections below the largest count that still
+     *  count as "on the plateau" (>= 0). */
+    double pilot_knee_tolerance = 1.0;
+
+    /** @brief The count the pick is read off. */
+    PilotStatistic pilot_statistic = PilotStatistic::MAJORITY;
+
+    /** @brief GROUP_MAJORITY: the share of a group's members that must be
+     *  ahead for the group to count, in (0, 1]; 1/2 = at least half. */
+    double pilot_group_fraction = 0.5;
+
+    /** @brief false (default): the pilot draws its dummies from a reserved
+     *  seed stream, independent of the main run's — conditional on the
+     *  pick, the main run is a standard T-Rex whose dummies are independent
+     *  of the pick, and its selection equals a fixed-lambda_2 run's at that
+     *  value with the same seed. true: the pilot reuses the main strategy's
+     *  first dummy block (HCONCAT / STANDARD / SKIPL / SEEDED; the
+     *  PERMUTATION family is refused). */
+    bool pilot_shared_dummies = false;
 
     /** @brief Dummy-coupling mode of the sparse-K TCDTIKNET penalty.
      *  Default: true (FOLDED) — dummy copy t joins its originating
@@ -340,6 +497,26 @@ public:
         return lambda2_cv_diag_;
     }
 
+    /** @brief What the pilot rule of the last `select()` /
+     *  `runPilotOnly()` did (`ran == false`: no pilot executed). */
+    const Lambda2PilotResult& getLambda2PilotResult() const noexcept {
+        return lambda2_pilot_;
+    }
+
+    /**
+     * @brief Run ONLY the lambda_2 pilot (cluster model + pilot experiments
+     *        + pick) and release X, without the main selection.
+     *
+     * @details For callers that want the pick alone (a study that scores it
+     *   against selections it already has). The object is spent afterwards:
+     *   call either `runPilotOnly()` or `select()` on a selector, not both.
+     *   Requires `lambda_2 < 0` and a PILOT_* `lambda2_method`.
+     *
+     * @throws std::invalid_argument when the control does not request a
+     *         pilot rule.
+     */
+    const Lambda2PilotResult& runPilotOnly();
+
 protected:
 
     /** @brief Builds the dummy cluster model (prior groups or
@@ -366,6 +543,27 @@ private:
     /** @brief lambda_2 resolution (user value or sparse-K CV tuners). */
     double computeLambda2() const;
 
+    /** @brief The control requests a pilot rule (lambda_2 < 0 and a PILOT_*
+     *  method). */
+    bool pilotRequested() const noexcept;
+
+    /** @brief The lambda_2 pilot: for every grid point, `pilot_K` random
+     *  experiments with L_0 dummies to T_pilot on ONE stored dummy set,
+     *  the counts of `PilotStatistic`, then the pick. Leaves the main run's
+     *  dummy streams untouched (reserved tag, or the strategy's own first
+     *  block when `pilot_shared_dummies`). Returns the picked lambda_2 and
+     *  fills `lambda2_pilot_`. */
+    double runLambda2Pilot();
+
+    /** @brief The seed tag under which the main strategy draws its first
+     *  dummy block (the `pilot_shared_dummies` option). */
+    std::size_t pilotDummyTag() const;
+
+    /** @brief The reserved seed tag of an independent pilot: the main run
+     *  only uses tags 0 (prefix-stable streams; in cluster mode layer li
+     *  draws from stream li + 1) and 1 .. max_dummy_multiplier. */
+    static constexpr std::size_t kPilotDummyTag = std::size_t{1} << 30U;
+
     /** @brief Build the dummy cluster model: clusters from `prior_groups`
      *  or correlation-HAC on the normalized X_, then the per-cluster
      *  Cholesky factors (shared machinery, trex_cluster_dummies.hpp /
@@ -387,6 +585,9 @@ private:
      *  because `computeLambda2()` is const — it reports what it did
      *  alongside the value it returns. */
     mutable ms::lambda2_cv_diagnostics lambda2_cv_diag_;
+
+    /** @brief What the last pilot did (`ran == false` when none ran). */
+    Lambda2PilotResult lambda2_pilot_;
 
     /** @brief GROUP_CENTERING: group ids as VectorXi for the solver
      *  dispatch (owned; runner configs point into it). */

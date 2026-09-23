@@ -700,26 +700,25 @@ Eigen::MatrixXd TRexGVSSelector::extractPhiContribFromPath(
         }
     }
 
-    // For each t in [1, T_stop], find the FIRST step where exactly t dummy
-    // variables are non-zero.  At that step, every active original feature
-    // gets a +1 contribution.
+    // For each t in [1, T_stop], find the FIRST step at which at least t
+    // dummy variables are non-zero (first-reach, `>= t`). At that step,
+    // every active original feature gets a +1 contribution.
     //
-    // NOTE (tested and REVERTED, 2026-08-06): relaxing this to first-reach
-    // (`>= t`) was tried, on the hypothesis that a CD path stepping from
-    // t-1 straight to t+1 skips t and leaves its phi column at zero. The
-    // change had ZERO measured effect — Demos "TRex CCD"/
-    // demo_03_trex_gvs_study Part 3d, TENET vs TCDENET, 50 MC, identical
-    // before and after at K = 2/5/20. The zero columns are real and
-    // one-sided, but they come from the OTHER branch below
-    // (`found_col == n_steps`): the CD path never reaches t dummies at all.
-    // Measured: the mass deficit sits at relative row position 0.94, i.e.
-    // the tail, not scattered at 0.5 as skipping would give. So this is a CD
-    // path-length question, not a phi-extraction one.
+    // Semantics (2026-08-23, aligned with the base ExperimentRunner): a
+    // recorded step that jumps from t-1 straight to t+1 dummies (a tie
+    // batch: simultaneous entries within the solver's lambda tolerance)
+    // contributes its support to column t as well as t+1 — the batch is
+    // the crossing of every count it skips. This is the only convention
+    // under which phi_T does not depend on whether a near-tie happened to
+    // be recorded as one step or two. Measured effect vs strict equality:
+    // none (demo_03_trex_gvs_study Part 3d, TENET vs TCDENET, 50 MC,
+    // identical at K = 2/5/20, 2026-08-06); zero columns come from the
+    // `found_col == n_steps` branch (the path never reaches t dummies).
     for (std::size_t t = 1; t <= T_stop; ++t) {
 
         std::size_t found_col = n_steps;
         for (std::size_t s = 0; s < n_steps; ++s) {
-            if (dummy_count[s] == t) {
+            if (dummy_count[s] >= t) {
                 found_col = s;
                 break;
             }

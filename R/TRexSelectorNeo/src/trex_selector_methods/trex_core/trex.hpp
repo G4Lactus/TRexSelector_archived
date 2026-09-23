@@ -214,8 +214,12 @@ struct TRexControlParameter {
                 max_inner_threads = total_cores;
             }
         } else {
+            // Serial experiments: the solvers may use every core — unless
+            // the selector is being constructed INSIDE a caller's parallel
+            // region (a Monte Carlo loop over trials), where an inner team
+            // per outer thread oversubscribes the machine (2026-09-09).
             max_outer_threads = 1;
-            max_inner_threads = omp_get_max_threads();
+            max_inner_threads = omp_in_parallel() ? 1 : omp_get_max_threads();
         }
 #else
         max_outer_threads = 1;
@@ -584,8 +588,14 @@ protected:
     // Core T-Rex Computation — Voting & FDP
     // ============================================================
 
-    /** @brief Generate voting grid V = [0.5, 0.5 + 1/K, ..., 1-eps]. */
+    /** @brief Generate voting grid V = [0.5, 0.5 + 1/K, ..., 1-eps] for the
+     *  configured number of random experiments K. */
     Eigen::VectorXd createVotingGrid() const;
+
+    /** @brief The same grid for an arbitrary number of experiments K (a
+     *  sub-run with fewer experiments, e.g. a lambda_2 pilot, aggregates
+     *  its Phi at resolution 1/K and needs the matching grid). */
+    Eigen::VectorXd createVotingGrid(std::size_t K) const;
 
     /**
      * @brief Set optimization point.
@@ -629,6 +639,11 @@ protected:
      * @param Phi_mat Matrix of relative occurrences.
      * @param voting_grid Voting grid vector.
      * @param T_stop Stopping time.
+     * @param drop_last_row Drop the last T-row when T_stop > 1 (default:
+     *        the R reference's convention for the main run, whose last row
+     *        is the step that violated the stopping criterion). A run over a
+     *        FIXED T budget, such as a lambda_2 pilot, passes false: none of
+     *        its rows is a boundary step.
      *
      * @return Selection result containing selected variables and related information.
      */
@@ -636,7 +651,31 @@ protected:
         const Eigen::MatrixXd& FDP_hat_mat,
         const Eigen::MatrixXd& Phi_mat,
         const Eigen::VectorXd& voting_grid,
-        std::size_t T_stop) const;
+        std::size_t T_stop,
+        bool drop_last_row = true) const;
+
+    /**
+     * @brief The T-Rex selection rule applied to ONE runner result: builds
+     *        the (T x p) Phi and (T x v) FDP-hat accumulators row by row
+     *        from `phi_T_mat` (T = its number of columns) with
+     *        computePhiPrime() / computeFDPHat(), then selectedVariables().
+     *
+     * @details The path to T dummies has every shorter path as a prefix, so
+     *   `phi_T_mat.leftCols(t + 1)` is what a run stopped at t + 1 dummies
+     *   would return, and row t of the accumulators equals the main T-loop's
+     *   row t. Used by the lambda_2 pilot of the Tikhonov selector; a GVS
+     *   pilot would call it the same way.
+     *
+     * @param phi_T_mat   p x T relative-occurrence matrix of one runner call.
+     * @param num_dummies Number of dummies that run used (Phi-prime scaling).
+     * @param voting_grid The voting grid matching the run's number of experiments.
+     * @param drop_last_row Forwarded to selectedVariables().
+     */
+    SelectionResult selectFromPhiT(
+        const Eigen::MatrixXd& phi_T_mat,
+        std::size_t num_dummies,
+        const Eigen::VectorXd& voting_grid,
+        bool drop_last_row) const;
 
 
     // ============================================================

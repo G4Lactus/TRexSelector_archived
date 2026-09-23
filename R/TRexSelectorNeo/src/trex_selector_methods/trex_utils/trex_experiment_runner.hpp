@@ -349,9 +349,15 @@ private:
         const bool do_parallel = (cfg.max_outer_threads > 1);
 
         // --- OpenMP setup ---
+        // Nesting is enabled ONLY for the parallel-experiments mode (as in
+        // runMemmap() and TRexGVSSelector). Unconditionally raising the
+        // active-level limit let every solver / preprocessing region below
+        // spawn a full inner team inside a CALLER's parallel loop (a Monte
+        // Carlo over trials): 6 x 6 threads on a 12-core machine, observed
+        // 2026-09-09 on demo_13 (p = 2200, L up to 22000).
         #ifdef _OPENMP
         int old_max_levels = omp_get_max_active_levels();
-        omp_set_max_active_levels(2);
+        if (do_parallel) omp_set_max_active_levels(2);
         #endif
 
         // An exception may not leave an OpenMP structured block — even an
@@ -365,9 +371,9 @@ private:
         #pragma omp parallel if(do_parallel)
         {
             #ifdef _OPENMP
-            omp_set_num_threads(cfg.max_inner_threads);
+            if (do_parallel) omp_set_num_threads(cfg.max_inner_threads);
             #endif
-            Eigen::setNbThreads(cfg.max_inner_threads);
+            if (do_parallel) Eigen::setNbThreads(cfg.max_inner_threads);
 
             #pragma omp for schedule(dynamic)
             for (std::size_t k = 0; k < cfg.K; ++k) {
@@ -389,7 +395,7 @@ private:
         }
 
         #ifdef _OPENMP
-        omp_set_max_active_levels(old_max_levels);
+        if (do_parallel) omp_set_max_active_levels(old_max_levels);
         #endif
 
         if (first_error) { std::rethrow_exception(first_error); }
@@ -580,9 +586,9 @@ private:
         #pragma omp parallel if(do_parallel)
         {
             #ifdef _OPENMP
-            omp_set_num_threads(cfg.max_inner_threads);
+            if (do_parallel) omp_set_num_threads(cfg.max_inner_threads);
             #endif
-            Eigen::setNbThreads(cfg.max_inner_threads);
+            if (do_parallel) Eigen::setNbThreads(cfg.max_inner_threads);
 
             #pragma omp for schedule(dynamic)
             for (std::size_t k = 0; k < cfg.K; ++k) {

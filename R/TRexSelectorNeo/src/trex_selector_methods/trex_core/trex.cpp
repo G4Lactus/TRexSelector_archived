@@ -377,6 +377,7 @@ TRexSelector::SelectionResult TRexSelector::select() {
 
     result.T_stop = T_stop_;
     result.num_dummies = num_dummies_;
+    result.dummy_factor_L = dummy_multiplier_LL_;
     result.FDP_hat_mat = FDP_hat_mat_;
     result.Phi_mat = Phi_mat_;
     result.Phi_prime = Phi_prime_;
@@ -464,6 +465,10 @@ er::ExperimentRunnerConfig TRexSelector::buildRunnerConfig(
 // ===================================================================================
 
 Eigen::VectorXd TRexSelector::createVotingGrid() const {
+    return createVotingGrid(trex_ctrl_.K);
+}
+
+Eigen::VectorXd TRexSelector::createVotingGrid(std::size_t K) const {
     const double v_start = 0.5;
     // Machine epsilon on purpose (not eps_ = solver tolerance): the sentinel
     // must stay above the last regular grid point 1 - 1/K for any K, which a
@@ -471,11 +476,11 @@ Eigen::VectorXd TRexSelector::createVotingGrid() const {
     // making the grid non-monotone. This also matches the R reference
     // (V = seq(0.5, 1 - .Machine$double.eps, by = 1/K)).
     const double v_end   = 1.0 - std::numeric_limits<double>::epsilon();
-    const double v_step  = 1.0 / static_cast<double>(trex_ctrl_.K);
+    const double v_step  = 1.0 / static_cast<double>(K);
 
     // Regular grid points: 0.5, 0.5 + 1/K, ... strictly below 1.0.
     std::vector<double> v;
-    v.reserve(trex_ctrl_.K / 2 + 2);
+    v.reserve(K / 2 + 2);
     for (std::size_t i = 0; v_start + static_cast<double>(i) * v_step < 1.0; ++i) {
         v.push_back(v_start + static_cast<double>(i) * v_step);
     }
@@ -615,7 +620,8 @@ TRexSelector::SelectionResult TRexSelector::selectedVariables(
     const Eigen::MatrixXd& FDP_hat_mat,
     const Eigen::MatrixXd& Phi_mat,
     const Eigen::VectorXd& voting_grid,
-    std::size_t T_stop) const
+    std::size_t T_stop,
+    bool drop_last_row) const
 {
     if (FDP_hat_mat.rows() == 0 || Phi_mat.rows() == 0) {
         if (verbose_) {
@@ -640,8 +646,9 @@ TRexSelector::SelectionResult TRexSelector::selectedVariables(
     }
 
     // Drop the last T-row (the stopping-criterion boundary step) when T > 1.
-    // Matches R reference: FDP_hat_mat[-T_stop, , drop = FALSE]
-    if (safe_T > 1) { --safe_T; }
+    // Matches R reference: FDP_hat_mat[-T_stop, , drop = FALSE]. A fixed-T
+    // budget (lambda_2 pilot) has no boundary step and keeps every row.
+    if (safe_T > 1 && drop_last_row) { --safe_T; }
 
     Eigen::MatrixXd FDP_use = FDP_hat_mat.topRows(safe_T);
     Eigen::MatrixXd Phi_use = Phi_mat.topRows(safe_T);
@@ -698,6 +705,27 @@ TRexSelector::SelectionResult TRexSelector::selectedVariables(
     result.v_thresh = best_threshold;
     result.R_mat = R_mat;
     return result;
+}
+
+
+TRexSelector::SelectionResult TRexSelector::selectFromPhiT(
+    const Eigen::MatrixXd& phi_T_mat,
+    std::size_t num_dummies,
+    const Eigen::VectorXd& voting_grid,
+    bool drop_last_row) const
+{
+    const Eigen::Index T = phi_T_mat.cols();
+    Eigen::MatrixXd Phi_mat(T, static_cast<Eigen::Index>(p_));
+    Eigen::MatrixXd FDP_mat(T, voting_grid.size());
+    for (Eigen::Index t = 0; t < T; ++t) {
+        const Eigen::VectorXd Phi_t       = phi_T_mat.col(t);
+        const Eigen::VectorXd Phi_prime_t = computePhiPrime(
+            phi_T_mat.leftCols(t + 1), Phi_t, num_dummies);
+        Phi_mat.row(t) = Phi_t.transpose();
+        FDP_mat.row(t) = computeFDPHat(voting_grid, Phi_t, Phi_prime_t).transpose();
+    }
+    return selectedVariables(FDP_mat, Phi_mat, voting_grid,
+                             static_cast<std::size_t>(T), drop_last_row);
 }
 
 

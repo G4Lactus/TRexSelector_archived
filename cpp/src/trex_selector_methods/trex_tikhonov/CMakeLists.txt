@@ -25,5 +25,7 @@ target_sources(trex_selector_methods PUBLIC
     BASE_DIRS ${PROJECT_SOURCE_DIR}/src
     FILES
         ${CMAKE_CURRENT_LIST_DIR}/trex_tikhonov.hpp
+        ${CMAKE_CURRENT_LIST_DIR}/tik_lambda2_pick.hpp
+        ${CMAKE_CURRENT_LIST_DIR}/tik_lambda2_power_rule.hpp
 )
 # ==================================================================================

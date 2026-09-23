@@ -515,6 +515,18 @@ public:
         return stored_dummies_.size() == K;
     }
 
+    /**
+     *  @brief Drop the stored K dummy matrices only (the cluster model and
+     *         the permutation base stay). Used after a sub-run with its own
+     *         store (a lambda_2 pilot) so that no stale matrices survive into
+     *         a main run whose strategy never overwrites the store (SEEDED).
+     *         Invalidate the WarmStartManager first.
+     */
+    void clearStored() noexcept {
+        stored_dummies_.clear();
+        stored_dummies_.shrink_to_fit();
+    }
+
 
     // ==========================================================================
     // Cluster mode — per-cluster colored MVN dummies (GVS convention)
