@@ -23,8 +23,9 @@ void VD_LARS::init_lars_() {
 double VD_LARS::find_and_add_active_() {
     const double C_real = (p_ > 0) ? corr_.cwiseAbs().maxCoeff() : 0.0;
 
-    // No ±infinity masking here: the Release build uses -ffast-math
-    // (-ffinite-math-only), under which non-finite sentinels are UB.
+    // No ±infinity masking here: non-finite sentinels are UB for any consumer
+    // compiling with -ffast-math (-ffinite-math-only); the library itself
+    // builds IEEE-conformant since 2026-09-24, the finite forms stay.
     double C_vd = 0.0;
     bool any_unrealized = false;
     for (int d = 0; d < L_; ++d) {
@@ -213,8 +214,8 @@ double VD_LARS::take_step_(double C, double A_active,
         }
     }
 
-    // Finite stand-in for +infinity: the Release build uses -ffast-math
-    // (-ffinite-math-only), under which infinity comparisons are UB.
+    // Finite stand-in for +infinity: infinity comparisons are UB under
+    // -ffast-math (-ffinite-math-only), which a consumer may still use.
     constexpr double GAMMA_NONE = std::numeric_limits<double>::max();
 
     // Entering real features need no index bookkeeping here: they are picked
