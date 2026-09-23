@@ -793,3 +793,4 @@ TEST_F(TRexGVSTest, ScalingModeParity_IEN_FixedLambda2) {
 
 // ========================================================================================
 } /* End of namespace trex::test::trex_selector_methods::trex_gvs */
+

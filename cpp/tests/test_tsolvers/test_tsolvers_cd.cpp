@@ -15,6 +15,7 @@
 #include <gtest/gtest.h>
 
 // std includes
+#include <algorithm>
 #include <filesystem>
 #include <set>
 #include <string>
@@ -50,9 +51,10 @@ using trex::tsolvers::SparseBetaPath;
 
 namespace {
 
-/** @brief Real-variable support at the FIRST recorded step with exactly t
- *  active dummies, for t = 1..T (the quantity the T-Rex phi calibration
- *  consumes). result[t-1] is empty when no recorded step hits count t. */
+/** @brief Real-variable support at the FIRST recorded step with at least t
+ *  active dummies (first-reach, the T-Rex phi extraction semantics since
+ *  2026-08-23), for t = 1..T. result[t-1] is empty when no recorded step
+ *  reaches count t. */
 std::vector<std::set<std::size_t>> supportsAtDummyCounts(
     const SparseBetaPath& path, std::size_t p, std::size_t T,
     double eps = 1e-12) {
@@ -65,16 +67,32 @@ std::vector<std::set<std::size_t>> supportsAtDummyCounts(
         for (std::size_t e = 0; e < st.idx.size(); ++e) {
             if (st.idx[e] >= p && std::abs(st.val[e]) > eps) { ++dummies; }
         }
-        if (dummies >= 1 && dummies <= T && !found[dummies - 1]) {
-            found[dummies - 1] = true;
+        for (std::size_t t = 1; t <= std::min(dummies, T); ++t) {
+            if (found[t - 1]) { continue; }
+            found[t - 1] = true;
             for (std::size_t e = 0; e < st.idx.size(); ++e) {
                 if (st.idx[e] < p && std::abs(st.val[e]) > eps) {
-                    result[dummies - 1].insert(st.idx[e]);
+                    result[t - 1].insert(st.idx[e]);
                 }
             }
         }
     }
     return result;
+}
+
+/** @brief Index of the FIRST recorded step with at least t active dummies
+ *  (path.steps indexing; 0 = initial state), or steps.size() if none. */
+std::size_t firstStepReaching(const SparseBetaPath& path, std::size_t p,
+                              std::size_t t, double eps = 1e-12) {
+    for (std::size_t s = 0; s < path.steps.size(); ++s) {
+        std::size_t dummies = 0;
+        for (std::size_t e = 0; e < path.steps[s].idx.size(); ++e) {
+            if (path.steps[s].idx[e] >= p &&
+                std::abs(path.steps[s].val[e]) > eps) { ++dummies; }
+        }
+        if (dummies >= t) { return s; }
+    }
+    return path.steps.size();
 }
 
 } // namespace
@@ -539,4 +557,175 @@ TEST_F(TSolverCdTest, SerializeLoadGramCapFallbackMatchesDefault) {
 }
 
 // ========================================================================================
+// Certified localization (T-CD theory note, Part II)
+// ========================================================================================
+
+/** @brief Every record of a certified run carries a duality-gap and a KKT
+ *  certificate at the numerical floor, for all four variants; the ledger
+ *  top's certified signed support equals the last record's snapshot. */
+TEST_F(TSolverCdTest, CertifiedRecordsCarryCertificates) {
+    auto check = [&](TCDLASSO_Solver& s, const std::string& tag) {
+        ASSERT_TRUE(s.isCertifiedLocalization()) << tag;
+        s.executeStep(5, true);
+        const auto& gaps = s.getRecordGaps();
+        const auto& kkts = s.getRecordKktViolations();
+        ASSERT_GT(s.getNumSteps(), 0u) << tag;
+        ASSERT_EQ(gaps.size(), s.getNumSteps()) << tag;
+        ASSERT_EQ(kkts.size(), s.getNumSteps()) << tag;
+        for (std::size_t k = 0; k < gaps.size(); ++k) {
+            EXPECT_LT(gaps[k], 1e-6) << tag << ": gap at record " << k;
+            EXPECT_LT(kkts[k], 1e-7) << tag << ": KKT at record " << k;
+        }
+        EXPECT_LT(s.getKktViolation(), 1e-7) << tag;
+        const auto diag = s.getCertifiedDiagnostics();
+        EXPECT_GT(diag.certified_solves, 0) << tag;
+        EXPECT_GT(diag.brackets_sk, 0) << tag;
+
+        // Ledger top == last record (0b: the snapshot IS the certified support).
+        const auto [sup, sgn] = s.getCertifiedSupport();
+        const Eigen::VectorXd b = s.getBeta(-1);
+        std::set<std::size_t> from_beta;
+        for (Eigen::Index j = 0; j < b.size(); ++j) {
+            if (b(j) != 0.0) { from_beta.insert(static_cast<std::size_t>(j)); }
+        }
+        EXPECT_EQ(std::set<std::size_t>(sup.begin(), sup.end()), from_beta) << tag;
+        for (std::size_t k = 0; k < sup.size(); ++k) {
+            EXPECT_EQ(sgn[k], (b(static_cast<Eigen::Index>(sup[k])) > 0.0) ? 1 : -1) << tag;
+        }
+    };
+    {
+        Mapped m(X, D, y);
+        TCDLASSO_Solver s(m.Xm, m.Dm, m.ym, true, true, false);
+        check(s, "TCDLASSO");
+    }
+    {
+        Mapped m(X, D, y);
+        TCDENET_Solver s(m.Xm, m.Dm, m.ym, 0.5, true, true, false);
+        check(s, "TCDENET");
+    }
+    {
+        Mapped m(X, D, y);
+        TCDIENET_Solver s(m.Xm, m.Dm, m.ym, 1.0, groups, true, true, false);
+        check(s, "TCDIENET");
+    }
+    {
+        const Eigen::Index p = X.cols();
+        std::vector<Eigen::Triplet<double>> trip;
+        for (int g = 0; g < 10; ++g) {
+            for (int a = 0; a < 5; ++a) {
+                for (int b = 0; b < 5; ++b) {
+                    trip.emplace_back(g * 5 + a, g * 5 + b, ((a == b) ? 1.0 : 0.0) - 0.2);
+                }
+            }
+        }
+        Eigen::SparseMatrix<double> K_gc(p, p);
+        K_gc.setFromTriplets(trip.begin(), trip.end());
+        Mapped m(X, D, y);
+        TCDTIKNET_Solver s(m.Xm, m.Dm, m.ym, 2.0, K_gc, true, true, false,
+                           trex::tsolvers::ScalingMode::L2, 1.0, /*fold_dummies=*/true);
+        check(s, "TCDTIKNET(folded)");
+    }
+}
+
+
+/** @brief The certified solver records each crossing AT the knot (Def. 13
+ *  item 4): its lambda must coincide with the T-LASSO breakpoint at which the
+ *  same dummy count is first reached, to the accuracy of two independent
+ *  computations of the same exact path (Cholesky continuation vs LARS Cmax). */
+TEST_F(TSolverCdTest, CertifiedKnotsMatchTLASSOBreakpoints) {
+    const std::size_t T = 5;
+    const std::size_t p = static_cast<std::size_t>(X.cols());
+
+    Mapped mc(X, D, y);
+    TCDLASSO_Solver ccd(mc.Xm, mc.Dm, mc.ym, true, true, false);
+    ccd.executeStep(T, true);
+
+    Mapped ml(X, D, y);
+    TLASSO_Solver lasso(ml.Xm, ml.Dm, ml.ym, true, true, false);
+    lasso.executeStep(T, true);
+
+    const auto path_cd = ccd.getBetaPathSparse();
+    const auto path_la = lasso.getBetaPathSparse();
+    const auto& lam_cd = ccd.getLambda();      // lam_cd[s-1] = lambda of recorded step s
+    const auto& lam_la = lasso.getLambda();    // lam_la[s-1] = Cmax at LARS step s
+
+    for (std::size_t t = 1; t <= T; ++t) {
+        const std::size_t s_cd = firstStepReaching(path_cd, p, t);
+        const std::size_t s_la = firstStepReaching(path_la, p, t);
+        ASSERT_LT(s_cd, path_cd.steps.size()) << "CD never reached t = " << t;
+        ASSERT_LT(s_la, path_la.steps.size()) << "TLASSO never reached t = " << t;
+        ASSERT_GE(s_cd, 1u);
+        ASSERT_GE(s_la, 1u);
+        const double knot_cd = lam_cd[s_cd - 1];
+        const double knot_la = lam_la[s_la - 1];
+        EXPECT_NEAR(knot_cd, knot_la, 1e-6 * knot_la)
+            << "knot of crossing t = " << t << " differs from the T-LASSO breakpoint";
+    }
+
+    // The supports at the crossings coincide without any lambda tolerance.
+    const auto sup_ccd = supportsAtDummyCounts(path_cd, p, T);
+    const auto sup_lasso = supportsAtDummyCounts(path_la, p, T);
+    for (std::size_t t = 1; t <= T; ++t) {
+        EXPECT_EQ(sup_ccd[t - 1], sup_lasso[t - 1])
+            << "certified TCDLASSO vs TLASSO real support diverged at t = " << t;
+    }
+}
+
+
+/** @brief LEGACY localization (probe bisection, support-nesting stop) stays
+ *  available behind the flag and still reproduces the T-LASSO supports at a
+ *  tight lambda tolerance (the A/B baseline of the re-validation protocol). */
+TEST_F(TSolverCdTest, LegacyLocalizationMatchesTLASSO) {
+    const std::size_t T = 5;
+    const std::size_t p = static_cast<std::size_t>(X.cols());
+
+    Mapped mc(X, D, y);
+    TCDLASSO_Solver ccd(mc.Xm, mc.Dm, mc.ym, true, true, false);
+    ccd.setCertifiedLocalization(false);
+    ccd.setLambdaRelTol(1e-6);
+    ccd.executeStep(T, true);
+    EXPECT_FALSE(ccd.isCertifiedLocalization());
+    EXPECT_EQ(ccd.getCertifiedDiagnostics().certified_solves, 0);
+
+    Mapped ml(X, D, y);
+    TLASSO_Solver lasso(ml.Xm, ml.Dm, ml.ym, true, true, false);
+    lasso.executeStep(T, true);
+
+    const auto sup_ccd = supportsAtDummyCounts(ccd.getBetaPathSparse(), p, T);
+    const auto sup_lasso = supportsAtDummyCounts(lasso.getBetaPathSparse(), p, T);
+    for (std::size_t t = 1; t <= T; ++t) {
+        EXPECT_EQ(sup_ccd[t - 1], sup_lasso[t - 1])
+            << "legacy TCDLASSO vs TLASSO real support diverged at t = " << t;
+    }
+}
+
+
+/** @brief Certified resumption: pausing after T = 3 and continuing to T = 6
+ *  reproduces the uninterrupted records including the knot locations
+ *  (Prop. 4), through the serialized frontier. */
+TEST_F(TSolverCdTest, CertifiedResumeReproducesKnots) {
+    Mapped mr(X, D, y);
+    TCDLASSO_Solver ref(mr.Xm, mr.Dm, mr.ym, true, true, false);
+    ref.executeStep(6, true);
+
+    Mapped mp(X, D, y);
+    const std::string file = ::testing::TempDir() + "cd_ckpt_certified.bin";
+    {
+        TCDLASSO_Solver part(mp.Xm, mp.Dm, mp.ym, true, true, false);
+        part.executeStep(3, true);
+        part.save(file);
+    }
+    TCDLASSO_Solver res = TCDLASSO_Solver::load(file, mp.Xm, mp.Dm);
+    res.executeStep(6, true);
+
+    ASSERT_EQ(ref.getLambda().size(), res.getLambda().size());
+    for (std::size_t k = 0; k < ref.getLambda().size(); ++k) {
+        EXPECT_NEAR(ref.getLambda()[k], res.getLambda()[k], 1e-9 * ref.getLambda()[k]);
+    }
+    EXPECT_EQ(ref.getActions(), res.getActions());
+    std::filesystem::remove(file);
+}
+
+// ========================================================================================
 } /* End of namespace trex::test::tsolvers::linear_model */
+

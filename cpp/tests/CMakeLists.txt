@@ -76,6 +76,7 @@ add_trex_test(test_trex_screening test_trex_selector_methods/test_trex_screening
 add_trex_test(test_trex_biobank_screening test_trex_selector_methods/test_trex_biobank_screening.cpp)
 add_trex_test(test_trex_spca test_trex_selector_methods/test_trex_spca.cpp)
 add_trex_test(test_trex_tikhonov test_trex_selector_methods/test_trex_tikhonov.cpp)
+add_trex_test(test_tik_lambda2_power_rule test_trex_selector_methods/test_tik_lambda2_power_rule.cpp)
 add_trex_test(test_trex_vd test_trex_selector_methods/test_trex_vd.cpp)
 
 # 6. Opt-in cross-language validations. NOT registered with CTest and excluded

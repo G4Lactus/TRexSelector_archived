@@ -562,6 +562,274 @@ TEST_F(TRexTikhonovTest, Equivalence_FoldedGroupKMatchesGvsTcdienet) {
 }
 
 
+/** @brief The FOLDED group-mean-K anchor again, on a partition that MIXES
+ *  groups with SINGLETONS (the shape every whole-block demo DGP produces:
+ *  a few blocks against a white singleton background). The two selectors
+ *  must still draw identical cluster dummies and solve the identical
+ *  problem — a singleton's K entry is 1 on the Tikhonov side and a
+ *  one-member group row on the GVS side. */
+TEST_F(TRexTikhonovTest, Equivalence_FoldedGroupKMatchesGvsTcdienet_Singletons) {
+    const Eigen::Index n = 150, p = 40, grouped = 20, gsize = 5;
+
+    // 4 groups of 5, then 20 singletons with their own ids.
+    std::vector<Eigen::Index> prior_groups(static_cast<std::size_t>(p));
+    for (Eigen::Index j = 0; j < p; ++j) {
+        prior_groups[static_cast<std::size_t>(j)] =
+            j < grouped ? j / gsize : grouped / gsize + (j - grouped);
+    }
+    Eigen::SparseMatrix<double> K(p, p);
+    {
+        std::vector<Eigen::Triplet<double>> trip;
+        for (Eigen::Index i = 0; i < p; ++i) {
+            for (Eigen::Index j = 0; j < p; ++j) {
+                if (prior_groups[static_cast<std::size_t>(i)] ==
+                    prior_groups[static_cast<std::size_t>(j)]) {
+                    const double w = (i < grouped) ? 1.0 / static_cast<double>(gsize) : 1.0;
+                    trip.emplace_back(i, j, w);
+                }
+            }
+        }
+        K.setFromTriplets(trip.begin(), trip.end());
+    }
+
+    auto run_tik = [&]() {
+        GroupedData d(n, p, 0.75, 1.0, 11);
+        Eigen::Map<Eigen::MatrixXd> Xm(d.X.data(), d.X.rows(), d.X.cols());
+        Eigen::Map<Eigen::VectorXd> ym(d.y.data(), d.y.size());
+        TRexTikhonovControlParameter ctrl;
+        ctrl.tikhonov_K   = K;
+        ctrl.lambda_2     = 10.0;
+        ctrl.prior_groups = prior_groups;
+        ctrl.trex_ctrl.K = 5;
+        ctrl.trex_ctrl.max_dummy_multiplier = 2;
+        TRexTikhonovSelector trex(Xm, ym, 0.2, ctrl, 42, false);
+        return trex.select().selected_var;
+    };
+    auto run_gvs = [&]() {
+        GroupedData d(n, p, 0.75, 1.0, 11);
+        Eigen::Map<Eigen::MatrixXd> Xm(d.X.data(), d.X.rows(), d.X.cols());
+        Eigen::Map<Eigen::VectorXd> ym(d.y.data(), d.y.size());
+        gvs::TRexGVSControlParameter ctrl;
+        ctrl.gvs_type     = gvs::GVSType::IEN;
+        ctrl.prior_groups = prior_groups;
+        ctrl.lambda_2     = 10.0;
+        ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TCDIENET;
+        ctrl.trex_ctrl.K = 5;
+        ctrl.trex_ctrl.max_dummy_multiplier = 2;
+        gvs::TRexGVSSelector trex(Xm, ym, 0.2, ctrl, 42, false);
+        return trex.select().selected_var;
+    };
+
+    const Eigen::VectorXi sel_tik = run_tik();
+    const Eigen::VectorXi sel_gvs = run_gvs();
+    ASSERT_EQ(sel_tik.size(), sel_gvs.size());
+    EXPECT_TRUE((sel_tik.array() == sel_gvs.array()).all())
+        << "FOLDED group-mean-K Tikhonov run diverged from GVS-TCDIENET on a"
+           " partition with singletons.\n"
+        << "  Tikhonov n_selected = " << sel_tik.sum() << "\n"
+        << "  GVS      n_selected = " << sel_gvs.sum();
+}
+
+
+/** @brief The FOLDED group-mean-K anchor at DEMO control (K = 20 random
+ *  experiments, HCONCAT, T-loop stagnation stop, tFDR = 0.1) on the demo
+ *  partition shape (4 groups of 5 against 80 singleton nulls), with the
+ *  L-loop CAPPED at L = p (max_dummy_multiplier = 1): over 40 seeds and
+ *  lambda_2 in {10, 0} the Tikhonov and GVS selectors select IDENTICAL
+ *  sets. Together with the DISABLED test below this pins WHERE the two
+ *  selectors part company: only when the L-loop extends the cluster
+ *  dummies beyond L = p (finding 2026-08-25, TRex_Tikhonov demos). */
+TEST_F(TRexTikhonovTest, Equivalence_FoldedGroupKMatchesGvsTcdienet_DemoControl_LcappedAtP) {
+    const Eigen::Index n = 150, p = 100, grouped = 20, gsize = 5;
+    std::vector<Eigen::Index> prior_groups(static_cast<std::size_t>(p));
+    for (Eigen::Index j = 0; j < p; ++j) {
+        prior_groups[static_cast<std::size_t>(j)] =
+            j < grouped ? j / gsize : grouped / gsize + (j - grouped);
+    }
+    Eigen::SparseMatrix<double> K(p, p);
+    {
+        std::vector<Eigen::Triplet<double>> trip;
+        for (Eigen::Index i = 0; i < p; ++i) {
+            for (Eigen::Index j = 0; j < p; ++j) {
+                if (prior_groups[static_cast<std::size_t>(i)] ==
+                    prior_groups[static_cast<std::size_t>(j)]) {
+                    const double w = (i < grouped) ? 1.0 / static_cast<double>(gsize) : 1.0;
+                    trip.emplace_back(i, j, w);
+                }
+            }
+        }
+        K.setFromTriplets(trip.begin(), trip.end());
+    }
+
+    auto demo_control = [](TRexControlParameter& t, std::size_t multiplier) {
+        t.K                        = 20;
+        t.max_dummy_multiplier     = multiplier;
+        t.use_max_T_stop           = true;
+        t.lloop_strategy           = LLoopStrategy::HCONCAT;
+        t.tloop_stagnation_stop    = true;
+        t.tloop_max_stagnant_steps = 5;
+        t.use_memory_mapping       = false;
+    };
+
+    int n_diff = 0;
+    for (const double lambda2 : {10.0, 0.0}) {
+        for (unsigned seed = 1; seed <= 40; ++seed) {
+            auto run_tik = [&]() {
+                GroupedData d(n, p, 0.75, 2.0, seed);
+                Eigen::Map<Eigen::MatrixXd> Xm(d.X.data(), d.X.rows(), d.X.cols());
+                Eigen::Map<Eigen::VectorXd> ym(d.y.data(), d.y.size());
+                TRexTikhonovControlParameter ctrl;
+                ctrl.tikhonov_K   = K;
+                ctrl.lambda_2     = lambda2;
+                ctrl.prior_groups = prior_groups;
+                demo_control(ctrl.trex_ctrl, 1);
+                TRexTikhonovSelector trex(Xm, ym, 0.1, ctrl, 42, false);
+                return trex.select().selected_var;
+            };
+            auto run_gvs = [&]() {
+                GroupedData d(n, p, 0.75, 2.0, seed);
+                Eigen::Map<Eigen::MatrixXd> Xm(d.X.data(), d.X.rows(), d.X.cols());
+                Eigen::Map<Eigen::VectorXd> ym(d.y.data(), d.y.size());
+                gvs::TRexGVSControlParameter ctrl;
+                ctrl.gvs_type     = gvs::GVSType::IEN;
+                ctrl.prior_groups = prior_groups;
+                ctrl.lambda_2     = lambda2;
+                ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TCDIENET;
+                demo_control(ctrl.trex_ctrl, 1);
+                gvs::TRexGVSSelector trex(Xm, ym, 0.1, ctrl, 42, false);
+                return trex.select().selected_var;
+            };
+            const Eigen::VectorXi sel_tik = run_tik();
+            const Eigen::VectorXi sel_gvs = run_gvs();
+            ASSERT_EQ(sel_tik.size(), sel_gvs.size());
+            if (!(sel_tik.array() == sel_gvs.array()).all()) { ++n_diff; }
+        }
+    }
+    EXPECT_EQ(n_diff, 0)
+        << "Tikhonov and GVS-TCDIENET diverged on " << n_diff
+        << " of 80 cases with the L-loop capped at L = p.";
+}
+
+
+/** @brief KNOWN DIVERGENCE (2026-08-25), kept DISABLED as the reproduction:
+ *  the same configuration with the L-loop allowed to grow
+ *  (max_dummy_multiplier = 10) selects DIFFERENT sets in ~4 % of trials
+ *  (6 of 160 over seeds 1-80 x lambda_2 {10, 0}; the seeds below are the
+ *  divergent ones, both directions occur, lambda_2 = 0 included — so it is
+ *  neither the penalty nor the solver). With L capped at p (test above)
+ *  every case agrees. The two selectors therefore extend the cluster-dummy
+ *  layers beyond L = p differently (GVS in-memory K-loop vs the base
+ *  DummyGenerator cluster mode under HCONCAT). Which convention is
+ *  canonical is an open decision; enable this test once they coincide. */
+TEST_F(TRexTikhonovTest, DISABLED_Equivalence_FoldedGroupK_LGrowthDivergence) {
+    const Eigen::Index n = 150, p = 100, grouped = 20, gsize = 5;
+    std::vector<Eigen::Index> prior_groups(static_cast<std::size_t>(p));
+    for (Eigen::Index j = 0; j < p; ++j) {
+        prior_groups[static_cast<std::size_t>(j)] =
+            j < grouped ? j / gsize : grouped / gsize + (j - grouped);
+    }
+    Eigen::SparseMatrix<double> K(p, p);
+    {
+        std::vector<Eigen::Triplet<double>> trip;
+        for (Eigen::Index i = 0; i < p; ++i) {
+            for (Eigen::Index j = 0; j < p; ++j) {
+                if (prior_groups[static_cast<std::size_t>(i)] ==
+                    prior_groups[static_cast<std::size_t>(j)]) {
+                    const double w = (i < grouped) ? 1.0 / static_cast<double>(gsize) : 1.0;
+                    trip.emplace_back(i, j, w);
+                }
+            }
+        }
+        K.setFromTriplets(trip.begin(), trip.end());
+    }
+    auto demo_control = [](TRexControlParameter& t) {
+        t.K                        = 20;
+        t.max_dummy_multiplier     = 10;
+        t.use_max_T_stop           = true;
+        t.lloop_strategy           = LLoopStrategy::HCONCAT;
+        t.tloop_stagnation_stop    = true;
+        t.tloop_max_stagnant_steps = 5;
+        t.use_memory_mapping       = false;
+    };
+    struct Case { double lambda2; unsigned seed; };
+    const std::vector<Case> cases = {{10.0, 22}, {10.0, 51}, {10.0, 63},
+                                     {0.0, 30},  {0.0, 45},  {0.0, 78}};
+    for (const auto& c : cases) {
+        GroupedData d(n, p, 0.75, 2.0, c.seed);
+        Eigen::MatrixXd X1 = d.X; Eigen::VectorXd y1 = d.y;
+        Eigen::MatrixXd X2 = d.X; Eigen::VectorXd y2 = d.y;
+        Eigen::Map<Eigen::MatrixXd> Xm1(X1.data(), X1.rows(), X1.cols());
+        Eigen::Map<Eigen::VectorXd> ym1(y1.data(), y1.size());
+        Eigen::Map<Eigen::MatrixXd> Xm2(X2.data(), X2.rows(), X2.cols());
+        Eigen::Map<Eigen::VectorXd> ym2(y2.data(), y2.size());
+
+        TRexTikhonovControlParameter tc;
+        tc.tikhonov_K = K; tc.lambda_2 = c.lambda2; tc.prior_groups = prior_groups;
+        demo_control(tc.trex_ctrl);
+        TRexTikhonovSelector tik(Xm1, ym1, 0.1, tc, 42, false);
+
+        gvs::TRexGVSControlParameter gc;
+        gc.gvs_type = gvs::GVSType::IEN; gc.prior_groups = prior_groups;
+        gc.lambda_2 = c.lambda2;
+        gc.trex_ctrl.solver_type = sd::SolverTypeForTRex::TCDIENET;
+        demo_control(gc.trex_ctrl);
+        gvs::TRexGVSSelector g(Xm2, ym2, 0.1, gc, 42, false);
+
+        const Eigen::VectorXi sel_tik = tik.select().selected_var;
+        const Eigen::VectorXi sel_gvs = g.select().selected_var;
+        EXPECT_TRUE((sel_tik.array() == sel_gvs.array()).all())
+            << "lambda_2 " << c.lambda2 << ", seed " << c.seed
+            << ": Tikhonov n_selected = " << sel_tik.sum()
+            << ", GVS n_selected = " << sel_gvs.sum();
+    }
+}
+
+
+/** @brief GROUP_CENTERING with an ALL-SINGLETON partition — what a HAC cut
+ *  above the within-group correlation produces (the near-white regime) —
+ *  is legitimate, not an error: every block of K_GC = I - J/p_m vanishes,
+ *  K is the zero matrix, and the path is the plain lasso on the same
+ *  per-variable cluster dummies. Construction must therefore succeed, and
+ *  the CD and homotopy solvers, which agree on the lasso path, must select
+ *  the identical set. */
+TEST_F(TRexTikhonovTest, GroupCentering_AllSingletonGroupsIsZeroKLasso) {
+    const Eigen::Index n = 150, p = 40;
+
+    std::vector<Eigen::Index> singletons(static_cast<std::size_t>(p));
+    for (Eigen::Index j = 0; j < p; ++j) {
+        singletons[static_cast<std::size_t>(j)] = j;
+    }
+
+    auto run = [&](sd::SolverTypeForTRex solver) {
+        GroupedData d(n, p, 0.75, 1.0, 7);
+        Eigen::Map<Eigen::MatrixXd> Xm(d.X.data(), d.X.rows(), d.X.cols());
+        Eigen::Map<Eigen::VectorXd> ym(d.y.data(), d.y.size());
+
+        TRexTikhonovControlParameter ctrl;
+        ctrl.penalty_structure = TikPenaltyStructure::GROUP_CENTERING;
+        ctrl.prior_groups      = singletons;
+        ctrl.lambda_2          = 10.0;
+        ctrl.trex_ctrl.solver_type = solver;
+        ctrl.trex_ctrl.K = 5;
+        ctrl.trex_ctrl.max_dummy_multiplier = 2;
+        TRexTikhonovSelector trex(Xm, ym, 0.2, ctrl, 42, false);
+        return trex.select().selected_var;
+    };
+
+    Eigen::VectorXi sel_cd;
+    EXPECT_NO_THROW(sel_cd = run(sd::SolverTypeForTRex::TCDTIKNET));
+    const Eigen::VectorXi sel_lars = run(sd::SolverTypeForTRex::TIKNET);
+
+    ASSERT_EQ(sel_cd.size(), p);
+    ASSERT_EQ(sel_lars.size(), p);
+    EXPECT_GT(sel_cd.sum(), 0) << "zero-K lasso path selected nothing";
+    EXPECT_TRUE((sel_cd.array() == sel_lars.array()).all())
+        << "TCDTIKNET and TIKNET diverged on the zero-K (all-singleton) path.\n"
+        << "  CD   n_selected = " << sel_cd.sum() << "\n"
+        << "  LARS n_selected = " << sel_lars.sum();
+}
+
+
 /** @brief End-to-end with user-supplied prior groups: the cluster-aware
  *  default path recovers the planted actives with few false selections. */
 TEST_F(TRexTikhonovTest, ClusterDummies_PriorGroupsEndToEndRecovers) {
