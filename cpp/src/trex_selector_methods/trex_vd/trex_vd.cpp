@@ -129,8 +129,8 @@ Vec TRexVD::Phi_prime_fun_(
 Vec TRexVD::fdp_hat_(const Vec& V, const Vec& Phi,
                      const Vec& Phi_prime) const {
     const int n_v = (int)V.size(), p = (int)Phi.size();
-    // Zero-init instead of NaN: every entry is assigned below, and NaN is
-    // unavailable under -ffast-math (Release build).
+    // Zero-init instead of NaN: every entry is assigned below, and a NaN
+    // sentinel would be unavailable to a consumer compiling with -ffast-math.
     Vec out = Vec::Zero(n_v);
     for (int i = 0; i < n_v; ++i) {
         double v = V(i);

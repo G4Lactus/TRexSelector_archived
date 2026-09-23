@@ -35,8 +35,8 @@
 // Eigen includes
 #include <Eigen/Core>
 
-// Fast-math-safe finiteness (the Release build uses -ffast-math, under which
-// std::isfinite folds to true)
+// Bit-based finiteness: std::isfinite folds to true when a consumer compiles
+// this header with -ffast-math (the library itself is built IEEE-conformant).
 #include <utils/fp_classify/fp_classify.hpp>
 
 // ===================================================================================

@@ -145,7 +145,7 @@ struct SolverHyperparameters {
      * tenet_aug_use_lars; ignored by every other solver. */
     bool tenet_aug_use_lars = false;
 
-    // --- CD-family knobs (TCDLASSO / TCDENET / TCDIENET; ignored by other solvers) ---
+    // --- CD-family knobs (TCDLASSO / TCDENET / TCDIENET / TCDTIKNET; ignored by other solvers) ---
 
     /** @brief Relative lambda tolerance of the CD crossing bisection.
      * The TRex-layer default is deliberately tighter than the solver's own
@@ -178,6 +178,14 @@ struct SolverHyperparameters {
     /** @brief Stall guard: max coordinate sweeps per fixed-lambda solve.
      * 0 (default) keeps the solver's own default (2000). */
     std::size_t cd_max_sweeps = 0;
+
+    /** @brief Crossing-localization mode of the CD family. true (default):
+     * CERTIFIED — certified points (duality-gap and coordinate-status
+     * certificates), closed-form continuation, records placed at the knot.
+     * false: LEGACY — KKT-guided jumps plus probe bisection with the
+     * support-nesting stop (the pre-2026-08 behaviour; the A/B baseline).
+     * Applied on construction and after deserialization. */
+    bool cd_certified_localization = true;
 };
 
 
@@ -333,6 +341,7 @@ inline void applyCdKnobs(cd::TCDLASSO_Solver& solver,
     if (hp.cd_max_sweeps > 0) {
         solver.setMaxSweepsPerSolve(hp.cd_max_sweeps);
     }
+    solver.setCertifiedLocalization(hp.cd_certified_localization);
 }
 
 
