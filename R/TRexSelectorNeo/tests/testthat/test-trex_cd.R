@@ -1,5 +1,5 @@
 # =======================================================================================
-# CCD solver family (TCCD / TCENET / TCIENET) through the R selector surface
+# CCD solver family (TCDLASSO / TCDENET / TCDIENET) through the R selector surface
 # =======================================================================================
 
 # Shared planted design: strong signal on variables 1:5.
@@ -32,17 +32,23 @@ test_that("trex_control validates the CD knobs", {
   # The CCD family records exact minimizers per crossing: non-greedy, so the
   # stagnation-stop auto-detection must default to FALSE (mirrors the C++
   # isGreedySolver classification).
-  for (s in c("TCCD", "TCENET", "TCIENET", "TENET_AUG")) {
+  for (s in c("TCDLASSO", "TCDENET", "TCDIENET", "TCDTIKNET", "TIKNET",
+              "TENET_AUG")) {
     expect_false(trex_control(solver = s)$tloop_stagnation_stop)
   }
   expect_true(trex_control(solver = "TOMP")$tloop_stagnation_stop)
+  expect_true(trex_control(solver = "TIKOMP")$tloop_stagnation_stop)
+
+  # Certified crossing localization is the CD default; the flag is carried.
+  expect_true(trex_control()$cd_certified_localization)
+  expect_false(trex_control(cd_certified_localization = FALSE)$cd_certified_localization)
 })
 
 
-test_that("TCCD and TCENET run end-to-end and recover the planted support", {
+test_that("TCDLASSO and TCDENET run end-to-end and recover the planted support", {
   d <- .make_cd_data()
 
-  for (s in c("TCCD", "TCENET")) {
+  for (s in c("TCDLASSO", "TCDENET")) {
     selector <- TRexSelector$new(d$X, d$y, tFDR = 0.2, seed = 42,
                                  verbose = FALSE,
                                  control = trex_control(solver = s, K = 5))
@@ -64,7 +70,7 @@ test_that("CD selection is seed-reproducible", {
   run_once <- function() {
     selector <- TRexSelector$new(d$X, d$y, tFDR = 0.2, seed = 7,
                                  verbose = FALSE,
-                                 control = trex_control(solver = "TCENET",
+                                 control = trex_control(solver = "TCDENET",
                                                         K = 5))
     selector$select()
     selector$selected_var
@@ -76,7 +82,7 @@ test_that("CD selection is seed-reproducible", {
 test_that("CD knobs pass through the control parser", {
   d <- .make_cd_data()
 
-  ctrl <- trex_control(solver = "TCENET", K = 3,
+  ctrl <- trex_control(solver = "TCDENET", K = 3,
                        cd_lambda_rel_tol = 1e-4,
                        cd_tol_certify = 1e-6, cd_tol_probe = 1e-7,
                        cd_gram_cap = 100, cd_max_sweeps = 500)
@@ -96,9 +102,28 @@ test_that("GVS-only solvers are rejected by the plain selector with guidance", {
                                  control = trex_control(solver = s, K = 3))
     selector$select()
   }
-  expect_error(run_with("TCIENET"), "needs a group assignment")
+  expect_error(run_with("TCDIENET"), "needs a group assignment")
   expect_error(run_with("TIENET"), "GVS-only solver")
   expect_error(run_with("TIENET_AUG"), "GVS-only solver")
+  # The Tikhonov family needs a penalty matrix: TRexTikhonovSelector only.
+  expect_error(run_with("TCDTIKNET"), "Tikhonov penalty matrix")
+  expect_error(run_with("TIKNET"), "Tikhonov penalty matrix")
+  expect_error(run_with("TIKOMP"), "Tikhonov penalty matrix")
+})
+
+
+test_that("both CD crossing-localization modes run and recover the support", {
+  d <- .make_cd_data()
+
+  for (certified in c(TRUE, FALSE)) {
+    selector <- TRexSelector$new(
+      d$X, d$y, tFDR = 0.2, seed = 42, verbose = FALSE,
+      control = trex_control(solver = "TCDLASSO", K = 5,
+                             cd_certified_localization = certified))
+    selector$select()
+    expect_true(all(d$support %in% selector$selected_indices),
+                info = paste("cd_certified_localization =", certified))
+  }
 })
 
 
@@ -124,7 +149,7 @@ test_that("TENET_AUG runs in the plain selector and matches TENET", {
 })
 
 
-test_that("GVS runs the CCD family: en_solver = TCENET and IEN solver choices", {
+test_that("GVS runs the CCD family: en_solver = TCDENET and IEN solver choices", {
   set.seed(42)
   n <- 80
   p <- 20
@@ -144,7 +169,7 @@ test_that("GVS runs the CCD family: en_solver = TCENET and IEN solver choices", 
   # EN track, CCD elastic net.
   sel_en <- TRexGVSSelector$new(
     fresh(), y, tFDR = 0.2, seed = 42, verbose = FALSE,
-    gvs_control = trex_gvs_control(gvs_type = "EN", en_solver = "TCENET",
+    gvs_control = trex_gvs_control(gvs_type = "EN", en_solver = "TCDENET",
                                    lambda_2 = 1.0),
     control = trex_control(K = 5)
   )
@@ -155,7 +180,7 @@ test_that("GVS runs the CCD family: en_solver = TCENET and IEN solver choices", 
   sel_ien <- TRexGVSSelector$new(
     fresh(), y, tFDR = 0.2, seed = 42, verbose = FALSE,
     gvs_control = trex_gvs_control(gvs_type = "IEN", lambda_2 = 1.0),
-    control = trex_control(solver = "TCIENET", K = 5)
+    control = trex_control(solver = "TCDIENET", K = 5)
   )
   sel_ien$select()
   expect_length(sel_ien$selected_var, p)
@@ -165,7 +190,7 @@ test_that("GVS runs the CCD family: en_solver = TCENET and IEN solver choices", 
     TRexGVSSelector$new(
       fresh(), y, tFDR = 0.2, seed = 42, verbose = FALSE,
       gvs_control = trex_gvs_control(gvs_type = "EN", lambda_2 = 1.0),
-      control = trex_control(solver = "TCENET", K = 5)
+      control = trex_control(solver = "TCDENET", K = 5)
     ),
     "derives solver"
   )

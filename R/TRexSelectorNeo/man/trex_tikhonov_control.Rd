@@ -5,12 +5,23 @@
 \title{TRex Tikhonov Control Parameters}
 \usage{
 trex_tikhonov_control(
-  tikhonov_K,
+  tikhonov_K = NULL,
+  penalty_structure = "SPARSE_GENERAL",
   lambda_2 = -1,
   lambda2_method = "CV_1SE_IEN_CCD",
   cv_n_folds = 10,
   cv_n_lambda = 100,
+  cv_n_lambda1 = 40,
+  cv_n_lambda2 = 100,
   cv_seed = -1,
+  pilot_grid = c(0, 1, 3, 10, 30, 100, 300, 1000, 3000),
+  pilot_K = 10,
+  pilot_T = 5,
+  pilot_L_multiplier = 1,
+  pilot_knee_tolerance = 1,
+  pilot_statistic = "MAJORITY",
+  pilot_group_fraction = 0.5,
+  pilot_shared_dummies = FALSE,
   fold_dummy_coupling = TRUE,
   cluster_dummies = TRUE,
   prior_groups = NULL,
@@ -21,7 +32,16 @@ trex_tikhonov_control(
 \arguments{
 \item{tikhonov_K}{Penalty matrix K (p x p): a base \code{matrix} or a
 sparse \code{Matrix::dgCMatrix}. Build it from a regularization
-operator Gamma with \code{\link{gamma_to_k}}.}
+operator Gamma with \code{\link{gamma_to_k}}. Required for
+\code{penalty_structure = "SPARSE_GENERAL"}; ignored under
+\code{"GROUP_CENTERING"}.}
+
+\item{penalty_structure}{\code{"SPARSE_GENERAL"} (default): the
+user-supplied K. \code{"GROUP_CENTERING"}: K is the block-diagonal
+centering penalty over the dummy clusters (\code{prior_groups}, or the
+HAC clustering). An all-singleton partition is legitimate there: K
+vanishes and the path is the plain lasso on per-variable cluster
+dummies.}
 
 \item{lambda_2}{Penalty weight, solver scale. A negative value (default
 \code{-1}) triggers auto-determination via \code{lambda2_method};
@@ -29,26 +49,75 @@ operator Gamma with \code{\link{gamma_to_k}}.}
 as-is.}
 
 \item{lambda2_method}{Auto-determination strategy when
-\code{lambda_2 < 0}. All four rules consume K and return lambda_2 on
+\code{lambda_2 < 0}. The CV rules consume K and return lambda_2 on
 the solver scale (no p/2 conversion): \code{"CV_1SE_IEN_CCD"}
 (default; well-posed in any p/n regime), \code{"CV_MIN_IEN_CCD"},
-\code{"CV_1SE_TIK_SVD"}, \code{"CV_MIN_TIK_SVD"}.}
+\code{"CV_1SE_TIK_SVD"}, \code{"CV_MIN_TIK_SVD"}. The PILOT rules read
+lambda_2 off a few random experiments per candidate of
+\code{pilot_grid}, by the selector's own principle (the largest
+FDR-controlled selection): \code{"PILOT_MAX"} takes the largest pilot
+count (ties toward the smallest lambda_2), \code{"PILOT_KNEE"} the
+smallest lambda_2 within \code{pilot_knee_tolerance} of it. The pilot
+record is available as \code{lambda2_pilot} on the selector.}
 
 \item{cv_n_folds}{Folds for the CV paths (default: 10).}
 
-\item{cv_n_lambda}{Points on the CV lambda grid (default: 100).}
+\item{cv_n_lambda}{Points on the CV lambda grid of the SVD rules
+(default: 100).}
+
+\item{cv_n_lambda1}{IEN-geometry coordinate-descent rules: points on the
+profiled lambda_1 path per lambda_2 value (default: 40).}
+
+\item{cv_n_lambda2}{IEN-geometry coordinate-descent rules: points on the
+lambda_2 grid (default: 100).}
 
 \item{cv_seed}{Seed for the CV fold permutation; \code{-1} (default)
 derives it from the selector seed, \code{>= 0} overrides it for CV
 folds only.}
+
+\item{pilot_grid}{PILOT rules: lambda_2 candidates on the working column
+scale (default \code{c(0, 1, 3, 10, 30, 100, 300, 1000, 3000)}),
+sorted and de-duplicated internally. Keep 0 on it so that "no
+penalty" is an admissible answer.}
+
+\item{pilot_K}{PILOT rules: pilot experiments per grid point (default:
+10; at least 2, capped at \code{K} of \code{\link{trex_control}}).}
+
+\item{pilot_T}{PILOT rules: stopping time of the pilot paths (default:
+5; at least 1, capped at \code{min(L_0, ceiling(n / 2))}).}
+
+\item{pilot_L_multiplier}{PILOT rules: pilot dummies
+\code{L_0 = pilot_L_multiplier * p} (default: 1; at most
+\code{max_dummy_multiplier}).}
+
+\item{pilot_knee_tolerance}{\code{"PILOT_KNEE"}: selections below the
+largest pilot count that still count as "on the plateau"
+(default: 1).}
+
+\item{pilot_statistic}{PILOT rules, the count the pick is read off:
+\code{"MAJORITY"} (default; originals ahead of the T-th dummy in more
+than half of the pilot experiments), \code{"CALIBRATED"} (the T-Rex
+selection rule applied to the pilot data), or \code{"GROUP_MAJORITY"}
+(the majority count restricted to the groups of \code{prior_groups}
+in which at least \code{pilot_group_fraction} of the members are
+ahead; needs \code{prior_groups}).}
+
+\item{pilot_group_fraction}{\code{"GROUP_MAJORITY"}: the share of a
+group's members that must be ahead, in (0, 1] (default: 0.5).}
+
+\item{pilot_shared_dummies}{Logical (default \code{FALSE}): the pilot
+draws its dummies from a reserved seed stream, independent of the
+main run's. \code{TRUE} reuses the main strategy's first dummy block
+(not available under the PERMUTATION strategies).}
 
 \item{fold_dummy_coupling}{Logical (default \code{TRUE}): dummy copies
 join their originating variable's K-coupling (FOLDED — the exact
 generalization of the GVS layered convention; dummy/null
 exchangeability holds for arbitrary K). \code{FALSE} restores the
 decoupled unit-ridge dummy block (INDEPENDENT_RIDGE) — a validation
-escape hatch that preserves the \code{K = I} == TCENET collapse but
-deforms exchangeability whenever K has off-diagonals.}
+escape hatch that preserves the \code{K = I} == TCDENET collapse but
+deforms exchangeability whenever K has off-diagonals. Only the
+TCDTIKNET solver offers it.}
 
 \item{cluster_dummies}{Logical (default \code{TRUE}): draw dummies as
 per-cluster colored MVN layers (GVS parity) on the clustering below.
@@ -74,13 +143,20 @@ A named list for use in TRexTikhonovSelector.
 }
 \description{
 Build a control list for \code{\link{TRexTikhonovSelector}},
-the general-Tikhonov T-Rex: a user-supplied penalty matrix
-\code{K = t(Gamma) \%*\% Gamma} drives the informed elastic net
-(TCIENET sparse-K mode). \code{K = I} collapses to the plain elastic
-net; a group-mean K reproduces the GVS-IEN penalty; banded/Laplacian K
-encode smoothness.
+the general-Tikhonov T-Rex: a penalty matrix
+\code{K = t(Gamma) \%*\% Gamma} drives the Tikhonov-net solvers
+(TCDTIKNET by default; TIKNET / TIKOMP through the \code{solver} field
+of \code{\link{trex_control}}). \code{K = I} collapses to the plain
+elastic net; a group-mean K reproduces the GVS-IEN penalty;
+banded/Laplacian K encode smoothness. With
+\code{penalty_structure = "GROUP_CENTERING"} the selector builds K
+itself from the dummy clustering (block-diagonal \code{I - J / p_m}:
+the members of a group share a coefficient).
 }
 \examples{
 trex_tikhonov_control(tikhonov_K = diag(10))
+trex_tikhonov_control(penalty_structure = "GROUP_CENTERING",
+                      prior_groups = rep(1:2, each = 5),
+                      lambda2_method = "PILOT_MAX")
 
 }

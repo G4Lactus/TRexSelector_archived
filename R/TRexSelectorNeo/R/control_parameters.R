@@ -27,20 +27,24 @@
 #'
 #' @param solver Solver algorithm: "TLARS", "TLASSO", "TENET", "TENET_AUG",
 #'   "TSTAGEWISE", "TSTEPWISE", "TOMP", "TGP", "TACGP", "TMP", "TNCGMP",
-#'   "TOOLS", "TAFS", "TCCD", "TCENET" (default: "TLARS"). "TENET_AUG" is
-#'   the row-augmented formulation of the TENET elastic net (proved
+#'   "TOOLS", "TAFS", "TCDLASSO", "TCDENET" (default: "TLARS"). "TENET_AUG"
+#'   is the row-augmented formulation of the TENET elastic net (proved
 #'   equivalent for \code{lambda2 >= 0}) and is accepted wherever TENET
 #'   runs; it solves with the standard LASSO inner path unless the optional
-#'   \code{tenet_aug_use_lars} is set. The CCD family (TCCD/TCENET)
-#'   records exact penalized-lasso minimizers per dummy crossing. The
-#'   IEN-family names "TIENET", "TIENET_AUG", and "TCIENET" are accepted by
-#'   the parser but only dispatchable inside \code{TRexGVSSelector} with
-#'   \code{gvs_type = "IEN"}; the plain selector rejects them with an
-#'   informative error.
+#'   \code{tenet_aug_use_lars} is set. The coordinate-descent (CD) family
+#'   (TCDLASSO/TCDENET) records exact penalized-lasso minimizers per dummy
+#'   crossing. The IEN-family names "TIENET", "TIENET_AUG", and "TCDIENET"
+#'   are accepted by the parser but only dispatchable inside
+#'   \code{TRexGVSSelector} with \code{gvs_type = "IEN"}; the
+#'   Tikhonov-family names "TCDTIKNET", "TIKNET", and "TIKOMP" need a
+#'   penalty matrix and are dispatchable only inside
+#'   \code{TRexTikhonovSelector}. The plain selector rejects both families
+#'   with an informative error.
 #' @param K Number of random experiments (default: 20).
 #' @param tloop_stagnation_stop Whether to stop T-loop on stagnation. NULL (default) enables
 #'   auto-detection: FALSE for non-greedy solvers (TLARS, TLASSO, TENET,
-#'   TENET_AUG, and the CCD family TCCD/TCENET/TCIENET), TRUE for all others.
+#'   TENET_AUG, TIKNET, and the CD family TCDLASSO/TCDENET/TCDIENET/
+#'   TCDTIKNET), TRUE for all others.
 #' @param tloop_max_stagnant_steps Steps before stagnation trigger (default: 5).
 #' @param use_openmp Whether to use OpenMP parallelization (default: FALSE).
 #' @param use_memory_mapping Use out-of-core memory mapping (default: FALSE).
@@ -90,6 +94,13 @@
 #' @param cd_max_sweeps Maximum coordinate sweeps per CCD subproblem
 #'   (default: 0 = keep the solver's internal default). Ignored by the
 #'   non-CCD solvers.
+#' @param cd_certified_localization Logical (default \code{TRUE}): the CD
+#'   family localizes every dummy crossing with certificates — a duality
+#'   gap and coordinate statuses at every bracket endpoint, closed-form
+#'   continuation between them, the record placed at the knot.
+#'   \code{FALSE} selects the LEGACY probe bisection with the
+#'   support-nesting stop (the pre-2026-08 behaviour, kept as the A/B
+#'   baseline). Ignored by the non-CD solvers.
 #' @param dummy_distribution Dummy variable distribution, created with
 #'   \code{\link{trex_dummy_distribution}} (default: standard Normal).
 #'
@@ -124,6 +135,7 @@ trex_control <- function(solver = "TLARS",
                          cd_tol_probe = -1,
                          cd_gram_cap = 0,
                          cd_max_sweeps = 0,
+                         cd_certified_localization = TRUE,
                          dummy_distribution = trex_dummy_distribution()) {
 
   if (max_dummy_multiplier < 1) {
@@ -152,8 +164,8 @@ trex_control <- function(solver = "TLARS",
     stop("cd_max_sweeps must be >= 0. Got: ", cd_max_sweeps)
   }
 
-  non_greedy_solvers <- c("TLARS", "TLASSO", "TENET", "TENET_AUG",
-                          "TCCD", "TCENET", "TCIENET")
+  non_greedy_solvers <- c("TLARS", "TLASSO", "TENET", "TENET_AUG", "TIKNET",
+                          "TCDLASSO", "TCDENET", "TCDIENET", "TCDTIKNET")
   if (is.null(tloop_stagnation_stop)) {
     tloop_stagnation_stop <- !(solver %in% non_greedy_solvers)
   }
@@ -183,6 +195,7 @@ trex_control <- function(solver = "TLARS",
     cd_tol_probe            = cd_tol_probe,
     cd_gram_cap             = cd_gram_cap,
     cd_max_sweeps           = cd_max_sweeps,
+    cd_certified_localization = as.logical(cd_certified_localization),
     dummy_distribution      = dummy_distribution
   )
 }
@@ -249,9 +262,9 @@ trex_da_control <- function(da_method = "BT",
 #' @description Build a control list for group variable selection augmentation policy in
 #'   TRexGVSSelector. The solver is determined automatically from \code{gvs_type}:
 #'   "EN" selects the T-Elastic-Net solver via \code{en_solver} — TENET
-#'   (default), with TENET_AUG and TCENET as optional variants; "IEN" honors
+#'   (default), with TENET_AUG and TCDENET as optional variants; "IEN" honors
 #'   an IEN-family \code{solver} field in \code{\link{trex_control}} —
-#'   TIENET (default, native pathwise), with TIENET_AUG and TCIENET as
+#'   TIENET (default, native pathwise), with TIENET_AUG and TCDIENET as
 #'   optional variants. For \code{gvs_type = "EN"} the \code{solver} field
 #'   is ignored.
 #'
@@ -277,8 +290,9 @@ trex_da_control <- function(da_method = "BT",
 #'   \code{gvs_type = "IEN"} — they consume the group structure).
 #' @param en_solver Elastic Net solver variant for \code{gvs_type = "EN"}:
 #'   \code{"TENET"} (default, Gram-based), \code{"TENET_AUG"}
-#'   (row-augmented LASSO), or \code{"TCENET"} (CCD; exact fixed-lambda1
-#'   elastic-net minimizers per dummy crossing). All solve the same EN
+#'   (row-augmented LASSO), or \code{"TCDENET"} (coordinate descent; exact
+#'   fixed-lambda1 elastic-net minimizers per dummy crossing). All solve
+#'   the same EN
 #'   problem and select the same variables up to path-vs-minimizer
 #'   differences; the switch exists to validate solver equivalence,
 #'   \strong{not} to choose a LARS vs LASSO path (for that, see
@@ -295,6 +309,15 @@ trex_da_control <- function(da_method = "BT",
 #' @param cv_n_lambda Number of points on the geometric lambda grid searched by
 #'   the CV auto-computation of \code{lambda_2} (default: 1000). Ignored when
 #'   \code{lambda_2 >= 0}.
+#' @param cv_n_lambda1 IEN-geometry coordinate-descent tuners
+#'   (\code{"CV_1SE_IEN_CCD"}, \code{"CV_MIN_IEN_CCD"}) only: points on the
+#'   profiled lambda_1 path per lambda_2 value (default: 40, the shortest
+#'   path that still reproduces the 100-point picks; the cost is U-shaped
+#'   in this number). Ignored by the other rules and when
+#'   \code{lambda_2 >= 0}.
+#' @param cv_n_lambda2 IEN-geometry coordinate-descent tuners only: points
+#'   on the lambda_2 grid (default: 100). Ignored by the other rules and
+#'   when \code{lambda_2 >= 0}.
 #' @param cv_seed Seed for the deterministic fold-permutation RNG used by the CV
 #'   \code{lambda2_method} paths. \code{-1} (default) derives it from the T-Rex
 #'   \code{seed} (deterministic when \code{seed >= 0}, hardware entropy when
@@ -318,6 +341,8 @@ trex_gvs_control <- function(gvs_type = "EN",
                              groups = NULL,
                              cv_n_folds = 10,
                              cv_n_lambda = 1000,
+                             cv_n_lambda1 = 40,
+                             cv_n_lambda2 = 100,
                              cv_seed = -1) {
   # NULL resolves by track: the EN-shaped ridge CV for EN, the IEN-geometry
   # tuner (group-consuming, no p/2 conversion) for IEN. 1SE in both cases —
@@ -337,7 +362,7 @@ trex_gvs_control <- function(gvs_type = "EN",
          "tuner (it consumes the group structure) and requires ",
          "gvs_type = \"IEN\".")
   }
-  en_solver <- match.arg(en_solver, c("TENET", "TENET_AUG", "TCENET"))
+  en_solver <- match.arg(en_solver, c("TENET", "TENET_AUG", "TCDENET"))
   list(
     gvs_type           = gvs_type,
     corr_max           = corr_max,
@@ -349,6 +374,8 @@ trex_gvs_control <- function(gvs_type = "EN",
     groups             = groups,
     cv_n_folds         = as.integer(cv_n_folds),
     cv_n_lambda        = as.integer(cv_n_lambda),
+    cv_n_lambda1       = as.integer(cv_n_lambda1),
+    cv_n_lambda2       = as.integer(cv_n_lambda2),
     cv_seed            = as.integer(cv_seed)
   )
 }
@@ -486,36 +513,87 @@ trex_dummy_distribution <- function(type     = "Normal",
 #' @title TRex Tikhonov Control Parameters
 #'
 #' @description Build a control list for \code{\link{TRexTikhonovSelector}},
-#'   the general-Tikhonov T-Rex: a user-supplied penalty matrix
-#'   \code{K = t(Gamma) \%*\% Gamma} drives the informed elastic net
-#'   (TCIENET sparse-K mode). \code{K = I} collapses to the plain elastic
-#'   net; a group-mean K reproduces the GVS-IEN penalty; banded/Laplacian K
-#'   encode smoothness.
+#'   the general-Tikhonov T-Rex: a penalty matrix
+#'   \code{K = t(Gamma) \%*\% Gamma} drives the Tikhonov-net solvers
+#'   (TCDTIKNET by default; TIKNET / TIKOMP through the \code{solver} field
+#'   of \code{\link{trex_control}}). \code{K = I} collapses to the plain
+#'   elastic net; a group-mean K reproduces the GVS-IEN penalty;
+#'   banded/Laplacian K encode smoothness. With
+#'   \code{penalty_structure = "GROUP_CENTERING"} the selector builds K
+#'   itself from the dummy clustering (block-diagonal \code{I - J / p_m}:
+#'   the members of a group share a coefficient).
 #'
 #' @param tikhonov_K Penalty matrix K (p x p): a base \code{matrix} or a
 #'   sparse \code{Matrix::dgCMatrix}. Build it from a regularization
-#'   operator Gamma with \code{\link{gamma_to_k}}.
+#'   operator Gamma with \code{\link{gamma_to_k}}. Required for
+#'   \code{penalty_structure = "SPARSE_GENERAL"}; ignored under
+#'   \code{"GROUP_CENTERING"}.
+#' @param penalty_structure \code{"SPARSE_GENERAL"} (default): the
+#'   user-supplied K. \code{"GROUP_CENTERING"}: K is the block-diagonal
+#'   centering penalty over the dummy clusters (\code{prior_groups}, or the
+#'   HAC clustering). An all-singleton partition is legitimate there: K
+#'   vanishes and the path is the plain lasso on per-variable cluster
+#'   dummies.
 #' @param lambda_2 Penalty weight, solver scale. A negative value (default
 #'   \code{-1}) triggers auto-determination via \code{lambda2_method};
 #'   \code{0} is the degenerate pure-lasso case; a positive value is used
 #'   as-is.
 #' @param lambda2_method Auto-determination strategy when
-#'   \code{lambda_2 < 0}. All four rules consume K and return lambda_2 on
+#'   \code{lambda_2 < 0}. The CV rules consume K and return lambda_2 on
 #'   the solver scale (no p/2 conversion): \code{"CV_1SE_IEN_CCD"}
 #'   (default; well-posed in any p/n regime), \code{"CV_MIN_IEN_CCD"},
-#'   \code{"CV_1SE_TIK_SVD"}, \code{"CV_MIN_TIK_SVD"}.
+#'   \code{"CV_1SE_TIK_SVD"}, \code{"CV_MIN_TIK_SVD"}. The PILOT rules read
+#'   lambda_2 off a few random experiments per candidate of
+#'   \code{pilot_grid}, by the selector's own principle (the largest
+#'   FDR-controlled selection): \code{"PILOT_MAX"} takes the largest pilot
+#'   count (ties toward the smallest lambda_2), \code{"PILOT_KNEE"} the
+#'   smallest lambda_2 within \code{pilot_knee_tolerance} of it. The pilot
+#'   record is available as \code{lambda2_pilot} on the selector.
 #' @param cv_n_folds Folds for the CV paths (default: 10).
-#' @param cv_n_lambda Points on the CV lambda grid (default: 100).
+#' @param cv_n_lambda Points on the CV lambda grid of the SVD rules
+#'   (default: 100).
+#' @param cv_n_lambda1 IEN-geometry coordinate-descent rules: points on the
+#'   profiled lambda_1 path per lambda_2 value (default: 40).
+#' @param cv_n_lambda2 IEN-geometry coordinate-descent rules: points on the
+#'   lambda_2 grid (default: 100).
 #' @param cv_seed Seed for the CV fold permutation; \code{-1} (default)
 #'   derives it from the selector seed, \code{>= 0} overrides it for CV
 #'   folds only.
+#' @param pilot_grid PILOT rules: lambda_2 candidates on the working column
+#'   scale (default \code{c(0, 1, 3, 10, 30, 100, 300, 1000, 3000)}),
+#'   sorted and de-duplicated internally. Keep 0 on it so that "no
+#'   penalty" is an admissible answer.
+#' @param pilot_K PILOT rules: pilot experiments per grid point (default:
+#'   10; at least 2, capped at \code{K} of \code{\link{trex_control}}).
+#' @param pilot_T PILOT rules: stopping time of the pilot paths (default:
+#'   5; at least 1, capped at \code{min(L_0, ceiling(n / 2))}).
+#' @param pilot_L_multiplier PILOT rules: pilot dummies
+#'   \code{L_0 = pilot_L_multiplier * p} (default: 1; at most
+#'   \code{max_dummy_multiplier}).
+#' @param pilot_knee_tolerance \code{"PILOT_KNEE"}: selections below the
+#'   largest pilot count that still count as "on the plateau"
+#'   (default: 1).
+#' @param pilot_statistic PILOT rules, the count the pick is read off:
+#'   \code{"MAJORITY"} (default; originals ahead of the T-th dummy in more
+#'   than half of the pilot experiments), \code{"CALIBRATED"} (the T-Rex
+#'   selection rule applied to the pilot data), or \code{"GROUP_MAJORITY"}
+#'   (the majority count restricted to the groups of \code{prior_groups}
+#'   in which at least \code{pilot_group_fraction} of the members are
+#'   ahead; needs \code{prior_groups}).
+#' @param pilot_group_fraction \code{"GROUP_MAJORITY"}: the share of a
+#'   group's members that must be ahead, in (0, 1] (default: 0.5).
+#' @param pilot_shared_dummies Logical (default \code{FALSE}): the pilot
+#'   draws its dummies from a reserved seed stream, independent of the
+#'   main run's. \code{TRUE} reuses the main strategy's first dummy block
+#'   (not available under the PERMUTATION strategies).
 #' @param fold_dummy_coupling Logical (default \code{TRUE}): dummy copies
 #'   join their originating variable's K-coupling (FOLDED — the exact
 #'   generalization of the GVS layered convention; dummy/null
 #'   exchangeability holds for arbitrary K). \code{FALSE} restores the
 #'   decoupled unit-ridge dummy block (INDEPENDENT_RIDGE) — a validation
-#'   escape hatch that preserves the \code{K = I} == TCENET collapse but
-#'   deforms exchangeability whenever K has off-diagonals.
+#'   escape hatch that preserves the \code{K = I} == TCDENET collapse but
+#'   deforms exchangeability whenever K has off-diagonals. Only the
+#'   TCDTIKNET solver offers it.
 #' @param cluster_dummies Logical (default \code{TRUE}): draw dummies as
 #'   per-cluster colored MVN layers (GVS parity) on the clustering below.
 #'   \code{FALSE} restores canonical i.i.d. dummies — validation runs only;
@@ -536,39 +614,90 @@ trex_dummy_distribution <- function(type     = "Normal",
 #'
 #' @examples
 #' trex_tikhonov_control(tikhonov_K = diag(10))
+#' trex_tikhonov_control(penalty_structure = "GROUP_CENTERING",
+#'                       prior_groups = rep(1:2, each = 5),
+#'                       lambda2_method = "PILOT_MAX")
 #'
 #' @export
-trex_tikhonov_control <- function(tikhonov_K,
+trex_tikhonov_control <- function(tikhonov_K = NULL,
+                                  penalty_structure = "SPARSE_GENERAL",
                                   lambda_2 = -1.0,
                                   lambda2_method = "CV_1SE_IEN_CCD",
                                   cv_n_folds = 10,
                                   cv_n_lambda = 100,
+                                  cv_n_lambda1 = 40,
+                                  cv_n_lambda2 = 100,
                                   cv_seed = -1,
+                                  pilot_grid = c(0, 1, 3, 10, 30, 100,
+                                                 300, 1000, 3000),
+                                  pilot_K = 10,
+                                  pilot_T = 5,
+                                  pilot_L_multiplier = 1,
+                                  pilot_knee_tolerance = 1,
+                                  pilot_statistic = "MAJORITY",
+                                  pilot_group_fraction = 0.5,
+                                  pilot_shared_dummies = FALSE,
                                   fold_dummy_coupling = TRUE,
                                   cluster_dummies = TRUE,
                                   prior_groups = NULL,
                                   corr_max = 0.5,
                                   hc_linkage = "Single") {
+  penalty_structure <- match.arg(penalty_structure,
+                                 c("SPARSE_GENERAL", "GROUP_CENTERING"))
   lambda2_method <- match.arg(lambda2_method,
                               c("CV_1SE_IEN_CCD", "CV_MIN_IEN_CCD",
-                                "CV_1SE_TIK_SVD", "CV_MIN_TIK_SVD"))
+                                "CV_1SE_TIK_SVD", "CV_MIN_TIK_SVD",
+                                "PILOT_MAX", "PILOT_KNEE"))
+  pilot_statistic <- match.arg(pilot_statistic,
+                               c("MAJORITY", "CALIBRATED", "GROUP_MAJORITY"))
   hc_linkage <- match.arg(hc_linkage,
                           c("Single", "Complete", "Average", "WPGMA"))
-  if (missing(tikhonov_K) || is.null(tikhonov_K)) {
+  if (penalty_structure == "SPARSE_GENERAL" && is.null(tikhonov_K)) {
     stop("tikhonov_K is required (p x p penalty matrix; use gamma_to_k() ",
-         "to build K from a regularization operator Gamma).")
+         "to build K from a regularization operator Gamma) unless ",
+         "penalty_structure = \"GROUP_CENTERING\".")
+  }
+  if (!is.numeric(pilot_grid) || length(pilot_grid) == 0 ||
+      any(!is.finite(pilot_grid)) || any(pilot_grid < 0)) {
+    stop("pilot_grid must be a non-empty vector of finite values >= 0.")
+  }
+  if (pilot_K < 2) {
+    stop("pilot_K must be >= 2. Got: ", pilot_K)
+  }
+  if (pilot_T < 1) {
+    stop("pilot_T must be >= 1. Got: ", pilot_T)
+  }
+  if (pilot_L_multiplier < 1) {
+    stop("pilot_L_multiplier must be >= 1. Got: ", pilot_L_multiplier)
+  }
+  if (pilot_knee_tolerance < 0) {
+    stop("pilot_knee_tolerance must be >= 0. Got: ", pilot_knee_tolerance)
+  }
+  if (!(pilot_group_fraction > 0 && pilot_group_fraction <= 1)) {
+    stop("pilot_group_fraction must be in (0, 1]. Got: ", pilot_group_fraction)
   }
   list(
-    tikhonov_K          = tikhonov_K,
-    lambda_2            = lambda_2,
-    lambda2_method      = lambda2_method,
-    cv_n_folds          = cv_n_folds,
-    cv_n_lambda         = cv_n_lambda,
-    cv_seed             = cv_seed,
-    fold_dummy_coupling = fold_dummy_coupling,
-    cluster_dummies     = cluster_dummies,
-    prior_groups        = prior_groups,
-    corr_max            = corr_max,
-    hc_linkage          = hc_linkage
+    tikhonov_K           = tikhonov_K,
+    penalty_structure    = penalty_structure,
+    lambda_2             = lambda_2,
+    lambda2_method       = lambda2_method,
+    cv_n_folds           = as.integer(cv_n_folds),
+    cv_n_lambda          = as.integer(cv_n_lambda),
+    cv_n_lambda1         = as.integer(cv_n_lambda1),
+    cv_n_lambda2         = as.integer(cv_n_lambda2),
+    cv_seed              = as.integer(cv_seed),
+    pilot_grid           = as.numeric(pilot_grid),
+    pilot_K              = as.integer(pilot_K),
+    pilot_T              = as.integer(pilot_T),
+    pilot_L_multiplier   = as.integer(pilot_L_multiplier),
+    pilot_knee_tolerance = as.numeric(pilot_knee_tolerance),
+    pilot_statistic      = pilot_statistic,
+    pilot_group_fraction = as.numeric(pilot_group_fraction),
+    pilot_shared_dummies = as.logical(pilot_shared_dummies),
+    fold_dummy_coupling  = fold_dummy_coupling,
+    cluster_dummies      = cluster_dummies,
+    prior_groups         = prior_groups,
+    corr_max             = corr_max,
+    hc_linkage           = hc_linkage
   )
 }

@@ -32,9 +32,9 @@ TRexGVSControlParameter parse_gvs_parameter(const Rcpp::List& control) {
         std::string solver = control["en_solver"];
         if (solver == "TENET") params.en_solver = ENSolverType::TENET;
         else if (solver == "TENET_AUG") params.en_solver = ENSolverType::TENET_AUG;
-        else if (solver == "TCENET") params.en_solver = ENSolverType::TCENET;
+        else if (solver == "TCDENET") params.en_solver = ENSolverType::TCDENET;
         else Rcpp::stop("Unknown ENSolverType: '" + solver +
-                        "'. Use 'TENET', 'TENET_AUG', or 'TCENET'.");
+                        "'. Use 'TENET', 'TENET_AUG', or 'TCDENET'.");
     }
 
     if (control.containsElementNamed("tenet_aug_use_lars")) {
@@ -95,11 +95,36 @@ TRexGVSControlParameter parse_gvs_parameter(const Rcpp::List& control) {
         params.cv_n_lambda =
             static_cast<Eigen::Index>(Rcpp::as<int>(control["cv_n_lambda"]));
     }
+    // IEN-geometry coordinate-descent tuner grids (CV_*_IEN_CCD).
+    if (control.containsElementNamed("cv_n_lambda1")) {
+        params.cv_n_lambda1 =
+            static_cast<Eigen::Index>(Rcpp::as<int>(control["cv_n_lambda1"]));
+    }
+    if (control.containsElementNamed("cv_n_lambda2")) {
+        params.cv_n_lambda2 =
+            static_cast<Eigen::Index>(Rcpp::as<int>(control["cv_n_lambda2"]));
+    }
     if (control.containsElementNamed("cv_seed")) {
         params.cv_seed = Rcpp::as<int>(control["cv_seed"]);
     }
 
     return params;
+}
+
+
+/**
+ * @brief The lambda_2 tuner health record as an R list. Shared with the
+ *        Tikhonov glue (declared extern there).
+ */
+Rcpp::List lambda2_cv_diagnostics_to_list(
+    const trex::ml_methods::model_selection::lambda2_cv_diagnostics& d) {
+    return Rcpp::List::create(
+        Rcpp::Named("ran")               = d.ran,
+        Rcpp::Named("seconds")           = d.seconds,
+        Rcpp::Named("n_profile_at_edge") = static_cast<int>(d.n_profile_at_edge),
+        Rcpp::Named("support_cap")       = static_cast<int>(d.support_cap),
+        Rcpp::Named("low_dimensional")   = d.low_dimensional
+    );
 }
 
 //' @title Create TRexGVSSelector
@@ -156,6 +181,14 @@ void trex_gvs_select(XPtr<RTRexGVSSelector> r_ptr) {
 // [[Rcpp::export]]
 double trex_gvs_get_lambda2_used(XPtr<RTRexGVSSelector> r_ptr) {
     return r_ptr->get()->getGVSResult().lambda2_used;
+}
+
+//' @title Get the lambda_2 tuner diagnostics
+//' @noRd
+// [[Rcpp::export]]
+Rcpp::List trex_gvs_get_lambda2_cv_diagnostics(XPtr<RTRexGVSSelector> r_ptr) {
+    return lambda2_cv_diagnostics_to_list(
+        r_ptr->get()->getLambda2CVDiagnostics());
 }
 
 //' @title Get gvs_type

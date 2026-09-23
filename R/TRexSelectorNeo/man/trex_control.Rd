@@ -29,28 +29,33 @@ trex_control(
   cd_tol_probe = -1,
   cd_gram_cap = 0,
   cd_max_sweeps = 0,
+  cd_certified_localization = TRUE,
   dummy_distribution = trex_dummy_distribution()
 )
 }
 \arguments{
 \item{solver}{Solver algorithm: "TLARS", "TLASSO", "TENET", "TENET_AUG",
 "TSTAGEWISE", "TSTEPWISE", "TOMP", "TGP", "TACGP", "TMP", "TNCGMP",
-"TOOLS", "TAFS", "TCCD", "TCENET" (default: "TLARS"). "TENET_AUG" is
-the row-augmented formulation of the TENET elastic net (proved
+"TOOLS", "TAFS", "TCDLASSO", "TCDENET" (default: "TLARS"). "TENET_AUG"
+is the row-augmented formulation of the TENET elastic net (proved
 equivalent for \code{lambda2 >= 0}) and is accepted wherever TENET
 runs; it solves with the standard LASSO inner path unless the optional
-\code{tenet_aug_use_lars} is set. The CCD family (TCCD/TCENET)
-records exact penalized-lasso minimizers per dummy crossing. The
-IEN-family names "TIENET", "TIENET_AUG", and "TCIENET" are accepted by
-the parser but only dispatchable inside \code{TRexGVSSelector} with
-\code{gvs_type = "IEN"}; the plain selector rejects them with an
-informative error.}
+\code{tenet_aug_use_lars} is set. The coordinate-descent (CD) family
+(TCDLASSO/TCDENET) records exact penalized-lasso minimizers per dummy
+crossing. The IEN-family names "TIENET", "TIENET_AUG", and "TCDIENET"
+are accepted by the parser but only dispatchable inside
+\code{TRexGVSSelector} with \code{gvs_type = "IEN"}; the
+Tikhonov-family names "TCDTIKNET", "TIKNET", and "TIKOMP" need a
+penalty matrix and are dispatchable only inside
+\code{TRexTikhonovSelector}. The plain selector rejects both families
+with an informative error.}
 
 \item{K}{Number of random experiments (default: 20).}
 
 \item{tloop_stagnation_stop}{Whether to stop T-loop on stagnation. NULL (default) enables
 auto-detection: FALSE for non-greedy solvers (TLARS, TLASSO, TENET,
-TENET_AUG, and the CCD family TCCD/TCENET/TCIENET), TRUE for all others.}
+TENET_AUG, TIKNET, and the CD family TCDLASSO/TCDENET/TCDIENET/
+TCDTIKNET), TRUE for all others.}
 
 \item{tloop_max_stagnant_steps}{Steps before stagnation trigger (default: 5).}
 
@@ -121,6 +126,14 @@ the solver's internal default). Ignored by the non-CCD solvers.}
 \item{cd_max_sweeps}{Maximum coordinate sweeps per CCD subproblem
 (default: 0 = keep the solver's internal default). Ignored by the
 non-CCD solvers.}
+
+\item{cd_certified_localization}{Logical (default \code{TRUE}): the CD
+family localizes every dummy crossing with certificates — a duality
+gap and coordinate statuses at every bracket endpoint, closed-form
+continuation between them, the record placed at the knot.
+\code{FALSE} selects the LEGACY probe bisection with the
+support-nesting stop (the pre-2026-08 behaviour, kept as the A/B
+baseline). Ignored by the non-CD solvers.}
 
 \item{dummy_distribution}{Dummy variable distribution, created with
 \code{\link{trex_dummy_distribution}} (default: standard Normal).}

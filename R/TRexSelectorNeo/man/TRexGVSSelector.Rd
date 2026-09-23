@@ -26,6 +26,12 @@ sel$selected_indices
   \describe{
     \item{\code{lambda2_used}}{Lambda2 regularization term selected/applied.}
 
+    \item{\code{lambda2_cv_diagnostics}}{Health record of the lambda_2 tuner of
+the last \code{select()}: a list with \code{ran}, \code{seconds},
+\code{n_profile_at_edge} (lambda_2 values whose profiled lambda_1
+optimum sat on a truncation edge; 0 is healthy), \code{support_cap}
+(-1 = disabled) and \code{low_dimensional}.}
+
     \item{\code{gvs_type}}{The augmentation policy name used (e.g., "EN", "IEN").}
 
     \item{\code{max_clusters}}{The number of unique clusters dynamically formulated.}
@@ -77,11 +83,11 @@ supplied.}
       \item{\code{verbose}}{Whether to print progress (default: TRUE).}
       \item{\code{gvs_control}}{A GVS control list from \code{\link{trex_gvs_control}()} (default:
 \code{trex_gvs_control()}). For \code{gvs_type = "EN"} the solver is
-derived from \code{en_solver} (TENET, TENET_AUG, or TCENET) and the
+derived from \code{en_solver} (TENET, TENET_AUG, or TCDENET) and the
 \code{solver} field in \code{control} is ignored (a warning is issued
 if it is set to a non-matching solver). For \code{gvs_type = "IEN"}
 the \code{solver} field selects the IEN solver: "TIENET"
-(default, native pathwise), "TIENET_AUG", or "TCIENET".}
+(default, native pathwise), "TIENET_AUG", or "TCDIENET".}
       \item{\code{control}}{A control list from \code{\link{trex_control}()} (default:
 \code{trex_control()}). For \code{gvs_type = "EN"} the \code{solver}
 field is overridden; for "IEN" it selects the IEN-family solver.}

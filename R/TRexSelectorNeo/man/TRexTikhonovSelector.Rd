@@ -4,13 +4,15 @@
 \alias{TRexTikhonovSelector}
 \title{T-Rex Selector with a general Tikhonov penalty}
 \description{
-FDR-controlled variable selection with a user-supplied
-Tikhonov penalty matrix \code{K = t(Gamma) \%*\% Gamma} driving the
-informed elastic net (TCIENET sparse-K mode). \code{K = I} collapses to
+FDR-controlled variable selection with a Tikhonov penalty
+matrix \code{K = t(Gamma) \%*\% Gamma} driving the Tikhonov-net solvers
+(TCDTIKNET by default, or TIKNET / TIKOMP). \code{K = I} collapses to
 the plain elastic net; a group-mean K reproduces the GVS-IEN penalty;
-banded / Laplacian K encode smoothness-informed selection. Dummies are
-cluster-aware and FOLDED-coupled by default (see
-\code{\link{trex_tikhonov_control}}).
+banded / Laplacian K encode smoothness-informed selection;
+\code{penalty_structure = "GROUP_CENTERING"} builds the centering
+penalty from the dummy clustering. lambda_2 comes from the caller, a
+CV tuner, or the pilot rule (see \code{\link{trex_tikhonov_control}}).
+Dummies are cluster-aware and FOLDED-coupled by default.
 }
 \examples{
 \donttest{
@@ -35,6 +37,25 @@ sel$selected_indices
     \item{\code{lambda2_used}}{The lambda_2 actually used by the last
 \code{select()} run (user-supplied or CV-resolved; solver scale).
 \code{-1} before \code{select()}.}
+
+    \item{\code{lambda2_cv_diagnostics}}{Health record of the lambda_2 tuner of
+the last \code{select()}: a list with \code{ran} (a tuner or the
+pilot ran), \code{seconds}, \code{n_profile_at_edge} (lambda_2
+values whose profiled lambda_1 optimum sat on a truncation edge; 0
+is healthy), \code{support_cap} (-1 = disabled) and
+\code{low_dimensional}.}
+
+    \item{\code{lambda2_pilot}}{Record of the lambda_2 pilot rule of the last
+\code{select()} (\code{ran == FALSE} when no pilot ran): the
+\code{grid}, the \code{counts} the pick was read off, the
+per-grid-point curves over the pilot stopping times
+(\code{curve_majority}, \code{curve_soft}; G x T matrices), the
+\code{calibrated} and \code{group_majority} counts, the 1-based
+\code{index} of the pick, the picked \code{lambda2},
+\code{max_selected}, \code{n_ties}, the boundary flags
+\code{at_lower_end} / \code{at_upper_end} (widen the grid before
+trusting a boundary pick), the budget actually used (\code{K_pilot},
+\code{T_pilot}, \code{L_0}) and the timings.}
   }
   \if{html}{\out{</div>}}
 }
@@ -76,9 +97,11 @@ sel$selected_indices
 \code{\link{trex_tikhonov_control}()} (required — it carries the
 penalty matrix K).}
       \item{\code{control}}{A control list from \code{\link{trex_control}()}
-(default: \code{trex_control()}). The \code{solver} field is forced
-to \code{"TCIENET"} — the only solver with a general-K mode; a
-warning is issued if it was explicitly set to anything else.}
+(default: \code{trex_control()}). The \code{solver} field selects
+the Tikhonov-family solver: \code{"TCDTIKNET"} (default; the
+neutral \code{trex_control()} default \code{"TLARS"} maps to it),
+\code{"TIKNET"} (native pathwise), or \code{"TIKOMP"}; any other
+value warns and falls back to \code{"TCDTIKNET"}.}
     }
     \if{html}{\out{</div>}}
   }

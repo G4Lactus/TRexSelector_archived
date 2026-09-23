@@ -820,6 +820,12 @@ trex_gvs_get_lambda2_used <- function(r_ptr) {
     .Call(`_TRexSelectorNeo_trex_gvs_get_lambda2_used`, r_ptr)
 }
 
+#' @title Get the lambda_2 tuner diagnostics
+#' @noRd
+trex_gvs_get_lambda2_cv_diagnostics <- function(r_ptr) {
+    .Call(`_TRexSelectorNeo_trex_gvs_get_lambda2_cv_diagnostics`, r_ptr)
+}
+
 #' @title Get gvs_type
 #' @noRd
 trex_gvs_get_gvs_type <- function(r_ptr) {
@@ -1118,6 +1124,18 @@ trex_tikhonov_select <- function(r_ptr) {
 #' @noRd
 trex_tikhonov_get_lambda2_used <- function(r_ptr) {
     .Call(`_TRexSelectorNeo_trex_tikhonov_get_lambda2_used`, r_ptr)
+}
+
+#' @title Get the lambda_2 tuner diagnostics
+#' @noRd
+trex_tikhonov_get_lambda2_cv_diagnostics <- function(r_ptr) {
+    .Call(`_TRexSelectorNeo_trex_tikhonov_get_lambda2_cv_diagnostics`, r_ptr)
+}
+
+#' @title Get the lambda_2 pilot record (ran == FALSE when no pilot ran)
+#' @noRd
+trex_tikhonov_get_lambda2_pilot_result <- function(r_ptr) {
+    .Call(`_TRexSelectorNeo_trex_tikhonov_get_lambda2_pilot_result`, r_ptr)
 }
 
 #' @title Build K = Gamma^T Gamma from a Tikhonov operator Gamma

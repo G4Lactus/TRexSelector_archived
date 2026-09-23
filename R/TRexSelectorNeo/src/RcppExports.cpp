@@ -1151,6 +1151,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// trex_gvs_get_lambda2_cv_diagnostics
+Rcpp::List trex_gvs_get_lambda2_cv_diagnostics(XPtr<RTRexGVSSelector> r_ptr);
+RcppExport SEXP _TRexSelectorNeo_trex_gvs_get_lambda2_cv_diagnostics(SEXP r_ptrSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< XPtr<RTRexGVSSelector> >::type r_ptr(r_ptrSEXP);
+    rcpp_result_gen = Rcpp::wrap(trex_gvs_get_lambda2_cv_diagnostics(r_ptr));
+    return rcpp_result_gen;
+END_RCPP
+}
 // trex_gvs_get_gvs_type
 std::string trex_gvs_get_gvs_type(XPtr<RTRexGVSSelector> r_ptr);
 RcppExport SEXP _TRexSelectorNeo_trex_gvs_get_gvs_type(SEXP r_ptrSEXP) {
@@ -1578,6 +1589,28 @@ BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< XPtr<RTRexTikhonovSelector> >::type r_ptr(r_ptrSEXP);
     rcpp_result_gen = Rcpp::wrap(trex_tikhonov_get_lambda2_used(r_ptr));
+    return rcpp_result_gen;
+END_RCPP
+}
+// trex_tikhonov_get_lambda2_cv_diagnostics
+Rcpp::List trex_tikhonov_get_lambda2_cv_diagnostics(XPtr<RTRexTikhonovSelector> r_ptr);
+RcppExport SEXP _TRexSelectorNeo_trex_tikhonov_get_lambda2_cv_diagnostics(SEXP r_ptrSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< XPtr<RTRexTikhonovSelector> >::type r_ptr(r_ptrSEXP);
+    rcpp_result_gen = Rcpp::wrap(trex_tikhonov_get_lambda2_cv_diagnostics(r_ptr));
+    return rcpp_result_gen;
+END_RCPP
+}
+// trex_tikhonov_get_lambda2_pilot_result
+Rcpp::List trex_tikhonov_get_lambda2_pilot_result(XPtr<RTRexTikhonovSelector> r_ptr);
+RcppExport SEXP _TRexSelectorNeo_trex_tikhonov_get_lambda2_pilot_result(SEXP r_ptrSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< XPtr<RTRexTikhonovSelector> >::type r_ptr(r_ptrSEXP);
+    rcpp_result_gen = Rcpp::wrap(trex_tikhonov_get_lambda2_pilot_result(r_ptr));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -2574,6 +2607,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_TRexSelectorNeo_trex_gvs_mmap_create", (DL_FUNC) &_TRexSelectorNeo_trex_gvs_mmap_create, 7},
     {"_TRexSelectorNeo_trex_gvs_select", (DL_FUNC) &_TRexSelectorNeo_trex_gvs_select, 1},
     {"_TRexSelectorNeo_trex_gvs_get_lambda2_used", (DL_FUNC) &_TRexSelectorNeo_trex_gvs_get_lambda2_used, 1},
+    {"_TRexSelectorNeo_trex_gvs_get_lambda2_cv_diagnostics", (DL_FUNC) &_TRexSelectorNeo_trex_gvs_get_lambda2_cv_diagnostics, 1},
     {"_TRexSelectorNeo_trex_gvs_get_gvs_type", (DL_FUNC) &_TRexSelectorNeo_trex_gvs_get_gvs_type, 1},
     {"_TRexSelectorNeo_trex_gvs_get_max_clusters", (DL_FUNC) &_TRexSelectorNeo_trex_gvs_get_max_clusters, 1},
     {"_TRexSelectorNeo_trex_gvs_get_selected_indices", (DL_FUNC) &_TRexSelectorNeo_trex_gvs_get_selected_indices, 1},
@@ -2610,6 +2644,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_TRexSelectorNeo_trex_tikhonov_mmap_create", (DL_FUNC) &_TRexSelectorNeo_trex_tikhonov_mmap_create, 7},
     {"_TRexSelectorNeo_trex_tikhonov_select", (DL_FUNC) &_TRexSelectorNeo_trex_tikhonov_select, 1},
     {"_TRexSelectorNeo_trex_tikhonov_get_lambda2_used", (DL_FUNC) &_TRexSelectorNeo_trex_tikhonov_get_lambda2_used, 1},
+    {"_TRexSelectorNeo_trex_tikhonov_get_lambda2_cv_diagnostics", (DL_FUNC) &_TRexSelectorNeo_trex_tikhonov_get_lambda2_cv_diagnostics, 1},
+    {"_TRexSelectorNeo_trex_tikhonov_get_lambda2_pilot_result", (DL_FUNC) &_TRexSelectorNeo_trex_tikhonov_get_lambda2_pilot_result, 1},
     {"_TRexSelectorNeo_trex_tikhonov_gamma_to_k", (DL_FUNC) &_TRexSelectorNeo_trex_tikhonov_gamma_to_k, 1},
     {"_TRexSelectorNeo_tsolver_lars_create", (DL_FUNC) &_TRexSelectorNeo_tsolver_lars_create, 6},
     {"_TRexSelectorNeo_tsolver_omp_create", (DL_FUNC) &_TRexSelectorNeo_tsolver_omp_create, 6},

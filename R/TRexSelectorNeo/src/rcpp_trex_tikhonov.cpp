@@ -48,6 +48,18 @@ TRexTikhonovControlParameter parse_tikhonov_parameter(const Rcpp::List& control)
         params.tikhonov_K = as_sparse_matrix(control["tikhonov_K"]);
     }
 
+    if (control.containsElementNamed("penalty_structure")) {
+        std::string ps = control["penalty_structure"];
+        if (ps == "SPARSE_GENERAL") {
+            params.penalty_structure = TikPenaltyStructure::SPARSE_GENERAL;
+        } else if (ps == "GROUP_CENTERING") {
+            params.penalty_structure = TikPenaltyStructure::GROUP_CENTERING;
+        } else {
+            Rcpp::stop("Unknown penalty_structure: '" + ps +
+                       "'. Use 'SPARSE_GENERAL' or 'GROUP_CENTERING'.");
+        }
+    }
+
     if (control.containsElementNamed("lambda_2")) {
         params.lambda_2 = control["lambda_2"];
     }
@@ -62,10 +74,15 @@ TRexTikhonovControlParameter parse_tikhonov_parameter(const Rcpp::List& control)
             params.lambda2_method = TikLambda2Method::CV_1SE_TIK_SVD;
         } else if (method_str == "CV_MIN_TIK_SVD") {
             params.lambda2_method = TikLambda2Method::CV_MIN_TIK_SVD;
+        } else if (method_str == "PILOT_MAX") {
+            params.lambda2_method = TikLambda2Method::PILOT_MAX;
+        } else if (method_str == "PILOT_KNEE") {
+            params.lambda2_method = TikLambda2Method::PILOT_KNEE;
         } else {
             Rcpp::stop("Unknown lambda2_method: '" + method_str +
                        "'. Use 'CV_1SE_IEN_CCD', 'CV_MIN_IEN_CCD', "
-                       "'CV_1SE_TIK_SVD', or 'CV_MIN_TIK_SVD'.");
+                       "'CV_1SE_TIK_SVD', 'CV_MIN_TIK_SVD', 'PILOT_MAX', "
+                       "or 'PILOT_KNEE'.");
         }
     }
 
@@ -76,8 +93,65 @@ TRexTikhonovControlParameter parse_tikhonov_parameter(const Rcpp::List& control)
         params.cv_n_lambda =
             static_cast<Eigen::Index>(Rcpp::as<int>(control["cv_n_lambda"]));
     }
+    if (control.containsElementNamed("cv_n_lambda1")) {
+        params.cv_n_lambda1 =
+            static_cast<Eigen::Index>(Rcpp::as<int>(control["cv_n_lambda1"]));
+    }
+    if (control.containsElementNamed("cv_n_lambda2")) {
+        params.cv_n_lambda2 =
+            static_cast<Eigen::Index>(Rcpp::as<int>(control["cv_n_lambda2"]));
+    }
     if (control.containsElementNamed("cv_seed")) {
         params.cv_seed = Rcpp::as<int>(control["cv_seed"]);
+    }
+
+    // ---- Pilot rule (PILOT_MAX / PILOT_KNEE) --------------------------------
+    // Negative counts would wrap through size_t; refuse them here (the C++
+    // constructor gates the rest: pilot_K >= 2, pilot_T >= 1, ...).
+    auto as_count = [&](const char* name) -> std::size_t {
+        const int v = Rcpp::as<int>(control[name]);
+        if (v < 0) {
+            Rcpp::stop(std::string(name) + " must be >= 0.");
+        }
+        return static_cast<std::size_t>(v);
+    };
+    if (control.containsElementNamed("pilot_grid") &&
+        !Rf_isNull(control["pilot_grid"])) {
+        params.pilot_grid = Rcpp::as<std::vector<double>>(control["pilot_grid"]);
+    }
+    if (control.containsElementNamed("pilot_K")) {
+        params.pilot_K = as_count("pilot_K");
+    }
+    if (control.containsElementNamed("pilot_T")) {
+        params.pilot_T = as_count("pilot_T");
+    }
+    if (control.containsElementNamed("pilot_L_multiplier")) {
+        params.pilot_L_multiplier = as_count("pilot_L_multiplier");
+    }
+    if (control.containsElementNamed("pilot_knee_tolerance")) {
+        params.pilot_knee_tolerance =
+            Rcpp::as<double>(control["pilot_knee_tolerance"]);
+    }
+    if (control.containsElementNamed("pilot_statistic")) {
+        std::string stat = control["pilot_statistic"];
+        if (stat == "MAJORITY") {
+            params.pilot_statistic = PilotStatistic::MAJORITY;
+        } else if (stat == "CALIBRATED") {
+            params.pilot_statistic = PilotStatistic::CALIBRATED;
+        } else if (stat == "GROUP_MAJORITY") {
+            params.pilot_statistic = PilotStatistic::GROUP_MAJORITY;
+        } else {
+            Rcpp::stop("Unknown pilot_statistic: '" + stat +
+                       "'. Use 'MAJORITY', 'CALIBRATED', or 'GROUP_MAJORITY'.");
+        }
+    }
+    if (control.containsElementNamed("pilot_group_fraction")) {
+        params.pilot_group_fraction =
+            Rcpp::as<double>(control["pilot_group_fraction"]);
+    }
+    if (control.containsElementNamed("pilot_shared_dummies")) {
+        params.pilot_shared_dummies =
+            Rcpp::as<bool>(control["pilot_shared_dummies"]);
     }
 
     if (control.containsElementNamed("fold_dummy_coupling")) {
@@ -123,6 +197,26 @@ TRexTikhonovControlParameter parse_tikhonov_parameter(const Rcpp::List& control)
 
 // Shared parser from rcpp_trex_selector.cpp
 extern TRexControlParameter parse_control_parameter(const Rcpp::List& control);
+
+// Shared tuner-diagnostics converter from rcpp_trex_gvs.cpp
+extern Rcpp::List lambda2_cv_diagnostics_to_list(
+    const trex::ml_methods::model_selection::lambda2_cv_diagnostics& d);
+
+
+/** @brief A G x T count table (vector of per-grid-point rows) as an R matrix. */
+template <typename T>
+static Rcpp::NumericMatrix rows_to_matrix(const std::vector<std::vector<T>>& rows) {
+    const int G = static_cast<int>(rows.size());
+    const int Tn = (G > 0) ? static_cast<int>(rows[0].size()) : 0;
+    Rcpp::NumericMatrix m(G, Tn);
+    for (int g = 0; g < G; ++g) {
+        for (int t = 0; t < Tn; ++t) {
+            m(g, t) = static_cast<double>(rows[static_cast<std::size_t>(g)]
+                                               [static_cast<std::size_t>(t)]);
+        }
+    }
+    return m;
+}
 
 
 //' @title Create TRexTikhonovSelector
@@ -190,6 +284,53 @@ void trex_tikhonov_select(XPtr<RTRexTikhonovSelector> r_ptr) {
 // [[Rcpp::export]]
 double trex_tikhonov_get_lambda2_used(XPtr<RTRexTikhonovSelector> r_ptr) {
     return r_ptr->get()->getLambda2Used();
+}
+
+
+//' @title Get the lambda_2 tuner diagnostics
+//' @noRd
+// [[Rcpp::export]]
+Rcpp::List trex_tikhonov_get_lambda2_cv_diagnostics(
+    XPtr<RTRexTikhonovSelector> r_ptr) {
+    return lambda2_cv_diagnostics_to_list(
+        r_ptr->get()->getLambda2CVDiagnostics());
+}
+
+
+//' @title Get the lambda_2 pilot record (ran == FALSE when no pilot ran)
+//' @noRd
+// [[Rcpp::export]]
+Rcpp::List trex_tikhonov_get_lambda2_pilot_result(
+    XPtr<RTRexTikhonovSelector> r_ptr) {
+    const Lambda2PilotResult& r = r_ptr->get()->getLambda2PilotResult();
+    auto counts = [](const std::vector<std::size_t>& v) {
+        Rcpp::NumericVector out(v.size());
+        for (std::size_t i = 0; i < v.size(); ++i) {
+            out[static_cast<R_xlen_t>(i)] = static_cast<double>(v[i]);
+        }
+        return out;
+    };
+    return Rcpp::List::create(
+        Rcpp::Named("ran")               = r.ran,
+        Rcpp::Named("grid")              = Rcpp::wrap(r.grid),
+        Rcpp::Named("counts")            = counts(r.counts),
+        Rcpp::Named("curve_majority")    = rows_to_matrix(r.curve_majority),
+        Rcpp::Named("curve_soft")        = rows_to_matrix(r.curve_soft),
+        Rcpp::Named("calibrated")        = counts(r.calibrated),
+        Rcpp::Named("group_majority")    = counts(r.group_majority),
+        Rcpp::Named("groups_qualifying") = counts(r.groups_qualifying),
+        Rcpp::Named("probe_seconds")     = Rcpp::wrap(r.probe_seconds),
+        Rcpp::Named("index")             = static_cast<int>(r.index) + 1,  // 1-based
+        Rcpp::Named("lambda2")           = r.lambda2,
+        Rcpp::Named("max_selected")      = static_cast<double>(r.pick.max_selected),
+        Rcpp::Named("n_ties")            = static_cast<double>(r.pick.n_ties),
+        Rcpp::Named("at_lower_end")      = r.at_lower_end,
+        Rcpp::Named("at_upper_end")      = r.at_upper_end,
+        Rcpp::Named("K_pilot")           = static_cast<double>(r.K_pilot),
+        Rcpp::Named("T_pilot")           = static_cast<double>(r.T_pilot),
+        Rcpp::Named("L_0")               = static_cast<double>(r.L_0),
+        Rcpp::Named("seconds")           = r.seconds
+    );
 }
 
 

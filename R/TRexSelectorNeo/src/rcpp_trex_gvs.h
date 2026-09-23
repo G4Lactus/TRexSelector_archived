@@ -43,9 +43,9 @@ public:
         // The GVS control nests the base T-Rex control; merge the
         // separately-supplied trex_control into that nested field and set
         // the solver_type GVS requires, mirroring the C++ design:
-        //   EN  -> derived from en_solver (TENET / TENET_AUG / TCENET);
+        //   EN  -> derived from en_solver (TENET / TENET_AUG / TCDENET);
         //   IEN -> honors an IEN-family control$solver (TIENET / TIENET_AUG
-        //          / TCIENET), defaulting anything else to TIENET (the
+        //          / TCDIENET), defaulting anything else to TIENET (the
         //          native pathwise IEN solver; the R level warns first).
         namespace gvs_sd = trex::trex_selector_methods::utils::solver_dispatch;
         TRexGVSControlParameter gvs_ctrl = gvs_control;
@@ -55,7 +55,7 @@ public:
             const bool ien_family =
                 st == gvs_sd::SolverTypeForTRex::TIENET ||
                 st == gvs_sd::SolverTypeForTRex::TIENET_AUG ||
-                st == gvs_sd::SolverTypeForTRex::TCIENET;
+                st == gvs_sd::SolverTypeForTRex::TCDIENET;
             if (!ien_family) {
                 gvs_ctrl.trex_ctrl.solver_type =
                     gvs_sd::SolverTypeForTRex::TIENET;
@@ -66,9 +66,9 @@ public:
                     gvs_ctrl.trex_ctrl.solver_type =
                         gvs_sd::SolverTypeForTRex::TENET_AUG;
                     break;
-                case ENSolverType::TCENET:
+                case ENSolverType::TCDENET:
                     gvs_ctrl.trex_ctrl.solver_type =
-                        gvs_sd::SolverTypeForTRex::TCENET;
+                        gvs_sd::SolverTypeForTRex::TCDENET;
                     break;
                 default:
                     gvs_ctrl.trex_ctrl.solver_type =

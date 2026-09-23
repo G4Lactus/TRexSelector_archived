@@ -39,4 +39,4 @@ Suggests:
     patchwork
 VignetteBuilder: knitr
 SystemRequirements: C++20
-Config/roxygen2/version: 8.0.0
+Config/roxygen2/version: 8.1.0

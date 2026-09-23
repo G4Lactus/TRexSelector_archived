@@ -161,7 +161,7 @@ test_that("TRexGVSSelector warns when control$solver does not match the derived 
   )
   expect_no_warning(
     TRexGVSSelector$new(fresh(), y, gvs_control = trex_gvs_control(gvs_type = "IEN"),
-                        control = trex_control(solver = "TCIENET"), verbose = FALSE)
+                        control = trex_control(solver = "TCDIENET"), verbose = FALSE)
   )
   expect_warning(
     TRexGVSSelector$new(fresh(), y, gvs_control = trex_gvs_control(gvs_type = "EN"),
@@ -534,4 +534,44 @@ test_that("GVS-IEN auto-calibrates lambda_2 with the IEN-geometry default", {
   sel$select()
   expect_length(sel$selected_var, p)
   expect_gt(sel$lambda2_used, 0)
+})
+
+
+test_that("the IEN tuner grids pass through and the tuner diagnostics are exposed", {
+  set.seed(42)
+  n <- 80
+  p <- 20
+  z <- matrix(rnorm(n * 4), n, 4)
+  X <- matrix(0, n, p)
+  for (g in 1:4) {
+    for (j in 1:5) {
+      X[, (g - 1) * 5 + j] <- 0.85 * z[, g] + sqrt(1 - 0.85^2) * rnorm(n)
+    }
+  }
+  y <- as.vector(rowSums(X[, 1:3]) * 3 + rnorm(n))
+  groups <- rep(1:4, each = 5)
+
+  # Fixed lambda_2: no tuner ran.
+  sel_fixed <- TRexGVSSelector$new(
+    X + 0, y, tFDR = 0.2, seed = 42, verbose = FALSE,
+    gvs_control = trex_gvs_control(gvs_type = "IEN", lambda_2 = 1.0,
+                                   groups = groups),
+    control = trex_control(K = 5))
+  sel_fixed$select()
+  expect_false(sel_fixed$lambda2_cv_diagnostics$ran)
+
+  # IEN-geometry CV with reduced grids: the tuner ran and is reported.
+  ctrl <- trex_gvs_control(gvs_type = "IEN", lambda_2 = -1, groups = groups,
+                           cv_n_lambda1 = 20, cv_n_lambda2 = 10)
+  expect_identical(ctrl$cv_n_lambda1, 20L)
+  expect_identical(ctrl$cv_n_lambda2, 10L)
+  sel_cv <- TRexGVSSelector$new(
+    X + 0, y, tFDR = 0.2, seed = 42, verbose = FALSE,
+    gvs_control = ctrl, control = trex_control(K = 5))
+  sel_cv$select()
+  diag <- sel_cv$lambda2_cv_diagnostics
+  expect_true(diag$ran)
+  expect_gte(diag$seconds, 0)
+  expect_true(is.numeric(diag$n_profile_at_edge))
+  expect_gt(sel_cv$lambda2_used, 0)
 })

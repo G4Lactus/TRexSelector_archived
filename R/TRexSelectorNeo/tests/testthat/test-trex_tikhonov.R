@@ -46,8 +46,29 @@ test_that("trex_tikhonov_control validates its arguments", {
   )
   ctrl <- trex_tikhonov_control(tikhonov_K = diag(4))
   expect_identical(ctrl$lambda2_method, "CV_1SE_IEN_CCD")
+  expect_identical(ctrl$penalty_structure, "SPARSE_GENERAL")
   expect_true(ctrl$fold_dummy_coupling)
   expect_true(ctrl$cluster_dummies)
+  expect_identical(ctrl$cv_n_lambda1, 40L)
+  expect_identical(ctrl$cv_n_lambda2, 100L)
+
+  # GROUP_CENTERING builds K itself: no tikhonov_K needed.
+  gc <- trex_tikhonov_control(penalty_structure = "GROUP_CENTERING",
+                              lambda2_method = "PILOT_KNEE")
+  expect_null(gc$tikhonov_K)
+  expect_identical(gc$lambda2_method, "PILOT_KNEE")
+  expect_identical(gc$pilot_statistic, "MAJORITY")
+
+  # Pilot gates.
+  expect_error(trex_tikhonov_control(tikhonov_K = diag(4), pilot_K = 1),
+               "pilot_K must be >= 2")
+  expect_error(trex_tikhonov_control(tikhonov_K = diag(4), pilot_T = 0),
+               "pilot_T must be >= 1")
+  expect_error(trex_tikhonov_control(tikhonov_K = diag(4), pilot_grid = c(1, -1)),
+               "pilot_grid")
+  expect_error(trex_tikhonov_control(tikhonov_K = diag(4),
+                                     pilot_group_fraction = 1.5),
+               "pilot_group_fraction")
 })
 
 
@@ -80,7 +101,7 @@ test_that("construction gates translate as R errors", {
     "prior_groups"
   )
 
-  # Non-TCIENET solver choice warns (and is overridden).
+  # A non-Tikhonov-family solver choice warns (and falls back to TCDTIKNET).
   expect_warning(
     TRexTikhonovSelector$new(
       d$X, d$y, verbose = FALSE,
@@ -88,12 +109,80 @@ test_that("construction gates translate as R errors", {
                                           lambda_2 = 0.5,
                                           cluster_dummies = FALSE),
       control = trex_control(solver = "TOMP")),
-    "requires \"TCIENET\""
+    "not a Tikhonov-family solver"
+  )
+
+  # fold_dummy_coupling = FALSE exists only on the TCDTIKNET path. (The
+  # warning case above constructed a live selector on d$X; a fresh copy
+  # keeps the shared-buffer guard out of this check.)
+  expect_error(
+    TRexTikhonovSelector$new(
+      d$X + 0, d$y, verbose = FALSE,
+      tik_control = trex_tikhonov_control(tikhonov_K = diag(d$p),
+                                          lambda_2 = 0.5,
+                                          fold_dummy_coupling = FALSE),
+      control = trex_control(solver = "TIKNET")),
+    "TCDTIKNET"
   )
 })
 
 
-test_that("K = I with both escape hatches collapses onto the TCENET run", {
+test_that("TIKNET and TCDTIKNET agree on the zero-K path (all-singleton GROUP_CENTERING)", {
+  d <- .make_tik_data()
+
+  # A HAC cut above the within-group correlation yields singletons: K_GC
+  # vanishes and the path is the plain lasso on per-variable cluster
+  # dummies. Both solvers must run and select identically.
+  run <- function(solver) {
+    sel <- TRexTikhonovSelector$new(
+      d$X + 0, d$y, tFDR = 0.2, seed = 42, verbose = FALSE,
+      tik_control = trex_tikhonov_control(
+        penalty_structure = "GROUP_CENTERING",
+        prior_groups = seq_len(d$p), lambda_2 = 10),
+      control = trex_control(solver = solver, K = 5,
+                             max_dummy_multiplier = 2))
+    sel$select()
+    sel$selected_var
+  }
+
+  sel_cd   <- run("TCDTIKNET")
+  sel_lars <- run("TIKNET")
+  expect_gt(sum(sel_cd), 0)
+  expect_identical(sel_cd, sel_lars)
+})
+
+
+test_that("the pilot rule picks lambda_2 from its grid and records the profile", {
+  d <- .make_tik_data()
+
+  sel <- TRexTikhonovSelector$new(
+    d$X, d$y, tFDR = 0.2, seed = 42, verbose = FALSE,
+    tik_control = trex_tikhonov_control(
+      tikhonov_K = .group_mean_k(d$p), prior_groups = d$groups,
+      lambda_2 = -1, lambda2_method = "PILOT_MAX",
+      pilot_grid = c(10, 0, 1), pilot_K = 5, pilot_T = 3),
+    control = trex_control(K = 5, max_dummy_multiplier = 2))
+  sel$select()
+
+  pilot <- sel$lambda2_pilot
+  expect_true(pilot$ran)
+  expect_identical(pilot$grid, c(0, 1, 10))        # sorted, de-duplicated
+  expect_length(pilot$counts, 3)
+  expect_equal(dim(pilot$curve_majority), c(3, 3))  # G x T_pilot
+  expect_equal(dim(pilot$curve_soft), c(3, 3))
+  expect_identical(pilot$K_pilot, 5)
+  expect_identical(pilot$T_pilot, 3)
+  expect_identical(pilot$L_0, d$p)
+  expect_true(pilot$index %in% 1:3)
+  expect_identical(pilot$grid[pilot$index], pilot$lambda2)
+  expect_identical(sel$lambda2_used, pilot$lambda2)
+  expect_identical(pilot$counts[pilot$index], pilot$max_selected)
+  # The pilot is timed as the lambda_2 resolution step.
+  expect_true(sel$lambda2_cv_diagnostics$ran)
+})
+
+
+test_that("K = I with both escape hatches collapses onto the TCDENET run", {
   d <- .make_tik_data()
 
   run_tik <- function() {
@@ -102,7 +191,7 @@ test_that("K = I with both escape hatches collapses onto the TCENET run", {
       tik_control = trex_tikhonov_control(
         tikhonov_K = diag(d$p), lambda_2 = 0.5,
         cluster_dummies = FALSE,       # i.i.d. dummies: base parity
-        fold_dummy_coupling = FALSE),  # independent dummy ridge: TCENET
+        fold_dummy_coupling = FALSE),  # independent dummy ridge: TCDENET
       control = trex_control(K = 5, max_dummy_multiplier = 2))
     sel$select()
     sel$selected_var
@@ -110,7 +199,7 @@ test_that("K = I with both escape hatches collapses onto the TCENET run", {
   run_tcenet <- function() {
     sel <- TRexSelector$new(
       d$X + 0, d$y, tFDR = 0.2, seed = 42, verbose = FALSE,
-      control = trex_control(solver = "TCENET", lambda2 = 0.5, K = 5,
+      control = trex_control(solver = "TCDENET", lambda2 = 0.5, K = 5,
                              max_dummy_multiplier = 2))
     sel$select()
     sel$selected_var
@@ -120,7 +209,7 @@ test_that("K = I with both escape hatches collapses onto the TCENET run", {
 })
 
 
-test_that("group-mean K with prior groups matches GVS-IEN TCIENET", {
+test_that("group-mean K with prior groups matches GVS-IEN TCDIENET", {
   d <- .make_tik_data()
 
   run_tik <- function() {
@@ -138,7 +227,7 @@ test_that("group-mean K with prior groups matches GVS-IEN TCIENET", {
       d$X + 0, d$y, tFDR = 0.2, seed = 42, verbose = FALSE,
       gvs_control = trex_gvs_control(gvs_type = "IEN", lambda_2 = 1.0,
                                      groups = d$groups),
-      control = trex_control(solver = "TCIENET", K = 5,
+      control = trex_control(solver = "TCDIENET", K = 5,
                              max_dummy_multiplier = 2))
     sel$select()
     sel$selected_var
@@ -162,6 +251,9 @@ test_that("prior-groups end-to-end recovers the planted signal", {
   idx <- sel$selected_indices
   expect_true(length(intersect(idx, 1:3)) >= 2)
   expect_identical(sel$lambda2_used, 1.0)
+  # A caller-supplied lambda_2: neither a tuner nor a pilot ran.
+  expect_false(sel$lambda2_cv_diagnostics$ran)
+  expect_false(sel$lambda2_pilot$ran)
 })
 
 
@@ -172,11 +264,17 @@ test_that("lambda_2 auto-resolves via the IEN-geometry tuner", {
     d$X, d$y, tFDR = 0.2, seed = 42, verbose = FALSE,
     tik_control = trex_tikhonov_control(
       tikhonov_K = .group_mean_k(d$p), lambda_2 = -1,
-      prior_groups = d$groups),
+      prior_groups = d$groups,
+      cv_n_lambda1 = 20, cv_n_lambda2 = 10),
     control = trex_control(K = 5, max_dummy_multiplier = 2))
   sel$select()
 
   expect_gt(sel$lambda2_used, 0)
+  diag <- sel$lambda2_cv_diagnostics
+  expect_true(diag$ran)
+  expect_gte(diag$seconds, 0)
+  expect_gte(diag$n_profile_at_edge, 0)
+  expect_false(sel$lambda2_pilot$ran)
 })
 
 

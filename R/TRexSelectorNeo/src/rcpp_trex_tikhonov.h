@@ -23,10 +23,11 @@ using namespace trex::trex_selector_methods::trex_core;
 /**
  * @brief Rcpp wrapper class for TRexTikhonovSelector (general-Tikhonov T-Rex).
  *
- * Maps R objects to the C++ structures for the sparse-K informed selector.
- * The nested base control is merged from the separately-supplied
- * trex_control; solver_type is forced to TCIENET (the only solver with a
- * general-K mode — the R level warns first on an explicit mismatch).
+ * Maps R objects to the C++ structures for the sparse-K selector. The nested
+ * base control is merged from the separately-supplied trex_control; a
+ * Tikhonov-family solver_type (TCDTIKNET / TIKNET / TIKOMP — the only
+ * solvers with a general-K mode) is honored, anything else becomes the
+ * TCDTIKNET default (the R level warns first on an explicit mismatch).
  */
 class RTRexTikhonovSelector : public RTRexSelector {
 public:
@@ -45,9 +46,17 @@ public:
         namespace tik_sd = trex::trex_selector_methods::utils::solver_dispatch;
         TRexTikhonovControlParameter tik_ctrl = tik_control;
         tik_ctrl.trex_ctrl = trex_control;
-        // The C++ constructor rejects any other solver; the caller-facing
-        // default (TLARS) is neutral, so force the required TCIENET here.
-        tik_ctrl.trex_ctrl.solver_type = tik_sd::SolverTypeForTRex::TCIENET;
+        // The C++ constructor rejects any non-Tikhonov solver; the
+        // caller-facing default (TLARS) is neutral, so it becomes TCDTIKNET.
+        const auto st = tik_ctrl.trex_ctrl.solver_type;
+        const bool tik_family =
+            st == tik_sd::SolverTypeForTRex::TCDTIKNET ||
+            st == tik_sd::SolverTypeForTRex::TIKNET ||
+            st == tik_sd::SolverTypeForTRex::TIKOMP;
+        if (!tik_family) {
+            tik_ctrl.trex_ctrl.solver_type =
+                tik_sd::SolverTypeForTRex::TCDTIKNET;
+        }
 
         this->selector_ = std::make_unique<TRexTikhonovSelector>(
             *(this->X_map_), *(this->y_map_), tFDR, tik_ctrl, seed, verbose

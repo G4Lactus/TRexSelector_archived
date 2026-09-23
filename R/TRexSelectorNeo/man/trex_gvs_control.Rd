@@ -15,6 +15,8 @@ trex_gvs_control(
   groups = NULL,
   cv_n_folds = 10,
   cv_n_lambda = 1000,
+  cv_n_lambda1 = 40,
+  cv_n_lambda2 = 100,
   cv_seed = -1
 )
 }
@@ -46,8 +48,9 @@ IEN-geometry \code{"CV_1SE_IEN_CCD"}, \code{"CV_MIN_IEN_CCD"},
 
 \item{en_solver}{Elastic Net solver variant for \code{gvs_type = "EN"}:
 \code{"TENET"} (default, Gram-based), \code{"TENET_AUG"}
-(row-augmented LASSO), or \code{"TCENET"} (CCD; exact fixed-lambda1
-elastic-net minimizers per dummy crossing). All solve the same EN
+(row-augmented LASSO), or \code{"TCDENET"} (coordinate descent; exact
+fixed-lambda1 elastic-net minimizers per dummy crossing). All solve
+the same EN
 problem and select the same variables up to path-vs-minimizer
 differences; the switch exists to validate solver equivalence,
 \strong{not} to choose a LARS vs LASSO path (for that, see
@@ -69,6 +72,17 @@ Ignored when \code{lambda_2 >= 0}.}
 the CV auto-computation of \code{lambda_2} (default: 1000). Ignored when
 \code{lambda_2 >= 0}.}
 
+\item{cv_n_lambda1}{IEN-geometry coordinate-descent tuners
+(\code{"CV_1SE_IEN_CCD"}, \code{"CV_MIN_IEN_CCD"}) only: points on the
+profiled lambda_1 path per lambda_2 value (default: 40, the shortest
+path that still reproduces the 100-point picks; the cost is U-shaped
+in this number). Ignored by the other rules and when
+\code{lambda_2 >= 0}.}
+
+\item{cv_n_lambda2}{IEN-geometry coordinate-descent tuners only: points
+on the lambda_2 grid (default: 100). Ignored by the other rules and
+when \code{lambda_2 >= 0}.}
+
 \item{cv_seed}{Seed for the deterministic fold-permutation RNG used by the CV
 \code{lambda2_method} paths. \code{-1} (default) derives it from the T-Rex
 \code{seed} (deterministic when \code{seed >= 0}, hardware entropy when
@@ -82,9 +96,9 @@ A named list for use in TRexGVSSelector.
 Build a control list for group variable selection augmentation policy in
 TRexGVSSelector. The solver is determined automatically from \code{gvs_type}:
 "EN" selects the T-Elastic-Net solver via \code{en_solver} — TENET
-(default), with TENET_AUG and TCENET as optional variants; "IEN" honors
+(default), with TENET_AUG and TCDENET as optional variants; "IEN" honors
 an IEN-family \code{solver} field in \code{\link{trex_control}} —
-TIENET (default, native pathwise), with TIENET_AUG and TCIENET as
+TIENET (default, native pathwise), with TIENET_AUG and TCDIENET as
 optional variants. For \code{gvs_type = "EN"} the \code{solver} field
 is ignored.
 }
