@@ -295,9 +295,15 @@ class TRexGVSSelector(TRexSelector):
         Returns a Lambda2CVDiagnostics: ``ran`` (a tuner ran; False when
         lambda_2 came from the caller), ``seconds``, ``n_profile_at_edge``
         (lambda_2 values whose profiled lambda_1 optimum sat on a
-        truncation edge; 0 is healthy), ``support_cap`` (-1 = disabled) and
-        ``low_dimensional``. The same record is carried in
-        ``GVSSelectionResult.lambda2_cv``.
+        truncation edge; 0 is healthy), ``support_cap`` (-1 = disabled),
+        ``low_dimensional``, and the boundary-pick guard fields
+        ``grid_index`` / ``grid_size`` (0-based position of the returned
+        lambda_2 on the tuner's grid), ``at_grid_edge`` (first or last grid
+        point: the grid boundary, not a CV optimum), ``profile_at_edge``
+        (IEN tuner: the chosen lambda_2's profiled lambda_1 optimum sat on
+        the truncation edge) and ``boundary_pick`` (either; the selector
+        warned once and returned the pick unchanged). The same record is
+        carried in ``GVSSelectionResult.lambda2_cv``.
         """
         return self._selector.getLambda2CVDiagnostics()
 

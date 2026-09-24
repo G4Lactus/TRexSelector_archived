@@ -675,10 +675,30 @@ class LLoopStrategy:
         ...
 class Lambda2CVDiagnostics:
     """
-    Health record of a lambda_2 tuner run: whether it ran, its cost, and whether the profiled optimum sat on a truncation edge.
+    Health record of a lambda_2 tuner run: whether it ran, its cost, the truncation-edge count, and the boundary-pick guard fields for the returned pick (grid_index / grid_size, at_grid_edge, profile_at_edge, boundary_pick).
     """
     def __init__(self) -> None:
         ...
+    @property
+    def at_grid_edge(self) -> bool:
+        """
+        The returned lambda_2 is the first or last grid point: the grid boundary, not a CV optimum.
+        """
+    @property
+    def boundary_pick(self) -> bool:
+        """
+        at_grid_edge or profile_at_edge: the selector warned once and returned the pick unchanged.
+        """
+    @property
+    def grid_index(self) -> int:
+        """
+        0-based index of the returned lambda_2 on the tuner's grid (-1: no tuner ran).
+        """
+    @property
+    def grid_size(self) -> int:
+        """
+        Number of lambda_2 grid points searched (0: no tuner ran).
+        """
     @property
     def low_dimensional(self) -> bool:
         """
@@ -688,6 +708,11 @@ class Lambda2CVDiagnostics:
     def n_profile_at_edge(self) -> int:
         """
         lambda_2 values whose profiled lambda_1 optimum landed on a truncation edge (0 = healthy).
+        """
+    @property
+    def profile_at_edge(self) -> bool:
+        """
+        IEN tuner: the profiled lambda_1 optimum of the chosen lambda_2 sat on the truncation edge of the lambda_1 path.
         """
     @property
     def ran(self) -> bool:

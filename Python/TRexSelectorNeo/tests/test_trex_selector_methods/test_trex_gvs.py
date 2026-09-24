@@ -324,3 +324,10 @@ def test_gvs_ien_tuner_grids_and_diagnostics(signal_data):
     assert diag.seconds >= 0.0
     assert diag.n_profile_at_edge >= 0
     assert res.lambda2_used > 0
+
+    # Boundary-pick guard fields (PLAN WP6): the chosen pick on its grid.
+    assert diag.grid_size == 10
+    assert 0 <= diag.grid_index < diag.grid_size
+    assert isinstance(diag.at_grid_edge, bool) and isinstance(diag.profile_at_edge, bool)
+    assert diag.boundary_pick == (diag.at_grid_edge or diag.profile_at_edge)
+    assert diag.at_grid_edge == (diag.grid_index in (0, diag.grid_size - 1))

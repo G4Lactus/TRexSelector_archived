@@ -138,13 +138,19 @@ inline void bind_trex_gvs(py::module& m) {
         .export_values();
 
     py::class_<trex::ml_methods::model_selection::lambda2_cv_diagnostics>(m, "Lambda2CVDiagnostics",
-        "Health record of a lambda_2 tuner run: whether it ran, its cost, and whether the profiled optimum sat on a truncation edge.")
+        "Health record of a lambda_2 tuner run: whether it ran, its cost, the truncation-edge count, and the boundary-pick guard fields for the returned pick (grid_index / grid_size, at_grid_edge, profile_at_edge, boundary_pick).")
         .def(py::init<>())
         .def_readonly("ran", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::ran, "A tuner ran (False: lambda_2 came from the caller).")
         .def_readonly("seconds", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::seconds, "Wall-clock seconds spent resolving lambda_2.")
         .def_readonly("n_profile_at_edge", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::n_profile_at_edge, "lambda_2 values whose profiled lambda_1 optimum landed on a truncation edge (0 = healthy).")
         .def_readonly("support_cap", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::support_cap, "Support cap (glmnet dfmax) applied, or -1 when disabled.")
-        .def_readonly("low_dimensional", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::low_dimensional, "p <= cap: the cap was inert.");
+        .def_readonly("low_dimensional", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::low_dimensional, "p <= cap: the cap was inert.")
+        // Boundary-pick guard (PLAN WP6): the chosen pick on its grid.
+        .def_readonly("grid_index", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::grid_index, "0-based index of the returned lambda_2 on the tuner's grid (-1: no tuner ran).")
+        .def_readonly("grid_size", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::grid_size, "Number of lambda_2 grid points searched (0: no tuner ran).")
+        .def_readonly("at_grid_edge", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::at_grid_edge, "The returned lambda_2 is the first or last grid point: the grid boundary, not a CV optimum.")
+        .def_readonly("profile_at_edge", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::profile_at_edge, "IEN tuner: the profiled lambda_1 optimum of the chosen lambda_2 sat on the truncation edge of the lambda_1 path.")
+        .def_readonly("boundary_pick", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::boundary_pick, "at_grid_edge or profile_at_edge: the selector warned once and returned the pick unchanged.");
 
     py::enum_<LambdaSelectionMethod>(m, "LambdaSelectionMethod", "Rule for auto-selecting the ridge parameter lambda_2 when lambda_2 < 0.")
         .value("CV_1SE_SVD", LambdaSelectionMethod::CV_1SE_SVD, "JacobiSVD ridge CV, 1-SE rule.")
