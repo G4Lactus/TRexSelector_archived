@@ -23,6 +23,9 @@
 #include <cereal/types/string.hpp>
 #include <cereal/types/vector.hpp>
 
+// overflow-checked byte counts
+#include <utils/checked_arith.hpp>
+
 // ===================================================================================
 // Augment Eigen namespace for CEREAL serialization support
 // ===================================================================================
@@ -50,7 +53,8 @@ void save(Archive &ar, const Eigen::PlainObjectBase<Derived>& m) {
     std::size_t rows = m.rows();
     std::size_t cols = m.cols();
     ar(rows, cols);
-    ar(cereal::binary_data(m.data(), rows * cols * sizeof(Scalar)));
+    ar(cereal::binary_data(m.data(), trex::utils::checked_arith::checked_bytes(
+                                         rows, cols, sizeof(Scalar), "cereal save")));
 }
 
 
@@ -70,8 +74,12 @@ void load(Archive &ar, Eigen::PlainObjectBase<Derived>& m) {
                  "Scalar must be an arithmetic type");
     std::size_t rows, cols;
     ar(rows, cols);
+    // Checked before resize(): a corrupted header with a wrapping product
+    // must not turn into a short read over a live buffer.
+    const std::size_t bytes = trex::utils::checked_arith::checked_bytes(
+        rows, cols, sizeof(Scalar), "cereal load");
     m.resize(rows, cols);
-    ar(cereal::binary_data(m.data(), rows * cols * sizeof(Scalar)));
+    ar(cereal::binary_data(m.data(), bytes));
 }
 
 

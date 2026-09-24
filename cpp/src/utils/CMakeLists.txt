@@ -35,7 +35,7 @@ target_include_directories(trex_utils PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
 
     # Install-tree
-    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:${TREX_INSTALL_INCLUDE_ROOT}>
 )
 # ==================================================================================
 
@@ -85,7 +85,7 @@ target_sources(trex_utils PUBLIC
     FILE_SET HEADERS
     BASE_DIRS
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
-        $<INSTALL_INTERFACE:include>
+        $<INSTALL_INTERFACE:${TREX_INSTALL_INCLUDE_ROOT}>
     FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/datageneration/utils_datagen.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/datageneration/utils_dummygen.hpp
@@ -95,6 +95,7 @@ target_sources(trex_utils PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/eval_metrics/utils_eval_counts.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/eval_metrics/utils_eval_rates.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/fp_classify/fp_classify.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/checked_arith.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/global_temp_dir.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/logging/logger.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/memmap/memory_mapped_matrix.hpp
@@ -119,12 +120,14 @@ add_subdirectory(serialization)
 # ==================================================================================
 # 6. Installation
 # ==================================================================================
+if(TREX_INSTALL_CPP_SDK)
 install(TARGETS trex_utils
     EXPORT TRexSelectorTargets
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
     FILE_SET HEADERS
-        DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+        DESTINATION ${TREX_INSTALL_INCLUDE_ROOT}
 )
+endif()
 # ==================================================================================

@@ -110,7 +110,8 @@ public:
     /** @brief Get number of columns */
     std::size_t cols() const { return cols_; }
 
-    /** @brief Get total size (rows * columns) */
+    /** @brief Get total size (rows * columns). Cannot wrap: the constructor
+     *  already verified that rows * cols * sizeof(Scalar) fits std::size_t. */
     std::size_t size() const { return rows_ * cols_; }
 
     // Element Access (Eigen-like interface)
