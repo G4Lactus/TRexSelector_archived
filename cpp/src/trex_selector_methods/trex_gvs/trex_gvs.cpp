@@ -31,6 +31,7 @@
 
 // GVS header
 #include <trex_selector_methods/trex_gvs/trex_gvs.hpp>
+#include <utils/logging/logger.hpp>
 
 // Ridge lambda-selection (header-only): four retained k-fold CV variants.
 //   SVD      -> ridge_cv_svd    (JacobiSVD direct ridge)
@@ -412,6 +413,24 @@ void TRexGVSSelector::finalizeSetup() {
 // selected in TRexGVSControlParameter::lambda2_method.
 // ===================================================================================
 
+namespace {
+
+/** @brief The boundary-pick guard (PLAN WP6, warning-only): one warning
+ *  when the returned lambda_2 sits on its grid boundary or, for the IEN
+ *  tuner, when its profiled lambda_1 optimum sits on the truncation edge.
+ *  The pick is returned unchanged; getLambda2CVDiagnostics() carries the
+ *  flags. Not gated on verbose: a boundary pick is a result-quality
+ *  condition the caller must see. */
+void warnIfBoundaryPick(const ms::lambda2_cv_diagnostics& d,
+                        const char* method, double lambda2) {
+    const std::string msg =
+        ms::boundary_pick_message(d, "TRexGVSSelector", method, lambda2);
+    if (!msg.empty()) { TREX_WARN(msg); }
+}
+
+} // namespace
+
+
 double TRexGVSSelector::computeLambda2() const {
 
     lambda2_cv_diag_ = ms::lambda2_cv_diagnostics{};
@@ -515,11 +534,14 @@ double TRexGVSSelector::computeLambda2() const {
                        trex_gvs_ctrl_.cv_n_lambda1,
                        /*lambda1_min_ratio=*/-1.0,
                        resolved_cv_seed_);
-                lambda2_cv_diag_ = cv.diagnostics();
-                const double l2 =
+                const bool one_se =
                     (trex_gvs_ctrl_.lambda2_method ==
-                     LambdaSelectionMethod::CV_MIN_IEN_CCD)
-                        ? cv.cv_min() : cv.cv_1se();
+                     LambdaSelectionMethod::CV_1SE_IEN_CCD);
+                lambda2_cv_diag_ = cv.diagnostics(one_se);
+                const double l2 = one_se ? cv.cv_1se() : cv.cv_min();
+                warnIfBoundaryPick(lambda2_cv_diag_,
+                                   one_se ? "CV_1SE_IEN_CCD" : "CV_MIN_IEN_CCD",
+                                   l2 * scale_adjust_ien);
                 return l2 * scale_adjust_ien;
             }
             case LambdaSelectionMethod::CV_1SE_TIK_SVD:
@@ -543,10 +565,16 @@ double TRexGVSSelector::computeLambda2() const {
                         "floor-driven). Use CV_*_IEN_CCD instead.");
                 }
                 lambda2_cv_diag_.ran = true;
-                const double l2 =
+                const bool one_se =
                     (trex_gvs_ctrl_.lambda2_method ==
-                     LambdaSelectionMethod::CV_MIN_TIK_SVD)
-                        ? cv.cv_min() : cv.cv_1se();
+                     LambdaSelectionMethod::CV_1SE_TIK_SVD);
+                ms::record_grid_pick(lambda2_cv_diag_,
+                                     one_se ? cv.index_1se() : cv.index_min(),
+                                     cv.lambdas().size());
+                const double l2 = one_se ? cv.cv_1se() : cv.cv_min();
+                warnIfBoundaryPick(lambda2_cv_diag_,
+                                   one_se ? "CV_1SE_TIK_SVD" : "CV_MIN_TIK_SVD",
+                                   l2 * scale_adjust_ien);
                 return l2 * scale_adjust_ien;
             }
             default: break;  // unreachable
@@ -554,6 +582,7 @@ double TRexGVSSelector::computeLambda2() const {
     }
 
     double lambda_cv = 0.0;
+    const char* method_name = "";
     switch (trex_gvs_ctrl_.lambda2_method) {
         // == SVD-based CV (ridge_cv_svd, JacobiSVD direct ridge) =====================
         case LambdaSelectionMethod::CV_MIN_SVD: {
@@ -564,6 +593,8 @@ double TRexGVSSelector::computeLambda2() const {
                    /*lambda_ratio=*/1000.0,
                    resolved_cv_seed_);
             lambda_cv = cv.cv_min();
+            ms::record_grid_pick(lambda2_cv_diag_, cv.index_min(), cv.lambdas().size());
+            method_name = "CV_MIN_SVD";
             break;
         }
         case LambdaSelectionMethod::CV_1SE_SVD: {
@@ -575,6 +606,8 @@ double TRexGVSSelector::computeLambda2() const {
                    /*lambda_ratio=*/1000.0,
                    resolved_cv_seed_);
             lambda_cv = cv.cv_1se();
+            ms::record_grid_pick(lambda2_cv_diag_, cv.index_1se(), cv.lambdas().size());
+            method_name = "CV_1SE_SVD";
             break;
         }
 
@@ -588,6 +621,11 @@ double TRexGVSSelector::computeLambda2() const {
                    /*lambda_min_ratio=*/-1.0,   // auto: 1e-4 (n>p) or 1e-2 (n<=p)
                    resolved_cv_seed_);
             lambda_cv = cv.cv_min();
+            // A last-point pick on a deviance-truncated path is benign
+            // (see enet_cv_ccd::grid_truncated()).
+            ms::record_grid_pick(lambda2_cv_diag_, cv.index_min(), cv.lambdas().size(),
+                                 /*upper_edge_benign=*/cv.grid_truncated());
+            method_name = "CV_MIN_CCD";
             break;
         }
         case LambdaSelectionMethod::CV_1SE_CCD: {
@@ -600,6 +638,9 @@ double TRexGVSSelector::computeLambda2() const {
                    /*lambda_min_ratio=*/-1.0,
                    resolved_cv_seed_);
             lambda_cv = cv.cv_1se();
+            ms::record_grid_pick(lambda2_cv_diag_, cv.index_1se(), cv.lambdas().size(),
+                                 /*upper_edge_benign=*/cv.grid_truncated());
+            method_name = "CV_1SE_CCD";
             break;
         }
         default:
@@ -616,7 +657,9 @@ double TRexGVSSelector::computeLambda2() const {
             ? static_cast<double>(n_ - 1)
             : 1.0;
 
-    return lambda_cv * static_cast<double>(p_) / 2.0 * scale_adjust;
+    const double lambda2_lars = lambda_cv * static_cast<double>(p_) / 2.0 * scale_adjust;
+    warnIfBoundaryPick(lambda2_cv_diag_, method_name, lambda2_lars);
+    return lambda2_lars;
 
 }
 

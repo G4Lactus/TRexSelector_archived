@@ -31,6 +31,7 @@
 
 // Seed mixing (CV fold seed derivation, mirrors TRexGVSSelector)
 #include <utils/datageneration/utils_dummygen.hpp>
+#include <utils/logging/logger.hpp>
 
 // ===================================================================================
 
@@ -373,6 +374,24 @@ er::ExperimentRunnerConfig TRexTikhonovSelector::buildRunnerConfig(
 // lambda_2 — user supplied or auto-computed via the sparse-K tuners
 // ===================================================================================
 
+namespace {
+
+/** @brief The boundary-pick guard (PLAN WP6, warning-only): one warning
+ *  when the returned lambda_2 sits on its grid boundary or, for the IEN
+ *  tuner, when its profiled lambda_1 optimum sits on the truncation edge.
+ *  The pick is returned unchanged; getLambda2CVDiagnostics() carries the
+ *  flags. Not gated on verbose: a boundary pick is a result-quality
+ *  condition the caller must see. */
+void warnIfBoundaryPick(const ms::lambda2_cv_diagnostics& d,
+                        const char* method, double lambda2) {
+    const std::string msg =
+        ms::boundary_pick_message(d, "TRexTikhonovSelector", method, lambda2);
+    if (!msg.empty()) { TREX_WARN(msg); }
+}
+
+} // namespace
+
+
 double TRexTikhonovSelector::computeLambda2() const {
 
     lambda2_cv_diag_ = ms::lambda2_cv_diagnostics{};
@@ -412,11 +431,14 @@ double TRexTikhonovSelector::computeLambda2() const {
                    trex_tik_ctrl_.cv_n_lambda1,
                    /*lambda1_min_ratio=*/-1.0,
                    resolved_cv_seed_);
-            lambda2_cv_diag_ = cv.diagnostics();
-            const double l2 =
+            const bool one_se =
                 (trex_tik_ctrl_.lambda2_method ==
-                 TikLambda2Method::CV_MIN_IEN_CCD)
-                    ? cv.cv_min() : cv.cv_1se();
+                 TikLambda2Method::CV_1SE_IEN_CCD);
+            lambda2_cv_diag_ = cv.diagnostics(one_se);
+            const double l2 = one_se ? cv.cv_1se() : cv.cv_min();
+            warnIfBoundaryPick(lambda2_cv_diag_,
+                               one_se ? "CV_1SE_IEN_CCD" : "CV_MIN_IEN_CCD",
+                               l2 * scale_adjust);
             return l2 * scale_adjust;
         }
         case TikLambda2Method::CV_1SE_TIK_SVD:
@@ -439,10 +461,16 @@ double TRexTikhonovSelector::computeLambda2() const {
                     "instead.");
             }
             lambda2_cv_diag_.ran = true;
-            const double l2 =
+            const bool one_se =
                 (trex_tik_ctrl_.lambda2_method ==
-                 TikLambda2Method::CV_MIN_TIK_SVD)
-                    ? cv.cv_min() : cv.cv_1se();
+                 TikLambda2Method::CV_1SE_TIK_SVD);
+            ms::record_grid_pick(lambda2_cv_diag_,
+                                 one_se ? cv.index_1se() : cv.index_min(),
+                                 cv.lambdas().size());
+            const double l2 = one_se ? cv.cv_1se() : cv.cv_min();
+            warnIfBoundaryPick(lambda2_cv_diag_,
+                               one_se ? "CV_1SE_TIK_SVD" : "CV_MIN_TIK_SVD",
+                               l2 * scale_adjust);
             return l2 * scale_adjust;
         }
         case TikLambda2Method::PILOT_MAX:
