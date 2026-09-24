@@ -76,6 +76,34 @@
   Designs that carry constant columns must drop them now (breaking, deliberate:
   PLAN WP4 4.1 (d)). The matrix is unmodified when the constructor throws.
 
+#### T-solver constructors take one options structure (breaking)
+
+- Every T-solver is constructed as `Solver(X, D, y, options)`, with
+  `trex::tsolvers::SolverOptions` (`tsolvers/solver_options.hpp`) carrying every other
+  input: the preprocessing flags (`normalize`, `intercept`, `scaling_mode`, `verbose`),
+  the tolerance, the tie-break seed and the exchangeable-tie configuration, and the
+  family hyperparameters (`lambda2`, `rho_afs`, `ncgmp_variant`, `tenet_aug_use_lars`,
+  `kappa_dummy`, `fold_dummies`, `group_penalty`, the `cd_*` knobs). The structural
+  inputs that are data, not options, stay explicit: the group vector of the IEN solvers
+  (`TIENET`, `TIENETAug`, `TCDIENET`) and the Tikhonov matrix of the sparse-K solvers
+  (`TIKNET`, `TIKOMP`, `TCDTIKNET`) follow `y`. Each family reads the fields it needs;
+  the defaults are the former solver-level defaults (`lambda2` defaults to 0, the lasso
+  path, where it used to be a required argument). The positional constructors with
+  their boolean triple and trailing enum are gone; the `NCGMPVariant` and
+  `GroupPenaltyVariant` enums moved next to the structure (their old names still
+  resolve). The T-Rex layer maps its `SolverHyperparameters` onto the structure in one
+  place of the dispatch, which lost its per-family constructor table and its
+  post-construction setters; selections are unchanged (the full suite is bitwise the
+  same on the anchors).
+- R: `tsolver_options()` builds the list every solver's `$new(X, D, y, options = ...)`
+  takes (`TIENETAug_Solver$new(X, D, y, groups, options = ...)`); the per-solver
+  arguments `normalize`, `intercept`, `verbose`, `lambda2`, `rho`, `variant` and
+  `use_lars_inner` are gone (`rho` is `rho_afs`, `variant` is `ncgmp_variant`).
+- Python: `trex_selector_neo.tsolvers.SolverOptions` with a keyword constructor
+  (`SolverOptions(lambda2=0.5, normalize=False)`), passed as the fourth positional or
+  the `options=` keyword; `GroupPenaltyVariant` exported next to it. The former
+  keyword arguments of the solver constructors are gone.
+
 #### lambda_2 tuner boundary guard (warning-only)
 
 - The GVS and Tikhonov selectors warn once when a CV tuner returns a
