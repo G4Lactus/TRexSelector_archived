@@ -374,3 +374,44 @@ test_that("cut_tree round-trip works on mmap-derived linkage", {
   expect_length(clusters, n_fix)
   expect_equal(length(unique(clusters)), 2L)
 })
+
+
+# =============================================================================
+# Group 8: Input guards (PLAN WP4 4.1 / 4.2) — the C++ core rejects non-finite
+# data and malformed linkage matrices with a translatable error instead of
+# indexing out of range.
+# =============================================================================
+
+test_that("agglomerative_cluster rejects non-finite input loudly", {
+  bad <- data_fix
+  bad[2, 1] <- NA_real_
+  expect_error(agglomerative_cluster(bad, LinkageMethod$Single), "non-finite")
+  bad[2, 1] <- Inf
+  expect_error(agglomerative_cluster(bad, LinkageMethod$Average,
+                                     DistanceMetric$Correlation),
+               "non-finite")
+})
+
+test_that("cut_tree rejects malformed linkage matrices", {
+  lnk <- agglomerative_cluster(data_fix, LinkageMethod$Single)
+
+  # Too few rows for the requested cut (K = 1 needs n - 1 = 4 merges).
+  expect_error(cut_tree(lnk[1:2, , drop = FALSE], n_fix, 1L), "rows")
+  # ... while the same prefix still cuts into 3 clusters (2 merges).
+  expect_length(cut_tree(lnk[1:2, , drop = FALSE], n_fix, 3L), n_fix)
+
+  # A cluster id that does not exist yet at its step (1-based n + 1 in row 1).
+  bad <- lnk
+  bad[1, 2] <- n_fix + 1
+  expect_error(cut_tree(bad, n_fix, 2L), "does not exist")
+
+  # A self-merge.
+  bad <- lnk
+  bad[1, 2] <- bad[1, 1]
+  expect_error(cut_tree(bad, n_fix, 2L), "itself")
+
+  # An id consumed twice (object 1 was merged in row 1).
+  bad <- lnk
+  bad[2, 1] <- lnk[1, 1]
+  expect_error(cut_tree(bad, n_fix, 2L), "already consumed")
+})
