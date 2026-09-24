@@ -183,11 +183,12 @@ test_that("trex_control passes custom dummy_distribution through", {
 })
 
 # =======================================================================================
-# trex_dummy_distribution() — integration tests (TRex actually runs)
+# trex_dummy_distribution() — integration tests (TRex actually runs). Each takes
+# about 10 ms, so they run everywhere: no skip_on_cran(), which also skipped
+# them under plain test_dir() / R CMD check (NOT_CRAN unset).
 # =======================================================================================
 
 test_that("TRexSelector runs with Rademacher dummy distribution", {
-  skip_on_cran()
   set.seed(1)
   n <- 60; p <- 12
   X <- matrix(rnorm(n * p), n, p)
@@ -203,7 +204,6 @@ test_that("TRexSelector runs with Rademacher dummy distribution", {
 })
 
 test_that("TRexSelector runs with StudentT dummy distribution (df=3)", {
-  skip_on_cran()
   set.seed(2)
   n <- 60; p <- 12
   X <- matrix(rnorm(n * p), n, p)
