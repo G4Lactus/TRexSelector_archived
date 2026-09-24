@@ -31,6 +31,7 @@ from .trex_selector_methods import (
     SolverTypeForTRex, SolverHyperparameters, DummyDistribution,
     SPCAMode, TRexSPCAControlParameter, TRexSPCAResult,
     TRexSPCASelector as PyTRexSPCASelector,
+    normalize_design,
 )
 
 
@@ -503,6 +504,7 @@ class TRexSPCASelector:
 __all__ = [
     "LLoopStrategy",
     "ScalingMode",
+    "normalize_design",
     "SolverTypeForTRex",
     "SolverHyperparameters",
     "DummyDistribution",

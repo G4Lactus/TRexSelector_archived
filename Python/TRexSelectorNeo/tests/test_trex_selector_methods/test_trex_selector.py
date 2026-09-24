@@ -412,3 +412,147 @@ def test_cd_localization_modes_run(signal_data, certified):
     res = sel.select()
     assert res is not None
     assert res.selected_var.shape[0] == p
+
+
+# ---------------------------------------------------------------------------
+# ScalingMode.NONE — user-managed design (PLAN WP5) and input rejection
+# ---------------------------------------------------------------------------
+
+def _unit_l2_columns(X):
+    return X / np.linalg.norm(X, axis=0, keepdims=True)
+
+
+def _planted_design(seed=5, n=300, p=60):
+    rng = np.random.default_rng(seed)
+    X = rng.standard_normal((n, p))
+    y = 5.0 * X[:, 1] - 3.0 * X[:, 2] + 2.0 * X[:, 3] + rng.standard_normal(n)
+    return X, y
+
+
+def _control(mode, K=20):
+    ctrl = trex_selector_neo.TRexControlParameter()
+    ctrl.K = K
+    ctrl.scaling_mode = mode
+    return ctrl
+
+
+def test_scaling_mode_none_is_exposed():
+    assert trex_selector_neo.ScalingMode.NONE is not None
+    ctrl = trex_selector_neo.TRexControlParameter()
+    assert ctrl.scaling_mode == trex_selector_neo.ScalingMode.L2  # default unchanged
+    ctrl.scaling_mode = trex_selector_neo.ScalingMode.NONE
+    assert ctrl.scaling_mode == trex_selector_neo.ScalingMode.NONE
+
+
+def test_normalize_design_reproduces_the_selector_preprocessing():
+    X, y = _planted_design(n=40, p=6)
+    X0, y0 = X.copy(), y.copy()
+
+    d = trex_selector_neo.normalize_design(X, y)  # L2 default
+    np.testing.assert_array_equal(X, X0)  # inputs untouched
+    np.testing.assert_array_equal(y, y0)
+    np.testing.assert_allclose(d["X"].mean(axis=0), 0.0, atol=1e-12)
+    np.testing.assert_allclose(np.linalg.norm(d["X"], axis=0), 1.0, rtol=1e-12)
+    np.testing.assert_allclose(d["X_means"], X.mean(axis=0))
+    np.testing.assert_allclose(d["X_scales"], np.linalg.norm(X - X.mean(axis=0), axis=0))
+    assert d["y_mean"] == pytest.approx(y.mean())
+    np.testing.assert_allclose(d["y"], y - y.mean())
+
+    z = trex_selector_neo.normalize_design(X, y, trex_selector_neo.ScalingMode.ZSCORE)
+    np.testing.assert_allclose(np.linalg.norm(z["X"], axis=0), np.sqrt(39.0), rtol=1e-12)
+    np.testing.assert_allclose(z["X_scales"], X.std(axis=0, ddof=1))
+
+    none = trex_selector_neo.normalize_design(X, y, trex_selector_neo.ScalingMode.NONE)
+    np.testing.assert_array_equal(none["X"], X0)
+    np.testing.assert_array_equal(none["y"], y0)
+    assert np.all(none["X_means"] == 0.0)
+    assert np.all(none["X_scales"] == 1.0)
+    assert none["y_mean"] == 0.0
+
+
+def test_none_on_prenormalized_design_equals_l2_on_raw_design():
+    X, y = _planted_design()
+
+    sel_l2 = trex_selector_neo.TRexSelector(
+        X.copy(), y.copy(), tFDR=0.2,
+        trex_control=_control(trex_selector_neo.ScalingMode.L2), seed=11, verbose=False)
+    r_l2 = sel_l2.select()
+
+    d = trex_selector_neo.normalize_design(X, y)
+    sel_none = trex_selector_neo.TRexSelector(
+        d["X"], d["y"], tFDR=0.2,
+        trex_control=_control(trex_selector_neo.ScalingMode.NONE), seed=11, verbose=False)
+    r_none = sel_none.select()
+
+    assert r_l2.T_stop == r_none.T_stop
+    np.testing.assert_array_equal(r_l2.selected_var, r_none.selected_var)
+    np.testing.assert_array_equal(r_l2.phi_prime, r_none.phi_prime)  # bitwise
+    selected = np.flatnonzero(r_l2.selected_var)
+    assert selected.size > 0
+    assert set(selected).issubset({1, 2, 3})
+
+
+def test_none_leaves_x_untouched_and_reports_identity_parameters():
+    X, y = _planted_design(n=80, p=20)
+    X = np.asfortranarray(_unit_l2_columns(X))
+    X0, y0 = X.copy(), y.copy()
+
+    sel = trex_selector_neo.TRexSelector(
+        X, y, tFDR=0.2, trex_control=_control(trex_selector_neo.ScalingMode.NONE, K=5),
+        seed=3, verbose=False)
+    np.testing.assert_array_equal(sel.X, X0)  # the wrapper's buffer is the C++ buffer
+    sel.select()
+    np.testing.assert_array_equal(sel.X, X0)
+    np.testing.assert_array_equal(X, X0)
+    np.testing.assert_array_equal(y, y0)
+    assert np.all(sel._selector.getXMeans() == 0.0)
+    assert np.all(sel._selector.getXL2Norms() == 1.0)
+    assert sel._selector.getYMean() == 0.0
+
+
+@pytest.mark.parametrize("mode", ["L2", "ZSCORE", "NONE"])
+def test_non_finite_input_is_rejected_in_every_mode(mode):
+    X, y = _planted_design(n=40, p=8)
+    X = _unit_l2_columns(X)
+    scaling_mode = getattr(trex_selector_neo.ScalingMode, mode)
+
+    Xn = X.copy()
+    Xn[2, 3] = np.nan
+    with pytest.raises(ValueError, match=r"X\(2, 3\)"):
+        trex_selector_neo.TRexSelector(Xn, y, trex_control=_control(scaling_mode, K=3),
+                                       verbose=False)
+    with pytest.raises(ValueError, match=r"X\(2, 3\)"):
+        trex_selector_neo.normalize_design(Xn, y, scaling_mode)
+
+    yi = y.copy()
+    yi[1] = np.inf
+    # The selector's parameter validation catches y first (its own message);
+    # the normalizer names the entry when called directly.
+    with pytest.raises(ValueError, match="NaN or Inf"):
+        trex_selector_neo.TRexSelector(X, yi, trex_control=_control(scaling_mode, K=3),
+                                       verbose=False)
+    with pytest.raises(ValueError, match=r"y\(1\)"):
+        trex_selector_neo.normalize_design(X, yi, scaling_mode)
+
+
+def test_constant_column_is_rejected_under_l2_and_a_constant_atom_passes_under_none():
+    X, y = _planted_design(n=40, p=8)
+    X[:, 4] = 3.5
+    with pytest.raises(ValueError, match="column 4.*constant"):
+        trex_selector_neo.TRexSelector(X, y, trex_control=_control(trex_selector_neo.ScalingMode.L2, K=3),
+                                       verbose=False)
+    with pytest.raises(ValueError, match="column 4"):
+        trex_selector_neo.normalize_design(X, y, trex_selector_neo.ScalingMode.ZSCORE)
+
+    # Intercept-free dictionary: a unit-L2 constant (DC) atom is legitimate
+    # under NONE, and an all-zero column is not.
+    Xd = _unit_l2_columns(_planted_design(n=40, p=8)[0])
+    Xd[:, 4] = 1.0 / np.sqrt(40.0)
+    sel = trex_selector_neo.TRexSelector(Xd, y, trex_control=_control(trex_selector_neo.ScalingMode.NONE, K=3),
+                                         verbose=False)
+    assert sel.select() is not None
+    Xz = Xd.copy()
+    Xz[:, 4] = 0.0
+    with pytest.raises(ValueError, match="column 4"):
+        trex_selector_neo.TRexSelector(Xz, y, trex_control=_control(trex_selector_neo.ScalingMode.NONE, K=3),
+                                       verbose=False)

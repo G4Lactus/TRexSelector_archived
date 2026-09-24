@@ -6,7 +6,7 @@ import collections.abc
 import numpy
 import numpy.typing
 import typing
-__all__: list[str] = ['AR1', 'ActiveSet', 'BT', 'BTSelectionMode', 'BiobankScreenTRexControl', 'BiobankScreenTRexResult', 'CV_1SE_CCD', 'CV_1SE_IEN_CCD', 'CV_1SE_SVD', 'CV_1SE_TIK_SVD', 'CV_MIN_CCD', 'CV_MIN_IEN_CCD', 'CV_MIN_SVD', 'CV_MIN_TIK_SVD', 'DAMethod', 'DASelectionResult', 'DummyDistribution', 'EN', 'ENSolverType', 'EQUI', 'FeasibleOnly', 'GVSSelectionResult', 'GVSType', 'HCONCAT', 'IEN', 'L2', 'LLoopStrategy', 'Lambda2CVDiagnostics', 'LambdaSelectionMethod', 'NN', 'PERMUTATION', 'PERMUTATION_SEEDED', 'PRIOR_GROUPS', 'RFaithful', 'SEEDED', 'SKIPL', 'SPCAMode', 'STANDARD', 'ScalingMode', 'ScreenTRexControlParameter', 'ScreenTRexMethod', 'ScreenTRexSelectionResult', 'SelectionResult', 'SolverHyperparameters', 'SolverTypeForTRex', 'TACGP', 'TAFS', 'TCDENET', 'TCDIENET', 'TCDLASSO', 'TCDTIKNET', 'TENET', 'TENET_AUG', 'TGP', 'TIENET', 'TIENET_AUG', 'TIKNET', 'TIKOMP', 'TLARS', 'TLASSO', 'TMP', 'TNCGMP', 'TOMP', 'TOOLS', 'TREX', 'TREX_DA_AR1', 'TREX_DA_BLOCK_EQUI', 'TREX_DA_EQUI', 'TRexBiobankScreeningSelector', 'TRexControlParameter', 'TRexDAControlParameter', 'TRexDASelector', 'TRexGVSControlParameter', 'TRexGVSSelector', 'TRexSPCAControlParameter', 'TRexSPCAResult', 'TRexSPCASelector', 'TRexScreeningSelector', 'TRexSelector', 'TSTAGEWISE', 'TSTEPWISE', 'Thresholded', 'ZSCORE']
+__all__: list[str] = ['AR1', 'ActiveSet', 'BT', 'BTSelectionMode', 'BiobankScreenTRexControl', 'BiobankScreenTRexResult', 'CV_1SE_CCD', 'CV_1SE_IEN_CCD', 'CV_1SE_SVD', 'CV_1SE_TIK_SVD', 'CV_MIN_CCD', 'CV_MIN_IEN_CCD', 'CV_MIN_SVD', 'CV_MIN_TIK_SVD', 'DAMethod', 'DASelectionResult', 'DummyDistribution', 'EN', 'ENSolverType', 'EQUI', 'FeasibleOnly', 'GVSSelectionResult', 'GVSType', 'HCONCAT', 'IEN', 'L2', 'LLoopStrategy', 'Lambda2CVDiagnostics', 'LambdaSelectionMethod', 'NN', 'NONE', 'PERMUTATION', 'PERMUTATION_SEEDED', 'PRIOR_GROUPS', 'RFaithful', 'SEEDED', 'SKIPL', 'SPCAMode', 'STANDARD', 'ScalingMode', 'ScreenTRexControlParameter', 'ScreenTRexMethod', 'ScreenTRexSelectionResult', 'SelectionResult', 'SolverHyperparameters', 'SolverTypeForTRex', 'TACGP', 'TAFS', 'TCDENET', 'TCDIENET', 'TCDLASSO', 'TCDTIKNET', 'TENET', 'TENET_AUG', 'TGP', 'TIENET', 'TIENET_AUG', 'TIKNET', 'TIKOMP', 'TLARS', 'TLASSO', 'TMP', 'TNCGMP', 'TOMP', 'TOOLS', 'TREX', 'TREX_DA_AR1', 'TREX_DA_BLOCK_EQUI', 'TREX_DA_EQUI', 'TRexBiobankScreeningSelector', 'TRexControlParameter', 'TRexDAControlParameter', 'TRexDASelector', 'TRexGVSControlParameter', 'TRexGVSSelector', 'TRexSPCAControlParameter', 'TRexSPCAResult', 'TRexSPCASelector', 'TRexScreeningSelector', 'TRexSelector', 'TSTAGEWISE', 'TSTEPWISE', 'Thresholded', 'ZSCORE', 'normalize_design']
 class BTSelectionMode:
     """
     Cell-selection policy for the BT (binary-tree) DA method.
@@ -816,17 +816,20 @@ class SPCAMode:
         ...
 class ScalingMode:
     """
-    Column scaling convention applied to X (and dummies) after centering.
+    Working-design convention of the T-Rex selectors. L2 and ZSCORE center X and y and scale the columns of X (dummies follow); NONE leaves X and y exactly as supplied (user-managed centering and scaling, e.g. a pre-normalized design or an intercept-free dictionary), with the dummies kept on the unit-L2 standard.
     
     Members:
     
       L2 : Divide each centered column by its L2 norm (unit L2 norm).
     
       ZSCORE : Divide each centered column by its sample SD (n-1); glmnet standardize=TRUE convention.
+    
+      NONE : Leave X and y untouched (no centering, no scaling); the design should be unit-L2-commensurate since the dummies keep the unit-L2 standard. A design pre-normalized with normalize_design() selects under NONE exactly what the raw design selects under L2.
     """
     L2: typing.ClassVar[ScalingMode]  # value = <ScalingMode.L2: 0>
+    NONE: typing.ClassVar[ScalingMode]  # value = <ScalingMode.NONE: 2>
     ZSCORE: typing.ClassVar[ScalingMode]  # value = <ScalingMode.ZSCORE: 1>
-    __members__: typing.ClassVar[dict[str, ScalingMode]]  # value = {'L2': <ScalingMode.L2: 0>, 'ZSCORE': <ScalingMode.ZSCORE: 1>}
+    __members__: typing.ClassVar[dict[str, ScalingMode]]  # value = {'L2': <ScalingMode.L2: 0>, 'ZSCORE': <ScalingMode.ZSCORE: 1>, 'NONE': <ScalingMode.NONE: 2>}
     @typing.overload
     def __eq__(self, other: ScalingMode) -> bool:
         ...
@@ -1381,7 +1384,7 @@ class TRexControlParameter:
     @property
     def scaling_mode(self) -> ScalingMode:
         """
-        Column scaling convention applied to X after centering (L2 or ZSCORE).
+        Working-design convention: L2 (default) or ZSCORE center X and y and scale X; NONE leaves X and y as supplied (user-managed; dummies keep the unit-L2 standard). Non-finite entries and dead columns are rejected in every mode (ValueError).
         """
     @scaling_mode.setter
     def scaling_mode(self, arg0: ScalingMode) -> None:
@@ -1858,6 +1861,10 @@ class TRexSelector:
         """
         Run the T-Rex algorithm and return a SelectionResult.
         """
+def normalize_design(X: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"], y: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"], scaling_mode: ScalingMode = ..., eps: typing.SupportsFloat | typing.SupportsIndex = 1e-06) -> dict:
+    """
+    Apply the selectors' data normalization to copies of X and y and return a dict with keys 'X', 'y' (the normalized copies), 'X_means', 'X_scales' (the per-column divisors: L2 norms for L2, sample SDs for ZSCORE, ones for NONE) and 'y_mean'. Under ScalingMode.NONE the copies equal the inputs and the parameters are the identity. eps is the dead-column threshold on the working L2 norm (the selectors use the solver tolerance, default 1e-6). Raises ValueError on a non-finite entry or a dead column (constant under L2 / ZSCORE, all-zero under NONE), naming the column (0-based).
+    """
 AR1: DAMethod  # value = <DAMethod.AR1: 0>
 ActiveSet: SPCAMode  # value = <SPCAMode.ActiveSet: 0>
 BT: DAMethod  # value = <DAMethod.BT: 2>
@@ -1876,6 +1883,7 @@ HCONCAT: LLoopStrategy  # value = <LLoopStrategy.HCONCAT: 2>
 IEN: GVSType  # value = <GVSType.IEN: 1>
 L2: ScalingMode  # value = <ScalingMode.L2: 0>
 NN: DAMethod  # value = <DAMethod.NN: 3>
+NONE: ScalingMode  # value = <ScalingMode.NONE: 2>
 PERMUTATION: LLoopStrategy  # value = <LLoopStrategy.PERMUTATION: 3>
 PERMUTATION_SEEDED: LLoopStrategy  # value = <LLoopStrategy.PERMUTATION_SEEDED: 4>
 PRIOR_GROUPS: DAMethod  # value = <DAMethod.PRIOR_GROUPS: 4>

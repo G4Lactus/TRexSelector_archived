@@ -2,6 +2,7 @@
 from .._core.trex_selector_methods import (
     LLoopStrategy,
     ScalingMode,
+    normalize_design,
     SolverTypeForTRex,
     SolverHyperparameters,
     DummyDistribution,
@@ -40,6 +41,7 @@ from .._core.trex_selector_methods import (
 __all__ = [
     "LLoopStrategy",
     "ScalingMode",
+    "normalize_design",
     "SolverTypeForTRex",
     "SolverHyperparameters",
     "DummyDistribution",

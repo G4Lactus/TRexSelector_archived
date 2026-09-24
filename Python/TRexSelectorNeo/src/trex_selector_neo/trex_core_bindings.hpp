@@ -164,10 +164,42 @@ inline void bind_trex_core(py::module& m_tsm) {
     namespace dn = trex::trex_selector_methods::utils::data_normalizer;
 
     // Bind ScalingMode enum
-    py::enum_<dn::ScalingMode>(m_tsm, "ScalingMode", "Column scaling convention applied to X (and dummies) after centering.")
+    py::enum_<dn::ScalingMode>(m_tsm, "ScalingMode",
+        "Working-design convention of the T-Rex selectors. L2 and ZSCORE center X and y and "
+        "scale the columns of X (dummies follow); NONE leaves X and y exactly as supplied "
+        "(user-managed centering and scaling, e.g. a pre-normalized design or an intercept-free "
+        "dictionary), with the dummies kept on the unit-L2 standard.")
         .value("L2",     dn::ScalingMode::L2,     "Divide each centered column by its L2 norm (unit L2 norm).")
         .value("ZSCORE", dn::ScalingMode::ZSCORE, "Divide each centered column by its sample SD (n-1); glmnet standardize=TRUE convention.")
+        .value("NONE",   dn::ScalingMode::NONE,   "Leave X and y untouched (no centering, no scaling); the design should be unit-L2-commensurate since the dummies keep the unit-L2 standard. A design pre-normalized with normalize_design() selects under NONE exactly what the raw design selects under L2.")
         .export_values();
+
+    // The library's own normalization as a user-callable helper, so a caller
+    // can reproduce the selector's L2 / ZSCORE preprocessing (then run under
+    // NONE), or inspect the parameters. Copies; the inputs are untouched.
+    m_tsm.def("normalize_design",
+        [](Eigen::MatrixXd X, Eigen::VectorXd y, dn::ScalingMode scaling_mode, double eps) {
+            dn::NormalizationParams params;
+            dn::centerY(y, params, scaling_mode);
+            dn::centerAndL2NormalizeX(X, params, eps, /*verbose=*/false, scaling_mode);
+            py::dict out;
+            out["X"]        = X;
+            out["y"]        = y;
+            out["X_means"]  = params.X_means;
+            out["X_scales"] = params.X_l2norms;
+            out["y_mean"]   = params.y_mean;
+            return out;
+        },
+        py::arg("X"), py::arg("y"),
+        py::arg("scaling_mode") = dn::ScalingMode::L2,
+        py::arg("eps") = 1e-6,
+        "Apply the selectors' data normalization to copies of X and y and return a dict with "
+        "keys 'X', 'y' (the normalized copies), 'X_means', 'X_scales' (the per-column divisors: "
+        "L2 norms for L2, sample SDs for ZSCORE, ones for NONE) and 'y_mean'. Under "
+        "ScalingMode.NONE the copies equal the inputs and the parameters are the identity. "
+        "eps is the dead-column threshold on the working L2 norm (the selectors use the solver "
+        "tolerance, default 1e-6). Raises ValueError on a non-finite entry or a dead column "
+        "(constant under L2 / ZSCORE, all-zero under NONE), naming the column (0-based).");
 
     // Bind LLoopStrategy enum
     py::enum_<LLoopStrategy>(m_tsm, "LLoopStrategy", "L-loop strategy controlling how dummy variables are constructed in each experiment.")
@@ -309,7 +341,7 @@ inline void bind_trex_core(py::module& m_tsm) {
         .def_readwrite("max_inner_threads",   &TRexControlParameter::max_inner_threads,   "Thread count for inner solver operations.")
         .def_readwrite("solver_type",         &TRexControlParameter::solver_type,         "Solver algorithm to use for T-Rex.")
         .def_readwrite("solver_params",       &TRexControlParameter::solver_params,       "Hyperparameters for the selected solver.")
-        .def_readwrite("scaling_mode",        &TRexControlParameter::scaling_mode,        "Column scaling convention applied to X after centering (L2 or ZSCORE).")
+        .def_readwrite("scaling_mode",        &TRexControlParameter::scaling_mode,        "Working-design convention: L2 (default) or ZSCORE center X and y and scale X; NONE leaves X and y as supplied (user-managed; dummies keep the unit-L2 standard). Non-finite entries and dead columns are rejected in every mode (ValueError).")
         .def_readwrite("dummy_distribution",  &TRexControlParameter::dummy_distribution,  "Distribution used to generate dummy variables.");
 
     // Bind TRexSelector::SelectionResult
