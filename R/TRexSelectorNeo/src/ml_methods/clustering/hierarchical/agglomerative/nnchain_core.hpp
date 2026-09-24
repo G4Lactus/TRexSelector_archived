@@ -36,6 +36,7 @@
 // std includes
 #include <algorithm>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 // Eigen includes
@@ -142,6 +143,14 @@ public:
                 Eigen::Index d = distance_updater_.find_nearest_neighbor(
                     c, active_clusters_, current_cluster_id, min_dist
                 );
+                // Defence in depth behind the dispatcher's finiteness guard:
+                // the sentinel must never reach container indexing.
+                if (d < 0) {
+                    throw std::runtime_error(
+                        "NNChain: no active nearest neighbour for cluster " +
+                        std::to_string(c) + " — the distances are inconsistent "
+                        "(non-finite entries?).");
+                }
 
                 // Step 4: Reciprocal Nearest Neighbor (RNN) check
                 if (chain.size() > 1 && d == chain[chain.size() - 2]) {

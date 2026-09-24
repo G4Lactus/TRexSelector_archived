@@ -21,8 +21,12 @@
 // std includes
 #include <algorithm>
 #include <numeric>
+#include <string>
 #include <vector>
 #include <stdexcept>
+
+// bit-based finiteness (consumers may compile this header with -ffast-math)
+#include <utils/fp_classify/fp_classify.hpp>
 
 // Eigen includes
 #include <Eigen/Dense>
@@ -299,6 +303,71 @@ public:
     }
 
     /**
+     * @brief Validate a merge matrix before it is indexed (PLAN WP4 4.2, Arnau).
+     *
+     * @details `cut_tree` reads `merges[i]` for the first `rows_needed`
+     *  steps and indexes its bookkeeping by cluster id; a user-built matrix
+     *  (the public R / Python `cut_tree`) can violate every assumption. The
+     *  checks: enough rows; every id in [0, n + i) (an id may only refer to
+     *  an original object or to a cluster formed by an EARLIER merge);
+     *  no self-merge; no id consumed twice; finite distances. O(rows).
+     *
+     * @param merges      Merge steps in chronological order.
+     * @param n           Number of original objects.
+     * @param rows_needed Merges that will be consumed (at most n - 1).
+     *
+     * @throws std::invalid_argument on the first violation, naming the row.
+     */
+    static void validate_merges(const std::vector<MergeStep>& merges,
+                                Eigen::Index n, Eigen::Index rows_needed)
+    {
+        namespace fpc = trex::utils::fp_classify;
+        if (n < 1) {
+            throw std::invalid_argument("cut_tree: the number of original objects must be >= 1.");
+        }
+        if (rows_needed < 0 || rows_needed > n - 1) {
+            throw std::invalid_argument(
+                "cut_tree: " + std::to_string(rows_needed) + " merges requested on " +
+                std::to_string(n) + " objects (at most n - 1 are possible).");
+        }
+        if (static_cast<Eigen::Index>(merges.size()) < rows_needed) {
+            throw std::invalid_argument(
+                "cut_tree: the merge matrix has " + std::to_string(merges.size()) +
+                " rows but " + std::to_string(rows_needed) + " are needed for this cut.");
+        }
+        std::vector<char> consumed(static_cast<std::size_t>(2 * n - 1), 0);
+        for (Eigen::Index i = 0; i < rows_needed; ++i) {
+            const MergeStep& m = merges[static_cast<std::size_t>(i)];
+            const Eigen::Index limit = n + i;   // ids that exist before merge i
+            for (const Eigen::Index c : {m.cluster1, m.cluster2}) {
+                if (c < 0 || c >= limit) {
+                    throw std::invalid_argument(
+                        "cut_tree: merge " + std::to_string(i) + " refers to cluster id " +
+                        std::to_string(c) + ", which does not exist at that step (valid: 0 .. " +
+                        std::to_string(limit - 1) + ").");
+                }
+            }
+            if (m.cluster1 == m.cluster2) {
+                throw std::invalid_argument(
+                    "cut_tree: merge " + std::to_string(i) + " merges cluster " +
+                    std::to_string(m.cluster1) + " with itself.");
+            }
+            for (const Eigen::Index c : {m.cluster1, m.cluster2}) {
+                if (consumed[static_cast<std::size_t>(c)]) {
+                    throw std::invalid_argument(
+                        "cut_tree: merge " + std::to_string(i) + " re-uses cluster id " +
+                        std::to_string(c) + ", which an earlier merge already consumed.");
+                }
+                consumed[static_cast<std::size_t>(c)] = 1;
+            }
+            if (!fpc::isfinite(m.distance)) {
+                throw std::invalid_argument(
+                    "cut_tree: merge " + std::to_string(i) + " has a non-finite distance.");
+            }
+        }
+    }
+
+    /**
      * @brief Extracts flat cluster labels by cutting the dendrogram to form K clusters.
      *
      * @param merges The standard (N-1) merge matrix (from NNChain or pointer_to_merge_matrix).
@@ -307,6 +376,8 @@ public:
      *
      * @return std::vector<Eigen::Index> An array of size N where index `i` contains the
      * assigned cluster label (0 to K-1) for the original variable/object `i`.
+     *
+     * @throws std::invalid_argument on a malformed merge matrix (validate_merges).
      */
     static std::vector<Eigen::Index> cut_tree(
         const std::vector<MergeStep>& merges,
@@ -318,6 +389,7 @@ public:
                 "Requested number of clusters must be between 1 and the number of original objects."
             );
         }
+        validate_merges(merges, num_orig_objs, num_orig_objs - num_clusters);
 
         Eigen::Index n = num_orig_objs;
 
@@ -393,6 +465,18 @@ public:
         Eigen::Index num_orig_objs,
         double height
     ) {
+        // The scan below stops at the first merge above `height`, which is
+        // only correct for distances sorted non-decreasing (the standard
+        // merge matrix); an unsorted user matrix would be silently truncated.
+        for (std::size_t i = 1; i < merges.size(); ++i) {
+            if (merges[i].distance < merges[i - 1].distance) {
+                throw std::invalid_argument(
+                    "cut_tree_by_height: merge distances must be non-decreasing "
+                    "(row " + std::to_string(i) + " is below row " +
+                    std::to_string(i - 1) + ").");
+            }
+        }
+
         Eigen::Index merges_to_process = 0;
 
         for (const auto& m: merges) {

@@ -34,7 +34,7 @@ target_include_directories(trex_ml_methods PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>        # Internal headers
 
     # Install-tree
-    $<INSTALL_INTERFACE:include>                       # Installed headers
+    $<INSTALL_INTERFACE:${TREX_INSTALL_INCLUDE_ROOT}>                       # Installed headers
 )
 # ==================================================================================
 
@@ -76,7 +76,7 @@ target_sources(trex_ml_methods PUBLIC
     FILE_SET HEADERS
     BASE_DIRS
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
-        $<INSTALL_INTERFACE:include>
+        $<INSTALL_INTERFACE:${TREX_INSTALL_INCLUDE_ROOT}>
     FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/clustering/hierarchical/agglomerative/agglomerative_dispatcher.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/clustering/hierarchical/agglomerative/agglomerative_types.hpp
@@ -91,6 +91,8 @@ target_sources(trex_ml_methods PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/model_selection/ienet_cv_ccd.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/model_selection/ridge_cv_svd.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/model_selection/tikhonov_cv_svd.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/model_selection/lambda2_cv_diagnostics.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/model_selection/post_selection_criteria.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/pca/pca.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/ridge_regression/ridge.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/svd/svd.hpp
@@ -117,11 +119,13 @@ add_subdirectory(ridge_regression)
 # ==================================================================================
 # 6. Installation
 # ==================================================================================
+if(TREX_INSTALL_CPP_SDK)
 install(TARGETS trex_ml_methods
     EXPORT   TRexSelectorTargets
     ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY  DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME  DESTINATION ${CMAKE_INSTALL_BINDIR}
-    FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILE_SET HEADERS DESTINATION ${TREX_INSTALL_INCLUDE_ROOT}
 )
+endif()
 # ==================================================================================

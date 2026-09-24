@@ -19,6 +19,7 @@
  // project utils includes
 #include <utils/logging/logger.hpp>
 #include <utils/global_temp_dir.hpp>
+#include <utils/checked_arith.hpp>
 
 // std includes
 #include <vector>
@@ -213,11 +214,21 @@ public:
         num_original_ = data.cols();
         blocks_per_row_ = static_cast<Eigen::Index>(
                             std::ceil(static_cast<double>(num_original_) / BLOCK_SIZE));
-        Eigen::Index total_elements = blocks_per_row_ * blocks_per_row_ * BLOCK_SIZE * BLOCK_SIZE;
+        // Overflow-checked extent of the tiled distance matrix (PLAN WP4 4.3):
+        // a wrapped product would size the backing file or the RAM buffer
+        // too small for the tile arithmetic that follows.
+        namespace ca = trex::utils::checked_arith;
+        const auto bpr = static_cast<std::size_t>(blocks_per_row_);
+        const std::size_t total_elements_sz = ca::checked_mul(
+            ca::checked_mul(bpr, bpr, "BlockTiledMatrix"),
+            static_cast<std::size_t>(BLOCK_SIZE) * static_cast<std::size_t>(BLOCK_SIZE),
+            "BlockTiledMatrix");
+        const std::size_t total_bytes = ca::checked_mul(
+            total_elements_sz, sizeof(RealScalar), "BlockTiledMatrix");
+        Eigen::Index total_elements = static_cast<Eigen::Index>(total_elements_sz);
 
         if (use_mmap_) {
-            std::uintmax_t file_size_bytes = static_cast<std::uintmax_t>(
-                                                total_elements * sizeof(RealScalar));
+            std::uintmax_t file_size_bytes = static_cast<std::uintmax_t>(total_bytes);
 
             std::random_device rd;
             std::mt19937_64 gen(rd());

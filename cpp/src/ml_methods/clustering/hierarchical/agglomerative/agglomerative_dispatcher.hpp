@@ -35,9 +35,59 @@
 #include <ml_methods/clustering/hierarchical/agglomerative/block_tiled_matrix_policy.hpp>
 #include <ml_methods/clustering/hierarchical/agglomerative/proj_geom_updates.hpp>
 
+// bit-based finiteness (consumers may compile this header with -ffast-math)
+#include <utils/fp_classify/fp_classify.hpp>
+
+// std includes
+#include <complex>
+#include <string>
+
 // ===================================================================================
 
 namespace trex::ml_methods::clustering::hierarchical::agglomerative {
+
+// ===================================================================================
+
+namespace detail {
+
+/**
+ * @brief Reject non-finite input before any engine sees it (PLAN WP4 4.1).
+ *
+ * @details A NaN or Inf entry makes every distance involving that column
+ *  NaN; the nearest-neighbour searches then compare false everywhere and
+ *  return their sentinel index into container indexing (the CTRexSelector
+ *  hclust crash, misdiagnosed for a day as an OpenMP stack overflow). The
+ *  check is O(np) against the O(p^2 n) clustering. Bit-based
+ *  (fp_classify): std::isfinite folds away under -ffast-math.
+ *
+ * @throws std::invalid_argument naming the first offending entry.
+ */
+template <typename MatrixType>
+void reject_non_finite(const MatrixType& data) {
+    namespace fpc = trex::utils::fp_classify;
+    using Scalar = typename MatrixType::Scalar;
+    for (Eigen::Index j = 0; j < data.cols(); ++j) {
+        for (Eigen::Index i = 0; i < data.rows(); ++i) {
+            const Scalar v = data(i, j);
+            bool finite;
+            if constexpr (Eigen::NumTraits<Scalar>::IsComplex) {
+                finite = fpc::isfinite(static_cast<double>(std::real(v))) &&
+                         fpc::isfinite(static_cast<double>(std::imag(v)));
+            } else {
+                finite = fpc::isfinite(static_cast<double>(v));
+            }
+            if (!finite) {
+                throw std::invalid_argument(
+                    "AgglomerativeClustering: non-finite entry at row " +
+                    std::to_string(i) + ", column " + std::to_string(j) +
+                    " — every distance of that column would be NaN and the "
+                    "nearest-neighbour search undefined; clean the data first.");
+            }
+        }
+    }
+}
+
+}  // namespace detail
 
 // ===================================================================================
 
@@ -70,6 +120,9 @@ public:
                                           bool verbose = true) {
 
         Eigen::Index num_objs = data.cols();
+
+        // Every engine below assumes finite distances (PLAN WP4 4.1).
+        detail::reject_non_finite(data);
 
         // -----------------------------------------------------------------------
         // PATH 1: SINGLE LINKAGE (SLINK Engine, O(N) Space)
