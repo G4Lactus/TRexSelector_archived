@@ -3,15 +3,25 @@
 # CMake configuration for the T-Rex selector framework module.
 # Definer file. Populator files are defined in subdirectories.
 #
-# This library contains the following T-Rex selector variants:
-# - Classical T-Rex
-# - Dependency Aware T-Rex
-# - Screen T-Rex
-# - Grouped Variable Selection T-Rex
-# - Sparse PCA T-Rex
-# - General-Tikhonov T-Rex
-# - Virtual-Dummy T-Rex
+# This library contains the T-Rex selector variants, organized as one peer
+# folder per dummy mechanism (the three families share no code, and no class
+# serves more than one mechanism):
 #
+#   ad/   augmented (appended) dummies, solvers run on [X, D]:
+#         - Classical T-Rex                (trex_core)
+#         - Dependency Aware T-Rex         (trex_da)
+#         - Screen T-Rex, Biobank T-Rex    (trex_screening)
+#         - Grouped Variable Selection     (trex_gvs)
+#         - Sparse PCA T-Rex               (trex_spca)
+#         - General-Tikhonov T-Rex         (trex_tikhonov)
+#         - trex_utils (dummy generator, dispatch, normalizer, ...)
+#   vd/   virtual dummies, realized on demand:
+#         - Virtual-Dummy T-Rex            (trex_vd)
+#   sd/   sparse virtual dummies:
+#         - Sparse-Dummy T-Rex             (trex_sd)
+#
+# Placement rule: a file lives at the level of its lowest common user; it is
+# promoted to a shared folder only when a second family needs it.
 # ==================================================================================
 
 
@@ -80,25 +90,26 @@ target_sources(trex_selector_methods PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
         $<INSTALL_INTERFACE:${TREX_INSTALL_INCLUDE_ROOT}>
     FILES
-        ${CMAKE_CURRENT_SOURCE_DIR}/trex_core/trex.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/trex_da/trex_da.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/trex_gvs/trex_gvs.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/trex_screening/trex_screening.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/trex_screening/trex_biobank_screening.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/trex_spca/trex_spca.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/trex_tikhonov/trex_tikhonov.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/trex_tikhonov/tik_lambda2_pick.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/trex_tikhonov/tik_lambda2_power_rule.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/trex_vd/trex_vd.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/trex_utils/trex_cluster_dummies.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/trex_utils/trex_cluster_hac.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/trex_utils/trex_data_normalizer.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/trex_utils/trex_dummy_generator.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/trex_utils/trex_experiment_runner.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/trex_utils/trex_memmap_manager.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/trex_utils/trex_solver_dispatch.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/trex_utils/trex_temp_dir_manager.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/trex_utils/trex_warm_start_manager.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ad/trex_core/trex.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ad/trex_da/trex_da.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ad/trex_gvs/trex_gvs.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ad/trex_screening/trex_screening.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ad/trex_screening/trex_biobank_screening.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ad/trex_spca/trex_spca.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ad/trex_tikhonov/trex_tikhonov.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ad/trex_tikhonov/tik_lambda2_pick.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ad/trex_tikhonov/tik_lambda2_power_rule.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ad/trex_utils/trex_cluster_dummies.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ad/trex_utils/trex_cluster_hac.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ad/trex_utils/trex_data_normalizer.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ad/trex_utils/trex_dummy_generator.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ad/trex_utils/trex_experiment_runner.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ad/trex_utils/trex_memmap_manager.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ad/trex_utils/trex_solver_dispatch.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ad/trex_utils/trex_temp_dir_manager.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ad/trex_utils/trex_warm_start_manager.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/vd/trex_vd/trex_vd.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/sd/trex_sd/trex_sd.hpp
 )
 # ==================================================================================
 
@@ -106,15 +117,10 @@ target_sources(trex_selector_methods PUBLIC
 # ==================================================================================
 # 5. Subdirectories
 # ==================================================================================
-add_subdirectory(trex_utils)
-add_subdirectory(trex_core)
-add_subdirectory(trex_da)
-add_subdirectory(trex_gvs)
-add_subdirectory(trex_screening)
-add_subdirectory(trex_spca)
-add_subdirectory(trex_tikhonov)
-add_subdirectory(trex_vd)
-add_subdirectory(trex_sd)
+# One subdirectory per dummy mechanism; each appends its sources and headers.
+add_subdirectory(ad)
+add_subdirectory(vd)
+add_subdirectory(sd)
 # ==================================================================================
 
 

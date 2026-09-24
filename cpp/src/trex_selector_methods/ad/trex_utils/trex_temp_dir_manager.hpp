@@ -26,8 +26,8 @@
 
 // =========================================================================
 
-// Embedding into namespace trex::trex_selector_methods::utils::filesystem
-namespace trex::trex_selector_methods::utils::filesystem {
+// Embedding into namespace trex::trex_selector_methods::ad::utils::filesystem
+namespace trex::trex_selector_methods::ad::utils::filesystem {
 
 // =========================================================================
 
@@ -110,6 +110,6 @@ public:
 };
 
 // =========================================================================
-} /* End of namespace trex::trex_selector_methods::utils::filesystem */
+} /* End of namespace trex::trex_selector_methods::ad::utils::filesystem */
 // =========================================================================
 #endif /* End of UTILS_FILESYSTEM_TEMP_DIR_MANAGER_HPP */

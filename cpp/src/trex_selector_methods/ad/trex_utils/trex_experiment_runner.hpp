@@ -19,14 +19,14 @@
  *      - DummyGenerator&    (generates / retrieves D matrices)
  *      - wsm::WarmStartManager&  (manages solver warm-start state)
  *      - mm::MemmapManager*     (optional, for memory-mapped D storage)
- *      - sd::SolverConfig template fields (from TRexControlParameter)
+ *      - disp::SolverConfig template fields (from TRexControlParameter)
  *
  *   Ressources are owned by the TRexSelector only.
  *
  *  Split X / D:
  *    - X is passed as Eigen::Map<Eigen::MatrixXd>& (non-owning view).
  *    - D is obtained from DummyGenerator (in-memory) or MemmapManager (memory-mapped).
- *    - Both are passed to dispatchByType() via sd::SolverConfig.
+ *    - Both are passed to dispatchByType() via disp::SolverConfig.
  */
 // ===================================================================================
 
@@ -47,21 +47,21 @@
 #include <utils/openmp/utils_openmp.hpp>
 
 // TRex helper modules
-#include <trex_selector_methods/trex_utils/trex_solver_dispatch.hpp>
-#include <trex_selector_methods/trex_utils/trex_warm_start_manager.hpp>
-#include <trex_selector_methods/trex_utils/trex_memmap_manager.hpp>
-#include <trex_selector_methods/trex_utils/trex_dummy_generator.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_solver_dispatch.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_warm_start_manager.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_memmap_manager.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_dummy_generator.hpp>
 
 // ===================================================================================
 
-// Embedded into namespace trex::trex_selector_methods::utils::experiment_runner
-namespace trex::trex_selector_methods::utils::experiment_runner {
+// Embedded into namespace trex::trex_selector_methods::ad::utils::experiment_runner
+namespace trex::trex_selector_methods::ad::utils::experiment_runner {
 
 // Alias namespaces
-namespace sd = trex::trex_selector_methods::utils::solver_dispatch;
-namespace dg = trex::trex_selector_methods::utils::dummy_generator;
-namespace wsm = trex::trex_selector_methods::utils::warm_start_manager;
-namespace mm = trex::trex_selector_methods::utils::memmap_manager;
+namespace disp = trex::trex_selector_methods::ad::utils::solver_dispatch;
+namespace dg = trex::trex_selector_methods::ad::utils::dummy_generator;
+namespace wsm = trex::trex_selector_methods::ad::utils::warm_start_manager;
+namespace mm = trex::trex_selector_methods::ad::utils::memmap_manager;
 
 // ===================================================================================
 
@@ -142,8 +142,8 @@ struct ExperimentRunnerConfig {
     std::uint64_t permutation_base_id = 0;
 
     // --- Solver ---
-    sd::SolverTypeForTRex solver_type = sd::SolverTypeForTRex::TLARS;
-    sd::SolverHyperparameters solver_params{};
+    disp::SolverTypeForTRex solver_type = disp::SolverTypeForTRex::TLARS;
+    disp::SolverHyperparameters solver_params{};
 
     /** @brief Base for deterministic per-experiment tie-break seeds
      *  (< 0 = nondeterministic, solvers keep random_device seeding).
@@ -156,7 +156,7 @@ struct ExperimentRunnerConfig {
     /** @brief Internal column-scaling mode applied by each solver.
      *  L2 (default) preserves prior behaviour; ZSCORE makes solvers z-score
      *  their own columns (needed for augmented-EN consistency). */
-    trex::tsolvers::ScalingMode scaling_mode = trex::tsolvers::ScalingMode::L2;
+    trex::tsolvers::ad::ScalingMode scaling_mode = trex::tsolvers::ad::ScalingMode::L2;
 
     // --- Warm start ---
     bool use_warm_start = false;
@@ -689,7 +689,7 @@ private:
      *
      * @return Sparse beta path.
      */
-    sd::SparseBetaPath runSingleExperiment(
+    disp::SparseBetaPath runSingleExperiment(
         std::size_t k,
         const Eigen::MatrixXd& D_k,
         const ExperimentRunnerConfig& cfg) {
@@ -727,7 +727,7 @@ private:
      *
      * @return Sparse beta path from the solver.
      */
-    sd::SparseBetaPath dispatchForExperiment(
+    disp::SparseBetaPath dispatchForExperiment(
         std::size_t k,
         Eigen::Map<Eigen::MatrixXd>& X,
         Eigen::Map<Eigen::MatrixXd>& D,
@@ -737,7 +737,7 @@ private:
         const bool warm_available =
             cfg.use_warm_start && warm_start_mgr_.hasSolver(k);
 
-        sd::SolverConfig solver_cfg{
+        disp::SolverConfig solver_cfg{
             .X = X,
             .D = D,
             .y = y,
@@ -764,7 +764,7 @@ private:
             .tikhonov_groups = cfg.tikhonov_groups
         };
 
-        std::unique_ptr<trex::tsolvers::TSolver_Base> retained;
+        std::unique_ptr<trex::tsolvers::ad::TSolver_Base> retained;
         if (cfg.use_warm_start) {
             if (warm_start_mgr_.mode() == wsm::WarmStartMode::IN_MEMORY) {
                 if (warm_available) {
@@ -777,7 +777,7 @@ private:
             }
         }
 
-        sd::SparseBetaPath path = dispatchByType(cfg.solver_type, solver_cfg);
+        disp::SparseBetaPath path = dispatchByType(cfg.solver_type, solver_cfg);
 
         // Register the produced warm-start state (per-slot writes; safe for
         // distinct k inside the OpenMP loops — vectors are pre-allocated).
@@ -902,7 +902,7 @@ private:
      *
      * @return ExperimentSummary for deterministic k-order merging.
      */
-    ExperimentSummary summarizePath(sd::SparseBetaPath bp,
+    ExperimentSummary summarizePath(disp::SparseBetaPath bp,
                                     const ExperimentRunnerConfig& cfg) const {
 
         const std::size_t p = cfg.p;
@@ -1044,6 +1044,6 @@ private:
 }; /* End of class ExperimentRunner */
 
 // ===================================================================================
-} /* End of namespace trex::trex_selector_methods::utils::experiment_runner */
+} /* End of namespace trex::trex_selector_methods::ad::utils::experiment_runner */
 // ===================================================================================
 #endif /* End of TREX_TREX_SELECTOR_METHODS_UTILS_EXPERIMENT_RUNNER_HPP */

@@ -25,28 +25,28 @@
 #include <utils/openmp/utils_openmp.hpp>
 
 // TRex includes
-#include <trex_selector_methods/trex_utils/trex_data_normalizer.hpp>
-#include <trex_selector_methods/trex_utils/trex_solver_dispatch.hpp>
-#include <trex_selector_methods/trex_utils/trex_warm_start_manager.hpp>
-#include <trex_selector_methods/trex_utils/trex_memmap_manager.hpp>
-#include <trex_selector_methods/trex_utils/trex_dummy_generator.hpp>
-#include <trex_selector_methods/trex_utils/trex_experiment_runner.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_data_normalizer.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_solver_dispatch.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_warm_start_manager.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_memmap_manager.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_dummy_generator.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_experiment_runner.hpp>
 
 // Dummy generation distribution type
 #include <utils/datageneration/utils_dummygen.hpp>
 
 // ===================================================================================
 
-// Embedded into namespace trex::trex_selector_methods::trex_core
-namespace trex::trex_selector_methods::trex_core {
+// Embedded into namespace trex::trex_selector_methods::ad::trex_core
+namespace trex::trex_selector_methods::ad::trex_core {
 
 // Namespace alias
-namespace dn = trex::trex_selector_methods::utils::data_normalizer;
-namespace dg = trex::trex_selector_methods::utils::dummy_generator;
-namespace wsm = trex::trex_selector_methods::utils::warm_start_manager;
-namespace mm = trex::trex_selector_methods::utils::memmap_manager;
-namespace sd = trex::trex_selector_methods::utils::solver_dispatch;
-namespace er = trex::trex_selector_methods::utils::experiment_runner;
+namespace dn = trex::trex_selector_methods::ad::utils::data_normalizer;
+namespace dg = trex::trex_selector_methods::ad::utils::dummy_generator;
+namespace wsm = trex::trex_selector_methods::ad::utils::warm_start_manager;
+namespace mm = trex::trex_selector_methods::ad::utils::memmap_manager;
+namespace disp = trex::trex_selector_methods::ad::utils::solver_dispatch;
+namespace er = trex::trex_selector_methods::ad::utils::experiment_runner;
 namespace dummygen = trex::utils::datageneration::dummygen;
 
 // ===================================================================================
@@ -74,9 +74,9 @@ inline constexpr double AUTO_ESTIMATE_CORRELATION = -2.0;
  *          corresponding validation warning.
  */
 inline constexpr bool isGreedySolver(
-    trex::trex_selector_methods::utils::solver_dispatch::SolverTypeForTRex st) noexcept
+    trex::trex_selector_methods::ad::utils::solver_dispatch::SolverTypeForTRex st) noexcept
 {
-    namespace sdx = trex::trex_selector_methods::utils::solver_dispatch;
+    namespace sdx = trex::trex_selector_methods::ad::utils::solver_dispatch;
     switch (st) {
         case sdx::SolverTypeForTRex::TLARS:
         case sdx::SolverTypeForTRex::TLASSO:
@@ -239,10 +239,10 @@ struct TRexControlParameter {
     // ===================================
 
     /** @brief Solver type (default: TLARS). */
-    sd::SolverTypeForTRex solver_type = sd::SolverTypeForTRex::TLARS;
+    disp::SolverTypeForTRex solver_type = disp::SolverTypeForTRex::TLARS;
 
     /** @brief Bundled hyperparameters for all solver algorithms. */
-    sd::SolverHyperparameters solver_params{};
+    disp::SolverHyperparameters solver_params{};
 
     // ===================================
     // Data Scaling
@@ -1030,6 +1030,6 @@ protected:
 }; /* End of class TRexSelector */
 
 // ===================================================================================
-} /* End of namespace trex::trex_selector_methods::trex_core */
+} /* End of namespace trex::trex_selector_methods::ad::trex_core */
 // ===================================================================================
 #endif /* TREX_SELECTOR_METHODS_TREX_CORE_HPP */

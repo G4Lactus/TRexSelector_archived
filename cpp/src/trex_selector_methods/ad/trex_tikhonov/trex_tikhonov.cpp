@@ -9,7 +9,7 @@
 // ===================================================================================
 
 // Class header
-#include <trex_selector_methods/trex_tikhonov/trex_tikhonov.hpp>
+#include <trex_selector_methods/ad/trex_tikhonov/trex_tikhonov.hpp>
 
 // std includes
 #include <algorithm>
@@ -26,8 +26,8 @@
 #include <ml_methods/model_selection/tikhonov_cv_svd.hpp>
 
 // Shared cluster-aware dummy machinery (GVS parity)
-#include <trex_selector_methods/trex_utils/trex_cluster_dummies.hpp>
-#include <trex_selector_methods/trex_utils/trex_cluster_hac.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_cluster_dummies.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_cluster_hac.hpp>
 
 // Seed mixing (CV fold seed derivation, mirrors TRexGVSSelector)
 #include <utils/datageneration/utils_dummygen.hpp>
@@ -35,11 +35,11 @@
 
 // ===================================================================================
 
-namespace trex::trex_selector_methods::trex_tikhonov {
+namespace trex::trex_selector_methods::ad::trex_tikhonov {
 
 // Local namespace aliases
-namespace cdum = trex::trex_selector_methods::utils::cluster_dummies;
-namespace dn   = trex::trex_selector_methods::utils::data_normalizer;
+namespace cdum = trex::trex_selector_methods::ad::utils::cluster_dummies;
+namespace dn   = trex::trex_selector_methods::ad::utils::data_normalizer;
 namespace ms   = trex::ml_methods::model_selection;
 
 
@@ -114,15 +114,15 @@ TRexTikhonovSelector::TRexTikhonovSelector(
     // generalized-ridge OMP) — the latter two FOLDED-only. The shared
     // dispatch would reject anything K-aware for other enumerators anyway,
     // so fail fast with a precise message.
-    if (trex_ctrl_.solver_type != sd::SolverTypeForTRex::TCDTIKNET &&
-        trex_ctrl_.solver_type != sd::SolverTypeForTRex::TIKNET &&
-        trex_ctrl_.solver_type != sd::SolverTypeForTRex::TIKOMP) {
+    if (trex_ctrl_.solver_type != disp::SolverTypeForTRex::TCDTIKNET &&
+        trex_ctrl_.solver_type != disp::SolverTypeForTRex::TIKNET &&
+        trex_ctrl_.solver_type != disp::SolverTypeForTRex::TIKOMP) {
         throw std::invalid_argument(
             "TRexTikhonovSelector: solver_type must be TCDTIKNET, TIKNET, "
             "or TIKOMP (the only solvers with a general Tikhonov-K mode).");
     }
     if (!trex_tik_ctrl_.fold_dummy_coupling &&
-        trex_ctrl_.solver_type != sd::SolverTypeForTRex::TCDTIKNET) {
+        trex_ctrl_.solver_type != disp::SolverTypeForTRex::TCDTIKNET) {
         throw std::invalid_argument(
             "TRexTikhonovSelector: fold_dummy_coupling = false "
             "(INDEPENDENT_RIDGE) exists only on the TCDTIKNET path; TIKNET "
@@ -658,5 +658,5 @@ const Lambda2PilotResult& TRexTikhonovSelector::runPilotOnly() {
 }
 
 // ===================================================================================
-} /* End of namespace trex::trex_selector_methods::trex_tikhonov */
+} /* End of namespace trex::trex_selector_methods::ad::trex_tikhonov */
 // ===================================================================================

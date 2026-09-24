@@ -2,7 +2,7 @@
 // trex_vd.cpp
 // ===================================================================================
 
-#include <trex_selector_methods/trex_vd/trex_vd.hpp>
+#include <trex_selector_methods/vd/trex_vd/trex_vd.hpp>
 
 // std includes
 #include <algorithm>
@@ -13,7 +13,7 @@
 
 // ===================================================================================
 
-namespace trex::trex_selector_methods::trex_vd {
+namespace trex::trex_selector_methods::vd::trex_vd {
 
 // ========================================================================
 // Constructor
@@ -632,4 +632,4 @@ TRexVDResult TRexVD::run(
     return out;
 }
 
-}  // namespace trex::trex_selector_methods::trex_vd
+}  // namespace trex::trex_selector_methods::vd::trex_vd

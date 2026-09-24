@@ -61,8 +61,8 @@
 
 // ===================================================================================
 
-// Embedded into namespace trex::trex_selector_methods::utils::cluster_dummies
-namespace trex::trex_selector_methods::utils::cluster_dummies {
+// Embedded into namespace trex::trex_selector_methods::ad::utils::cluster_dummies
+namespace trex::trex_selector_methods::ad::utils::cluster_dummies {
 
 
 // ===================================================================================
@@ -314,6 +314,6 @@ inline Eigen::MatrixXd drawClusterDummyLayer(
 }
 
 // ===================================================================================
-} /* End of namespace trex::trex_selector_methods::utils::cluster_dummies */
+} /* End of namespace trex::trex_selector_methods::ad::utils::cluster_dummies */
 // ===================================================================================
 #endif /* End of TREX_SELECTOR_METHODS_UTILS_TREX_CLUSTER_DUMMIES_HPP */

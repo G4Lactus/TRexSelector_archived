@@ -36,9 +36,9 @@
 
 // ===================================================================================
 
-// Embedded into namespace trex::trex_selector_methods::utils::cluster_dummies
+// Embedded into namespace trex::trex_selector_methods::ad::utils::cluster_dummies
 // (same namespace as trex_cluster_dummies.hpp — one logical component).
-namespace trex::trex_selector_methods::utils::cluster_dummies {
+namespace trex::trex_selector_methods::ad::utils::cluster_dummies {
 
 // Local namespace alias
 namespace hac = trex::ml_methods::clustering::hierarchical::agglomerative;
@@ -105,6 +105,6 @@ inline std::vector<std::vector<Eigen::Index>> clustersFromHAC(
 }
 
 // ===================================================================================
-} /* End of namespace trex::trex_selector_methods::utils::cluster_dummies */
+} /* End of namespace trex::trex_selector_methods::ad::utils::cluster_dummies */
 // ===================================================================================
 #endif /* End of TREX_SELECTOR_METHODS_UTILS_TREX_CLUSTER_HAC_HPP */

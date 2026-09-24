@@ -20,17 +20,17 @@
 #include <filesystem>
 
 // trex_selector_methods includes
-#include <trex_selector_methods/trex_utils/trex_temp_dir_manager.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_temp_dir_manager.hpp>
 
 // utils includes
 #include <utils/memmap/memory_mapped_matrix.hpp>
 
 // =========================================================================
 
-namespace trex::trex_selector_methods::utils::memmap_manager {
+namespace trex::trex_selector_methods::ad::utils::memmap_manager {
 
 namespace mm = trex::utils::memmap;
-namespace txfs = trex::trex_selector_methods::utils::filesystem;
+namespace txfs = trex::trex_selector_methods::ad::utils::filesystem;
 
 // =========================================================================
 
@@ -205,6 +205,6 @@ private:
 };
 
 // =========================================================================
-} /* End of namespace trex::trex_selector_methods::utils::memmap_manager */
+} /* End of namespace trex::trex_selector_methods::ad::utils::memmap_manager */
 // =========================================================================
 #endif /* End of TREX_SELECTOR_METHODS_UTILS_MEMMAP_MANAGER_HPP */

@@ -42,11 +42,11 @@
 #include <utils/openmp/utils_openmp.hpp>
 
 // SD solver includes (umbrella: bases, all six solvers, calibration)
-#include <tsolvers/sd_tsolvers/sd_tsolvers.hpp>
+#include <tsolvers/sd.hpp>
 
 // ===================================================================================
 
-namespace trex::trex_selector_methods::trex_sd {
+namespace trex::trex_selector_methods::sd::trex_sd {
 
 // ---------- Enums ----------
 // Dummy law of the inner solvers.
@@ -135,7 +135,7 @@ private:
     std::size_t   k_resolved_{0};
 
     // ---- Solver factory ----
-    std::unique_ptr<tsolvers::SDTSolver_Base> make_solver_(
+    std::unique_ptr<tsolvers::sd::SDTSolver_Base> make_solver_(
         Eigen::Map<Eigen::MatrixXd>& Xm, Eigen::Map<Eigen::VectorXd>& ym,
         int num_dummies, unsigned long long seed, int T_stop) const;
 
@@ -181,7 +181,7 @@ private:
     std::vector<unsigned long long> make_seeds_(int K) const;
 };
 
-}  // namespace trex::trex_selector_methods::trex_sd
+}  // namespace trex::trex_selector_methods::sd::trex_sd
 
 // ===================================================================================
 #endif /* TREX_SELECTOR_METHODS_TREX_SD_HPP */

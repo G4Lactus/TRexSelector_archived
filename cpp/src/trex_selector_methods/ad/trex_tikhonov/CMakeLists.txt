@@ -1,4 +1,4 @@
-# src/trex_selector_methods/trex_tikhonov/CMakeLists.txt
+# src/trex_selector_methods/ad/trex_tikhonov/CMakeLists.txt
 # ==================================================================================
 # CMake configuration for the trex_tikhonov module.
 #

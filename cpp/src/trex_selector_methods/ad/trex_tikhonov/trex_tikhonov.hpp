@@ -113,7 +113,7 @@
 #include <Eigen/Sparse>
 
 // Base T-Rex
-#include <trex_selector_methods/trex_core/trex.hpp>
+#include <trex_selector_methods/ad/trex_core/trex.hpp>
 
 // Hierarchical clustering types (LinkageMethod for the dummy clustering)
 #include <ml_methods/clustering/hierarchical/agglomerative/agglomerative_types.hpp>
@@ -122,17 +122,17 @@
 #include <ml_methods/model_selection/lambda2_cv_diagnostics.hpp>
 
 // The pick of the power / pilot rules (selector-free)
-#include <trex_selector_methods/trex_tikhonov/tik_lambda2_pick.hpp>
+#include <trex_selector_methods/ad/trex_tikhonov/tik_lambda2_pick.hpp>
 
 // ===================================================================================
 
-// Embedded into namespace trex::trex_selector_methods::trex_tikhonov
-namespace trex::trex_selector_methods::trex_tikhonov {
+// Embedded into namespace trex::trex_selector_methods::ad::trex_tikhonov
+namespace trex::trex_selector_methods::ad::trex_tikhonov {
 
 // Local namespace aliases
-namespace tc = trex::trex_selector_methods::trex_core;
-namespace sd = trex::trex_selector_methods::utils::solver_dispatch;
-namespace er = trex::trex_selector_methods::utils::experiment_runner;
+namespace tc = trex::trex_selector_methods::ad::trex_core;
+namespace disp = trex::trex_selector_methods::ad::utils::solver_dispatch;
+namespace er = trex::trex_selector_methods::ad::utils::experiment_runner;
 namespace hac = trex::ml_methods::clustering::hierarchical::agglomerative;
 namespace ms = trex::ml_methods::model_selection;
 
@@ -428,7 +428,7 @@ struct TRexTikhonovControlParameter {
      *  ...) apply unchanged. */
     tc::TRexControlParameter trex_ctrl = [] {
         tc::TRexControlParameter t;
-        t.solver_type = sd::SolverTypeForTRex::TCDTIKNET;
+        t.solver_type = disp::SolverTypeForTRex::TCDTIKNET;
         return t;
     }();
 };
@@ -602,6 +602,6 @@ private:
 };
 
 // ===================================================================================
-} /* End of namespace trex::trex_selector_methods::trex_tikhonov */
+} /* End of namespace trex::trex_selector_methods::ad::trex_tikhonov */
 // ===================================================================================
 #endif /* End of TREX_SELECTOR_METHODS_TREX_TIKHONOV_HPP */

@@ -19,16 +19,16 @@
 #include <vector>
 
 // DA-TRex header
-#include <trex_selector_methods/trex_da/trex_da.hpp>
+#include <trex_selector_methods/ad/trex_da/trex_da.hpp>
 
 // ===================================================================================
 
-namespace trex::trex_selector_methods::trex_da {
+namespace trex::trex_selector_methods::ad::trex_da {
 
 // Namespace aliases
-namespace tc  = trex::trex_selector_methods::trex_core;
-namespace dn  = trex::trex_selector_methods::utils::data_normalizer;
-namespace er  = trex::trex_selector_methods::utils::experiment_runner;
+namespace tc  = trex::trex_selector_methods::ad::trex_core;
+namespace dn  = trex::trex_selector_methods::ad::utils::data_normalizer;
+namespace er  = trex::trex_selector_methods::ad::utils::experiment_runner;
 namespace hac = trex::ml_methods::clustering::hierarchical::agglomerative;
 
 
@@ -1220,5 +1220,5 @@ TRexDASelector::DASelectionResult TRexDASelector::selectVariables_BT(
 
 
 // ===================================================================================
-} /* End of namespace trex::trex_selector_methods::trex_da */
+} /* End of namespace trex::trex_selector_methods::ad::trex_da */
 // ===================================================================================

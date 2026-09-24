@@ -28,18 +28,18 @@
 #include <ml_methods/scaler_methods/lp_norm_scaler.hpp>
 
 // TRex core (TRexControlParameter)
-#include <trex_selector_methods/trex_core/trex.hpp>
+#include <trex_selector_methods/ad/trex_core/trex.hpp>
 
 // TRex GVS (TRexGVSSelector, TRexGVSControlParameter, GVSType)
-#include <trex_selector_methods/trex_gvs/trex_gvs.hpp>
+#include <trex_selector_methods/ad/trex_gvs/trex_gvs.hpp>
 
 // ==============================================================================
 
-namespace trex::trex_selector_methods::trex_spca {
+namespace trex::trex_selector_methods::ad::trex_spca {
 
 // Namespace aliases
-namespace tc         = trex::trex_selector_methods::trex_core;
-namespace tg         = trex::trex_selector_methods::trex_gvs;
+namespace tc         = trex::trex_selector_methods::ad::trex_core;
+namespace tg         = trex::trex_selector_methods::ad::trex_gvs;
 namespace std_scaler = trex::ml_methods::scaler_methods;
 
 // ==============================================================================
@@ -332,6 +332,6 @@ private:
 };
 
 // ==============================================================================
-} /* End of namespace trex::trex_selector_methods::trex_spca */
+} /* End of namespace trex::trex_selector_methods::ad::trex_spca */
 // ==============================================================================
 #endif /* End of TREX_SELECTOR_METHODS_TREX_SPCA_HPP */

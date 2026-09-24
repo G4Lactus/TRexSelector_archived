@@ -44,7 +44,7 @@
 #include <Eigen/Dense>
 
 // TRex base class
-#include <trex_selector_methods/trex_core/trex.hpp>
+#include <trex_selector_methods/ad/trex_core/trex.hpp>
 
 // Hierarchical clustering
 #include <ml_methods/clustering/hierarchical/agglomerative/agglomerative_dispatcher.hpp>
@@ -54,11 +54,11 @@
 
 // ===================================================================================
 
-namespace trex::trex_selector_methods::trex_da {
+namespace trex::trex_selector_methods::ad::trex_da {
 
 // Namespace aliases
-namespace tc  = trex::trex_selector_methods::trex_core;
-namespace er  = trex::trex_selector_methods::utils::experiment_runner;
+namespace tc  = trex::trex_selector_methods::ad::trex_core;
+namespace er  = trex::trex_selector_methods::ad::utils::experiment_runner;
 namespace hac = trex::ml_methods::clustering::hierarchical::agglomerative;
 
 // ===================================================================================
@@ -607,7 +607,7 @@ protected:
 }; /* End of class TRexDASelector */
 
 // ===================================================================================
-} /* End of namespace trex::trex_selector_methods::trex_da */
+} /* End of namespace trex::trex_selector_methods::ad::trex_da */
 // ===================================================================================
 
 #endif /* TREX_SELECTOR_METHODS_TREX_DA_HPP */

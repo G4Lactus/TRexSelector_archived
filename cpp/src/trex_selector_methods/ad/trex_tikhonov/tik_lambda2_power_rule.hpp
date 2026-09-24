@@ -66,14 +66,15 @@
 #include <Eigen/Core>
 
 // T-Rex selector includes
-#include <trex_selector_methods/trex_gvs/trex_gvs.hpp>
-#include <trex_selector_methods/trex_tikhonov/tik_lambda2_pick.hpp>
-#include <trex_selector_methods/trex_tikhonov/trex_tikhonov.hpp>
+#include <trex_selector_methods/ad/trex_gvs/trex_gvs.hpp>
+#include <trex_selector_methods/ad/trex_tikhonov/tik_lambda2_pick.hpp>
+#include <trex_selector_methods/ad/trex_tikhonov/trex_tikhonov.hpp>
 
 // ===================================================================================
 
 namespace trex {
 namespace trex_selector_methods {
+namespace ad {
 namespace trex_tikhonov {
 
 // ===================================================================================
@@ -274,6 +275,7 @@ inline Lambda2PowerRuleResult gvs_lambda2_power_rule(const Eigen::MatrixXd& X,
 }
 
 }  // namespace trex_tikhonov
+}  // namespace ad
 }  // namespace trex_selector_methods
 }  // namespace trex
 

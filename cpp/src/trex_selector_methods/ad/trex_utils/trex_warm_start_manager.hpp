@@ -41,16 +41,16 @@
 #include <Eigen/Dense>
 
 // TSolver base inclusion
-#include <tsolvers/tsolver_base.hpp>
+#include <tsolvers/ad/tsolver_base.hpp>
 
 // Shared filesystem utility
-#include <trex_selector_methods/trex_utils/trex_temp_dir_manager.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_temp_dir_manager.hpp>
 
 // ===================================================================================
 
-namespace trex::trex_selector_methods::utils::warm_start_manager {
+namespace trex::trex_selector_methods::ad::utils::warm_start_manager {
 
-namespace txfs = trex::trex_selector_methods::utils::filesystem;
+namespace txfs = trex::trex_selector_methods::ad::utils::filesystem;
 
 // ===================================================================================
 
@@ -70,7 +70,7 @@ private:
     // In-Memory state
     // ---------------------
     /** @brief Vector of in-memory solvers. */
-    std::vector<std::unique_ptr<tsolvers::TSolver_Base>> solvers_{};
+    std::vector<std::unique_ptr<tsolvers::ad::TSolver_Base>> solvers_{};
 
     /** @brief Per-slot dummy matrices co-retained with the solvers.
      *
@@ -190,7 +190,7 @@ public:
      *          D_k; the caller must guarantee those buffers outlive the
      *          retention (co-retain per-call temporaries via retainDummies()).
      */
-    void storeSolver(std::size_t k, std::unique_ptr<tsolvers::TSolver_Base> solver) {
+    void storeSolver(std::size_t k, std::unique_ptr<tsolvers::ad::TSolver_Base> solver) {
         if (k < solvers_.size()) {
             solvers_[k] = std::move(solver);
         }
@@ -199,7 +199,7 @@ public:
     /**
      * @brief Access the retained solver for experiment k (nullptr if none).
      */
-    tsolvers::TSolver_Base* getSolver(std::size_t k) {
+    tsolvers::ad::TSolver_Base* getSolver(std::size_t k) {
         return (k < solvers_.size()) ? solvers_[k].get() : nullptr;
     }
 
@@ -304,6 +304,6 @@ private:
 }; /* End of class WarmStartManager */
 
 // ===================================================================================
-} /* End of namespace trex::trex_selector_methods::utils::warm_start_manager */
+} /* End of namespace trex::trex_selector_methods::ad::utils::warm_start_manager */
 // ===================================================================================
 #endif /* End of TREX_SELECTOR_METHODS_UTILS_WARM_START_MANAGER_HPP */

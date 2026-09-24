@@ -53,19 +53,19 @@
 #include <utils/datageneration/utils_dummygen.hpp>
 
 // Data normalizer (for center + L2 normalize)
-#include <trex_selector_methods/trex_utils/trex_data_normalizer.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_data_normalizer.hpp>
 
 // Cluster-aware dummy machinery (layer draw + shared stream; Eigen-only)
-#include <trex_selector_methods/trex_utils/trex_cluster_dummies.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_cluster_dummies.hpp>
 
 // ===================================================================================
 
-// Embedded into namespace trex::trex_selector_methods::utils::dummy_generator
-namespace trex::trex_selector_methods::utils::dummy_generator {
+// Embedded into namespace trex::trex_selector_methods::ad::utils::dummy_generator
+namespace trex::trex_selector_methods::ad::utils::dummy_generator {
 
 // Namespace aliases
 namespace dummygen = trex::utils::datageneration::dummygen;
-namespace cdum     = trex::trex_selector_methods::utils::cluster_dummies;
+namespace cdum     = trex::trex_selector_methods::ad::utils::cluster_dummies;
 
 // ===================================================================================
 
@@ -1064,6 +1064,6 @@ private:
 }; /* End of class DummyGenerator */
 
 // ===================================================================================
-} /* End of namespace trex::trex_selector_methods::utils::dummy_generator */
+} /* End of namespace trex::trex_selector_methods::ad::utils::dummy_generator */
 // ===================================================================================
 #endif /* End of TREX_SELECTOR_METHODS_UTILS_TREX_DUMMY_GENERATOR_HPP */

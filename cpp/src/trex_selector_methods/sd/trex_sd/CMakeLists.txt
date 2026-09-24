@@ -1,4 +1,4 @@
-# src/trex_selector_methods/trex_sd/CMakeLists.txt
+# src/trex_selector_methods/sd/trex_sd/CMakeLists.txt
 # ==================================================================================
 # CMake configuration for the trex_sd module.
 #

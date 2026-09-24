@@ -15,15 +15,15 @@
 #include <stdexcept>
 
 // Header
-#include <trex_selector_methods/trex_screening/trex_biobank_screening.hpp>
+#include <trex_selector_methods/ad/trex_screening/trex_biobank_screening.hpp>
 
 // ===================================================================================
 
-namespace trex::trex_selector_methods::trex_biobank_screening {
+namespace trex::trex_selector_methods::ad::trex_biobank_screening {
 
 // Namespace aliases
-namespace tc = trex::trex_selector_methods::trex_core;
-namespace ts = trex::trex_selector_methods::trex_screening;
+namespace tc = trex::trex_selector_methods::ad::trex_core;
+namespace ts = trex::trex_selector_methods::ad::trex_screening;
 
 // ===================================================================================
 // ======================================================================
@@ -418,4 +418,4 @@ void BiobankScreenTRex::printProgressMessage(const std::string& msg) const {
 }
 
 // ===================================================================================
-} /* End of namespace trex::trex_selector_methods::trex_biobank_screening */
+} /* End of namespace trex::trex_selector_methods::ad::trex_biobank_screening */

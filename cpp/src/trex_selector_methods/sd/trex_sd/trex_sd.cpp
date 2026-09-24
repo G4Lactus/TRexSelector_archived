@@ -2,7 +2,7 @@
 // trex_sd.cpp
 // ===================================================================================
 
-#include <trex_selector_methods/trex_sd/trex_sd.hpp>
+#include <trex_selector_methods/sd/trex_sd/trex_sd.hpp>
 
 // std includes
 #include <algorithm>
@@ -13,11 +13,11 @@
 
 // ===================================================================================
 
-namespace trex::trex_selector_methods::trex_sd {
+namespace trex::trex_selector_methods::sd::trex_sd {
 
-namespace sd_solvers  = trex::tsolvers::linear_model::lars_based;
-namespace omp_solvers = trex::tsolvers::linear_model::omp_based;
-namespace afs_solvers = trex::tsolvers::linear_model::afs_based;
+// The whole SD solver family (LARS, OMP and AFS flavours, general and pair)
+// lives in trex::tsolvers::sd.
+namespace sdsol = trex::tsolvers::sd;
 
 // ========================================================================
 // Constructor
@@ -39,7 +39,7 @@ std::vector<unsigned long long> TRexSD::make_seeds_(int K) const {
 // ========================================================================
 // Solver factory
 // ========================================================================
-std::unique_ptr<tsolvers::SDTSolver_Base> TRexSD::make_solver_(
+std::unique_ptr<tsolvers::sd::SDTSolver_Base> TRexSD::make_solver_(
     Eigen::Map<Eigen::MatrixXd>& Xm, Eigen::Map<Eigen::VectorXd>& ym,
     int num_dummies, unsigned long long seed, int T_stop) const
 {
@@ -49,32 +49,32 @@ std::unique_ptr<tsolvers::SDTSolver_Base> TRexSD::make_solver_(
     if (opt_.solver == SDSolverType::General) {
         switch (opt_.algo) {
             case SDAlgo::OMP:
-                return std::make_unique<omp_solvers::SD_TOMP_Solver>(
+                return std::make_unique<sdsol::SD_TOMP_Solver>(
                     Xm, ym, rho_d_resolved_, L, T, /*intercept=*/true, seed);
             case SDAlgo::AFS:
-                return std::make_unique<afs_solvers::SD_TAFS_Solver>(
+                return std::make_unique<sdsol::SD_TAFS_Solver>(
                     Xm, ym, rho_d_resolved_, L, T, /*intercept=*/true, seed,
                     opt_.rho);
             case SDAlgo::LARS:
             default:
-                return std::make_unique<sd_solvers::SD_TLARS_Solver>(
+                return std::make_unique<sdsol::SD_TLARS_Solver>(
                     Xm, ym, rho_d_resolved_, L, T, /*intercept=*/true, seed);
         }
     }
 
     const auto policy = (opt_.solver == SDSolverType::Pair)
-        ? tsolvers::SD2GenPolicy::OnDemand
-        : tsolvers::SD2GenPolicy::Geometric;
+        ? tsolvers::sd::SD2GenPolicy::OnDemand
+        : tsolvers::sd::SD2GenPolicy::Geometric;
     switch (opt_.algo) {
         case SDAlgo::OMP:
-            return std::make_unique<omp_solvers::SD2_TOMP_Solver>(
+            return std::make_unique<sdsol::SD2_TOMP_Solver>(
                 Xm, ym, L, T, /*intercept=*/true, seed, policy);
         case SDAlgo::AFS:
-            return std::make_unique<afs_solvers::SD2_TAFS_Solver>(
+            return std::make_unique<sdsol::SD2_TAFS_Solver>(
                 Xm, ym, L, T, /*intercept=*/true, seed, policy, opt_.rho);
         case SDAlgo::LARS:
         default:
-            return std::make_unique<sd_solvers::SD2_TLARS_Solver>(
+            return std::make_unique<sdsol::SD2_TLARS_Solver>(
                 Xm, ym, L, T, /*intercept=*/true, seed, policy);
     }
 }
@@ -199,7 +199,7 @@ TRexSD::SelectResult TRexSD::select_var_(
 // Mask helper: which original variables are active in a solver
 // ========================================================================
 namespace {
-inline void fill_mask_(const tsolvers::SDTSolver_Base& solver, int p,
+inline void fill_mask_(const tsolvers::sd::SDTSolver_Base& solver, int p,
                        Eigen::VectorXd& mask) {
     for (std::size_t j : solver.getSelectedOriginals())
         if (j < (std::size_t)p) mask((Eigen::Index)j) = 1.0;
@@ -218,7 +218,7 @@ TRexSDResult TRexSD::run_fixed_T_(
 
     auto seeds = make_seeds_(opt_.K);
 
-    std::vector<std::unique_ptr<tsolvers::SDTSolver_Base>> solvers(opt_.K);
+    std::vector<std::unique_ptr<tsolvers::sd::SDTSolver_Base>> solvers(opt_.K);
     for (int k = 0; k < opt_.K; ++k)
         solvers[k] = make_solver_(Xm, ym, num_dummies, seeds[k], T_fixed);
 
@@ -294,7 +294,7 @@ TRexSDResult TRexSD::run_posthoc_(
 
     auto seeds = make_seeds_(opt_.K);
 
-    std::vector<std::unique_ptr<tsolvers::SDTSolver_Base>> solvers;
+    std::vector<std::unique_ptr<tsolvers::sd::SDTSolver_Base>> solvers;
     solvers.reserve(opt_.K);
     for (int k = 0; k < opt_.K; ++k)
         solvers.push_back(make_solver_(Xm, ym, num_dummies, seeds[k], Tstop));
@@ -368,7 +368,7 @@ TRexSDResult TRexSD::run_early_stop_(
 
     auto seeds = make_seeds_(opt_.K);
 
-    std::vector<std::unique_ptr<tsolvers::SDTSolver_Base>> solvers;
+    std::vector<std::unique_ptr<tsolvers::sd::SDTSolver_Base>> solvers;
     solvers.reserve(opt_.K);
     for (int k = 0; k < opt_.K; ++k)
         solvers.push_back(make_solver_(Xm, ym, num_dummies, seeds[k], Tstop));
@@ -495,7 +495,7 @@ int TRexSD::calibrate_L_(
         auto seeds = make_seeds_(opt_.K);
 
         // Run K experiments at T=1
-        std::vector<std::unique_ptr<tsolvers::SDTSolver_Base>> solvers(opt_.K);
+        std::vector<std::unique_ptr<tsolvers::sd::SDTSolver_Base>> solvers(opt_.K);
         for (int k = 0; k < opt_.K; ++k)
             solvers[k] = make_solver_(Xm, ym, L, seeds[k], /*T_stop=*/1);
 
@@ -563,9 +563,9 @@ TRexSDResult TRexSD::run(Eigen::MatrixXd& X, const Eigen::VectorXd& y)
     rho_d_resolved_ = opt_.rho_d;
     k_resolved_ = 0;
     if (opt_.solver == SDSolverType::General && opt_.rho_d == 0.0) {
-        tsolvers::sd_calibration::Options copt;
+        tsolvers::sd::calibration::Options copt;
         copt.L = (std::size_t)(opt_.L_factor * p);
-        auto calib = tsolvers::sd_calibration::calibrate(X, y, copt);
+        auto calib = tsolvers::sd::calibration::calibrate(X, y, copt);
         rho_d_resolved_ = calib.rho_d;
         k_resolved_ = calib.k;
         if (opt_.verbose)
@@ -648,4 +648,4 @@ TRexSDResult TRexSD::run(Eigen::MatrixXd& X, const Eigen::VectorXd& y)
     return out;
 }
 
-}  // namespace trex::trex_selector_methods::trex_sd
+}  // namespace trex::trex_selector_methods::sd::trex_sd

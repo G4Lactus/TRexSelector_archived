@@ -11,7 +11,7 @@
 
 // TRex includes
 #include <utils/logging/logger.hpp>
-#include <trex_selector_methods/trex_utils/trex_data_normalizer.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_data_normalizer.hpp>
 
 // std includes
 #include <cmath>
@@ -24,8 +24,8 @@
 
 // =================================================================================
 
-// Embedded into namespace trex::trex_selector_methods::utils::data_normalizer
-namespace trex::trex_selector_methods::utils::data_normalizer {
+// Embedded into namespace trex::trex_selector_methods::ad::utils::data_normalizer
+namespace trex::trex_selector_methods::ad::utils::data_normalizer {
 
 // =================================================================================
 
@@ -277,4 +277,4 @@ void decenterY(Eigen::VectorXd& y, const NormalizationParams& params) {
 
 
 // =================================================================================
-} /* End of namespace trex::trex_selector_methods::utils::data_normalizer */
+} /* End of namespace trex::trex_selector_methods::ad::utils::data_normalizer */

@@ -1,4 +1,4 @@
-# src/trex/trex_spca/CMakeLists.txt
+# src/trex_selector_methods/ad/trex_spca/CMakeLists.txt
 # ==================================================================================
 # CMake configuration for the trex_spca module.
 #

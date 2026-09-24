@@ -20,16 +20,16 @@
 #include <boost/math/special_functions/erf.hpp>
 
 // Header
-#include <trex_selector_methods/trex_screening/trex_screening.hpp>
+#include <trex_selector_methods/ad/trex_screening/trex_screening.hpp>
 
 // ===================================================================================
 
-namespace trex::trex_selector_methods::trex_screening {
+namespace trex::trex_selector_methods::ad::trex_screening {
 
 // Namespace aliases
-namespace tc       = trex::trex_selector_methods::trex_core;
-namespace dn       = trex::trex_selector_methods::utils::data_normalizer;
-namespace er       = trex::trex_selector_methods::utils::experiment_runner;
+namespace tc       = trex::trex_selector_methods::ad::trex_core;
+namespace dn       = trex::trex_selector_methods::ad::utils::data_normalizer;
+namespace er       = trex::trex_selector_methods::ad::utils::experiment_runner;
 namespace dummygen = trex::utils::datageneration::dummygen;
 
 // ===================================================================================
@@ -818,5 +818,5 @@ Eigen::VectorXd ScreenTRexSelector::computeDA_BLOCK_EQUI_Delta(
 
 
 // ===================================================================================
-} /* End of namespace trex::trex_selector_methods::trex_screening */
+} /* End of namespace trex::trex_selector_methods::ad::trex_screening */
 // ===================================================================================

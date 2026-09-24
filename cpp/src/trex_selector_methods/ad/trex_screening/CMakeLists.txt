@@ -1,4 +1,4 @@
-# src/trex/trex_screening/CMakeLists.txt
+# src/trex_selector_methods/ad/trex_screening/CMakeLists.txt
 # ==================================================================================
 # CMake configuration for the trex_screening module.
 #

@@ -21,24 +21,24 @@
 #include <string>
 
 // T-Rex header
-#include <trex_selector_methods/trex_core/trex.hpp>
+#include <trex_selector_methods/ad/trex_core/trex.hpp>
 
 // utils includes
 #include <utils/fp_classify/fp_classify.hpp>
 
 // ===================================================================================
 
-// Embedded into namespace trex::trex_selector_methods::trex_core
-namespace trex::trex_selector_methods::trex_core {
+// Embedded into namespace trex::trex_selector_methods::ad::trex_core
+namespace trex::trex_selector_methods::ad::trex_core {
 
 // Namespace aliases
-namespace dn = trex::trex_selector_methods::utils::data_normalizer;
-namespace dg = trex::trex_selector_methods::utils::dummy_generator;
+namespace dn = trex::trex_selector_methods::ad::utils::data_normalizer;
+namespace dg = trex::trex_selector_methods::ad::utils::dummy_generator;
 namespace fpc = trex::utils::fp_classify;
-namespace wsm = trex::trex_selector_methods::utils::warm_start_manager;
-namespace mm = trex::trex_selector_methods::utils::memmap_manager;
-namespace sd = trex::trex_selector_methods::utils::solver_dispatch;
-namespace er = trex::trex_selector_methods::utils::experiment_runner;
+namespace wsm = trex::trex_selector_methods::ad::utils::warm_start_manager;
+namespace mm = trex::trex_selector_methods::ad::utils::memmap_manager;
+namespace disp = trex::trex_selector_methods::ad::utils::solver_dispatch;
+namespace er = trex::trex_selector_methods::ad::utils::experiment_runner;
 
 // ===================================================================================
 
@@ -440,8 +440,8 @@ er::ExperimentRunnerConfig TRexSelector::buildRunnerConfig(
     // augmented-column handling. NONE maps to L2: the user-managed design is
     // unit-L2-commensurate by contract (see dn::ScalingMode).
     cfg.scaling_mode          = (trex_ctrl_.scaling_mode == dn::ScalingMode::ZSCORE)
-                                    ? trex::tsolvers::ScalingMode::ZSCORE
-                                    : trex::tsolvers::ScalingMode::L2;
+                                    ? trex::tsolvers::ad::ScalingMode::ZSCORE
+                                    : trex::tsolvers::ad::ScalingMode::L2;
     cfg.use_warm_start        = use_warm_start;
     cfg.use_memory_mapping    = trex_ctrl_.use_memory_mapping;
     cfg.max_outer_threads     = trex_ctrl_.max_outer_threads;

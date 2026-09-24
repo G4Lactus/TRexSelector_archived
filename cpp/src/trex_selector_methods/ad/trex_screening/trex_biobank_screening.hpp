@@ -27,16 +27,16 @@
 #include <Eigen/Dense>
 
 // TRex includes
-#include <trex_selector_methods/trex_core/trex.hpp>
-#include <trex_selector_methods/trex_screening/trex_screening.hpp>
+#include <trex_selector_methods/ad/trex_core/trex.hpp>
+#include <trex_selector_methods/ad/trex_screening/trex_screening.hpp>
 
 // ===================================================================================
 
-namespace trex::trex_selector_methods::trex_biobank_screening {
+namespace trex::trex_selector_methods::ad::trex_biobank_screening {
 
 // Namespace aliases
-namespace tc = trex::trex_selector_methods::trex_core;
-namespace ts = trex::trex_selector_methods::trex_screening;
+namespace tc = trex::trex_selector_methods::ad::trex_core;
+namespace ts = trex::trex_selector_methods::ad::trex_screening;
 
 // ===================================================================================
 
@@ -376,6 +376,6 @@ protected:
 };
 
 // ===================================================================================
-} /* End of namespace trex::trex_selector_methods::trex_biobank_screening */
+} /* End of namespace trex::trex_selector_methods::ad::trex_biobank_screening */
 // ===================================================================================
 #endif /* End of TREX_SELECTOR_METHODS_TREX_BIOBANK_SCREENING_HPP */

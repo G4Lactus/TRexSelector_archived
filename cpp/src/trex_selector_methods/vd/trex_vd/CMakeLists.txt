@@ -1,4 +1,4 @@
-# src/trex_selector_methods/trex_vd/CMakeLists.txt
+# src/trex_selector_methods/vd/trex_vd/CMakeLists.txt
 # ==================================================================================
 # CMake configuration for the trex_vd module.
 #

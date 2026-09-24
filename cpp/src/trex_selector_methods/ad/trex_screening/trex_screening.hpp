@@ -20,15 +20,15 @@
 #include <Eigen/Dense>
 
 // TRex base
-#include <trex_selector_methods/trex_core/trex.hpp>
+#include <trex_selector_methods/ad/trex_core/trex.hpp>
 
 // ===================================================================================
 
-namespace trex::trex_selector_methods::trex_screening {
+namespace trex::trex_selector_methods::ad::trex_screening {
 
 // Namespace aliases
-namespace tc = trex::trex_selector_methods::trex_core;
-namespace er = trex::trex_selector_methods::utils::experiment_runner;
+namespace tc = trex::trex_selector_methods::ad::trex_core;
+namespace er = trex::trex_selector_methods::ad::utils::experiment_runner;
 
 // ===================================================================================
 // Enums & Control Structures for Screen-TRex
@@ -438,6 +438,6 @@ protected:
 };
 
 // ===================================================================================
-} /* End of namespace trex::trex_selector_methods::trex_screening */
+} /* End of namespace trex::trex_selector_methods::ad::trex_screening */
 // ===================================================================================
 #endif /* End of TREX_SELECTOR_METHODS_TREX_SCREENING_HPP */

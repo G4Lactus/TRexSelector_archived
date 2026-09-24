@@ -1,10 +1,10 @@
 # T-Rex-SD: The Sparse-Dummy T-Rex Selector
 
-Consolidated method notes — solver family (`tsolvers/sd_tsolvers/`) and
-selector (`trex_selector_methods/trex_sd/`). **Living document**: the method
+Consolidated method notes — solver family (`tsolvers/sd/`) and
+selector (`trex_selector_methods/sd/trex_sd/`). **Living document**: the method
 is not finished; Section 9 lists the open analysis and improvement
 directions. Status: 2026-07-12. Earlier engineering notes:
-`tsolvers/sd_tsolvers/sd_tsolver.md`.
+`tsolvers/sd/sd_tsolver.md`.
 
 ---
 
@@ -533,15 +533,15 @@ The method is not finished. Ordered by expected value:
 
 | file | role |
 | --- | --- |
-| `tsolvers/sd_tsolvers/sd_tsolver_base.hpp` | shared state, dummy law, fair-race scale, sparse beta path |
-| `tsolvers/sd_tsolvers/sd_tlars_solver.{hpp,cpp}` | general-$k$ SD-TLARS (index-set arithmetic, auto-$k$ ctor) |
-| `tsolvers/sd_tsolvers/sd2_tlars_solver.{hpp,cpp}` | pair solver ($k{=}1$, dot-free; OnDemand / Geometric policies) |
-| `tsolvers/sd_tsolvers/sd_tomp_solver.{hpp,cpp}` | general-$k$ SD-TOMP (greedy argmax + full OLS refit) |
-| `tsolvers/sd_tsolvers/sd2_tomp_solver.{hpp,cpp}` | pair SD2-TOMP (dot-free, both policies) |
-| `tsolvers/sd_tsolvers/sd_tafs_solver.{hpp,cpp}` | general-$k$ SD-TAFS (blend $\rho$, re-selection; $\rho{=}1$ ≡ OMP) |
-| `tsolvers/sd_tsolvers/sd2_tafs_solver.{hpp,cpp}` | pair SD2-TAFS (dot-free, both policies) |
-| `tsolvers/sd_tsolvers/sd_calibration.hpp` | pre-run auto-$k$ / auto-$L$ (bars, ceilings, $m_k(L)$) |
-| `trex_selector_methods/trex_sd/trex_sd.{hpp,cpp}` | TRexSD selector ($K$ experiments, $\Phi/\Phi'$, FDP, $(T,v)$, L-loop; law × algo factory) |
+| `tsolvers/sd/sd_tsolver_base.hpp` | shared state, dummy law, fair-race scale, sparse beta path |
+| `tsolvers/sd/sd_tlars_solver.{hpp,cpp}` | general-$k$ SD-TLARS (index-set arithmetic, auto-$k$ ctor) |
+| `tsolvers/sd/sd2_tlars_solver.{hpp,cpp}` | pair solver ($k{=}1$, dot-free; OnDemand / Geometric policies) |
+| `tsolvers/sd/sd_tomp_solver.{hpp,cpp}` | general-$k$ SD-TOMP (greedy argmax + full OLS refit) |
+| `tsolvers/sd/sd2_tomp_solver.{hpp,cpp}` | pair SD2-TOMP (dot-free, both policies) |
+| `tsolvers/sd/sd_tafs_solver.{hpp,cpp}` | general-$k$ SD-TAFS (blend $\rho$, re-selection; $\rho{=}1$ ≡ OMP) |
+| `tsolvers/sd/sd2_tafs_solver.{hpp,cpp}` | pair SD2-TAFS (dot-free, both policies) |
+| `tsolvers/sd/sd_calibration.hpp` | pre-run auto-$k$ / auto-$L$ (bars, ceilings, $m_k(L)$) |
+| `trex_selector_methods/sd/trex_sd/trex_sd.{hpp,cpp}` | TRexSD selector ($K$ experiments, $\Phi/\Phi'$, FDP, $(T,v)$, L-loop; law × algo factory) |
 | `demo_sd_tlars.cpp` (research Demos folder) | contract equivalence (unit-L2 vs z-score) |
 | `demo_sd2_tlars.cpp` (research Demos folder) | arithmetic + policies + calibrated $p{=}10^6$ scenario |
 | `demo_sd_omp_afs.cpp` (research Demos folder) | greedy solvers: algorithm comparison, pair twins, auto-calibrated large $p$ |

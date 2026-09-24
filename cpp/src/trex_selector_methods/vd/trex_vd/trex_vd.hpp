@@ -39,12 +39,12 @@
 #include <utils/openmp/utils_openmp.hpp>
 
 // VD solver includes
-#include <tsolvers/vd_tsolvers.hpp>
+#include <tsolvers/vd.hpp>
 
 // ===================================================================================
 
-// Embedded into namespace trex::trex_selector_methods::trex_vd
-namespace trex::trex_selector_methods::trex_vd {
+// Embedded into namespace trex::trex_selector_methods::vd::trex_vd
+namespace trex::trex_selector_methods::vd::trex_vd {
 
 // Namespace alias for the VD solver family
 namespace vd = trex::tsolvers::vd;
@@ -155,7 +155,7 @@ private:
     std::vector<unsigned long long> make_seeds_(int K) const;
 };
 
-}  // namespace trex::trex_selector_methods::trex_vd
+}  // namespace trex::trex_selector_methods::vd::trex_vd
 
 // ===================================================================================
 #endif /* TREX_SELECTOR_METHODS_TREX_VD_HPP */

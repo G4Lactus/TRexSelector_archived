@@ -43,6 +43,7 @@
 
 namespace trex {
 namespace trex_selector_methods {
+namespace ad {
 namespace trex_tikhonov {
 
 namespace fpc = trex::utils::fp_classify;
@@ -191,6 +192,7 @@ inline std::vector<double> validate_lambda2_grid(const std::vector<double>& grid
 }
 
 }  // namespace trex_tikhonov
+}  // namespace ad
 }  // namespace trex_selector_methods
 }  // namespace trex
 

@@ -15,8 +15,8 @@
 #include <vector>
 
 // trex_selector_methods includes
-#include <trex_selector_methods/trex_spca/trex_spca.hpp>
-#include <trex_selector_methods/trex_gvs/trex_gvs.hpp>
+#include <trex_selector_methods/ad/trex_spca/trex_spca.hpp>
+#include <trex_selector_methods/ad/trex_gvs/trex_gvs.hpp>
 
 // ml_methods includes
 #include <ml_methods/pca/pca.hpp>
@@ -25,14 +25,14 @@
 
 // ==============================================================================
 
-namespace trex::trex_selector_methods::trex_spca {
+namespace trex::trex_selector_methods::ad::trex_spca {
 
 // Namespace aliases
 namespace pca        = trex::ml_methods::pca;
 namespace ridge      = trex::ml_methods::ridge;
-namespace tg         = trex::trex_selector_methods::trex_gvs;
-namespace tc         = trex::trex_selector_methods::trex_core;
-namespace sd         = trex::trex_selector_methods::utils::solver_dispatch;
+namespace tg         = trex::trex_selector_methods::ad::trex_gvs;
+namespace tc         = trex::trex_selector_methods::ad::trex_core;
+namespace disp = trex::trex_selector_methods::ad::utils::solver_dispatch;
 // std_scaler alias inherited from header via using-declaration of the namespace block
 
 
@@ -294,5 +294,5 @@ void TRexSPCA::adjustExplainedVariance(
 
 
 // ==============================================================================
-} /* End of namespace trex::trex_selector_methods::trex_spca */
+} /* End of namespace trex::trex_selector_methods::ad::trex_spca */
 // ==============================================================================

@@ -150,10 +150,10 @@
 #include <Eigen/Dense>
 
 // TRex base class
-#include <trex_selector_methods/trex_core/trex.hpp>
+#include <trex_selector_methods/ad/trex_core/trex.hpp>
 
 // Solver dispatch (constants + SolverConfig)
-#include <trex_selector_methods/trex_utils/trex_solver_dispatch.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_solver_dispatch.hpp>
 
 // Hierarchical clustering (Route 2 -- auto-cluster from |cor(X)|)
 #include <ml_methods/clustering/hierarchical/agglomerative/agglomerative_dispatcher.hpp>
@@ -163,15 +163,15 @@
 #include <ml_methods/model_selection/lambda2_cv_diagnostics.hpp>
 
 // Solver base for warm-start cache
-#include <tsolvers/tsolver_base.hpp>
+#include <tsolvers/ad/tsolver_base.hpp>
 
 // ===================================================================================
 
-namespace trex::trex_selector_methods::trex_gvs {
+namespace trex::trex_selector_methods::ad::trex_gvs {
 
 // Namespace aliases
-namespace tc  = trex::trex_selector_methods::trex_core;
-namespace sd  = trex::trex_selector_methods::utils::solver_dispatch;
+namespace tc  = trex::trex_selector_methods::ad::trex_core;
+namespace disp = trex::trex_selector_methods::ad::utils::solver_dispatch;
 namespace hac = trex::ml_methods::clustering::hierarchical::agglomerative;
 namespace ms  = trex::ml_methods::model_selection;
 
@@ -233,12 +233,12 @@ enum class ENSolverType {
  *  `trex_ctrl.solver_type` when `gvs_type == EN`, and by `TRexSPCA` when
  *  forwarding its `en_solver` knob to the per-PC GVS runs.
  */
-inline constexpr sd::SolverTypeForTRex toSolverType(ENSolverType en_solver) {
+inline constexpr disp::SolverTypeForTRex toSolverType(ENSolverType en_solver) {
     switch (en_solver) {
-        case ENSolverType::TENET_AUG: return sd::SolverTypeForTRex::TENET_AUG;
-        case ENSolverType::TCDENET:    return sd::SolverTypeForTRex::TCDENET;
+        case ENSolverType::TENET_AUG: return disp::SolverTypeForTRex::TENET_AUG;
+        case ENSolverType::TCDENET:    return disp::SolverTypeForTRex::TCDENET;
         case ENSolverType::TENET:
-        default:                      return sd::SolverTypeForTRex::TENET;
+        default:                      return disp::SolverTypeForTRex::TENET;
     }
 }
 
@@ -433,7 +433,7 @@ struct TRexGVSControlParameter {
      */
     tc::TRexControlParameter trex_ctrl = [] {
         tc::TRexControlParameter t;
-        t.solver_type = sd::SolverTypeForTRex::TENET;
+        t.solver_type = disp::SolverTypeForTRex::TENET;
         return t;
     }();
 };
@@ -683,7 +683,7 @@ protected:
      *  Cleared at the end of every L-iteration.
      *  Within one L-iteration the same instance is reused across T-iterations.
      */
-    std::vector<std::unique_ptr<tsolvers::TSolver_Base>> solvers_cache_;
+    std::vector<std::unique_ptr<tsolvers::ad::TSolver_Base>> solvers_cache_;
 
     // ============================================================
     // Setup helpers (called from select())
@@ -786,7 +786,7 @@ protected:
      * @return (p x T_stop) binary contribution matrix (0 or 1, NOT divided by K).
      */
     static Eigen::MatrixXd extractPhiContribFromPath(
-        const tsolvers::SparseBetaPath& beta_path,
+        const tsolvers::ad::SparseBetaPath& beta_path,
         std::size_t            p,
         std::size_t            num_dummies,
         std::size_t            T_stop,
@@ -856,7 +856,7 @@ protected:
 }; /* End of class TRexGVSSelector */
 
 // ===================================================================================
-} /* End of namespace trex::trex_selector_methods::trex_gvs */
+} /* End of namespace trex::trex_selector_methods::ad::trex_gvs */
 // ===================================================================================
 
 #endif /* End of TREX_SELECTOR_METHODS_TREX_GVS_HPP */

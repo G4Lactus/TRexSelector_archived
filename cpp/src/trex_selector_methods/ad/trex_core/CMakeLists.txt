@@ -1,4 +1,4 @@
-# src/trex_methods/trex/CMakeLists.txt
+# src/trex_selector_methods/ad/trex_core/CMakeLists.txt
 # ==================================================================================
 # CMake configuration for the trex module.
 #

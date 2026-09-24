@@ -30,7 +30,7 @@
 
 
 // GVS header
-#include <trex_selector_methods/trex_gvs/trex_gvs.hpp>
+#include <trex_selector_methods/ad/trex_gvs/trex_gvs.hpp>
 #include <utils/logging/logger.hpp>
 
 // Ridge lambda-selection (header-only): four retained k-fold CV variants.
@@ -44,22 +44,22 @@
 #include <ml_methods/model_selection/tikhonov_cv_svd.hpp>
 
 // Data normalization helpers
-#include <trex_selector_methods/trex_utils/trex_cluster_dummies.hpp>
-#include <trex_selector_methods/trex_utils/trex_cluster_hac.hpp>
-#include <trex_selector_methods/trex_utils/trex_data_normalizer.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_cluster_dummies.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_cluster_hac.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_data_normalizer.hpp>
 
 // Solver dispatch
-#include <trex_selector_methods/trex_utils/trex_solver_dispatch.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_solver_dispatch.hpp>
 
 // Concrete solver types (for direct in-memory warm-start)
-#include <tsolvers/linear_model/lars_based/tenet_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tenet_aug_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tienet_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tienet_aug_solver.hpp>
-#include <tsolvers/linear_model/cd_based/tcdenet_solver.hpp>
-#include <tsolvers/linear_model/cd_based/tcdienet_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tlars_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tlasso_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tenet_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tenet_aug_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tienet_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tienet_aug_solver.hpp>
+#include <tsolvers/ad/linear_model/cd_based/tcdenet_solver.hpp>
+#include <tsolvers/ad/linear_model/cd_based/tcdienet_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tlars_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tlasso_solver.hpp>
 
 // OpenMP (parallel-K loop)
 #ifdef _OPENMP
@@ -68,14 +68,14 @@
 
 // ===================================================================================
 
-namespace trex::trex_selector_methods::trex_gvs {
+namespace trex::trex_selector_methods::ad::trex_gvs {
 
 // Local namespace aliases
-namespace cdum = trex::trex_selector_methods::utils::cluster_dummies;
-namespace dn   = trex::trex_selector_methods::utils::data_normalizer;
-namespace lars = trex::tsolvers::linear_model::lars_based;
-namespace ccd  = trex::tsolvers::linear_model::cd_based;
-namespace mm   = trex::trex_selector_methods::utils::memmap_manager;
+namespace cdum = trex::trex_selector_methods::ad::utils::cluster_dummies;
+namespace dn   = trex::trex_selector_methods::ad::utils::data_normalizer;
+namespace lars = trex::tsolvers::ad::linear_model::lars_based;
+namespace ccd  = trex::tsolvers::ad::linear_model::cd_based;
+namespace mm   = trex::trex_selector_methods::ad::utils::memmap_manager;
 
 // Static helper: prepare the nested base control parameters before they are
 // frozen into the base class.
@@ -100,13 +100,13 @@ static tc::TRexControlParameter prepareBaseCtrl(
     q.use_memory_mapping = false;
 
     if (g.gvs_type == GVSType::EN) {
-        const sd::SolverTypeForTRex derived = toSolverType(g.en_solver);
+        const disp::SolverTypeForTRex derived = toSolverType(g.en_solver);
         const bool en_family =
-            q.solver_type == sd::SolverTypeForTRex::TENET ||
-            q.solver_type == sd::SolverTypeForTRex::TENET_AUG ||
-            q.solver_type == sd::SolverTypeForTRex::TCDENET;
+            q.solver_type == disp::SolverTypeForTRex::TENET ||
+            q.solver_type == disp::SolverTypeForTRex::TENET_AUG ||
+            q.solver_type == disp::SolverTypeForTRex::TCDENET;
         if (en_family &&
-            q.solver_type != sd::SolverTypeForTRex::TENET &&  // neutral default
+            q.solver_type != disp::SolverTypeForTRex::TENET &&  // neutral default
             q.solver_type != derived) {
             throw std::invalid_argument(
                 "TRexGVSSelector: gvs_type = EN selects its solver via "
@@ -154,9 +154,9 @@ TRexGVSSelector::TRexGVSSelector(
         // .solver_type from en_solver (throwing on an explicit conflict).
         // What remains to reject here is a non-EN-family solver_type that
         // the derivation deliberately left untouched (e.g. TLARS, TOMP).
-        if (trex_ctrl_.solver_type != sd::SolverTypeForTRex::TENET &&
-            trex_ctrl_.solver_type != sd::SolverTypeForTRex::TENET_AUG &&
-            trex_ctrl_.solver_type != sd::SolverTypeForTRex::TCDENET) {
+        if (trex_ctrl_.solver_type != disp::SolverTypeForTRex::TENET &&
+            trex_ctrl_.solver_type != disp::SolverTypeForTRex::TENET_AUG &&
+            trex_ctrl_.solver_type != disp::SolverTypeForTRex::TCDENET) {
             throw std::invalid_argument(
                 "TRexGVSSelector: gvs_type = EN drives the ENET solver "
                 "family only; select the variant via en_solver "
@@ -170,9 +170,9 @@ TRexGVSSelector::TRexGVSSelector(
         // absorbed into the row-augmented system built by TIENETAug_Solver),
         // or TCDIENET (pathwise CCD with the O(1) group-sum penalty hooks).
         // All three solve the same IEN problem family.
-        if (trex_ctrl_.solver_type != sd::SolverTypeForTRex::TIENET &&
-            trex_ctrl_.solver_type != sd::SolverTypeForTRex::TIENET_AUG &&
-            trex_ctrl_.solver_type != sd::SolverTypeForTRex::TCDIENET) {
+        if (trex_ctrl_.solver_type != disp::SolverTypeForTRex::TIENET &&
+            trex_ctrl_.solver_type != disp::SolverTypeForTRex::TIENET_AUG &&
+            trex_ctrl_.solver_type != disp::SolverTypeForTRex::TCDIENET) {
             throw std::invalid_argument(
                 "TRexGVSSelector: gvs_type = IEN requires solver_type = "
                 "TIENET (native pathwise), TIENET_AUG (row-augmented), or "
@@ -717,7 +717,7 @@ void TRexGVSSelector::assembleDummyBlock(std::size_t k,
 // ===================================================================================
 
 Eigen::MatrixXd TRexGVSSelector::extractPhiContribFromPath(
-    const tsolvers::SparseBetaPath& beta_path,
+    const tsolvers::ad::SparseBetaPath& beta_path,
     std::size_t            p,
     std::size_t            num_dummies,
     std::size_t            T_stop,
@@ -803,9 +803,9 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
     const auto T_idx     = static_cast<Eigen::Index>(T_stop);
     const bool ien                           = (trex_gvs_ctrl_.gvs_type == GVSType::IEN);
     const bool ien_native = ien &&
-        (trex_ctrl_.solver_type == sd::SolverTypeForTRex::TIENET);
+        (trex_ctrl_.solver_type == disp::SolverTypeForTRex::TIENET);
     const bool ien_ccd = ien &&
-        (trex_ctrl_.solver_type == sd::SolverTypeForTRex::TCDIENET);
+        (trex_ctrl_.solver_type == disp::SolverTypeForTRex::TCDIENET);
     // EN variants branch on en_solver, the single EN axis (the frozen
     // trex_ctrl_.solver_type was derived from it in prepareBaseCtrl()).
     const bool en_ccd    = (trex_gvs_ctrl_.gvs_type == GVSType::EN &&
@@ -820,10 +820,10 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
     // augmented-column handling; propagating it keeps the convention coherent
     // (mirrors the base-class conversion in trex.cpp buildSolverConfig()).
     // NONE (user-managed, unit-L2-commensurate by contract) maps to L2.
-    const tsolvers::ScalingMode solver_scaling =
+    const tsolvers::ad::ScalingMode solver_scaling =
         (trex_ctrl_.scaling_mode == dn::ScalingMode::ZSCORE)
-            ? tsolvers::ScalingMode::ZSCORE
-            : tsolvers::ScalingMode::L2;
+            ? tsolvers::ad::ScalingMode::ZSCORE
+            : tsolvers::ad::ScalingMode::L2;
 
     // Per-experiment phi_T contributions; summed after the parallel section.
     std::vector<Eigen::MatrixXd> phi_T_per_k(K);
@@ -840,7 +840,7 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
         trex_ctrl_.parallel_rnd_experiments && (trex_ctrl_.max_outer_threads > 1);
     // Eigen budget set ONCE from this thread and restored on exit; never
     // written inside the team (PLAN WP4 4.5, see EigenThreadScope).
-    trex::trex_selector_methods::utils::experiment_runner::EigenThreadScope
+    trex::trex_selector_methods::ad::utils::experiment_runner::EigenThreadScope
         eigen_scope(do_parallel ? trex_ctrl_.max_inner_threads : 0);
     #ifdef _OPENMP
     int old_max_levels = omp_get_max_active_levels();
@@ -866,7 +866,7 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
             if (has_error.load(std::memory_order_relaxed)) { continue; }
             try {
 
-            tsolvers::SparseBetaPath beta_path;
+            tsolvers::ad::SparseBetaPath beta_path;
 
             if (use_warm_start && solvers_cache_[k] != nullptr) {
                 // -- Warm-start branch: solver already bound to *D_solver_maps_[k]. --
@@ -880,19 +880,19 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
                 //    the base-normalized X_ and centered y_ for ALL variants;
                 //    the augmented solvers build and own their augmented
                 //    systems internally.
-                std::unique_ptr<tsolvers::TSolver_Base> solver;
+                std::unique_ptr<tsolvers::ad::TSolver_Base> solver;
                 // Construction-time options shared by every variant below
                 // (PLAN WP9): the K-loop runs the solvers AS CONSTRUCTED on
                 // the pre-normalized X_ / centered y_ (normalize = false);
                 // the CD knobs of the control apply to the CCD variants.
-                tsolvers::SolverOptions opts;
+                tsolvers::ad::SolverOptions opts;
                 opts.lambda2            = lambda2_;
                 opts.normalize          = false;
                 opts.intercept          = false;
                 opts.verbose            = false;
                 opts.scaling_mode       = solver_scaling;
                 opts.tenet_aug_use_lars = trex_gvs_ctrl_.tenet_aug_use_lars;
-                sd::applyCdKnobs(opts, trex_ctrl_.solver_params);
+                disp::applyCdKnobs(opts, trex_ctrl_.solver_params);
                 if (ien_native) {
                     // IEN native: pathwise LARS-IEN (no augmented copies).
                     // X is the shared base-normalized map, D_k was CENTERED
@@ -938,7 +938,7 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
                     // rows. The same flags govern the degenerate
                     // lambda2 == 0 collapse (inner solver centers, does not
                     // rescale).
-                    tsolvers::SolverOptions ien_aug_opts = opts;
+                    tsolvers::ad::SolverOptions ien_aug_opts = opts;
                     ien_aug_opts.intercept = true;
                     solver = std::make_unique<lars::TIENETAug_Solver>(
                         *X_solver_map_,
@@ -1093,8 +1093,8 @@ void TRexGVSSelector::prepareDummiesForLStep(LStepContext& ctx)
     // Native-convention IEN solvers (pathwise LARS-IEN and CCD-IEN) consume
     // the center-only D_k directly; only the TIENETAug wrapper takes it raw.
     const bool ien_native = ien &&
-        (trex_ctrl_.solver_type == sd::SolverTypeForTRex::TIENET ||
-         trex_ctrl_.solver_type == sd::SolverTypeForTRex::TCDIENET);
+        (trex_ctrl_.solver_type == disp::SolverTypeForTRex::TIENET ||
+         trex_ctrl_.solver_type == disp::SolverTypeForTRex::TCDIENET);
 
     // Fresh dummy data invalidates the cached solvers. Clear them BEFORE the
     // dummy buffers they view are reassigned below, so no dangling view
@@ -1368,5 +1368,5 @@ TRexGVSSelector::SelectionResult TRexGVSSelector::finalizeSelectionResult(
 
 
 // ===================================================================================
-} /* End of namespace trex::trex_selector_methods::trex_gvs */
+} /* End of namespace trex::trex_selector_methods::ad::trex_gvs */
 // ===================================================================================

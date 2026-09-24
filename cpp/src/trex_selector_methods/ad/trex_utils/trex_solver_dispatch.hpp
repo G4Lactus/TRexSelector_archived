@@ -47,15 +47,15 @@
 
 // ===================================================================================
 
-// Embedded into namespace trex::trex_selector_methods::utils::solver_dispatch
-namespace trex::trex_selector_methods::utils::solver_dispatch {
+// Embedded into namespace trex::trex_selector_methods::ad::utils::solver_dispatch
+namespace trex::trex_selector_methods::ad::utils::solver_dispatch {
 
 // ===================================================================================
 
 /** @brief Sparse beta path handed from the solvers to the T-Rex aggregation
  *  (per-step support + values; O(sum_t |support_t|) memory instead of the
  *  former dense (p + num_dummies) x steps matrix). */
-using SparseBetaPath = trex::tsolvers::SparseBetaPath;
+using SparseBetaPath = trex::tsolvers::ad::SparseBetaPath;
 
 // ===================================================================================
 
@@ -231,7 +231,7 @@ struct SolverConfig {
      *  ZSCORE only when the caller wants the solver to z-score internally
      *  (e.g. augmented EN paths that must keep the ridge block consistent).
      */
-    trex::tsolvers::ScalingMode scaling_mode = trex::tsolvers::ScalingMode::L2;
+    trex::tsolvers::ad::ScalingMode scaling_mode = trex::tsolvers::ad::ScalingMode::L2;
 
     // --- Execution parameters ---
 
@@ -269,14 +269,14 @@ struct SolverConfig {
      *  this solver via executeStep(T_stop, early_stop). The solver holds
      *  non-owning views into X and its dummy matrix from the run that
      *  created it; cfg.X / cfg.D are ignored on this path. */
-    tsolvers::TSolver_Base* warm_solver = nullptr;
+    tsolvers::ad::TSolver_Base* warm_solver = nullptr;
 
     /** @brief Retention sink for the freshly constructed solver (nullptr = none).
      *  When set, dispatchSolver() heap-allocates the solver and moves it here
      *  after execution so the caller can retain it for the next T-step.
      *  The caller must keep the X and D buffers alive for as long as the
      *  solver is retained. */
-    std::unique_ptr<tsolvers::TSolver_Base>* retain_sink = nullptr;
+    std::unique_ptr<tsolvers::ad::TSolver_Base>* retain_sink = nullptr;
 
     // --- General-Tikhonov penalty (TCDTIKNET / TIKNET / TIKOMP dispatch) ---
 
@@ -311,10 +311,10 @@ struct SolverConfig {
 
 
 // Aliases for clean reading in the if constexpr block
-namespace lars = trex::tsolvers::linear_model::lars_based;
-namespace cd   = trex::tsolvers::linear_model::cd_based;
-namespace omp  = trex::tsolvers::linear_model::omp_based;
-namespace afs  = trex::tsolvers::linear_model::afs_based;
+namespace lars = trex::tsolvers::ad::linear_model::lars_based;
+namespace cd   = trex::tsolvers::ad::linear_model::cd_based;
+namespace omp  = trex::tsolvers::ad::linear_model::omp_based;
+namespace afs  = trex::tsolvers::ad::linear_model::afs_based;
 
 
 /**
@@ -332,7 +332,7 @@ namespace afs  = trex::tsolvers::linear_model::afs_based;
  *        when set (> 0), so the solver defaults stay in force otherwise;
  *        the localization mode is always copied.
  */
-inline void applyCdKnobs(trex::tsolvers::SolverOptions& o,
+inline void applyCdKnobs(trex::tsolvers::ad::SolverOptions& o,
                          const SolverHyperparameters& hp) {
     if (hp.cd_lambda_rel_tol > 0.0) { o.cd_lambda_rel_tol = hp.cd_lambda_rel_tol; }
     if (hp.cd_tol_certify > 0.0 && hp.cd_tol_probe > 0.0) {
@@ -373,8 +373,8 @@ inline void applyCdKnobs(cd::TCDLASSO_Solver& solver,
  *          knobs are copied only when set (> 0), so the solver defaults
  *          stay in force otherwise.
  */
-inline trex::tsolvers::SolverOptions toSolverOptions(const SolverConfig& cfg) {
-    trex::tsolvers::SolverOptions o;
+inline trex::tsolvers::ad::SolverOptions toSolverOptions(const SolverConfig& cfg) {
+    trex::tsolvers::ad::SolverOptions o;
     const SolverHyperparameters& hp = cfg.hyperparams;
     o.normalize      = cfg.normalize;
     o.intercept      = cfg.intercept;
@@ -386,13 +386,13 @@ inline trex::tsolvers::SolverOptions toSolverOptions(const SolverConfig& cfg) {
     o.exch_tie_floor = hp.exch_tie_floor;
     o.lambda2        = hp.lambda2;
     o.rho_afs        = hp.rho_afs;
-    o.ncgmp_variant  = static_cast<trex::tsolvers::NCGMPVariant>(hp.ncgmp_variant);
+    o.ncgmp_variant  = static_cast<trex::tsolvers::ad::NCGMPVariant>(hp.ncgmp_variant);
     o.tenet_aug_use_lars = hp.tenet_aug_use_lars;
     o.kappa_dummy    = 1.0;
     o.fold_dummies   = cfg.tikhonov_fold_dummies;
     // GROUP_CENTERING is the structured fast path the dispatch serves for
     // TCDIENET; the group-mean (MEAN) construction stays GVS-internal.
-    o.group_penalty  = trex::tsolvers::GroupPenaltyVariant::CENTERING;
+    o.group_penalty  = trex::tsolvers::ad::GroupPenaltyVariant::CENTERING;
     applyCdKnobs(o, hp);
     return o;
 }
@@ -413,7 +413,7 @@ inline trex::tsolvers::SolverOptions toSolverOptions(const SolverConfig& cfg) {
  */
 template <typename TSolver>
 std::unique_ptr<TSolver> makeSolverForConfig(const SolverConfig& cfg) {
-    const trex::tsolvers::SolverOptions options = toSolverOptions(cfg);
+    const trex::tsolvers::ad::SolverOptions options = toSolverOptions(cfg);
 
     if constexpr (std::is_same_v<TSolver, cd::TCDIENET_Solver> ||
                   std::is_same_v<TSolver, lars::TIENET_Solver> ||
@@ -612,6 +612,6 @@ inline SparseBetaPath dispatchByType(SolverTypeForTRex solver_type, const Solver
 }
 
 // ===================================================================================
-} /* End of namespace trex::trex_selector_methods::utils::solver_dispatch */
+} /* End of namespace trex::trex_selector_methods::ad::utils::solver_dispatch */
 // ===================================================================================
 #endif /* End of TREX_SELECTOR_METHODS_UTILS_SOLVER_DISPATCH_HPP */
