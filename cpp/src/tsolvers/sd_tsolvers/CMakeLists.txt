@@ -39,5 +39,8 @@ target_sources(trex_tsolvers PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/sd_tafs_solver.hpp
         ${CMAKE_CURRENT_LIST_DIR}/sd2_tafs_solver.hpp
         ${CMAKE_CURRENT_LIST_DIR}/sd_calibration.hpp
+        ${CMAKE_CURRENT_LIST_DIR}/sd_general_base.hpp
+        ${CMAKE_CURRENT_LIST_DIR}/sd2_pair_base.hpp
+        ${CMAKE_CURRENT_LIST_DIR}/sd_tsolvers.hpp
 )
 # ==============================================================================

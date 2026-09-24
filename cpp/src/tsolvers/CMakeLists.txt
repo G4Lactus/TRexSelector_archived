@@ -80,7 +80,7 @@ target_include_directories(trex_tsolvers PUBLIC
     $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>          # Internal headers
 
     # Install-tree (user)
-    $<INSTALL_INTERFACE:include>                        # Installed headers
+    $<INSTALL_INTERFACE:${TREX_INSTALL_INCLUDE_ROOT}>                        # Installed headers
 )
 # ==============================================================================
 
@@ -136,7 +136,7 @@ target_sources(trex_tsolvers PUBLIC
     FILE_SET HEADERS
     BASE_DIRS
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
-        $<INSTALL_INTERFACE:include>
+        $<INSTALL_INTERFACE:${TREX_INSTALL_INCLUDE_ROOT}>
     FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/tsolvers.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/tsolver_base.hpp
@@ -186,13 +186,15 @@ add_subdirectory(sd_tsolvers)
 # ==============================================================================
 
 # Install compiled library and export the target
+if(TREX_INSTALL_CPP_SDK)
 install(TARGETS trex_tsolvers
     EXPORT   TRexSelectorTargets
     ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}          # static .a
     LIBRARY  DESTINATION ${CMAKE_INSTALL_LIBDIR}          # shared .so (future)
     RUNTIME  DESTINATION ${CMAKE_INSTALL_BINDIR}          # executables
     FILE_SET HEADERS                                      # installs all FILE_SET headers
-             DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}      # preserves subfolder structure
+             DESTINATION ${TREX_INSTALL_INCLUDE_ROOT}     # namespaced root, subfolders kept
 )
+endif()
 
 # ==============================================================================
