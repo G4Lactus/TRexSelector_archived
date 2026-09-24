@@ -3,8 +3,8 @@
 
 // [[Rcpp::depends(RcppEigen)]]
 #include <RcppEigen.h>
-#include <trex_selector_methods/trex_spca/trex_spca.hpp>
+#include <trex_selector_methods/ad/trex_spca/trex_spca.hpp>
 
-using namespace trex::trex_selector_methods::trex_spca;
+using namespace trex::trex_selector_methods::ad::trex_spca;
 
 #endif // RCPP_TREX_SPCA_H

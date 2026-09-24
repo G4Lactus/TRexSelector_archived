@@ -11,7 +11,7 @@
 #include <string>
 
 // project trex includes
-#include <trex_selector_methods/trex_utils/trex_solver_dispatch.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_solver_dispatch.hpp>
 
 // project utils includes
 #include <utils/memmap/memory_mapped_matrix.hpp>
@@ -21,8 +21,8 @@
 
 // Namespace convenience
 using namespace Rcpp;
-using namespace trex::trex_selector_methods::trex_core;
-using trex::trex_selector_methods::utils::solver_dispatch::SolverTypeForTRex;
+using namespace trex::trex_selector_methods::ad::trex_core;
+using trex::trex_selector_methods::ad::utils::solver_dispatch::SolverTypeForTRex;
 
 // =========================================================================================
 
@@ -76,7 +76,7 @@ TRexControlParameter parse_control_parameter(const Rcpp::List& control) {
     // Working-design convention (PLAN WP5): L2 (default) / ZSCORE center and
     // scale inside the selector; NONE takes X and y as supplied.
     if (control.containsElementNamed("scaling_mode")) {
-        namespace dn = trex::trex_selector_methods::utils::data_normalizer;
+        namespace dn = trex::trex_selector_methods::ad::utils::data_normalizer;
         std::string mode = control["scaling_mode"];
         if (mode == "L2") {
             params.scaling_mode = dn::ScalingMode::L2;

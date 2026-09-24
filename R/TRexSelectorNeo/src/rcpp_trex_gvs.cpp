@@ -3,8 +3,8 @@
 #include "rcpp_trex_gvs.h"
 
 using namespace Rcpp;
-using namespace trex::trex_selector_methods::trex_gvs;
-using namespace trex::trex_selector_methods::trex_core;
+using namespace trex::trex_selector_methods::ad::trex_gvs;
+using namespace trex::trex_selector_methods::ad::trex_core;
 
 // From rcpp_trex_selector.cpp
 extern TRexControlParameter parse_control_parameter(const Rcpp::List& control);

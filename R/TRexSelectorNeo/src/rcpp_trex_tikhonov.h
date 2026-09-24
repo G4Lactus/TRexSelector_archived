@@ -10,13 +10,13 @@
 #include <RcppEigen.h>
 
 // TRex includes
-#include <trex_selector_methods/trex_tikhonov/trex_tikhonov.hpp>
+#include <trex_selector_methods/ad/trex_tikhonov/trex_tikhonov.hpp>
 #include "rcpp_trex_selector.h"
 
 // ==============================================================================
 
-using namespace trex::trex_selector_methods::trex_tikhonov;
-using namespace trex::trex_selector_methods::trex_core;
+using namespace trex::trex_selector_methods::ad::trex_tikhonov;
+using namespace trex::trex_selector_methods::ad::trex_core;
 
 // ==============================================================================
 
@@ -43,7 +43,7 @@ public:
         this->X_map_ = std::make_unique<Eigen::Map<Eigen::MatrixXd>>(X);
         this->y_map_ = std::make_unique<Eigen::Map<Eigen::VectorXd>>(y);
 
-        namespace tik_sd = trex::trex_selector_methods::utils::solver_dispatch;
+        namespace tik_sd = trex::trex_selector_methods::ad::utils::solver_dispatch;
         TRexTikhonovControlParameter tik_ctrl = tik_control;
         tik_ctrl.trex_ctrl = trex_control;
         // The C++ constructor rejects any non-Tikhonov solver; the

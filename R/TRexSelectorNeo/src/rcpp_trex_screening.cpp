@@ -7,8 +7,8 @@
 #include "rcpp_trex_screening.h"
 
 using namespace Rcpp;
-using namespace trex::trex_selector_methods::trex_screening;
-using namespace trex::trex_selector_methods::trex_core;
+using namespace trex::trex_selector_methods::ad::trex_screening;
+using namespace trex::trex_selector_methods::ad::trex_core;
 
 extern TRexControlParameter parse_control_parameter(const Rcpp::List& control);
 extern void validate_core_solver_type(const TRexControlParameter& params);

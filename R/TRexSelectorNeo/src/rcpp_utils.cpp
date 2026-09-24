@@ -22,10 +22,10 @@
 #include <utils/eval_metrics/utils_eval_rates.hpp>
 
 // Include the TempDirManager
-#include <trex_selector_methods/trex_utils/trex_temp_dir_manager.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_temp_dir_manager.hpp>
 
 // Include the selectors' data normalizer (trex_normalize_design)
-#include <trex_selector_methods/trex_utils/trex_data_normalizer.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_data_normalizer.hpp>
 
 // ========================================================================================
 
@@ -46,7 +46,7 @@ using namespace trex::utils::memmap;
 //' @noRd
 // [[Rcpp::export]]
 void rcpp_set_custom_temp_dir(const std::string& temp_dir) {
-    trex::trex_selector_methods::utils::filesystem::TempDirManager::setCustomTempDir(temp_dir);
+    trex::trex_selector_methods::ad::utils::filesystem::TempDirManager::setCustomTempDir(temp_dir);
 }
 
 // ========================================================================================
@@ -412,7 +412,7 @@ Rcpp::List rcpp_normalize_design(
     const std::string& scaling_mode,
     double eps
 ) {
-    namespace dn = trex::trex_selector_methods::utils::data_normalizer;
+    namespace dn = trex::trex_selector_methods::ad::utils::data_normalizer;
     dn::ScalingMode mode;
     if (scaling_mode == "L2") {
         mode = dn::ScalingMode::L2;

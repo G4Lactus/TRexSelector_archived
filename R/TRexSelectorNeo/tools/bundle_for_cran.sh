@@ -39,16 +39,18 @@ RSYNC_EXCLUDES=(
     # Editor / OS clutter: rsync -a would otherwise carry it into the CRAN
     # tarball. Gitignored in the C++ tree, so it is invisible to git review.
     --exclude '.DS_Store'
-    # Research families with no R bindings yet. Vendoring them would add
-    # their translation units to OBJECTS — compiled into the shared object,
-    # lengthening every CRAN build, with nothing callable from R. These are
-    # no-ops on branches where the directories do not exist; drop the
-    # excludes when the corresponding Rcpp wrappers land.
-    --exclude 'vd_tsolvers'
-    --exclude 'vd_tsolvers.hpp'
-    --exclude 'sd_tsolvers'
-    --exclude 'trex_vd'
-    --exclude 'trex_sd'
+    # Research families with no R bindings yet: the virtual-dummy (vd/) and
+    # sparse-dummy (sd/) trees under cpp/src/tsolvers and
+    # cpp/src/trex_selector_methods, plus their umbrellas tsolvers/vd.hpp and
+    # tsolvers/sd.hpp. Vendoring them would add their translation units to
+    # OBJECTS — compiled into the shared object, lengthening every CRAN build,
+    # with nothing callable from R. These are no-ops on branches where the
+    # directories do not exist; drop the excludes when the corresponding Rcpp
+    # wrappers land.
+    --exclude 'vd'
+    --exclude 'sd'
+    --exclude 'vd.hpp'
+    --exclude 'sd.hpp'
 )
 
 # Regenerate the OBJECTS list from the .cpp files under a src directory.

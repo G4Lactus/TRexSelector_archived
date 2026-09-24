@@ -18,12 +18,12 @@
 #include <RcppEigen.h>
 
 // TRex includes
-#include <trex_selector_methods/trex_core/trex.hpp>
+#include <trex_selector_methods/ad/trex_core/trex.hpp>
 
 // ==============================================================================
 
 // Namespace usage for convenience
-using namespace trex::trex_selector_methods::trex_core;
+using namespace trex::trex_selector_methods::ad::trex_core;
 
 // ==============================================================================
 

@@ -4,11 +4,11 @@
 #include <memory>
 // [[Rcpp::depends(RcppEigen)]]
 #include <RcppEigen.h>
-#include <trex_selector_methods/trex_screening/trex_screening.hpp>
+#include <trex_selector_methods/ad/trex_screening/trex_screening.hpp>
 #include "rcpp_trex_selector.h"
 
-using namespace trex::trex_selector_methods::trex_screening;
-using namespace trex::trex_selector_methods::trex_core;
+using namespace trex::trex_selector_methods::ad::trex_screening;
+using namespace trex::trex_selector_methods::ad::trex_core;
 
 /**
  * @brief Rcpp wrapper class for ScreenTRexSelector leveraging zero-copy references.

@@ -39,7 +39,7 @@
 #include <ml_methods/svd/svd.hpp>
 #include <ml_methods/pca/pca.hpp>
 #include <ml_methods/ridge_regression/ridge.hpp>
-#include <tsolvers/tsolver_base.hpp>
+#include <tsolvers/ad/tsolver_base.hpp>
 #include <utils/memmap/memory_mapped_matrix.hpp>
 
 // ===============================================================================
@@ -51,7 +51,7 @@ struct TSolverRcpp {
     Eigen::MatrixXd              D_data_;
     Eigen::Map<Eigen::MatrixXd>  X_map_;
     Eigen::Map<Eigen::MatrixXd>  D_map_;
-    trex::tsolvers::TSolver_Base* solver_;
+    trex::tsolvers::ad::TSolver_Base* solver_;
 
     TSolverRcpp(Eigen::MatrixXd X_in, Eigen::MatrixXd D_in)
         : X_data_(std::move(X_in)), D_data_(std::move(D_in)),
@@ -87,7 +87,7 @@ using MmapMatrixD = trex::utils::memmap::MemoryMappedMatrix<double>;
 using namespace trex::ml_methods::svd;
 using namespace trex::ml_methods::pca;
 using namespace trex::ml_methods::ridge;
-using namespace trex::tsolvers;
+using namespace trex::tsolvers::ad;
 using namespace trex::utils::memmap;
 
 #ifdef FALSE

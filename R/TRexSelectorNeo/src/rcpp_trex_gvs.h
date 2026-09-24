@@ -10,13 +10,13 @@
 #include <RcppEigen.h>
 
 // TRex includes
-#include <trex_selector_methods/trex_gvs/trex_gvs.hpp>
+#include <trex_selector_methods/ad/trex_gvs/trex_gvs.hpp>
 #include "rcpp_trex_selector.h"
 
 // ==============================================================================
 
-using namespace trex::trex_selector_methods::trex_gvs;
-using namespace trex::trex_selector_methods::trex_core;
+using namespace trex::trex_selector_methods::ad::trex_gvs;
+using namespace trex::trex_selector_methods::ad::trex_core;
 
 // ==============================================================================
 
@@ -47,7 +47,7 @@ public:
         //   IEN -> honors an IEN-family control$solver (TIENET / TIENET_AUG
         //          / TCDIENET), defaulting anything else to TIENET (the
         //          native pathwise IEN solver; the R level warns first).
-        namespace gvs_sd = trex::trex_selector_methods::utils::solver_dispatch;
+        namespace gvs_sd = trex::trex_selector_methods::ad::utils::solver_dispatch;
         TRexGVSControlParameter gvs_ctrl = gvs_control;
         gvs_ctrl.trex_ctrl = trex_control;
         if (gvs_ctrl.gvs_type == GVSType::IEN) {

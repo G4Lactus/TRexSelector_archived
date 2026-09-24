@@ -17,13 +17,13 @@
 #include <RcppEigen.h>
 
 // TRex includes
-#include <trex_selector_methods/trex_da/trex_da.hpp>
+#include <trex_selector_methods/ad/trex_da/trex_da.hpp>
 #include "rcpp_trex_selector.h"
 
 // ==============================================================================
 
-using namespace trex::trex_selector_methods::trex_da;
-using namespace trex::trex_selector_methods::trex_core;
+using namespace trex::trex_selector_methods::ad::trex_da;
+using namespace trex::trex_selector_methods::ad::trex_core;
 
 // ==============================================================================
 /**

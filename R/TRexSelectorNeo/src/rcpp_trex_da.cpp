@@ -3,8 +3,8 @@
 #include "rcpp_trex_da.h"
 
 using namespace Rcpp;
-using namespace trex::trex_selector_methods::trex_core;
-using namespace trex::trex_selector_methods::trex_da;
+using namespace trex::trex_selector_methods::ad::trex_core;
+using namespace trex::trex_selector_methods::ad::trex_da;
 using trx_ml_hac_LinkageMethod = trex::ml_methods::clustering::hierarchical::agglomerative::LinkageMethod;
 
 // Expose the parse_control_parameter from rcpp_trex_selector.cpp

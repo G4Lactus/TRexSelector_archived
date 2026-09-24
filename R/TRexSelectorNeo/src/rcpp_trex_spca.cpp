@@ -8,10 +8,10 @@
 #include "rcpp_trex_spca.h"
 
 using namespace Rcpp;
-using namespace trex::trex_selector_methods::trex_spca;
+using namespace trex::trex_selector_methods::ad::trex_spca;
 
-namespace tc = trex::trex_selector_methods::trex_core;
-namespace tg = trex::trex_selector_methods::trex_gvs;
+namespace tc = trex::trex_selector_methods::ad::trex_core;
+namespace tg = trex::trex_selector_methods::ad::trex_gvs;
 
 /*
  * Note on Roxygen Documentation:

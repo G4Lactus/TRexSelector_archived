@@ -2,28 +2,28 @@
 #include <RcppEigen.h>
 #include <fstream>
 #include <cereal/archives/portable_binary.hpp>
-#include <tsolvers/tsolver_base.hpp>
-#include <tsolvers/linear_model/lars_based/tlars_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tlasso_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tstepwise_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tenet_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tenet_aug_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tienet_aug_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tstagewise_solver.hpp>
-#include <tsolvers/linear_model/omp_based/tomp_solver.hpp>
-#include <tsolvers/linear_model/omp_based/tgp_solver.hpp>
-#include <tsolvers/linear_model/omp_based/tacgp_solver.hpp>
-#include <tsolvers/linear_model/omp_based/tmp_solver.hpp>
-#include <tsolvers/linear_model/omp_based/tools_solver.hpp>
-#include <tsolvers/linear_model/omp_based/tncgmp_solver.hpp>
-#include <tsolvers/linear_model/afs_based/tafs_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tienet_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tiknet_solver.hpp>
-#include <tsolvers/linear_model/omp_based/tikomp_solver.hpp>
-#include <tsolvers/linear_model/cd_based/tcdlasso_solver.hpp>
-#include <tsolvers/linear_model/cd_based/tcdenet_solver.hpp>
-#include <tsolvers/linear_model/cd_based/tcdienet_solver.hpp>
-#include <tsolvers/linear_model/cd_based/tcdtiknet_solver.hpp>
+#include <tsolvers/ad/tsolver_base.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tlars_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tlasso_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tstepwise_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tenet_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tenet_aug_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tienet_aug_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tstagewise_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tomp_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tgp_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tacgp_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tmp_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tools_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tncgmp_solver.hpp>
+#include <tsolvers/ad/linear_model/afs_based/tafs_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tienet_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tiknet_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tikomp_solver.hpp>
+#include <tsolvers/ad/linear_model/cd_based/tcdlasso_solver.hpp>
+#include <tsolvers/ad/linear_model/cd_based/tcdenet_solver.hpp>
+#include <tsolvers/ad/linear_model/cd_based/tcdienet_solver.hpp>
+#include <tsolvers/ad/linear_model/cd_based/tcdtiknet_solver.hpp>
 #include <utils/memmap/memory_mapped_matrix.hpp>
 
 // ==============================================================================
@@ -38,11 +38,11 @@
 
 using namespace Rcpp;
 using namespace trex::utils::memmap;
-using namespace trex::tsolvers;
-using namespace trex::tsolvers::linear_model::lars_based;
-using namespace trex::tsolvers::linear_model::omp_based;
-using namespace trex::tsolvers::linear_model::afs_based;
-using namespace trex::tsolvers::linear_model::cd_based;
+using namespace trex::tsolvers::ad;
+using namespace trex::tsolvers::ad::linear_model::lars_based;
+using namespace trex::tsolvers::ad::linear_model::omp_based;
+using namespace trex::tsolvers::ad::linear_model::afs_based;
+using namespace trex::tsolvers::ad::linear_model::cd_based;
 
 // ==============================================================================
 // TSolverRcpp — stable data holder so Eigen::Map pointers never dangle
@@ -98,7 +98,7 @@ struct TSolverRcpp {
 // keep the C++ defaults.
 
 /**
- * @brief Parse the tsolver_options() list into trex::tsolvers::SolverOptions.
+ * @brief Parse the tsolver_options() list into trex::tsolvers::ad::SolverOptions.
  */
 SolverOptions parse_solver_options(const Rcpp::List& o) {
     SolverOptions opts;

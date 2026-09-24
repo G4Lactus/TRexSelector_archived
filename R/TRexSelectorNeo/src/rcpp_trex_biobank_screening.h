@@ -10,13 +10,13 @@
 // [[Rcpp::depends(RcppEigen)]]
 #include <RcppEigen.h>
 
-#include <trex_selector_methods/trex_screening/trex_biobank_screening.hpp>
+#include <trex_selector_methods/ad/trex_screening/trex_biobank_screening.hpp>
 
 // ==============================================================================
 
-using namespace trex::trex_selector_methods::trex_core;
-using namespace trex::trex_selector_methods::trex_screening;
-using namespace trex::trex_selector_methods::trex_biobank_screening;
+using namespace trex::trex_selector_methods::ad::trex_core;
+using namespace trex::trex_selector_methods::ad::trex_screening;
+using namespace trex::trex_selector_methods::ad::trex_biobank_screening;
 
 // ==============================================================================
 
