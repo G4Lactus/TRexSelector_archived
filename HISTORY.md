@@ -39,6 +39,25 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
 
 ### 2026-09-24
 
+#### R namespace: one prefix per group (breaking)
+
+- The exported symbols now follow one rule: functions and constant lists carry the
+  group prefix (`trex_`, `tsolver_`, `ml_`, `mem_`), R6 classes the group word
+  (`TRex*Selector`, `T*_Solver`, `ML*`). Renamed: the ML classes `ZScoreScaler`,
+  `LpNormScaler`, `RidgeSolver`, `RidgeCV`, `ElasticNet`, `ElasticNetCV`,
+  `SVDSolver`, `PCA` to `MLZScoreScaler`, `MLLpNormScaler`, `MLRidge`, `MLRidgeCV`,
+  `MLElasticNet`, `MLElasticNetCV`, `MLSVD`, `MLPCA`; `agglomerative_cluster`,
+  `cut_tree`, `LinkageMethod`, `DistanceMetric` to `ml_agglomerative_cluster`,
+  `ml_cut_tree`, `ml_linkage_method`, `ml_distance_metric`; the metrics
+  `compute_fdp`, `compute_tpp`, `compute_precision`, `compute_recall`,
+  `compute_fdp_dense`, `compute_tpp_dense` to `trex_fdp`, `trex_tpp`,
+  `trex_precision`, `trex_recall`, `trex_fdp_dense`, `trex_tpp_dense`;
+  `gamma_to_k` to `trex_gamma_to_k`; `mmap_matrix` and `convert_to_memory_mapped`
+  to `mem_matrix` and `mem_matrix_from` (the S3 class `mmap_matrix` and its methods
+  are unchanged). `TSolver_Base`, `TCDSolver_Base` and `get_ptr` are internal now.
+- Every help page lists its group ("Other T-solvers: ..."), `?TRexSelectorNeo`
+  presents the four groups, and `_pkgdown.yml` indexes the reference by them.
+
 #### The CD family, native TIENET, TIKNET and TIKOMP as R6 and Python solvers
 
 - R: `TCDLASSO_Solver`, `TCDENET_Solver`, `TCDIENET_Solver`, `TCDTIKNET_Solver`
