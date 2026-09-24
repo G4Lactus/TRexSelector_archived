@@ -327,6 +327,24 @@ namespace afs  = trex::tsolvers::linear_model::afs_based;
  *          Also used directly by TRexGVSSelector, which constructs its CCD
  *          solvers outside this dispatch.
  */
+/**
+ * @brief Map the T-Rex CD knobs onto SolverOptions: a knob is copied only
+ *        when set (> 0), so the solver defaults stay in force otherwise;
+ *        the localization mode is always copied.
+ */
+inline void applyCdKnobs(trex::tsolvers::SolverOptions& o,
+                         const SolverHyperparameters& hp) {
+    if (hp.cd_lambda_rel_tol > 0.0) { o.cd_lambda_rel_tol = hp.cd_lambda_rel_tol; }
+    if (hp.cd_tol_certify > 0.0 && hp.cd_tol_probe > 0.0) {
+        o.cd_tol_certify = hp.cd_tol_certify;
+        o.cd_tol_probe   = hp.cd_tol_probe;
+    }
+    if (hp.cd_gram_cap > 0)   { o.cd_gram_cap   = hp.cd_gram_cap; }
+    if (hp.cd_max_sweeps > 0) { o.cd_max_sweeps = hp.cd_max_sweeps; }
+    o.cd_certified_localization = hp.cd_certified_localization;
+}
+
+/** @brief The same mapping applied to a constructed (warm-started) solver. */
 inline void applyCdKnobs(cd::TCDLASSO_Solver& solver,
                          const SolverHyperparameters& hp) {
     if (hp.cd_lambda_rel_tol > 0.0) {
@@ -346,137 +364,91 @@ inline void applyCdKnobs(cd::TCDLASSO_Solver& solver,
 
 
 /**
+ * @brief Translate a SolverConfig into the solver-level SolverOptions.
+ *
+ * @details The T-Rex layer keeps its own SolverHyperparameters (with its own
+ *          defaults, e.g. lambda2 0.1, rho_afs 0.3, CD knobs "<= 0 keeps the
+ *          solver default"); this is the single place where they are mapped
+ *          onto the solvers' construction-time options (PLAN WP9). The CD
+ *          knobs are copied only when set (> 0), so the solver defaults
+ *          stay in force otherwise.
+ */
+inline trex::tsolvers::SolverOptions toSolverOptions(const SolverConfig& cfg) {
+    trex::tsolvers::SolverOptions o;
+    const SolverHyperparameters& hp = cfg.hyperparams;
+    o.normalize      = cfg.normalize;
+    o.intercept      = cfg.intercept;
+    o.verbose        = cfg.verbose;
+    o.scaling_mode   = cfg.scaling_mode;
+    o.tol            = hp.tol;
+    o.tie_seed       = cfg.tie_seed;
+    o.exch_tie_alpha = hp.exch_tie_alpha;
+    o.exch_tie_floor = hp.exch_tie_floor;
+    o.lambda2        = hp.lambda2;
+    o.rho_afs        = hp.rho_afs;
+    o.ncgmp_variant  = static_cast<trex::tsolvers::NCGMPVariant>(hp.ncgmp_variant);
+    o.tenet_aug_use_lars = hp.tenet_aug_use_lars;
+    o.kappa_dummy    = 1.0;
+    o.fold_dummies   = cfg.tikhonov_fold_dummies;
+    // GROUP_CENTERING is the structured fast path the dispatch serves for
+    // TCDIENET; the group-mean (MEAN) construction stays GVS-internal.
+    o.group_penalty  = trex::tsolvers::GroupPenaltyVariant::CENTERING;
+    applyCdKnobs(o, hp);
+    return o;
+}
+
+
+/**
  * @brief Construct a solver on the heap from the config.
  *
- * @details Dispatches on the solver-specific constructor signature via
- *          `if constexpr`:
- *          - TENET:  requires an extra lambda2 hyperparameter.
- *          - TAFS:   requires an extra rho_afs hyperparameter.
- *          - TNCGMP: requires an NCGMPVariant enum.
- *          - TOMP / TLARS: carry an algorithm_type before scaling_mode.
- *          - All other solvers: standard (X, D, y, normalize, intercept,
- *            verbose, scaling_mode) constructor.
- *
- * @tparam TSolver Concrete solver type (must satisfy the TSolver_Base interface).
- *
- * @param cfg Populated SolverConfig with data references and execution flags.
- *
- * @return Owning pointer to the freshly constructed solver.
+ * @details Every solver takes (X, D, y, options) plus, for the structured
+ *          families, the data that is not an option: the group vector of
+ *          the IEN solvers (TCDIENET, TIENET, TIENETAug) or the sparse
+ *          Tikhonov matrix of the sparse-K solvers (TCDTIKNET, TIKNET,
+ *          TIKOMP). The options come from toSolverOptions(); the tolerance,
+ *          the tie-break seed, the exchangeable-tie configuration and the
+ *          CD knobs are applied at construction, so no post-construction
+ *          setter is needed on this path (the warm-start paths still apply
+ *          them to a restored solver).
  */
 template <typename TSolver>
 std::unique_ptr<TSolver> makeSolverForConfig(const SolverConfig& cfg) {
-    if constexpr (std::is_same_v<TSolver, lars::TENET_Solver> ||
-                  std::is_same_v<TSolver, cd::TCDENET_Solver>) {
+    const trex::tsolvers::SolverOptions options = toSolverOptions(cfg);
 
-        // TENET / TCDENET share the (X, D, y, lambda2, ...) signature.
-        return std::make_unique<TSolver>(
-            cfg.X, cfg.D, cfg.y, cfg.hyperparams.lambda2, cfg.normalize,
-            cfg.intercept, cfg.verbose, cfg.scaling_mode);
-
-    } else if constexpr (std::is_same_v<TSolver, lars::TENETAug_Solver>) {
-
-        // TENET signature plus the LARS-vs-LASSO inner-path switch; the
-        // Zou-Hastie augmented system is built inside the solver.
-        return std::make_unique<TSolver>(
-            cfg.X, cfg.D, cfg.y, cfg.hyperparams.lambda2, cfg.normalize,
-            cfg.intercept, cfg.verbose, cfg.scaling_mode,
-            cfg.hyperparams.tenet_aug_use_lars);
-
-    } else if constexpr (std::is_same_v<TSolver, afs::TAFS_Solver>) {
-
-        return std::make_unique<TSolver>(
-            cfg.X, cfg.D, cfg.y, cfg.hyperparams.rho_afs, cfg.normalize,
-            cfg.intercept, cfg.verbose, cfg.scaling_mode);
-
-    } else if constexpr (std::is_same_v<TSolver, omp::TNCGMP_Solver>) {
-
-        auto variant =
-            static_cast<omp::NCGMPVariant>(cfg.hyperparams.ncgmp_variant);
-        return std::make_unique<TSolver>(
-            cfg.X, cfg.D, cfg.y, variant, cfg.normalize, cfg.intercept,
-            cfg.verbose, cfg.scaling_mode);
-
-    } else if constexpr (std::is_same_v<TSolver, omp::TOMP_Solver>) {
-
-        // Bare TOMP_Solver's public ctor carries an algorithm_type before
-        // scaling_mode; pass it explicitly so scaling_mode binds correctly.
-        return std::make_unique<TSolver>(
-            cfg.X, cfg.D, cfg.y, cfg.normalize, cfg.intercept,
-            cfg.verbose, omp::SolverTypeOMPBased::TOMP, cfg.scaling_mode);
-
-    } else if constexpr (std::is_same_v<TSolver, lars::TLARS_Solver>) {
-
-        // Bare TLARS_Solver's public ctor carries an algorithm_type before
-        // scaling_mode; pass it explicitly so scaling_mode binds correctly.
-        return std::make_unique<TSolver>(
-            cfg.X, cfg.D, cfg.y, cfg.normalize, cfg.intercept,
-            cfg.verbose, lars::SolverTypeLarsBased::TLARS, cfg.scaling_mode);
-
-    } else if constexpr (std::is_same_v<TSolver, cd::TCDIENET_Solver>) {
-
-        // Structured fast path: within-group centering penalty with O(1)
-        // hooks (mathematically identical to TCDTIKNET FOLDED with K_GC).
-        // The group-mean (MEAN) construction stays GVS-internal.
+    if constexpr (std::is_same_v<TSolver, cd::TCDIENET_Solver> ||
+                  std::is_same_v<TSolver, lars::TIENET_Solver> ||
+                  std::is_same_v<TSolver, lars::TIENETAug_Solver>) {
         if (cfg.tikhonov_groups == nullptr) {
             throw std::invalid_argument(
-                "trex_solver_dispatch: the GROUP_CENTERING fast path "
-                "requires SolverConfig::tikhonov_groups.");
+                "trex_solver_dispatch: the IEN solvers require a group "
+                "assignment (SolverConfig::tikhonov_groups).");
         }
         return std::make_unique<TSolver>(
-            cfg.X, cfg.D, cfg.y, cfg.hyperparams.lambda2,
-            *cfg.tikhonov_groups, cfg.normalize, cfg.intercept,
-            cfg.verbose, cfg.scaling_mode,
-            cd::GroupPenaltyVariant::CENTERING);
-
-    } else if constexpr (std::is_same_v<TSolver, cd::TCDTIKNET_Solver>) {
-
-        // General-Tikhonov CCD: requires the sparse penalty matrix K.
-        if (cfg.tikhonov_K == nullptr) {
-            throw std::invalid_argument(
-                "trex_solver_dispatch: TCDTIKNET requires a Tikhonov matrix "
-                "(SolverConfig::tikhonov_K).");
-        }
-        return std::make_unique<TSolver>(
-            cfg.X, cfg.D, cfg.y, cfg.hyperparams.lambda2, *cfg.tikhonov_K,
-            cfg.normalize, cfg.intercept, cfg.verbose, cfg.scaling_mode,
-            /*kappa_dummy=*/1.0, cfg.tikhonov_fold_dummies);
-
-    } else if constexpr (std::is_same_v<TSolver, lars::TIKNET_Solver> ||
+            cfg.X, cfg.D, cfg.y, *cfg.tikhonov_groups, options);
+    } else if constexpr (std::is_same_v<TSolver, cd::TCDTIKNET_Solver> ||
+                         std::is_same_v<TSolver, lars::TIKNET_Solver> ||
                          std::is_same_v<TSolver, omp::TIKOMP_Solver>) {
-
-        // Native sparse-K solvers (LARS homotopy / greedy OMP). Both
-        // implement the FOLDED dummy convention EXCLUSIVELY (dummy copy t
-        // couples as its base (t - p) mod p); there is no
-        // INDEPENDENT_RIDGE escape on these paths.
         if (cfg.tikhonov_K == nullptr) {
             throw std::invalid_argument(
-                "trex_solver_dispatch: TIKNET/TIKOMP require a Tikhonov "
-                "matrix (SolverConfig::tikhonov_K).");
+                "trex_solver_dispatch: the sparse-K solvers require a "
+                "Tikhonov matrix (SolverConfig::tikhonov_K).");
         }
-        if (!cfg.tikhonov_fold_dummies) {
-            throw std::invalid_argument(
-                "trex_solver_dispatch: TIKNET/TIKOMP implement FOLDED dummy "
-                "coupling only; set tikhonov_fold_dummies = true (the "
-                "INDEPENDENT_RIDGE escape exists only on the TCDIENET path).");
+        if constexpr (!std::is_same_v<TSolver, cd::TCDTIKNET_Solver>) {
+            // Native sparse-K solvers (LARS homotopy / greedy OMP) implement
+            // the FOLDED dummy convention EXCLUSIVELY (dummy copy t couples
+            // as its base (t - p) mod p); there is no INDEPENDENT_RIDGE
+            // escape on these paths.
+            if (!cfg.tikhonov_fold_dummies) {
+                throw std::invalid_argument(
+                    "trex_solver_dispatch: TIKNET/TIKOMP implement FOLDED dummy "
+                    "coupling only; set tikhonov_fold_dummies = true (the "
+                    "INDEPENDENT_RIDGE escape exists only on the TCDTIKNET path).");
+            }
         }
         return std::make_unique<TSolver>(
-            cfg.X, cfg.D, cfg.y, cfg.hyperparams.lambda2, *cfg.tikhonov_K,
-            cfg.normalize, cfg.intercept, cfg.verbose, cfg.scaling_mode);
-
-    } else if constexpr (std::is_same_v<TSolver, cd::TCDLASSO_Solver>) {
-
-        // Bare TCDLASSO_Solver's public ctor carries an algorithm_type before
-        // scaling_mode; pass it explicitly so scaling_mode binds correctly.
-        return std::make_unique<TSolver>(
-            cfg.X, cfg.D, cfg.y, cfg.normalize, cfg.intercept,
-            cfg.verbose, cd::SolverTypeCdBased::TCDLASSO, cfg.scaling_mode);
-
+            cfg.X, cfg.D, cfg.y, *cfg.tikhonov_K, options);
     } else {
-
-        return std::make_unique<TSolver>(
-            cfg.X, cfg.D, cfg.y, cfg.normalize, cfg.intercept, cfg.verbose,
-            cfg.scaling_mode);
-
+        return std::make_unique<TSolver>(cfg.X, cfg.D, cfg.y, options);
     }
 }
 
@@ -532,19 +504,9 @@ SparseBetaPath dispatchSolver(const SolverConfig& cfg) {
         return path;
     }
 
-    // 3. Fresh construction.
+    // 3. Fresh construction: tolerance, tie seed, exchangeable ties and the
+    //    CD knobs are part of the SolverOptions (toSolverOptions()).
     std::unique_ptr<TSolver> solver = makeSolverForConfig<TSolver>(cfg);
-    solver->setTolerance(cfg.hyperparams.tol);
-    solver->setExchangeableTie(cfg.hyperparams.exch_tie_alpha,
-                               cfg.hyperparams.exch_tie_floor);
-    if constexpr (std::is_base_of_v<cd::TCDLASSO_Solver, TSolver>) {
-        applyCdKnobs(*solver, cfg.hyperparams);
-    }
-    if (cfg.tie_seed >= 0) {
-        // Deterministic tie-break shuffles for reproducible selections
-        // (user-seeded runs); < 0 keeps random_device seeding.
-        solver->setTieSeed(static_cast<std::uint32_t>(cfg.tie_seed));
-    }
     solver->executeStep(cfg.T_stop, cfg.early_stop);
     SparseBetaPath path = solver->getBetaPathSparse();
     if (!cfg.solver_file.empty()) solver->save(cfg.solver_file);

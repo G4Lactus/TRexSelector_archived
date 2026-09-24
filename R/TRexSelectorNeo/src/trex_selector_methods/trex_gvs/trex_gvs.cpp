@@ -881,6 +881,18 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
                 //    the augmented solvers build and own their augmented
                 //    systems internally.
                 std::unique_ptr<tsolvers::TSolver_Base> solver;
+                // Construction-time options shared by every variant below
+                // (PLAN WP9): the K-loop runs the solvers AS CONSTRUCTED on
+                // the pre-normalized X_ / centered y_ (normalize = false);
+                // the CD knobs of the control apply to the CCD variants.
+                tsolvers::SolverOptions opts;
+                opts.lambda2            = lambda2_;
+                opts.normalize          = false;
+                opts.intercept          = false;
+                opts.verbose            = false;
+                opts.scaling_mode       = solver_scaling;
+                opts.tenet_aug_use_lars = trex_gvs_ctrl_.tenet_aug_use_lars;
+                sd::applyCdKnobs(opts, trex_ctrl_.solver_params);
                 if (ien_native) {
                     // IEN native: pathwise LARS-IEN (no augmented copies).
                     // X is the shared base-normalized map, D_k was CENTERED
@@ -895,12 +907,8 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
                         *X_solver_map_,
                         *D_solver_maps_[k],
                         *y_solver_map_,
-                        lambda2_,
                         gvs_setup_.groups_vec,
-                        /*normalize=*/false,
-                        /*intercept=*/false,
-                        /*verbose=*/false,
-                        solver_scaling
+                        opts
                     );
                 } else if (ien_ccd) {
                     // IEN CCD: exact fixed-lambda1 IEN minimizers per dummy
@@ -908,22 +916,17 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
                     // convention as the native pathwise TIENET: shared
                     // pre-normalized X, center-only D_k, centered y —
                     // normalize/intercept=false.
-                    auto ccd_solver = std::make_unique<ccd::TCDIENET_Solver>(
+                    // The shared CD knobs ride in opts (tight crossing
+                    // localization keeps the recorded supports aligned with
+                    // the LARS-path variants); the group penalty is the
+                    // canonical MEAN variant.
+                    solver = std::make_unique<ccd::TCDIENET_Solver>(
                         *X_solver_map_,
                         *D_solver_maps_[k],
                         *y_solver_map_,
-                        lambda2_,
                         gvs_setup_.groups_vec,
-                        /*normalize=*/false,
-                        /*intercept=*/false,
-                        /*verbose=*/false,
-                        solver_scaling
+                        opts
                     );
-                    // Shared CD knobs (default cd_lambda_rel_tol = 1e-5:
-                    // tight crossing localization keeps the recorded
-                    // supports aligned with the LARS-path variants).
-                    sd::applyCdKnobs(*ccd_solver, trex_ctrl_.solver_params);
-                    solver = std::move(ccd_solver);
                 } else if (ien) {
                     // IEN aug: group-informed row augmentation inside
                     // TIENETAug_Solver. D_k is RAW; with normalize=false,
@@ -935,17 +938,14 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
                     // rows. The same flags govern the degenerate
                     // lambda2 == 0 collapse (inner solver centers, does not
                     // rescale).
+                    tsolvers::SolverOptions ien_aug_opts = opts;
+                    ien_aug_opts.intercept = true;
                     solver = std::make_unique<lars::TIENETAug_Solver>(
                         *X_solver_map_,
                         *D_solver_maps_[k],
                         *y_solver_map_,
-                        lambda2_,
                         gvs_setup_.groups_vec,
-                        /*normalize=*/false,
-                        /*intercept=*/true,
-                        /*verbose=*/false,
-                        solver_scaling,
-                        trex_gvs_ctrl_.tenet_aug_use_lars
+                        ien_aug_opts
                     );
                 } else if (en_ccd) {
                     // EN CCD: exact fixed-lambda1 elastic-net minimizers per
@@ -953,19 +953,12 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
                     // preserving exchangeability). Same data convention as
                     // plain TENET: pre-normalized X, center-only D_k,
                     // centered y — normalize/intercept=false.
-                    auto ccd_solver = std::make_unique<ccd::TCDENET_Solver>(
+                    solver = std::make_unique<ccd::TCDENET_Solver>(
                         *X_solver_map_,
                         *D_solver_maps_[k],
                         *y_solver_map_,
-                        lambda2_,
-                        /*normalize=*/false,
-                        /*intercept=*/false,
-                        /*verbose=*/false,
-                        solver_scaling
+                        opts
                     );
-                    // Shared CD knobs (see the TCDIENET branch).
-                    sd::applyCdKnobs(*ccd_solver, trex_ctrl_.solver_params);
-                    solver = std::move(ccd_solver);
                 } else if (en_aug) {
                     // EN-aug: Zou-Hastie augmentation inside TENETAug_Solver,
                     // run AS CONSTRUCTED (inner normalize=false for
@@ -979,12 +972,7 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
                         *X_solver_map_,
                         *D_solver_maps_[k],
                         *y_solver_map_,
-                        lambda2_,
-                        /*normalize=*/false,
-                        /*intercept=*/false,
-                        /*verbose=*/false,
-                        solver_scaling,
-                        trex_gvs_ctrl_.tenet_aug_use_lars
+                        opts
                     );
                 }
                 // Plain EN (TENET): LARS-EN path algorithm with Gram-matrix
@@ -994,11 +982,7 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
                         *X_solver_map_,
                         *D_solver_maps_[k],
                         *y_solver_map_,
-                        lambda2_,
-                        /*normalize=*/false,
-                        /*intercept=*/false,
-                        /*verbose=*/false,
-                        solver_scaling
+                        opts
                     );
                 }
 
