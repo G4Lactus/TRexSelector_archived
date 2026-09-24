@@ -45,7 +45,10 @@
   calling thread and restored on exit, never written inside an OpenMP team. Before,
   the sequential runners left it changed in the host process (an R or Python session)
   and the workers raced on it. Only observable in builds without `EIGEN_USE_BLAS`
-  (the R package and the Python wheel); with a BLAS, Eigen's count is inert.
+  (the R package and the Python wheel); with a BLAS, Eigen's count is inert. The
+  thread-hygiene tests watch two globals: the host thread's OpenMP thread count in
+  every build (the parallel runners set a per-worker count inside their team, and it
+  must not reach the caller), and Eigen's count in no-BLAS builds, where it is live.
 
 #### Scaling mode NONE: the user-managed design
 
