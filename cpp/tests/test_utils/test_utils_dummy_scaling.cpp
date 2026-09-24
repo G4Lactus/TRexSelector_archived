@@ -113,6 +113,28 @@ TEST(DummyScaling, GenerateAndStoreColumnsCenteredAndScaled) {
 }
 
 
+/** @brief ScalingMode::NONE is the user-managed design convention; the
+ *         dummies keep the unit-L2 standard, so a NONE generator must be
+ *         bit-identical to the L2 generator with the same seed (PLAN WP5). */
+TEST(DummyScaling, NoneMapsDummiesToTheUnitL2Standard) {
+    const std::size_t n = 40, p = 25, K = 3;
+
+    DummyGenerator gen_none(n, dummygen::Distribution::Normal(),
+                            /*seed=*/321, /*verbose=*/false, dn::ScalingMode::NONE);
+    DummyGenerator gen_l2(n, dummygen::Distribution::Normal(),
+                          /*seed=*/321, /*verbose=*/false, dn::ScalingMode::L2);
+    gen_none.generateAndStore(K, p, /*l_tag=*/0);
+    gen_l2.generateAndStore(K, p, /*l_tag=*/0);
+
+    for (std::size_t k = 0; k < K; ++k) {
+        expectCenteredAndScaled(gen_none.getStored(k), dn::ScalingMode::L2,
+                                "NONE/initial k=" + std::to_string(k));
+        EXPECT_TRUE(gen_none.getStored(k) == gen_l2.getStored(k))
+            << "NONE dummies differ from L2 dummies for k=" << k;
+    }
+}
+
+
 /** @brief HCONCAT expansions: appended blocks must satisfy the same scaling
  *         invariant as the initial block (expandInto normalizes only the new
  *         block — this test catches any miss). */
