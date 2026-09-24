@@ -1236,6 +1236,34 @@ tsolver_tienet_aug_create <- function(X, D, y, groups, options) {
     .Call(`_TRexSelectorNeo_tsolver_tienet_aug_create`, X, D, y, groups, options)
 }
 
+#' @title Create TIENET_Solver
+#'
+#' @param X Design matrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param groups 1-based group ids, one per predictor
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
+#' @noRd
+tsolver_tienet_create <- function(X, D, y, groups, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tienet_create`, X, D, y, groups, options)
+}
+
+#' @title Create TIKNET_Solver
+#'
+#' @param X Design matrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param tikhonov_K p x p PSD Tikhonov matrix (dgCMatrix or dense)
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
+#' @noRd
+tsolver_tiknet_create <- function(X, D, y, tikhonov_K, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tiknet_create`, X, D, y, tikhonov_K, options)
+}
+
 #' @title Create TOMP_Solver
 #'
 #' @param X Design matrix
@@ -1314,6 +1342,20 @@ tsolver_tncgmp_create <- function(X, D, y, options) {
     .Call(`_TRexSelectorNeo_tsolver_tncgmp_create`, X, D, y, options)
 }
 
+#' @title Create TIKOMP_Solver
+#'
+#' @param X Design matrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param tikhonov_K p x p PSD Tikhonov matrix (dgCMatrix or dense)
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
+#' @noRd
+tsolver_tikomp_create <- function(X, D, y, tikhonov_K, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tikomp_create`, X, D, y, tikhonov_K, options)
+}
+
 #' @title Create TAFS_Solver
 #'
 #' @param X Design matrix
@@ -1325,6 +1367,60 @@ tsolver_tncgmp_create <- function(X, D, y, options) {
 #' @noRd
 tsolver_tafs_create <- function(X, D, y, options) {
     .Call(`_TRexSelectorNeo_tsolver_tafs_create`, X, D, y, options)
+}
+
+#' @title Create TCDLASSO_Solver
+#'
+#' @param X Design matrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
+#' @noRd
+tsolver_tcdlasso_create <- function(X, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tcdlasso_create`, X, D, y, options)
+}
+
+#' @title Create TCDENET_Solver
+#'
+#' @param X Design matrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
+#' @noRd
+tsolver_tcdenet_create <- function(X, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tcdenet_create`, X, D, y, options)
+}
+
+#' @title Create TCDIENET_Solver
+#'
+#' @param X Design matrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param groups 1-based group ids, one per predictor
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
+#' @noRd
+tsolver_tcdienet_create <- function(X, D, y, groups, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tcdienet_create`, X, D, y, groups, options)
+}
+
+#' @title Create TCDTIKNET_Solver
+#'
+#' @param X Design matrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param tikhonov_K p x p PSD Tikhonov matrix (dgCMatrix or dense)
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
+#' @noRd
+tsolver_tcdtiknet_create <- function(X, D, y, tikhonov_K, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tcdtiknet_create`, X, D, y, tikhonov_K, options)
 }
 
 #' @title Create TLARS_Solver (memory-mapped X)
@@ -1419,6 +1515,34 @@ tsolver_tienet_aug_mmap_create <- function(X_ptr, D, y, groups, options) {
     .Call(`_TRexSelectorNeo_tsolver_tienet_aug_mmap_create`, X_ptr, D, y, groups, options)
 }
 
+#' @title Create TIENET_Solver (memory-mapped X)
+#'
+#' @param X_ptr XPtr to a MemoryMappedMatrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param groups 1-based group ids, one per predictor
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
+#' @noRd
+tsolver_tienet_mmap_create <- function(X_ptr, D, y, groups, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tienet_mmap_create`, X_ptr, D, y, groups, options)
+}
+
+#' @title Create TIKNET_Solver (memory-mapped X)
+#'
+#' @param X_ptr XPtr to a MemoryMappedMatrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param tikhonov_K p x p PSD Tikhonov matrix (dgCMatrix or dense)
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
+#' @noRd
+tsolver_tiknet_mmap_create <- function(X_ptr, D, y, tikhonov_K, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tiknet_mmap_create`, X_ptr, D, y, tikhonov_K, options)
+}
+
 #' @title Create TOMP_Solver (memory-mapped X)
 #'
 #' @param X_ptr XPtr to a MemoryMappedMatrix
@@ -1497,6 +1621,20 @@ tsolver_tncgmp_mmap_create <- function(X_ptr, D, y, options) {
     .Call(`_TRexSelectorNeo_tsolver_tncgmp_mmap_create`, X_ptr, D, y, options)
 }
 
+#' @title Create TIKOMP_Solver (memory-mapped X)
+#'
+#' @param X_ptr XPtr to a MemoryMappedMatrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param tikhonov_K p x p PSD Tikhonov matrix (dgCMatrix or dense)
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
+#' @noRd
+tsolver_tikomp_mmap_create <- function(X_ptr, D, y, tikhonov_K, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tikomp_mmap_create`, X_ptr, D, y, tikhonov_K, options)
+}
+
 #' @title Create TAFS_Solver (memory-mapped X)
 #'
 #' @param X_ptr XPtr to a MemoryMappedMatrix
@@ -1508,6 +1646,60 @@ tsolver_tncgmp_mmap_create <- function(X_ptr, D, y, options) {
 #' @noRd
 tsolver_tafs_mmap_create <- function(X_ptr, D, y, options) {
     .Call(`_TRexSelectorNeo_tsolver_tafs_mmap_create`, X_ptr, D, y, options)
+}
+
+#' @title Create TCDLASSO_Solver (memory-mapped X)
+#'
+#' @param X_ptr XPtr to a MemoryMappedMatrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
+#' @noRd
+tsolver_tcdlasso_mmap_create <- function(X_ptr, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tcdlasso_mmap_create`, X_ptr, D, y, options)
+}
+
+#' @title Create TCDENET_Solver (memory-mapped X)
+#'
+#' @param X_ptr XPtr to a MemoryMappedMatrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
+#' @noRd
+tsolver_tcdenet_mmap_create <- function(X_ptr, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tcdenet_mmap_create`, X_ptr, D, y, options)
+}
+
+#' @title Create TCDIENET_Solver (memory-mapped X)
+#'
+#' @param X_ptr XPtr to a MemoryMappedMatrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param groups 1-based group ids, one per predictor
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
+#' @noRd
+tsolver_tcdienet_mmap_create <- function(X_ptr, D, y, groups, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tcdienet_mmap_create`, X_ptr, D, y, groups, options)
+}
+
+#' @title Create TCDTIKNET_Solver (memory-mapped X)
+#'
+#' @param X_ptr XPtr to a MemoryMappedMatrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param tikhonov_K p x p PSD Tikhonov matrix (dgCMatrix or dense)
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
+#' @noRd
+tsolver_tcdtiknet_mmap_create <- function(X_ptr, D, y, tikhonov_K, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tcdtiknet_mmap_create`, X_ptr, D, y, tikhonov_K, options)
 }
 
 #' @title Execute Step in TSolver
@@ -1651,6 +1843,84 @@ tsolver_save <- function(ptr, filename) {
 #' @noRd
 tsolver_load <- function(ptr, filename) {
     invisible(.Call(`_TRexSelectorNeo_tsolver_load`, ptr, filename))
+}
+
+#' @title TIENET: group-ridge penalty used
+#' @noRd
+tsolver_tienet_get_lambda2 <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_tienet_get_lambda2`, ptr)
+}
+
+#' @title TIENET: 1-based group ids, one per predictor
+#' @noRd
+tsolver_tienet_get_groups <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_tienet_get_groups`, ptr)
+}
+
+#' @title TIENET: number of groups
+#' @noRd
+tsolver_tienet_get_num_groups <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_tienet_get_num_groups`, ptr)
+}
+
+#' @title TCDIENET: 1-based group ids, one per predictor
+#' @noRd
+tsolver_tcdienet_get_groups <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_tcdienet_get_groups`, ptr)
+}
+
+#' @title TCDIENET: number of groups
+#' @noRd
+tsolver_tcdienet_get_num_groups <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_tcdienet_get_num_groups`, ptr)
+}
+
+#' @title CD family: lambda_1 at every recorded step
+#' @noRd
+tsolver_cd_get_lambda <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_cd_get_lambda`, ptr)
+}
+
+#' @title CD family: quadratic penalty weight lambda_2 (0 for TCDLASSO)
+#' @noRd
+tsolver_cd_get_lambda2 <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_cd_get_lambda2`, ptr)
+}
+
+#' @title CD family: certified crossing localization active?
+#' @noRd
+tsolver_cd_is_certified_localization <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_cd_is_certified_localization`, ptr)
+}
+
+#' @title CD family: did certification fall back to LEGACY along the path?
+#' @noRd
+tsolver_cd_is_certified_degraded <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_cd_is_certified_degraded`, ptr)
+}
+
+#' @title CD family: duality gap at every recorded step
+#' @noRd
+tsolver_cd_get_record_gaps <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_cd_get_record_gaps`, ptr)
+}
+
+#' @title CD family: KKT violation at every recorded step
+#' @noRd
+tsolver_cd_get_record_kkt_violations <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_cd_get_record_kkt_violations`, ptr)
+}
+
+#' @title Sparse-K solvers: quadratic penalty weight lambda_2
+#' @noRd
+tsolver_tik_get_lambda2 <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_tik_get_lambda2`, ptr)
+}
+
+#' @title TCDTIKNET: FOLDED dummy coupling active?
+#' @noRd
+tsolver_tcdtiknet_is_folded <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_tcdtiknet_is_folded`, ptr)
 }
 
 #' @title Set custom temp directory for the C++ backend

@@ -9,10 +9,10 @@
 #
 # Test groups
 #   1. Input validation
-#   2. Polymorphic execution test (all 15 factory entries)
+#   2. Polymorphic execution test (all 22 factory entries)
 #   3. Getter return-type and contract checks (TLARS_Solver reference)
 #   4. Solver-specific getter checks (lambda, num_removals, cycling_ratio)
-#   5. Warm-start / serialization (all 15 factory entries)
+#   5. Warm-start / serialization (all 22 factory entries)
 # =============================================================================
 
 # ---------------------------------------------------------------------------
@@ -28,11 +28,22 @@ D <- matrix(rnorm(n * d), n, d)
 y <- X[, 5] * 4.0 + X[, 15] * (-2.5) + X[, 25] * 3.1 + rnorm(n)
 
 # ---------------------------------------------------------------------------
-# Solver factory (15 entries: 14 solver types, TNCGMP counted for both variants)
+# Solver factory (22 entries: 21 solver types, TNCGMP counted for both variants)
 # ---------------------------------------------------------------------------
 
-# 1-based contiguous group ids for TIENETAug (10 groups of 3 predictors)
+# 1-based contiguous group ids for the IEN solvers (10 groups of 3 predictors)
 .tienet_groups <- rep(seq_len(10L), each = 3L)
+
+# Group-mean Tikhonov matrix W = sum_m 1_m 1_m^T / p_m on the same 10 groups
+# (dense; the sparse-K solvers accept a dense matrix or a dgCMatrix).
+.group_mean_k_30 <- local({
+  K <- matrix(0, 30, 30)
+  for (g in seq_len(10L)) {
+    idx <- ((g - 1L) * 3L + 1L):(g * 3L)
+    K[idx, idx] <- 1 / 3
+  }
+  K
+})
 
 .factories <- list(
   TLARS      = function() TLARS_Solver$new(X, D, y),
@@ -50,7 +61,21 @@ y <- X[, 5] * 4.0 + X[, 15] * (-2.5) + X[, 25] * 3.1 + rnorm(n)
   TOOLS      = function() TOOLS_Solver$new(X, D, y),
   TNCGMP_ls  = function() TNCGMP_Solver$new(X, D, y, options = tsolver_options(ncgmp_variant = "line_search")),
   TNCGMP_fc  = function() TNCGMP_Solver$new(X, D, y, options = tsolver_options(ncgmp_variant = "fully_corrective")),
-  TAFS       = function() TAFS_Solver$new(X, D, y, options = tsolver_options(rho_afs = 1.0))
+  TAFS       = function() TAFS_Solver$new(X, D, y, options = tsolver_options(rho_afs = 1.0)),
+  # Bound with TODO 5.4: native IEN, the sparse-K solvers, the CD family.
+  TIENET     = function() TIENET_Solver$new(X, D, y, groups = .tienet_groups,
+                                            options = tsolver_options(lambda2 = 0.5)),
+  TIKNET     = function() TIKNET_Solver$new(X, D, y, tikhonov_K = .group_mean_k_30,
+                                            options = tsolver_options(lambda2 = 0.5)),
+  TIKOMP     = function() TIKOMP_Solver$new(X, D, y, tikhonov_K = .group_mean_k_30,
+                                            options = tsolver_options(lambda2 = 0.5)),
+  TCDLASSO   = function() TCDLASSO_Solver$new(X, D, y),
+  TCDENET    = function() TCDENET_Solver$new(X, D, y, options = tsolver_options(lambda2 = 0.5)),
+  TCDIENET   = function() TCDIENET_Solver$new(X, D, y, groups = .tienet_groups,
+                                              options = tsolver_options(lambda2 = 0.5)),
+  TCDTIKNET  = function() TCDTIKNET_Solver$new(X, D, y, tikhonov_K = .group_mean_k_30,
+                                               options = tsolver_options(lambda2 = 0.5,
+                                                                         fold_dummies = TRUE))
 )
 
 
@@ -80,7 +105,7 @@ test_that("TNCGMP_Solver rejects unknown variant string", {
 
 
 # =============================================================================
-# Group 2: Polymorphic execution test (all 15 factory entries)
+# Group 2: Polymorphic execution test (all 22 factory entries)
 # Mirrors test_tsolvers_polymorphic.cpp :: ExecutionSmokeTest
 # =============================================================================
 
@@ -279,7 +304,7 @@ test_that("TIENETAug_Solver: get_lambda2, get_groups (1-based), get_num_groups",
 
 
 # =============================================================================
-# Group 5: Warm-start / serialization — all 15 factory entries
+# Group 5: Warm-start / serialization — all 22 factory entries
 # Mirrors test_tsolvers_polymorphic.cpp :: SerializationEquivalence
 #
 # Note: No data-copy issue in R — Rcpp copies matrices by value on every
@@ -327,4 +352,56 @@ test_that("All solver types resume from checkpoint identically to a continuous r
       label = paste(nm, "beta after resume")
     )
   }
+})
+
+
+# =============================================================================
+# Group 6: solvers bound with TODO 5.4 — family getters
+# =============================================================================
+
+test_that("TIENET_Solver / TCDIENET_Solver: lambda2, groups (1-based), num_groups", {
+  for (cls in list(TIENET_Solver, TCDIENET_Solver)) {
+    s <- cls$new(X, D, y, groups = .tienet_groups,
+                 options = tsolver_options(lambda2 = 0.5))
+    s$execute_step(T_stop = 6)
+    expect_equal(s$get_lambda2(), 0.5)
+    expect_identical(s$get_groups(), as.integer(.tienet_groups))
+    expect_identical(s$get_num_groups(), 10L)
+    expect_gt(s$get_num_steps(), 0L)
+  }
+})
+
+test_that("CD family: certified localization getters and record vectors", {
+  s <- TCDENET_Solver$new(X, D, y, options = tsolver_options(lambda2 = 0.5))
+  s$execute_step(T_stop = 6)
+  expect_true(s$is_certified_localization())
+  expect_type(s$is_certified_degraded(), "logical")
+  expect_equal(s$get_lambda2(), 0.5)
+  expect_length(s$get_lambda(), s$get_num_steps())   # one lambda_1 per recorded step
+  expect_true(all(s$get_record_gaps() >= 0))
+  expect_true(all(s$get_record_kkt_violations() >= 0))
+
+  legacy <- TCDLASSO_Solver$new(X, D, y,
+                                options = tsolver_options(cd_certified_localization = FALSE))
+  expect_false(legacy$is_certified_localization())
+  expect_equal(legacy$get_lambda2(), 0)
+})
+
+test_that("Sparse-K solvers accept a dense K or a dgCMatrix and report lambda2", {
+  skip_if_not_installed("Matrix")
+  K_sparse <- Matrix::Matrix(.group_mean_k_30, sparse = TRUE)
+  for (cls in list(TIKNET_Solver, TIKOMP_Solver, TCDTIKNET_Solver)) {
+    dense  <- cls$new(X, D, y, tikhonov_K = .group_mean_k_30,
+                      options = tsolver_options(lambda2 = 0.5, fold_dummies = TRUE))
+    sparse <- cls$new(X, D, y, tikhonov_K = K_sparse,
+                      options = tsolver_options(lambda2 = 0.5, fold_dummies = TRUE))
+    dense$execute_step(T_stop = 6)
+    sparse$execute_step(T_stop = 6)
+    expect_equal(dense$get_lambda2(), 0.5)
+    expect_identical(dense$get_beta(), sparse$get_beta())
+  }
+  tik <- TCDTIKNET_Solver$new(X, D, y, tikhonov_K = .group_mean_k_30,
+                              options = tsolver_options(lambda2 = 0.5, fold_dummies = TRUE))
+  expect_true(tik$is_folded_dummy_coupling())
+  expect_error(TIKNET_Solver$new(X, D, y, tikhonov_K = -diag(30)), "PSD|positive")
 })

@@ -17,6 +17,13 @@
 #include <tsolvers/linear_model/omp_based/tools_solver.hpp>
 #include <tsolvers/linear_model/omp_based/tncgmp_solver.hpp>
 #include <tsolvers/linear_model/afs_based/tafs_solver.hpp>
+#include <tsolvers/linear_model/lars_based/tienet_solver.hpp>
+#include <tsolvers/linear_model/lars_based/tiknet_solver.hpp>
+#include <tsolvers/linear_model/omp_based/tikomp_solver.hpp>
+#include <tsolvers/linear_model/cd_based/tcdlasso_solver.hpp>
+#include <tsolvers/linear_model/cd_based/tcdenet_solver.hpp>
+#include <tsolvers/linear_model/cd_based/tcdienet_solver.hpp>
+#include <tsolvers/linear_model/cd_based/tcdtiknet_solver.hpp>
 #include <utils/memmap/memory_mapped_matrix.hpp>
 
 // ==============================================================================
@@ -35,6 +42,7 @@ using namespace trex::tsolvers;
 using namespace trex::tsolvers::linear_model::lars_based;
 using namespace trex::tsolvers::linear_model::omp_based;
 using namespace trex::tsolvers::linear_model::afs_based;
+using namespace trex::tsolvers::linear_model::cd_based;
 
 // ==============================================================================
 // TSolverRcpp — stable data holder so Eigen::Map pointers never dangle
@@ -83,9 +91,11 @@ struct TSolverRcpp {
 // ==============================================================================
 //
 // Every solver is constructed as (X, D, y, options) — plus the 1-based group
-// vector for TIENETAug — where `options` is the R list built by
-// tsolver_options() (PLAN WP9). parse_solver_options() maps it onto the
-// C++ SolverOptions; absent fields keep the C++ defaults.
+// vector of the IEN solvers (TIENETAug, TIENET, TCDIENET) or the Tikhonov
+// matrix of the sparse-K solvers (TIKNET, TIKOMP, TCDTIKNET) — where
+// `options` is the R list built by tsolver_options() (PLAN WP9 / TODO 5.4).
+// parse_solver_options() maps it onto the C++ SolverOptions; absent fields
+// keep the C++ defaults.
 
 /**
  * @brief Parse the tsolver_options() list into trex::tsolvers::SolverOptions.
@@ -139,6 +149,17 @@ static Eigen::VectorXi groups_from_r(const IntegerVector& groups) {
     Eigen::VectorXi c_groups(groups.size());
     for (int i = 0; i < groups.size(); ++i) c_groups[i] = groups[i] - 1;
     return c_groups;
+}
+
+/** @brief A Tikhonov matrix from R: a Matrix::dgCMatrix (S4) or a dense
+ *  matrix (converted via sparseView()); same contract as the Tikhonov
+ *  selector's tikhonov_K. */
+static Eigen::SparseMatrix<double> tsolver_as_sparse_matrix(SEXP m) {
+    if (Rf_isS4(m)) {
+        return Rcpp::as<Eigen::SparseMatrix<double>>(m);
+    }
+    const Eigen::MatrixXd dense = Rcpp::as<Eigen::MatrixXd>(m);
+    return dense.sparseView();
 }
 
 // ==============================================================================
@@ -301,6 +322,54 @@ XPtr<TSolverRcpp> tsolver_tienet_aug_create(
     return XPtr<TSolverRcpp>(h);
 }
 
+//' @title Create TIENET_Solver
+//'
+//' @param X Design matrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param groups 1-based group ids, one per predictor
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tienet_create(
+    Eigen::Map<Eigen::MatrixXd> X,
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    IntegerVector groups,
+    Rcpp::List options
+) {
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
+    h->solver_ = new TIENET_Solver(h->X_map_, h->D_map_, y, groups_from_r(groups), opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TIKNET_Solver
+//'
+//' @param X Design matrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param tikhonov_K p x p PSD Tikhonov matrix (dgCMatrix or dense)
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tiknet_create(
+    Eigen::Map<Eigen::MatrixXd> X,
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    SEXP tikhonov_K,
+    Rcpp::List options
+) {
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
+    h->solver_ = new TIKNET_Solver(h->X_map_, h->D_map_, y, tsolver_as_sparse_matrix(tikhonov_K), opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
 //' @title Create TOMP_Solver
 //'
 //' @param X Design matrix
@@ -433,6 +502,30 @@ XPtr<TSolverRcpp> tsolver_tncgmp_create(
     return XPtr<TSolverRcpp>(h);
 }
 
+//' @title Create TIKOMP_Solver
+//'
+//' @param X Design matrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param tikhonov_K p x p PSD Tikhonov matrix (dgCMatrix or dense)
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tikomp_create(
+    Eigen::Map<Eigen::MatrixXd> X,
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    SEXP tikhonov_K,
+    Rcpp::List options
+) {
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
+    h->solver_ = new TIKOMP_Solver(h->X_map_, h->D_map_, y, tsolver_as_sparse_matrix(tikhonov_K), opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
 //' @title Create TAFS_Solver
 //'
 //' @param X Design matrix
@@ -452,6 +545,98 @@ XPtr<TSolverRcpp> tsolver_tafs_create(
     const SolverOptions opts = parse_solver_options(options);
     auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
     h->solver_ = new TAFS_Solver(h->X_map_, h->D_map_, y, opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TCDLASSO_Solver
+//'
+//' @param X Design matrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tcdlasso_create(
+    Eigen::Map<Eigen::MatrixXd> X,
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    Rcpp::List options
+) {
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
+    h->solver_ = new TCDLASSO_Solver(h->X_map_, h->D_map_, y, opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TCDENET_Solver
+//'
+//' @param X Design matrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tcdenet_create(
+    Eigen::Map<Eigen::MatrixXd> X,
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    Rcpp::List options
+) {
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
+    h->solver_ = new TCDENET_Solver(h->X_map_, h->D_map_, y, opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TCDIENET_Solver
+//'
+//' @param X Design matrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param groups 1-based group ids, one per predictor
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tcdienet_create(
+    Eigen::Map<Eigen::MatrixXd> X,
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    IntegerVector groups,
+    Rcpp::List options
+) {
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
+    h->solver_ = new TCDIENET_Solver(h->X_map_, h->D_map_, y, groups_from_r(groups), opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TCDTIKNET_Solver
+//'
+//' @param X Design matrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param tikhonov_K p x p PSD Tikhonov matrix (dgCMatrix or dense)
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tcdtiknet_create(
+    Eigen::Map<Eigen::MatrixXd> X,
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    SEXP tikhonov_K,
+    Rcpp::List options
+) {
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
+    h->solver_ = new TCDTIKNET_Solver(h->X_map_, h->D_map_, y, tsolver_as_sparse_matrix(tikhonov_K), opts);
     return XPtr<TSolverRcpp>(h);
 }
 
@@ -622,6 +807,56 @@ XPtr<TSolverRcpp> tsolver_tienet_aug_mmap_create(
     return XPtr<TSolverRcpp>(h);
 }
 
+//' @title Create TIENET_Solver (memory-mapped X)
+//'
+//' @param X_ptr XPtr to a MemoryMappedMatrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param groups 1-based group ids, one per predictor
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tienet_mmap_create(
+    XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    IntegerVector groups,
+    Rcpp::List options
+) {
+    auto X_map = X_ptr->getMap();
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
+    h->solver_ = new TIENET_Solver(h->X_map_, h->D_map_, y, groups_from_r(groups), opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TIKNET_Solver (memory-mapped X)
+//'
+//' @param X_ptr XPtr to a MemoryMappedMatrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param tikhonov_K p x p PSD Tikhonov matrix (dgCMatrix or dense)
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tiknet_mmap_create(
+    XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    SEXP tikhonov_K,
+    Rcpp::List options
+) {
+    auto X_map = X_ptr->getMap();
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
+    h->solver_ = new TIKNET_Solver(h->X_map_, h->D_map_, y, tsolver_as_sparse_matrix(tikhonov_K), opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
 //' @title Create TOMP_Solver (memory-mapped X)
 //'
 //' @param X_ptr XPtr to a MemoryMappedMatrix
@@ -760,6 +995,31 @@ XPtr<TSolverRcpp> tsolver_tncgmp_mmap_create(
     return XPtr<TSolverRcpp>(h);
 }
 
+//' @title Create TIKOMP_Solver (memory-mapped X)
+//'
+//' @param X_ptr XPtr to a MemoryMappedMatrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param tikhonov_K p x p PSD Tikhonov matrix (dgCMatrix or dense)
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tikomp_mmap_create(
+    XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    SEXP tikhonov_K,
+    Rcpp::List options
+) {
+    auto X_map = X_ptr->getMap();
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
+    h->solver_ = new TIKOMP_Solver(h->X_map_, h->D_map_, y, tsolver_as_sparse_matrix(tikhonov_K), opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
 //' @title Create TAFS_Solver (memory-mapped X)
 //'
 //' @param X_ptr XPtr to a MemoryMappedMatrix
@@ -780,6 +1040,102 @@ XPtr<TSolverRcpp> tsolver_tafs_mmap_create(
     const SolverOptions opts = parse_solver_options(options);
     auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
     h->solver_ = new TAFS_Solver(h->X_map_, h->D_map_, y, opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TCDLASSO_Solver (memory-mapped X)
+//'
+//' @param X_ptr XPtr to a MemoryMappedMatrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tcdlasso_mmap_create(
+    XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    Rcpp::List options
+) {
+    auto X_map = X_ptr->getMap();
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
+    h->solver_ = new TCDLASSO_Solver(h->X_map_, h->D_map_, y, opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TCDENET_Solver (memory-mapped X)
+//'
+//' @param X_ptr XPtr to a MemoryMappedMatrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tcdenet_mmap_create(
+    XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    Rcpp::List options
+) {
+    auto X_map = X_ptr->getMap();
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
+    h->solver_ = new TCDENET_Solver(h->X_map_, h->D_map_, y, opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TCDIENET_Solver (memory-mapped X)
+//'
+//' @param X_ptr XPtr to a MemoryMappedMatrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param groups 1-based group ids, one per predictor
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tcdienet_mmap_create(
+    XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    IntegerVector groups,
+    Rcpp::List options
+) {
+    auto X_map = X_ptr->getMap();
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
+    h->solver_ = new TCDIENET_Solver(h->X_map_, h->D_map_, y, groups_from_r(groups), opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TCDTIKNET_Solver (memory-mapped X)
+//'
+//' @param X_ptr XPtr to a MemoryMappedMatrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param tikhonov_K p x p PSD Tikhonov matrix (dgCMatrix or dense)
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tcdtiknet_mmap_create(
+    XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    SEXP tikhonov_K,
+    Rcpp::List options
+) {
+    auto X_map = X_ptr->getMap();
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
+    h->solver_ = new TCDTIKNET_Solver(h->X_map_, h->D_map_, y, tsolver_as_sparse_matrix(tikhonov_K), opts);
     return XPtr<TSolverRcpp>(h);
 }
 
@@ -1054,6 +1410,10 @@ void tsolver_save(
         archive(*p);
     } else if (auto* p = dynamic_cast<TIENETAug_Solver*>(s)) {
         archive(*p);
+    } else if (auto* p = dynamic_cast<TIENET_Solver*>(s)) {
+        archive(*p);
+    } else if (auto* p = dynamic_cast<TIKNET_Solver*>(s)) {
+        archive(*p);
     } else if (auto* p = dynamic_cast<TENET_Solver*>(s)) {
         archive(*p);
     } else if (auto* p = dynamic_cast<TLASSO_Solver*>(s)) {
@@ -1071,7 +1431,18 @@ void tsolver_save(
         archive(*p);
     } else if (auto* p = dynamic_cast<TOOLS_Solver*>(s)) {
         archive(*p);
+    } else if (auto* p = dynamic_cast<TIKOMP_Solver*>(s)) {
+        archive(*p);
     } else if (auto* p = dynamic_cast<TOMP_Solver*>(s)) {
+        archive(*p);
+    // CD family
+    } else if (auto* p = dynamic_cast<TCDTIKNET_Solver*>(s)) {
+        archive(*p);
+    } else if (auto* p = dynamic_cast<TCDIENET_Solver*>(s)) {
+        archive(*p);
+    } else if (auto* p = dynamic_cast<TCDENET_Solver*>(s)) {
+        archive(*p);
+    } else if (auto* p = dynamic_cast<TCDLASSO_Solver*>(s)) {
         archive(*p);
     // Independent families
     } else if (auto* p = dynamic_cast<TNCGMP_Solver*>(s)) {
@@ -1109,6 +1480,10 @@ void tsolver_load(
         archive(*p);
     } else if (auto* p = dynamic_cast<TIENETAug_Solver*>(s)) {
         archive(*p);
+    } else if (auto* p = dynamic_cast<TIENET_Solver*>(s)) {
+        archive(*p);
+    } else if (auto* p = dynamic_cast<TIKNET_Solver*>(s)) {
+        archive(*p);
     } else if (auto* p = dynamic_cast<TENET_Solver*>(s)) {
         archive(*p);
     } else if (auto* p = dynamic_cast<TLASSO_Solver*>(s)) {
@@ -1126,7 +1501,18 @@ void tsolver_load(
         archive(*p);
     } else if (auto* p = dynamic_cast<TOOLS_Solver*>(s)) {
         archive(*p);
+    } else if (auto* p = dynamic_cast<TIKOMP_Solver*>(s)) {
+        archive(*p);
     } else if (auto* p = dynamic_cast<TOMP_Solver*>(s)) {
+        archive(*p);
+    // CD family
+    } else if (auto* p = dynamic_cast<TCDTIKNET_Solver*>(s)) {
+        archive(*p);
+    } else if (auto* p = dynamic_cast<TCDIENET_Solver*>(s)) {
+        archive(*p);
+    } else if (auto* p = dynamic_cast<TCDENET_Solver*>(s)) {
+        archive(*p);
+    } else if (auto* p = dynamic_cast<TCDLASSO_Solver*>(s)) {
         archive(*p);
     // Independent families
     } else if (auto* p = dynamic_cast<TNCGMP_Solver*>(s)) {
@@ -1138,4 +1524,129 @@ void tsolver_load(
     }
     // X_ and D_ are not serialised; reconnect to the holder's stable maps.
     ptr->solver_->reconnect(ptr->X_map_, ptr->D_map_);
+}
+
+
+// ==============================================================================
+// Family getters of the solvers bound with TODO 5.4 (TIENET, the CD family,
+// the sparse-K solvers)
+// ==============================================================================
+
+//' @title TIENET: group-ridge penalty used
+//' @noRd
+// [[Rcpp::export]]
+double tsolver_tienet_get_lambda2(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-unnecessary-value-param)
+    if (auto* p = dynamic_cast<TIENET_Solver*>(ptr->solver_)) return p->getLambda2();
+    stop("tsolver_tienet_get_lambda2: Solver is not a TIENET_Solver.");
+}
+
+//' @title TIENET: 1-based group ids, one per predictor
+//' @noRd
+// [[Rcpp::export]]
+IntegerVector tsolver_tienet_get_groups(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-unnecessary-value-param)
+    if (auto* p = dynamic_cast<TIENET_Solver*>(ptr->solver_)) {
+        const Eigen::VectorXi& g = p->getGroups();
+        IntegerVector out(g.size());
+        for (Eigen::Index i = 0; i < g.size(); ++i) out[i] = g[i] + 1;
+        return out;
+    }
+    stop("tsolver_tienet_get_groups: Solver is not a TIENET_Solver.");
+}
+
+//' @title TIENET: number of groups
+//' @noRd
+// [[Rcpp::export]]
+int tsolver_tienet_get_num_groups(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-unnecessary-value-param)
+    if (auto* p = dynamic_cast<TIENET_Solver*>(ptr->solver_)) return static_cast<int>(p->getNumGroups());
+    stop("tsolver_tienet_get_num_groups: Solver is not a TIENET_Solver.");
+}
+
+//' @title TCDIENET: 1-based group ids, one per predictor
+//' @noRd
+// [[Rcpp::export]]
+IntegerVector tsolver_tcdienet_get_groups(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-unnecessary-value-param)
+    if (auto* p = dynamic_cast<TCDIENET_Solver*>(ptr->solver_)) {
+        // group_of_ covers the unified (p + L) columns; the first p entries
+        // are the original variables (dummy layers copy their variable's group).
+        const std::vector<int>& g = p->getGroupOf();
+        const auto np = static_cast<int>(p->getDummyStartIndex());
+        IntegerVector out(np);
+        for (int i = 0; i < np; ++i) out[i] = g[static_cast<std::size_t>(i)] + 1;
+        return out;
+    }
+    stop("tsolver_tcdienet_get_groups: Solver is not a TCDIENET_Solver.");
+}
+
+//' @title TCDIENET: number of groups
+//' @noRd
+// [[Rcpp::export]]
+int tsolver_tcdienet_get_num_groups(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-unnecessary-value-param)
+    if (auto* p = dynamic_cast<TCDIENET_Solver*>(ptr->solver_)) return static_cast<int>(p->getNumGroups());
+    stop("tsolver_tcdienet_get_num_groups: Solver is not a TCDIENET_Solver.");
+}
+
+//' @title CD family: lambda_1 at every recorded step
+//' @noRd
+// [[Rcpp::export]]
+NumericVector tsolver_cd_get_lambda(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-unnecessary-value-param)
+    if (auto* p = dynamic_cast<TCDLASSO_Solver*>(ptr->solver_)) return wrap(p->getLambda());
+    stop("tsolver_cd_get_lambda: Solver is not a CD-family solver.");
+}
+
+//' @title CD family: quadratic penalty weight lambda_2 (0 for TCDLASSO)
+//' @noRd
+// [[Rcpp::export]]
+double tsolver_cd_get_lambda2(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-unnecessary-value-param)
+    if (auto* p = dynamic_cast<TCDLASSO_Solver*>(ptr->solver_)) return p->getLambda2();
+    stop("tsolver_cd_get_lambda2: Solver is not a CD-family solver.");
+}
+
+//' @title CD family: certified crossing localization active?
+//' @noRd
+// [[Rcpp::export]]
+bool tsolver_cd_is_certified_localization(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-unnecessary-value-param)
+    if (auto* p = dynamic_cast<TCDLASSO_Solver*>(ptr->solver_)) return p->isCertifiedLocalization();
+    stop("tsolver_cd_is_certified_localization: Solver is not a CD-family solver.");
+}
+
+//' @title CD family: did certification fall back to LEGACY along the path?
+//' @noRd
+// [[Rcpp::export]]
+bool tsolver_cd_is_certified_degraded(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-unnecessary-value-param)
+    if (auto* p = dynamic_cast<TCDLASSO_Solver*>(ptr->solver_)) return p->isCertifiedDegraded();
+    stop("tsolver_cd_is_certified_degraded: Solver is not a CD-family solver.");
+}
+
+//' @title CD family: duality gap at every recorded step
+//' @noRd
+// [[Rcpp::export]]
+NumericVector tsolver_cd_get_record_gaps(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-unnecessary-value-param)
+    if (auto* p = dynamic_cast<TCDLASSO_Solver*>(ptr->solver_)) return wrap(p->getRecordGaps());
+    stop("tsolver_cd_get_record_gaps: Solver is not a CD-family solver.");
+}
+
+//' @title CD family: KKT violation at every recorded step
+//' @noRd
+// [[Rcpp::export]]
+NumericVector tsolver_cd_get_record_kkt_violations(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-unnecessary-value-param)
+    if (auto* p = dynamic_cast<TCDLASSO_Solver*>(ptr->solver_)) return wrap(p->getRecordKktViolations());
+    stop("tsolver_cd_get_record_kkt_violations: Solver is not a CD-family solver.");
+}
+
+//' @title Sparse-K solvers: quadratic penalty weight lambda_2
+//' @noRd
+// [[Rcpp::export]]
+double tsolver_tik_get_lambda2(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-unnecessary-value-param)
+    if (auto* p = dynamic_cast<TIKNET_Solver*>(ptr->solver_))    return p->getLambda2();
+    if (auto* p = dynamic_cast<TIKOMP_Solver*>(ptr->solver_))    return p->getLambda2();
+    if (auto* p = dynamic_cast<TCDTIKNET_Solver*>(ptr->solver_)) return p->getLambda2();
+    stop("tsolver_tik_get_lambda2: Solver is not a sparse-K solver.");
+}
+
+//' @title TCDTIKNET: FOLDED dummy coupling active?
+//' @noRd
+// [[Rcpp::export]]
+bool tsolver_tcdtiknet_is_folded(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-unnecessary-value-param)
+    if (auto* p = dynamic_cast<TCDTIKNET_Solver*>(ptr->solver_)) return p->isFoldedDummyCoupling();
+    stop("tsolver_tcdtiknet_is_folded: Solver is not a TCDTIKNET_Solver.");
 }

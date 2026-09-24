@@ -944,3 +944,439 @@ TAFS_Solver <- R6::R6Class(
     }
   )
 )
+
+
+# ==============================================================================
+# Solvers bound with TODO 5.4: native T-IENET, the sparse-K solvers and the
+# CD family. All take $new(X, D, y, [groups | tikhonov_K,] options).
+# ==============================================================================
+
+#' T-IENET Solver (native pathwise)
+#'
+#' @description
+#' Terminating Informed Elastic Net solver, native LARS homotopy on the
+#' group-ridge penalty (no augmented copies). The solver used internally by
+#' \code{TRexGVSSelector} for \code{gvs_type = "IEN"} with
+#' \code{solver = "TIENET"}. Inherits all common methods from
+#' \code{\link{TSolver_Base}}.
+#'
+#' @examples
+#' set.seed(1)
+#' n <- 20; p <- 4
+#' X <- matrix(rnorm(n * p), n, p)
+#' D <- matrix(rnorm(n * p), n, p)
+#' y <- X[, 1] * 2 + rnorm(n)
+#' groups <- c(1, 1, 2, 2)  # 1-based group id per predictor
+#' solver <- TIENET_Solver$new(X, D, y, groups = groups,
+#'                             options = tsolver_options(lambda2 = 0.1))
+#' solver$execute_step(T_stop = 3)
+#' solver$get_beta()
+#'
+#' @export
+TIENET_Solver <- R6::R6Class(
+  "TIENET_Solver",
+  inherit = TSolver_Base,
+  public = list(
+    #' @description Create a new \code{TIENET_Solver}.
+    #' @param X Numeric matrix of predictors, or \code{mmap_matrix}.
+    #' @param D Numeric matrix of dummies (a multiple of \code{ncol(X)}
+    #'   columns when \code{lambda2 > 0}: one group-aligned layer per p).
+    #' @param y Numeric response vector.
+    #' @param groups Integer vector of 1-based group ids, one per predictor
+    #'   column of \code{X} (contiguous ids starting at 1).
+    #' @param options Solver options from \code{\link{tsolver_options}}; this
+    #'   solver reads \code{lambda2} (the group-ridge penalty, >= 0).
+    initialize = function(X, D, y, groups, options = tsolver_options()) {
+      super$initialize(X, D, y)
+      groups <- as.integer(groups)
+      if (inherits(self$X, "mmap_matrix")) {
+        self$ptr <- tsolver_tienet_mmap_create(self$X, self$D, self$y, groups, options)
+      } else {
+        self$ptr <- tsolver_tienet_create(self$X, self$D, self$y, groups, options)
+      }
+    },
+
+    #' @description Get the regularization (lambda) path.
+    #' @return Numeric vector of lambda values, one per step.
+    get_lambda = function() tsolver_get_lambda(self$ptr),
+
+    #' @description Get the group-ridge penalty lambda2 used.
+    #' @return Scalar numeric lambda2.
+    get_lambda2 = function() tsolver_tienet_get_lambda2(self$ptr),
+
+    #' @description Get the group ids (1-based, one per predictor).
+    #' @return Integer vector of group ids.
+    get_groups = function() tsolver_tienet_get_groups(self$ptr),
+
+    #' @description Get the number of disjoint groups.
+    #' @return Integer count of groups.
+    get_num_groups = function() tsolver_tienet_get_num_groups(self$ptr)
+  )
+)
+
+
+#' T-TIKNET Solver
+#'
+#' @description
+#' Terminating Tikhonov Net solver: native LARS homotopy with a general
+#' quadratic penalty \code{lambda2 * beta' K beta} on the folded sums (a
+#' sparse PSD \code{K = Gamma' Gamma}, see \code{\link{gamma_to_k}}).
+#' FOLDED dummy coupling only. The solver used internally by
+#' \code{TRexTikhonovSelector} for \code{solver = "TIKNET"}. Inherits all
+#' common methods from \code{\link{TSolver_Base}}.
+#'
+#' @examples
+#' set.seed(1)
+#' n <- 20; p <- 4
+#' X <- matrix(rnorm(n * p), n, p)
+#' D <- matrix(rnorm(n * p), n, p)
+#' y <- X[, 1] * 2 + rnorm(n)
+#' K <- diag(p)
+#' solver <- TIKNET_Solver$new(X, D, y, tikhonov_K = K,
+#'                             options = tsolver_options(lambda2 = 0.1))
+#' solver$execute_step(T_stop = 3)
+#' solver$get_beta()
+#'
+#' @export
+TIKNET_Solver <- R6::R6Class(
+  "TIKNET_Solver",
+  inherit = TSolver_Base,
+  public = list(
+    #' @description Create a new \code{TIKNET_Solver}.
+    #' @param X Numeric matrix of predictors, or \code{mmap_matrix}.
+    #' @param D Numeric matrix of dummies (a multiple of \code{ncol(X)}
+    #'   columns when \code{lambda2 > 0}: FOLDED layered convention).
+    #' @param y Numeric response vector.
+    #' @param tikhonov_K p x p PSD Tikhonov matrix: a
+    #'   \code{Matrix::dgCMatrix} or a dense matrix.
+    #' @param options Solver options from \code{\link{tsolver_options}}; this
+    #'   solver reads \code{lambda2} (the quadratic penalty weight, >= 0).
+    initialize = function(X, D, y, tikhonov_K, options = tsolver_options()) {
+      super$initialize(X, D, y)
+      tikhonov_K <- .as_tikhonov_k(tikhonov_K)
+      if (inherits(self$X, "mmap_matrix")) {
+        self$ptr <- tsolver_tiknet_mmap_create(self$X, self$D, self$y, tikhonov_K, options)
+      } else {
+        self$ptr <- tsolver_tiknet_create(self$X, self$D, self$y, tikhonov_K, options)
+      }
+    },
+
+    #' @description Get the regularization (lambda) path.
+    #' @return Numeric vector of lambda values, one per step.
+    get_lambda = function() tsolver_get_lambda(self$ptr),
+
+    #' @description Get the quadratic penalty weight lambda2 used.
+    #' @return Scalar numeric lambda2.
+    get_lambda2 = function() tsolver_tik_get_lambda2(self$ptr)
+  )
+)
+
+
+#' T-TIKOMP Solver
+#'
+#' @description
+#' Terminating Tikhonov-K Orthogonal Matching Pursuit: greedy generalized-ridge
+#' selection with the quadratic penalty \code{lambda2 * beta' K beta} on the
+#' folded sums. FOLDED dummy coupling only. The solver used internally by
+#' \code{TRexTikhonovSelector} for \code{solver = "TIKOMP"}. Inherits all
+#' common methods from \code{\link{TSolver_Base}}.
+#'
+#' @examples
+#' set.seed(1)
+#' n <- 20; p <- 4
+#' X <- matrix(rnorm(n * p), n, p)
+#' D <- matrix(rnorm(n * p), n, p)
+#' y <- X[, 1] * 2 + rnorm(n)
+#' solver <- TIKOMP_Solver$new(X, D, y, tikhonov_K = diag(p),
+#'                             options = tsolver_options(lambda2 = 0.1))
+#' solver$execute_step(T_stop = 3)
+#' solver$get_beta()
+#'
+#' @export
+TIKOMP_Solver <- R6::R6Class(
+  "TIKOMP_Solver",
+  inherit = TSolver_Base,
+  public = list(
+    #' @description Create a new \code{TIKOMP_Solver}.
+    #' @param X Numeric matrix of predictors, or \code{mmap_matrix}.
+    #' @param D Numeric matrix of dummies (a multiple of \code{ncol(X)}
+    #'   columns when \code{lambda2 > 0}: FOLDED layered convention).
+    #' @param y Numeric response vector.
+    #' @param tikhonov_K p x p PSD Tikhonov matrix: a
+    #'   \code{Matrix::dgCMatrix} or a dense matrix.
+    #' @param options Solver options from \code{\link{tsolver_options}}; this
+    #'   solver reads \code{lambda2} and the exchangeable-tie fields.
+    initialize = function(X, D, y, tikhonov_K, options = tsolver_options()) {
+      super$initialize(X, D, y)
+      tikhonov_K <- .as_tikhonov_k(tikhonov_K)
+      if (inherits(self$X, "mmap_matrix")) {
+        self$ptr <- tsolver_tikomp_mmap_create(self$X, self$D, self$y, tikhonov_K, options)
+      } else {
+        self$ptr <- tsolver_tikomp_create(self$X, self$D, self$y, tikhonov_K, options)
+      }
+    },
+
+    #' @description Get the quadratic penalty weight lambda2 used.
+    #' @return Scalar numeric lambda2.
+    get_lambda2 = function() tsolver_tik_get_lambda2(self$ptr)
+  )
+)
+
+
+#' CD-family base class
+#'
+#' @description
+#' Shared getters of the coordinate-descent solver family
+#' (\code{TCDLASSO_Solver}, \code{TCDENET_Solver}, \code{TCDIENET_Solver},
+#' \code{TCDTIKNET_Solver}): the recorded lambda_1 path, the quadratic penalty
+#' weight, and the certified-localization diagnostics. Not intended for direct
+#' instantiation.
+#'
+#' @export
+TCDSolver_Base <- R6::R6Class(
+  "TCDSolver_Base",
+  inherit = TSolver_Base,
+  public = list(
+    #' @description Get lambda_1 at every recorded step.
+    #' @return Numeric vector, one per step.
+    get_lambda = function() tsolver_cd_get_lambda(self$ptr),
+
+    #' @description Get the quadratic penalty weight lambda2 (0 for T-CDLASSO).
+    #' @return Scalar numeric lambda2.
+    get_lambda2 = function() tsolver_cd_get_lambda2(self$ptr),
+
+    #' @description Is the certified crossing localization active?
+    #' @return Logical.
+    is_certified_localization = function() tsolver_cd_is_certified_localization(self$ptr),
+
+    #' @description Did certification become unavailable along the path
+    #'   (A0-w boundary), so the solver fell back to LEGACY localization?
+    #' @return Logical.
+    is_certified_degraded = function() tsolver_cd_is_certified_degraded(self$ptr),
+
+    #' @description Get the duality gap at every recorded step.
+    #' @return Numeric vector, one per step.
+    get_record_gaps = function() tsolver_cd_get_record_gaps(self$ptr),
+
+    #' @description Get the KKT violation at every recorded step.
+    #' @return Numeric vector, one per step.
+    get_record_kkt_violations = function() tsolver_cd_get_record_kkt_violations(self$ptr)
+  )
+)
+
+
+#' Coerce a Tikhonov matrix argument for the sparse-K solvers.
+#'
+#' A dense matrix passes through (the C++ side converts it with sparseView());
+#' a Matrix object becomes a \code{dgCMatrix} (symmetric \code{dsCMatrix}
+#' storage, which \code{Matrix::Matrix(..., sparse = TRUE)} produces for a
+#' symmetric K, is not accepted by RcppEigen).
+#' @noRd
+.as_tikhonov_k <- function(K) {
+  if (isS4(K) && !methods::is(K, "dgCMatrix")) {
+    K <- methods::as(methods::as(K, "generalMatrix"), "CsparseMatrix")
+  }
+  K
+}
+
+
+#' T-CDLASSO Solver
+#'
+#' @description
+#' Terminating coordinate-descent LASSO: exact penalized-lasso minimizers at
+#' every dummy crossing, localized with certificates (duality gap and
+#' coordinate statuses; \code{cd_certified_localization = FALSE} in the
+#' options selects the LEGACY probe bisection). The base of the CD family
+#' (\code{TCDENET_Solver}, \code{TCDIENET_Solver}, \code{TCDTIKNET_Solver}
+#' inherit its getters). Inherits all common methods from
+#' \code{\link{TSolver_Base}}.
+#'
+#' @examples
+#' set.seed(1)
+#' n <- 20; p <- 5
+#' X <- matrix(rnorm(n * p), n, p)
+#' D <- matrix(rnorm(n * p), n, p)
+#' y <- X[, 1] * 2 + rnorm(n)
+#' solver <- TCDLASSO_Solver$new(X, D, y)
+#' solver$execute_step(T_stop = 3)
+#' solver$get_beta()
+#' solver$is_certified_localization()
+#'
+#' @export
+TCDLASSO_Solver <- R6::R6Class(
+  "TCDLASSO_Solver",
+  inherit = TCDSolver_Base,
+  public = list(
+    #' @description Create a new \code{TCDLASSO_Solver}.
+    #' @param X Numeric matrix of predictors, or \code{mmap_matrix}.
+    #' @param D Numeric matrix of dummies.
+    #' @param y Numeric response vector.
+    #' @param options Solver options from \code{\link{tsolver_options}}; this
+    #'   solver reads the \code{cd_*} knobs.
+    initialize = function(X, D, y, options = tsolver_options()) {
+      super$initialize(X, D, y)
+      if (inherits(self$X, "mmap_matrix")) {
+        self$ptr <- tsolver_tcdlasso_mmap_create(self$X, self$D, self$y, options)
+      } else {
+        self$ptr <- tsolver_tcdlasso_create(self$X, self$D, self$y, options)
+      }
+    }
+  )
+)
+
+
+#' T-CDENET Solver
+#'
+#' @description
+#' Terminating coordinate-descent Elastic Net (diagonal ridge \code{lambda2},
+#' the dummies get \code{kappa_dummy * lambda2}). The solver used internally
+#' by \code{TRexGVSSelector} for \code{en_solver = "TCDENET"}. Inherits the
+#' CD getters from \code{\link{TCDSolver_Base}} and all common methods from
+#' \code{\link{TSolver_Base}}.
+#'
+#' @examples
+#' set.seed(1)
+#' n <- 20; p <- 5
+#' X <- matrix(rnorm(n * p), n, p)
+#' D <- matrix(rnorm(n * p), n, p)
+#' y <- X[, 1] * 2 + rnorm(n)
+#' solver <- TCDENET_Solver$new(X, D, y, options = tsolver_options(lambda2 = 0.1))
+#' solver$execute_step(T_stop = 3)
+#' solver$get_beta()
+#'
+#' @export
+TCDENET_Solver <- R6::R6Class(
+  "TCDENET_Solver",
+  inherit = TCDSolver_Base,
+  public = list(
+    #' @description Create a new \code{TCDENET_Solver}.
+    #' @param X Numeric matrix of predictors, or \code{mmap_matrix}.
+    #' @param D Numeric matrix of dummies.
+    #' @param y Numeric response vector.
+    #' @param options Solver options from \code{\link{tsolver_options}}; this
+    #'   solver reads \code{lambda2}, \code{kappa_dummy} and the \code{cd_*}
+    #'   knobs.
+    initialize = function(X, D, y, options = tsolver_options()) {
+      super$initialize(X, D, y)
+      if (inherits(self$X, "mmap_matrix")) {
+        self$ptr <- tsolver_tcdenet_mmap_create(self$X, self$D, self$y, options)
+      } else {
+        self$ptr <- tsolver_tcdenet_create(self$X, self$D, self$y, options)
+      }
+    }
+  )
+)
+
+
+#' T-CDIENET Solver
+#'
+#' @description
+#' Terminating coordinate-descent Informed Elastic Net: exact fixed-lambda1
+#' IEN minimizers per dummy crossing with O(1) group-penalty hooks
+#' (\code{group_penalty = "MEAN"}, the canonical group-sum penalty, or
+#' \code{"CENTERING"}). The solver used internally by \code{TRexGVSSelector}
+#' for \code{solver = "TCDIENET"}. Inherits the CD getters from
+#' \code{\link{TCDSolver_Base}} and all common methods from
+#' \code{\link{TSolver_Base}}.
+#'
+#' @examples
+#' set.seed(1)
+#' n <- 20; p <- 4
+#' X <- matrix(rnorm(n * p), n, p)
+#' D <- matrix(rnorm(n * p), n, p)
+#' y <- X[, 1] * 2 + rnorm(n)
+#' solver <- TCDIENET_Solver$new(X, D, y, groups = c(1, 1, 2, 2),
+#'                               options = tsolver_options(lambda2 = 0.1))
+#' solver$execute_step(T_stop = 3)
+#' solver$get_beta()
+#'
+#' @export
+TCDIENET_Solver <- R6::R6Class(
+  "TCDIENET_Solver",
+  inherit = TCDSolver_Base,
+  public = list(
+    #' @description Create a new \code{TCDIENET_Solver}.
+    #' @param X Numeric matrix of predictors, or \code{mmap_matrix}.
+    #' @param D Numeric matrix of dummies (a multiple of \code{ncol(X)}
+    #'   columns: one group-aligned layer per p).
+    #' @param y Numeric response vector.
+    #' @param groups Integer vector of 1-based group ids, one per predictor
+    #'   column of \code{X} (contiguous ids starting at 1).
+    #' @param options Solver options from \code{\link{tsolver_options}}; this
+    #'   solver reads \code{lambda2}, \code{group_penalty} and the
+    #'   \code{cd_*} knobs.
+    initialize = function(X, D, y, groups, options = tsolver_options()) {
+      super$initialize(X, D, y)
+      groups <- as.integer(groups)
+      if (inherits(self$X, "mmap_matrix")) {
+        self$ptr <- tsolver_tcdienet_mmap_create(self$X, self$D, self$y, groups, options)
+      } else {
+        self$ptr <- tsolver_tcdienet_create(self$X, self$D, self$y, groups, options)
+      }
+    },
+
+    #' @description Get the group ids (1-based, one per predictor).
+    #' @return Integer vector of group ids.
+    get_groups = function() tsolver_tcdienet_get_groups(self$ptr),
+
+    #' @description Get the number of disjoint groups.
+    #' @return Integer count of groups.
+    get_num_groups = function() tsolver_tcdienet_get_num_groups(self$ptr)
+  )
+)
+
+
+#' T-CDTIKNET Solver
+#'
+#' @description
+#' Terminating coordinate-descent Tikhonov Net: exact fixed-lambda1
+#' minimizers per dummy crossing under the general quadratic penalty
+#' \code{lambda2 * beta' K beta} with a sparse PSD \code{K}. Dummy coupling
+#' per \code{fold_dummies} in the options (\code{FALSE}: independent
+#' \code{kappa_dummy} ridge; \code{TRUE}: FOLDED layered convention). The
+#' solver used internally by \code{TRexTikhonovSelector} for
+#' \code{solver = "TCDTIKNET"}. Inherits the CD getters from
+#' \code{\link{TCDSolver_Base}} and all common methods from
+#' \code{\link{TSolver_Base}}.
+#'
+#' @examples
+#' set.seed(1)
+#' n <- 20; p <- 4
+#' X <- matrix(rnorm(n * p), n, p)
+#' D <- matrix(rnorm(n * p), n, p)
+#' y <- X[, 1] * 2 + rnorm(n)
+#' solver <- TCDTIKNET_Solver$new(X, D, y, tikhonov_K = diag(p),
+#'                                options = tsolver_options(lambda2 = 0.1))
+#' solver$execute_step(T_stop = 3)
+#' solver$get_beta()
+#'
+#' @export
+TCDTIKNET_Solver <- R6::R6Class(
+  "TCDTIKNET_Solver",
+  inherit = TCDSolver_Base,
+  public = list(
+    #' @description Create a new \code{TCDTIKNET_Solver}.
+    #' @param X Numeric matrix of predictors, or \code{mmap_matrix}.
+    #' @param D Numeric matrix of dummies (a multiple of \code{ncol(X)}
+    #'   columns when \code{fold_dummies = TRUE}).
+    #' @param y Numeric response vector.
+    #' @param tikhonov_K p x p PSD Tikhonov matrix: a
+    #'   \code{Matrix::dgCMatrix} or a dense matrix.
+    #' @param options Solver options from \code{\link{tsolver_options}}; this
+    #'   solver reads \code{lambda2}, \code{kappa_dummy}, \code{fold_dummies}
+    #'   and the \code{cd_*} knobs.
+    initialize = function(X, D, y, tikhonov_K, options = tsolver_options()) {
+      super$initialize(X, D, y)
+      tikhonov_K <- .as_tikhonov_k(tikhonov_K)
+      if (inherits(self$X, "mmap_matrix")) {
+        self$ptr <- tsolver_tcdtiknet_mmap_create(self$X, self$D, self$y, tikhonov_K, options)
+      } else {
+        self$ptr <- tsolver_tcdtiknet_create(self$X, self$D, self$y, tikhonov_K, options)
+      }
+    },
+
+    #' @description Is the FOLDED dummy coupling active?
+    #' @return Logical.
+    is_folded_dummy_coupling = function() tsolver_tcdtiknet_is_folded(self$ptr)
+  )
+)
