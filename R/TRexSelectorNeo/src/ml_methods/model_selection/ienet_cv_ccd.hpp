@@ -810,14 +810,44 @@ public:
         return n_profile_at_edge_;
     }
 
-    /** @brief The structural half of the tuner health record; `seconds` is
-     *         the caller's to fill (this class does not time itself). */
-    lambda2_cv_diagnostics diagnostics() const {
+    /** @brief True when the profiled lambda1 optimum of lambda2 grid point
+     *         @p k2 landed on the last computed path point (one of the
+     *         `n_profile_at_edge()` cases). */
+    bool profile_at_edge(Eigen::Index k2) const {
+        check_fitted();
+        return profile_at_edge_[static_cast<std::size_t>(k2)] != 0;
+    }
+
+    /** @brief True when `cv_min()` or `cv_1se()` landed on the FIRST or LAST
+     *         lambda2 grid point — the pick is the grid boundary, not an
+     *         optimum (parity with `enet_cv_ccd` / `ridge_cv_svd` /
+     *         `tikhonov_cv_svd`). A flat profiled curve (low SNR) lands
+     *         here with `n_profile_at_edge() == 0`, which is why the guard
+     *         (`diagnostics()`) reads both. */
+    bool selection_at_grid_edge() const noexcept {
+        const Eigen::Index K = lambdas_.size();
+        if (K == 0) { return false; }
+        return idx_min_ == 0 || idx_min_ == K - 1 ||
+               idx_1se_ == 0 || idx_1se_ == K - 1;
+    }
+
+    /** @brief The structural half of the tuner health record for the pick
+     *         the caller uses; `seconds` is the caller's to fill (this
+     *         class does not time itself).
+     *
+     * @param one_se True when the caller returns `cv_1se()`, false for
+     *        `cv_min()`: the grid-pick fields (`grid_index`, `at_grid_edge`,
+     *        `profile_at_edge`, `boundary_pick`) describe THAT pick. */
+    lambda2_cv_diagnostics diagnostics(bool one_se) const {
+        check_fitted();
         lambda2_cv_diagnostics d;
         d.ran               = true;
         d.n_profile_at_edge = n_profile_at_edge_;
         d.support_cap       = support_cap_;
         d.low_dimensional   = low_dimensional_;
+        const Eigen::Index idx = one_se ? idx_1se_ : idx_min_;
+        d.profile_at_edge   = profile_at_edge(idx);
+        record_grid_pick(d, idx, lambdas_.size());
         return d;
     }
 
@@ -1068,6 +1098,7 @@ private:
         cv_mse_.resize(K2);
         cv_sem_.resize(K2);
         lambda1_profile_.resize(K2);
+        profile_at_edge_.assign(static_cast<std::size_t>(K2), 0);
         n_profile_at_edge_ = 0;
         for (Eigen::Index k2 = 0; k2 < K2; ++k2) {
             Eigen::Index k1_best = 0;
@@ -1080,8 +1111,10 @@ private:
             cv_mse_(k2)          = best;
             cv_sem_(k2)          = sem_full(k2, k1_best);
             lambda1_profile_(k2) = lambda1s_(k1_best);
-            if (k1_best == k1_len[static_cast<std::size_t>(k2)] - 1)
+            if (k1_best == k1_len[static_cast<std::size_t>(k2)] - 1) {
+                profile_at_edge_[static_cast<std::size_t>(k2)] = 1;
                 ++n_profile_at_edge_;
+            }
         }
 
         // ---- lambda.min / lambda.1se on the profiled curve -----------------
@@ -1137,6 +1170,7 @@ private:
     Eigen::Index    idx_min_ = 0;
     Eigen::Index    idx_1se_ = 0;
     Eigen::Index    n_profile_at_edge_ = 0;
+    std::vector<char> profile_at_edge_; ///< per lambda2: profiled optimum on the truncation edge
     Eigen::Index    support_cap_       = -1;
     bool            low_dimensional_   = false;
 };
