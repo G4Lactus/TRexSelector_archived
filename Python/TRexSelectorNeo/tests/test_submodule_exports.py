@@ -13,6 +13,7 @@ MODULES_TO_CHECK = [
     "trex_selector_neo.tsolvers.lars_based",
     "trex_selector_neo.tsolvers.omp_based",
     "trex_selector_neo.tsolvers.afs_based",
+    "trex_selector_neo.tsolvers.cd_based",
     "trex_selector_neo.utils",
 ]
 
@@ -153,6 +154,13 @@ def test_tsolver_symbols_importable():
     assert ScalingMode.L2 is not None
     assert ScalingMode.ZSCORE is not None
     from trex_selector_neo.tsolvers import SolverOptions, GroupPenaltyVariant
+    from trex_selector_neo.tsolvers.cd_based import (
+        TCDLASSO_Solver, TCDENET_Solver, TCDIENET_Solver, TCDTIKNET_Solver)
+    from trex_selector_neo.tsolvers.lars_based import TIENET_Solver, TIKNET_Solver
+    from trex_selector_neo.tsolvers.omp_based import TIKOMP_Solver
+    for cls in (TCDLASSO_Solver, TCDENET_Solver, TCDIENET_Solver, TCDTIKNET_Solver,
+                TIENET_Solver, TIKNET_Solver, TIKOMP_Solver):
+        assert callable(cls)
     assert SolverOptions().lambda2 == 0.0
     assert GroupPenaltyVariant.MEAN is not None
     assert NCGMPVariant.LineSearch is not None

@@ -5,6 +5,7 @@ from ..._core.tsolvers.omp_based import (
     TMP_Solver,
     TOOLS_Solver,
     TNCGMP_Solver,
+    TIKOMP_Solver,
     NCGMPVariant
 )
 
@@ -15,5 +16,6 @@ __all__ = [
     "TMP_Solver",
     "TOOLS_Solver",
     "TNCGMP_Solver",
+    "TIKOMP_Solver",
     "NCGMPVariant"
 ]

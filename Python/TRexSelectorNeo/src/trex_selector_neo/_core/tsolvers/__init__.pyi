@@ -4,9 +4,10 @@ Terminating Solvers
 from __future__ import annotations
 import typing
 from . import afs_based
+from . import cd_based
 from . import lars_based
 from . import omp_based
-__all__: list[str] = ['CENTERING', 'GroupPenaltyVariant', 'L2', 'MEAN', 'ScalingMode', 'SolverOptions', 'ZSCORE', 'afs_based', 'lars_based', 'omp_based']
+__all__: list[str] = ['CENTERING', 'GroupPenaltyVariant', 'L2', 'MEAN', 'ScalingMode', 'SolverOptions', 'ZSCORE', 'afs_based', 'cd_based', 'lars_based', 'omp_based']
 class GroupPenaltyVariant:
     """
     Structured penalty of the group CCD solver (TCDIENET).

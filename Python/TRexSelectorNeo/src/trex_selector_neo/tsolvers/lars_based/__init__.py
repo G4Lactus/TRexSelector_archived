@@ -5,7 +5,9 @@ from ..._core.tsolvers.lars_based import (
     TSTAGEWISE_Solver,
     TENET_Solver,
     TENETAug_Solver,
-    TIENETAug_Solver
+    TIENETAug_Solver,
+    TIENET_Solver,
+    TIKNET_Solver,
 )
 
 __all__ = [
@@ -15,5 +17,7 @@ __all__ = [
     "TSTAGEWISE_Solver",
     "TENET_Solver",
     "TENETAug_Solver",
-    "TIENETAug_Solver"
+    "TIENETAug_Solver",
+    "TIENET_Solver",
+    "TIKNET_Solver",
 ]

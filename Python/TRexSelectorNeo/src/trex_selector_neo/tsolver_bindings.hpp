@@ -36,6 +36,15 @@
 
 // AFS-based solvers
 #include <tsolvers/linear_model/afs_based/tafs_solver.hpp>
+// Native IEN and the sparse-K solvers
+#include <tsolvers/linear_model/lars_based/tienet_solver.hpp>
+#include <tsolvers/linear_model/lars_based/tiknet_solver.hpp>
+#include <tsolvers/linear_model/omp_based/tikomp_solver.hpp>
+// CD-based solvers
+#include <tsolvers/linear_model/cd_based/tcdlasso_solver.hpp>
+#include <tsolvers/linear_model/cd_based/tcdenet_solver.hpp>
+#include <tsolvers/linear_model/cd_based/tcdienet_solver.hpp>
+#include <tsolvers/linear_model/cd_based/tcdtiknet_solver.hpp>
 
 // =====================================================================================
 
@@ -254,6 +263,34 @@ public:
     /** @brief Get the number of disjoint groups (TIENETAug-specific). */
     std::size_t getNumGroups() const { return solver_->getNumGroups(); }
 
+    /** @brief TCDIENET: 0-based group id per original variable (the first p
+     *  entries of the unified group map; dummy layers copy their variable). */
+    Eigen::VectorXi getGroupOf() const {
+        const std::vector<int>& g = solver_->getGroupOf();
+        const auto p = static_cast<Eigen::Index>(solver_->getDummyStartIndex());
+        Eigen::VectorXi out(p);
+        for (Eigen::Index j = 0; j < p; ++j) out(j) = g[static_cast<std::size_t>(j)];
+        return out;
+    }
+
+    // ---- CD family ----------------------------------------------------------
+    /** @brief CD family: certified crossing localization active? */
+    bool isCertifiedLocalization() const { return solver_->isCertifiedLocalization(); }
+    /** @brief CD family: did certification fall back to LEGACY along the path? */
+    bool isCertifiedDegraded() const { return solver_->isCertifiedDegraded(); }
+    /** @brief CD family: duality gap at every recorded step. */
+    const std::vector<double>& getRecordGaps() const { return solver_->getRecordGaps(); }
+    /** @brief CD family: KKT violation at every recorded step. */
+    const std::vector<double>& getRecordKktViolations() const { return solver_->getRecordKktViolations(); }
+    /** @brief CD family: KKT violation of the current state (lambda1 < 0: the last recorded). */
+    double getKktViolation(double lambda1) { return solver_->getKktViolation(lambda1); }
+
+    // ---- sparse-K solvers ---------------------------------------------------
+    /** @brief The Tikhonov matrix K as a dense p x p array. */
+    Eigen::MatrixXd getTikhonovK() const { return Eigen::MatrixXd(solver_->getTikhonovK()); }
+    /** @brief TCDTIKNET: FOLDED dummy coupling active? */
+    bool isFoldedDummyCoupling() const { return solver_->isFoldedDummyCoupling(); }
+
     // =================================================================================
     // Structural Bindings (State reconnects and Cereal Serialization)
     // =================================================================================
@@ -435,6 +472,85 @@ py::class_<PySolverWrapper<Solver>> bind_standard_tsolver(py::module& m, const s
 
 
 /**
+ * @brief Registration for a solver whose constructor also takes the group
+ *        vector (X, D, y, groups, options): TIENET, TIENETAug, TCDIENET.
+ */
+template<typename Solver>
+py::class_<PySolverWrapper<Solver>> bind_groups_tsolver(py::module& m, const std::string& name,
+                                                        const std::string& doc = {}) {
+    using trex::tsolvers::SolverOptions;
+    py::class_<PySolverWrapper<Solver>> cls(m, name.c_str());
+    const std::string init_doc =
+        "Initializes the solver via zero-copy views of X, D and y with a 0-based group id per "
+        "original variable (`groups`, length p); every other input comes from `options` "
+        "(SolverOptions). " + doc;
+    cls.def(py::init<Eigen::Ref<Eigen::MatrixXd>, Eigen::Ref<Eigen::MatrixXd>,
+                      Eigen::Ref<Eigen::VectorXd>, const Eigen::VectorXi&, const SolverOptions&>(),
+             py::arg("X"), py::arg("D"), py::arg("y"), py::arg("groups"),
+             py::arg("options") = SolverOptions{},
+             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(),
+             init_doc.c_str());
+    add_standard_tsolver_methods<Solver>(cls);
+    return cls;
+}
+
+
+/**
+ * @brief Registration for a solver whose constructor also takes the sparse
+ *        Tikhonov matrix (X, D, y, tikhonov_K, options): TIKNET, TIKOMP,
+ *        TCDTIKNET. K is passed as a dense p x p array and converted with
+ *        sparseView() (no SciPy dependency).
+ */
+template<typename Solver>
+py::class_<PySolverWrapper<Solver>> bind_tikhonov_tsolver(py::module& m, const std::string& name,
+                                                          const std::string& doc = {}) {
+    using trex::tsolvers::SolverOptions;
+    py::class_<PySolverWrapper<Solver>> cls(m, name.c_str());
+    const std::string init_doc =
+        "Initializes the solver via zero-copy views of X, D and y with the p x p PSD Tikhonov "
+        "matrix K (a dense array; converted to sparse internally); every other input comes "
+        "from `options` (SolverOptions). " + doc;
+    cls.def(py::init([](Eigen::Ref<Eigen::MatrixXd> X, Eigen::Ref<Eigen::MatrixXd> D,
+                        Eigen::Ref<Eigen::VectorXd> y, const Eigen::MatrixXd& tikhonov_K,
+                        const SolverOptions& options) {
+                 const Eigen::SparseMatrix<double> K = tikhonov_K.sparseView();
+                 return std::make_unique<PySolverWrapper<Solver>>(X, D, y, K, options);
+             }),
+             py::arg("X"), py::arg("D"), py::arg("y"), py::arg("tikhonov_K"),
+             py::arg("options") = SolverOptions{},
+             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(),
+             init_doc.c_str());
+    add_standard_tsolver_methods<Solver>(cls);
+    return cls;
+}
+
+
+/** @brief Attach the CD-family getters (certified localization, records). */
+template<typename Solver>
+py::class_<PySolverWrapper<Solver>>& add_cd_tsolver_methods(py::class_<PySolverWrapper<Solver>>& cls) {
+    cls.def("getLambda", &PySolverWrapper<Solver>::getLambda,
+            "lambda_1 at every recorded step.")
+       .def("getLambda2", &PySolverWrapper<Solver>::getLambda2,
+            "Quadratic penalty weight lambda_2 (0 for TCDLASSO).")
+       .def("getNumRemovals", &PySolverWrapper<Solver>::getNumRemovals,
+            "Get the total number of variable removals along the path.")
+       .def("getCyclingRatio", &PySolverWrapper<Solver>::getCyclingRatio,
+            "Get the cycling ratio (removals / additions).")
+       .def("isCertifiedLocalization", &PySolverWrapper<Solver>::isCertifiedLocalization,
+            "True if the solver localizes crossings with certificates (options.cd_certified_localization).")
+       .def("isCertifiedDegraded", &PySolverWrapper<Solver>::isCertifiedDegraded,
+            "True once certification became unavailable along the path (A0-w boundary) and the solver fell back to LEGACY.")
+       .def("getRecordGaps", &PySolverWrapper<Solver>::getRecordGaps,
+            "Duality gap at every recorded step.")
+       .def("getRecordKktViolations", &PySolverWrapper<Solver>::getRecordKktViolations,
+            "KKT violation at every recorded step.")
+       .def("getKktViolation", &PySolverWrapper<Solver>::getKktViolation, py::arg("lambda1") = -1.0,
+            "KKT violation of the current state at lambda1 (< 0: the last recorded lambda).");
+    return cls;
+}
+
+
+/**
  * @brief Bind trex::tsolvers::SolverOptions with a keyword constructor
  *        (`SolverOptions(lambda2=0.5, normalize=False)`) and read/write fields.
  */
@@ -537,6 +653,7 @@ inline void bind_tsolvers_module(py::module& m) {
     py::module m_lars = m.def_submodule("lars_based", "LARS-based T-Solvers");
     py::module m_omp  = m.def_submodule("omp_based",  "OMP-based T-Solvers");
     py::module m_afs  = m.def_submodule("afs_based",  "AFS-based T-Solvers");
+    py::module m_cd   = m.def_submodule("cd_based",   "Coordinate-descent T-Solvers");
 
     /**
      * @brief Variants defining the internal optimization mode utilized by the TNCGMP solver.
@@ -626,6 +743,29 @@ inline void bind_tsolvers_module(py::module& m) {
         .def("getNumGroups", &PySolverWrapper<TIENETAug_Solver>::getNumGroups,
              "Get the number of disjoint groups.");
 
+    // TIENET: native pathwise LARS-IEN (no augmented copies); groups are data.
+    bind_groups_tsolver<TIENET_Solver>(m_lars, "TIENET_Solver",
+        "Reads options.lambda2, the group-ridge penalty.")
+        .def("getLambda", &PySolverWrapper<TIENET_Solver>::getLambda,
+             "Get the regularization parameter sequence (max correlation per step).")
+        .def("getLambda2", &PySolverWrapper<TIENET_Solver>::getLambda2,
+             "Get the group-ridge penalty lambda2 used.")
+        .def("getGroups", &PySolverWrapper<TIENET_Solver>::getGroups,
+             "Get the 0-based group id per original variable (length p).")
+        .def("getNumGroups", &PySolverWrapper<TIENET_Solver>::getNumGroups,
+             "Get the number of disjoint groups.");
+
+    // TIKNET: native LARS homotopy under lambda2 * beta' K beta (FOLDED dummies).
+    bind_tikhonov_tsolver<TIKNET_Solver>(m_lars, "TIKNET_Solver",
+        "Reads options.lambda2, the quadratic penalty weight; FOLDED dummy coupling only "
+        "(D.cols() a multiple of X.cols() when lambda2 > 0).")
+        .def("getLambda", &PySolverWrapper<TIKNET_Solver>::getLambda,
+             "Get the regularization parameter sequence (max correlation per step).")
+        .def("getLambda2", &PySolverWrapper<TIKNET_Solver>::getLambda2,
+             "Get the quadratic penalty weight lambda2 used.")
+        .def("getTikhonovK", &PySolverWrapper<TIKNET_Solver>::getTikhonovK,
+             "The Tikhonov matrix K as a dense p x p array.");
+
     // -------------------------------------------------------------------------
     // OMP-based sub-module
     // -------------------------------------------------------------------------
@@ -640,6 +780,14 @@ inline void bind_tsolvers_module(py::module& m) {
     bind_standard_tsolver<TNCGMP_Solver>(m_omp, "TNCGMP_Solver",
         "Reads options.ncgmp_variant (LineSearch or FullyCorrective).");
 
+    // TIKOMP: greedy generalized-ridge OMP under lambda2 * beta' K beta (FOLDED dummies).
+    bind_tikhonov_tsolver<TIKOMP_Solver>(m_omp, "TIKOMP_Solver",
+        "Reads options.lambda2 and the exchangeable-tie fields; FOLDED dummy coupling only.")
+        .def("getLambda2", &PySolverWrapper<TIKOMP_Solver>::getLambda2,
+             "Get the quadratic penalty weight lambda2 used.")
+        .def("getTikhonovK", &PySolverWrapper<TIKOMP_Solver>::getTikhonovK,
+             "The Tikhonov matrix K as a dense p x p array.");
+
     // -------------------------------------------------------------------------
     // AFS-based sub-module
     // -------------------------------------------------------------------------
@@ -648,6 +796,38 @@ inline void bind_tsolvers_module(py::module& m) {
     bind_standard_tsolver<TAFS_Solver>(m_afs, "TAFS_Solver",
         "Reads options.rho_afs, the shrinkage step in (0, 1] (1: forward stepwise), and the"
         " exchangeable-tie fields.");
+
+    // -------------------------------------------------------------------------
+    // CD-based sub-module (TODO 5.4)
+    // -------------------------------------------------------------------------
+    using namespace trex::tsolvers::linear_model::cd_based;
+
+    {
+        auto cls = bind_standard_tsolver<TCDLASSO_Solver>(m_cd, "TCDLASSO_Solver",
+            "Exact penalized-lasso minimizers per dummy crossing; reads the options.cd_* knobs.");
+        add_cd_tsolver_methods<TCDLASSO_Solver>(cls);
+    }
+    {
+        auto cls = bind_standard_tsolver<TCDENET_Solver>(m_cd, "TCDENET_Solver",
+            "Reads options.lambda2 (diagonal ridge), options.kappa_dummy and the cd_* knobs.");
+        add_cd_tsolver_methods<TCDENET_Solver>(cls);
+    }
+    {
+        auto cls = bind_groups_tsolver<TCDIENET_Solver>(m_cd, "TCDIENET_Solver",
+            "Reads options.lambda2, options.group_penalty (MEAN or CENTERING) and the cd_* knobs.");
+        add_cd_tsolver_methods<TCDIENET_Solver>(cls);
+        cls.def("getGroups", &PySolverWrapper<TCDIENET_Solver>::getGroupOf,
+                "Get the 0-based group id per original variable (length p).")
+           .def("getNumGroups", &PySolverWrapper<TCDIENET_Solver>::getNumGroups,
+                "Get the number of disjoint groups.");
+    }
+    {
+        auto cls = bind_tikhonov_tsolver<TCDTIKNET_Solver>(m_cd, "TCDTIKNET_Solver",
+            "Reads options.lambda2, options.kappa_dummy, options.fold_dummies and the cd_* knobs.");
+        add_cd_tsolver_methods<TCDTIKNET_Solver>(cls);
+        cls.def("isFoldedDummyCoupling", &PySolverWrapper<TCDTIKNET_Solver>::isFoldedDummyCoupling,
+                "True under the FOLDED dummy coupling (options.fold_dummies).");
+    }
 }
 // =====================================================================================
 #endif /* End of TREX_PYTHON_TSOLVER_BINDINGS_HPP */

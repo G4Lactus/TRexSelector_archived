@@ -22,6 +22,24 @@ from trex_selector_neo.tsolvers.omp_based import (
 )
 from trex_selector_neo.tsolvers.afs_based import TAFS_Solver
 from trex_selector_neo.tsolvers import SolverOptions
+from trex_selector_neo.tsolvers.lars_based import TIENET_Solver, TIKNET_Solver
+from trex_selector_neo.tsolvers.omp_based import TIKOMP_Solver
+from trex_selector_neo.tsolvers.cd_based import (
+    TCDLASSO_Solver, TCDENET_Solver, TCDIENET_Solver, TCDTIKNET_Solver)
+
+
+def _groups_for(p):
+    # 0-based contiguous ids: pairs, last variable alone when p is odd
+    return np.array([j // 2 for j in range(p)], dtype=np.int32)
+
+
+def _group_mean_k(p):
+    g = _groups_for(p)
+    K = np.zeros((p, p))
+    for m in np.unique(g):
+        idx = np.flatnonzero(g == m)
+        K[np.ix_(idx, idx)] = 1.0 / idx.size
+    return K
 
 
 # ---------------------------------------------------------------------------
@@ -67,6 +85,29 @@ def make_tncgmp(X, D, y):
 def make_tafs(X, D, y):
     return TAFS_Solver(X, D, y, SolverOptions(rho_afs=1.0))
 
+# Bound with TODO 5.4: native IEN, the sparse-K solvers, the CD family.
+def make_tienet(X, D, y):
+    return TIENET_Solver(X, D, y, _groups_for(X.shape[1]), SolverOptions(lambda2=0.5))
+
+def make_tiknet(X, D, y):
+    return TIKNET_Solver(X, D, y, _group_mean_k(X.shape[1]), SolverOptions(lambda2=0.5))
+
+def make_tikomp(X, D, y):
+    return TIKOMP_Solver(X, D, y, _group_mean_k(X.shape[1]), SolverOptions(lambda2=0.5))
+
+def make_tcdlasso(X, D, y):
+    return TCDLASSO_Solver(X, D, y)
+
+def make_tcdenet(X, D, y):
+    return TCDENET_Solver(X, D, y, SolverOptions(lambda2=0.5))
+
+def make_tcdienet(X, D, y):
+    return TCDIENET_Solver(X, D, y, _groups_for(X.shape[1]), SolverOptions(lambda2=0.5))
+
+def make_tcdtiknet(X, D, y):
+    return TCDTIKNET_Solver(X, D, y, _group_mean_k(X.shape[1]),
+                            SolverOptions(lambda2=0.5, fold_dummies=True))
+
 
 STANDARD_SOLVER_FACTORIES = [
     make_tlars,
@@ -81,6 +122,13 @@ STANDARD_SOLVER_FACTORIES = [
     make_tools,
     make_tncgmp,
     make_tafs,
+    make_tienet,
+    make_tiknet,
+    make_tikomp,
+    make_tcdlasso,
+    make_tcdenet,
+    make_tcdienet,
+    make_tcdtiknet,
 ]
 
 
@@ -418,3 +466,52 @@ def test_tenet_aug_diagnostics_reflect_inner_solver(solver_data):
     # Exactly T_stop dummies must have entered the active set
     active_dummies = [j for j in solver.getActives() if j >= p]
     assert len(active_dummies) == 2
+
+
+# ---------------------------------------------------------------------------
+# Solvers bound with TODO 5.4: family getters
+# ---------------------------------------------------------------------------
+
+def test_tienet_and_tcdienet_group_getters(solver_data):
+    X, D, y, n, p = solver_data
+    groups = _groups_for(p)
+    for cls in (TIENET_Solver, TCDIENET_Solver):
+        s = cls(X, D, y, groups, SolverOptions(lambda2=0.5))
+        s.executeStep(3)
+        assert s.getLambda2() == pytest.approx(0.5)
+        assert (np.asarray(s.getGroups()) == groups).all()
+        assert s.getNumGroups() == len(np.unique(groups))
+        assert s.getNumSteps() > 0
+
+
+def test_cd_family_certified_getters(solver_data):
+    X, D, y, n, p = solver_data
+    s = TCDENET_Solver(X, D, y, SolverOptions(lambda2=0.5))
+    s.executeStep(3)
+    assert s.isCertifiedLocalization() is True
+    assert isinstance(s.isCertifiedDegraded(), bool)
+    assert s.getLambda2() == pytest.approx(0.5)
+    assert len(s.getLambda()) == s.getNumSteps()   # one lambda_1 per recorded step
+    assert all(g >= 0.0 for g in s.getRecordGaps())
+    assert all(v >= 0.0 for v in s.getRecordKktViolations())
+    assert s.getKktViolation() >= 0.0
+
+    legacy = TCDLASSO_Solver(X, D, y, SolverOptions(cd_certified_localization=False))
+    assert legacy.isCertifiedLocalization() is False
+    assert legacy.getLambda2() == 0.0
+
+
+def test_tikhonov_solvers_take_a_dense_k(solver_data):
+    X, D, y, n, p = solver_data
+    K = _group_mean_k(p)
+    for cls in (TIKNET_Solver, TIKOMP_Solver, TCDTIKNET_Solver):
+        s = cls(X, D, y, K, SolverOptions(lambda2=0.5, fold_dummies=True))
+        s.executeStep(3)
+        assert s.getLambda2() == pytest.approx(0.5)
+        if cls is not TCDTIKNET_Solver:   # the CD solver keeps K internal
+            assert np.allclose(s.getTikhonovK(), K)
+        assert s.getNumSteps() > 0
+    tik = TCDTIKNET_Solver(X, D, y, K, SolverOptions(lambda2=0.5, fold_dummies=True))
+    assert tik.isFoldedDummyCoupling() is True
+    with pytest.raises(ValueError):
+        TIKNET_Solver(X, D, y, -np.eye(p), SolverOptions(lambda2=0.5))
