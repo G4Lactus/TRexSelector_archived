@@ -477,20 +477,28 @@ Eigen::VectorXd TRexSelector::createVotingGrid() const {
 }
 
 Eigen::VectorXd TRexSelector::createVotingGrid(std::size_t K) const {
-    const double v_start = 0.5;
     // Machine epsilon on purpose (not eps_ = solver tolerance): the sentinel
     // must stay above the last regular grid point 1 - 1/K for any K, which a
     // large user-supplied solver tol (e.g. 1e-2 with K >= 100) would violate,
     // making the grid non-monotone. This also matches the R reference
     // (V = seq(0.5, 1 - .Machine$double.eps, by = 1/K)).
     const double v_end   = 1.0 - std::numeric_limits<double>::epsilon();
-    const double v_step  = 1.0 / static_cast<double>(K);
 
-    // Regular grid points: 0.5, 0.5 + 1/K, ... strictly below 1.0.
+    // Regular grid points: 0.5, 0.5 + 1/K, ... strictly below 1.0, each one
+    // computed as ONE correctly rounded division (K + 2i) / (2K). Phi is the
+    // correctly rounded m / K (ExperimentRunner::aggregateResults), so a
+    // mathematical tie m / K == 0.5 + i / K yields the identical double and
+    // the strict `Phi > v` excludes it, as the definition and R do; distinct
+    // rationals with these denominators are never rounded together. The
+    // former v_start + i * v_step (two roundings) could sit one ulp off the
+    // lattice for odd K.
     std::vector<double> v;
     v.reserve(K / 2 + 2);
-    for (std::size_t i = 0; v_start + static_cast<double>(i) * v_step < 1.0; ++i) {
-        v.push_back(v_start + static_cast<double>(i) * v_step);
+    for (std::size_t i = 0;; ++i) {
+        const double vi = static_cast<double>(K + 2 * i)
+                        / static_cast<double>(2 * K);
+        if (vi >= 1.0) { break; }
+        v.push_back(vi);
     }
 
     // Floating-point-robust sentinel for "selected in all K experiments".
@@ -1012,7 +1020,11 @@ void TRexSelector::runLLoopCalibration(
         FDP_hat     = std::move(view.FDP_hat);
 
         if (verbose_) {
-            printProgress("Appended dummies: " + std::to_string(num_dummies_));
+            std::ostringstream oss;
+            oss << "Appended dummies: " << num_dummies_
+                << " | FDP_hat(T = 1) = "
+                << FDP_hat(static_cast<Eigen::Index>(opt_point_));
+            printProgress(oss.str());
         }
 
         ++dummy_multiplier_LL_;

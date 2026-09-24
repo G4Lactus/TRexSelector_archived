@@ -982,9 +982,16 @@ private:
     /**
      * @brief Merge the K experiment summaries into the final results.
      *
-     * @details Accumulation runs in k-order with the same floating-point
-     *          addition order as the former all-paths aggregation, so the
-     *          results are bit-identical to the non-streaming version.
+     * @details Votes are accumulated as exact counts (+1.0 per experiment,
+     *          exact in double) and divided by K ONCE at the end, so every
+     *          entry is the correctly rounded value of m / K -- the same
+     *          number R's rowMeans() produces. Accumulating 1/K per vote
+     *          instead leaves a rounding residue (15 x 0.05 = 0.75 + 1 ulp),
+     *          and because the voting grid lives on the same 1/K lattice
+     *          (createVotingGrid), that residue decided the strict `Phi > v`
+     *          comparison at the ties the lattice makes routine: the classical
+     *          runner selected at exact ties, the GVS K-loop (and R) did not
+     *          (the Tikhonov-vs-GVS L-loop divergence, resolved 2026-09-24).
      *
      * @param summaries Vector of K experiment summaries.
      * @param cfg Runner configuration (for p, T_stop, K).
@@ -998,7 +1005,6 @@ private:
 
         const std::size_t p = cfg.p;
         const std::size_t T_stop = cfg.T_stop;
-        const double inv_K = 1.0 / static_cast<double>(cfg.K);
 
         Eigen::MatrixXd phi_T_mat = Eigen::MatrixXd::Zero(
             static_cast<Eigen::Index>(p),
@@ -1010,10 +1016,11 @@ private:
             for (std::size_t t = 0; t < summary.selected.size(); ++t) {
                 for (std::size_t j : summary.selected[t]) {
                     phi_T_mat(static_cast<Eigen::Index>(j),
-                              static_cast<Eigen::Index>(t)) += inv_K;
+                              static_cast<Eigen::Index>(t)) += 1.0;
                 }
             }
         }
+        phi_T_mat /= static_cast<double>(cfg.K);
 
         ExperimentResults results;
         results.phi_T_mat = std::move(phi_T_mat);
