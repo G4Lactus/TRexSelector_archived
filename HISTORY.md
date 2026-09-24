@@ -46,6 +46,28 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
 
 ### 2026-09-24
 
+#### Voting ties: exact vote counts and a single-division voting grid
+
+- The classical experiment runner accumulated Phi as K additions of 1/K. The
+  rounding residue (15 x 0.05 = 0.75 + 1 ulp) decided the strict `Phi > v`
+  comparison at the ties the voting lattice makes routine, because the grid
+  `0.5, 0.5 + 1/K, ...` lives on the same 1/K lattice by design (R's
+  `seq(0.5, 1 - eps, by = 1/K)`). The runner therefore selected a variable
+  that sat exactly on a grid point; the GVS K-loop, which divides exact
+  counts once, and R's `rowMeans()` did not. One such tie flips the L-loop
+  stop, which is how `TRexTikhonovSelector` and `TRexGVSSelector` came to
+  stop at different L on the same dummies (the divergence pinned since
+  2026-08-25; the dummies and the per-experiment paths were bit-identical).
+- Fix: `ExperimentRunner::aggregateResults` accumulates exact counts and
+  divides by K once (Phi is the correctly rounded m/K), and
+  `createVotingGrid` computes every point as one division (K + 2i)/(2K), so
+  a mathematical tie yields the identical double and is excluded, as the
+  definition and R do. Affects every selector on the runner (classical, DA,
+  screening, SPCA, Tikhonov) only where a variable's vote share equals a
+  grid point exactly; such variables are no longer selected at that
+  threshold. The equivalence test beyond L = p is enabled (decision 9 in the
+  plan is closed: there was no convention difference).
+
 #### Beyond architecture: one folder per dummy mechanism (breaking, C++ only)
 
 - `cpp/src/tsolvers/` and `cpp/src/trex_selector_methods/` each hold three peer
