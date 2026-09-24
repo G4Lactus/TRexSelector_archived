@@ -72,8 +72,8 @@ library(TRexSelectorNeo)
 help(package = "TRexSelectorNeo")
 ?TRexSelector
 ?trex_control
-?compute_fdp
-?compute_tpp
+?trex_fdp
+?trex_tpp
 # etc.
 ```
 

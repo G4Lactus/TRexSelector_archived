@@ -27,6 +27,7 @@
 #' sel$select()
 #' sel$selected_indices
 #' }
+#' @family T-Rex selectors and controls
 #' @export
 TRexTikhonovSelector <- R6::R6Class("TRexTikhonovSelector",
   inherit = TRexSelector,
@@ -143,7 +144,7 @@ TRexTikhonovSelector <- R6::R6Class("TRexTikhonovSelector",
 )
 
 
-#' @name gamma_to_k
+#' @name trex_gamma_to_k
 #'
 #' @title Build a Tikhonov penalty matrix K from an operator Gamma
 #'
@@ -162,12 +163,13 @@ TRexTikhonovSelector <- R6::R6Class("TRexTikhonovSelector",
 #' # First-difference operator over 5 variables -> chain Laplacian
 #' p <- 5
 #' gamma <- diff(diag(p))
-#' K <- gamma_to_k(gamma)
+#' K <- trex_gamma_to_k(gamma)
 #'
+#' @family T-Rex selectors and controls
 #' @export
-gamma_to_k <- function(gamma) {
+trex_gamma_to_k <- function(gamma) {
   if (!requireNamespace("Matrix", quietly = TRUE)) {
-    stop("gamma_to_k() returns a sparse Matrix::dgCMatrix and needs the ",
+    stop("trex_gamma_to_k() returns a sparse Matrix::dgCMatrix and needs the ",
          "Matrix package installed.")
   }
   trex_tikhonov_gamma_to_k(gamma)

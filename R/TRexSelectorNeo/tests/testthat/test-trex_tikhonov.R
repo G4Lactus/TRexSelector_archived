@@ -283,17 +283,17 @@ test_that("lambda_2 auto-resolves via the IEN-geometry tuner", {
 })
 
 
-test_that("gamma_to_k builds the chain Laplacian from a first-difference Gamma", {
+test_that("trex_gamma_to_k builds the chain Laplacian from a first-difference Gamma", {
   skip_if_not_installed("Matrix")
   p <- 5
   gamma <- diff(diag(p))
-  K <- gamma_to_k(gamma)
+  K <- trex_gamma_to_k(gamma)
   Kd <- as.matrix(K)
   expect_equal(dim(Kd), c(p, p))
   expect_equal(Kd, t(Kd))
   expect_equal(diag(Kd), c(1, 2, 2, 2, 1))
   expect_equal(Kd[1, 2], -1)
   # A sparse dgCMatrix Gamma is accepted too.
-  K2 <- gamma_to_k(Matrix::Matrix(gamma, sparse = TRUE))
+  K2 <- trex_gamma_to_k(Matrix::Matrix(gamma, sparse = TRUE))
   expect_equal(as.matrix(K2), Kd)
 })

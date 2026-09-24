@@ -30,8 +30,8 @@ Extract or assign blocks in an mmap_matrix
 mat <- matrix(as.double(1:20), nrow = 4, ncol = 5)
 f <- tempfile(fileext = ".bin")
 on.exit(unlink(f), add = TRUE)
-convert_to_memory_mapped(mat, f)
-mm <- mmap_matrix(f, rows = 4, cols = 5)
+mem_matrix_from(mat, f)
+mm <- mem_matrix(f, rows = 4, cols = 5)
 mm[1:2, 1:3]
 mm[2, 3] <- 99.0
 mm[1:2, 1:3] <- matrix(as.double(1:6), nrow = 2, ncol = 3)

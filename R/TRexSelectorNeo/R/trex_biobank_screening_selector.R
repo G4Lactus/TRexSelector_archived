@@ -20,6 +20,7 @@
 #' res$selected_indices
 #' }
 #'
+#' @family T-Rex selectors and controls
 #' @export
 TRexBiobankScreeningSelector <- R6::R6Class("TRexBiobankScreeningSelector",
   public = list(

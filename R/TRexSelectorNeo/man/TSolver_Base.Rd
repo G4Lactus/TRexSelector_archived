@@ -13,6 +13,7 @@ rather than this class directly.
 # TSolver_Base is abstract; use a concrete subclass instead, e.g.:
 # solver <- TLARS_Solver$new(X, D, y)
 }
+\keyword{internal}
 \section{Public fields}{
   \if{html}{\out{<div class="r6-fields">}}
   \describe{

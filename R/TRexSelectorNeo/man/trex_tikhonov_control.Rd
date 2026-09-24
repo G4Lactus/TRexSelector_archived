@@ -32,7 +32,7 @@ trex_tikhonov_control(
 \arguments{
 \item{tikhonov_K}{Penalty matrix K (p x p): a base \code{matrix} or a
 sparse \code{Matrix::dgCMatrix}. Build it from a regularization
-operator Gamma with \code{\link{gamma_to_k}}. Required for
+operator Gamma with \code{\link{trex_gamma_to_k}}. Required for
 \code{penalty_structure = "SPARSE_GENERAL"}; ignored under
 \code{"GROUP_CENTERING"}.}
 
@@ -160,3 +160,29 @@ trex_tikhonov_control(penalty_structure = "GROUP_CENTERING",
                       lambda2_method = "PILOT_MAX")
 
 }
+\seealso{
+Other T-Rex selectors and controls:
+\code{\link{TRexBiobankScreeningSelector}},
+\code{\link{TRexDASelector}},
+\code{\link{TRexGVSSelector}},
+\code{\link{TRexSPCASelector}},
+\code{\link{TRexScreeningSelector}},
+\code{\link{TRexSelector}},
+\code{\link{TRexTikhonovSelector}},
+\code{\link[=trex_biobank_control]{trex_biobank_control()}},
+\code{\link[=trex_control]{trex_control()}},
+\code{\link[=trex_da_control]{trex_da_control()}},
+\code{\link[=trex_dummy_distribution]{trex_dummy_distribution()}},
+\code{\link[=trex_fdp]{trex_fdp()}},
+\code{\link[=trex_fdp_dense]{trex_fdp_dense()}},
+\code{\link[=trex_gamma_to_k]{trex_gamma_to_k()}},
+\code{\link[=trex_gvs_control]{trex_gvs_control()}},
+\code{\link[=trex_normalize_design]{trex_normalize_design()}},
+\code{\link[=trex_precision]{trex_precision()}},
+\code{\link[=trex_recall]{trex_recall()}},
+\code{\link[=trex_screen_control]{trex_screen_control()}},
+\code{\link[=trex_spca_control]{trex_spca_control()}},
+\code{\link[=trex_tpp]{trex_tpp()}},
+\code{\link[=trex_tpp_dense]{trex_tpp_dense()}}
+}
+\concept{T-Rex selectors and controls}

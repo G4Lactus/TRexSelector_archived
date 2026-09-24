@@ -9,8 +9,8 @@
 #'   when it is a double-storage matrix; other inputs are coerced to a double
 #'   matrix first, in which case the coerced copy is modified. The (modified)
 #'   matrix is returned in both cases. \code{X} may also be an
-#'   \code{mmap_matrix} created by \code{\link{mmap_matrix}} /
-#'   \code{\link{convert_to_memory_mapped}}: the disk-backed buffer is then
+#'   \code{mmap_matrix} created by \code{\link{mem_matrix}} /
+#'   \code{\link{mem_matrix_from}}: the disk-backed buffer is then
 #'   bound zero-copy through the same Eigen map interface and modified in
 #'   place on disk. All scaler methods — including \code{fit()} — require the
 #'   handle to be open in \code{"readwrite"} mode, because the scaler core
@@ -19,19 +19,20 @@
 #' @examples
 #' set.seed(1)
 #' X <- matrix(rnorm(50 * 5), 50, 5)
-#' scaler <- ZScoreScaler$new()
+#' scaler <- MLZScoreScaler$new()
 #' scaler$fit(X)
 #' X_std <- scaler$transform_inplace(X)
 #' scaler$get_centers()
 #'
+#' @family ML methods
 #' @export
-ZScoreScaler <- R6::R6Class("ZScoreScaler",
+MLZScoreScaler <- R6::R6Class("MLZScoreScaler",
   private = list(
     cpp_ptr = NULL
   ),
   public = list(
 
-    #' @description Initialize the ZScoreScaler
+    #' @description Initialize the MLZScoreScaler
     #'
     #' @param center Logical, whether to center columns to mean 0 (default: TRUE)
     #' @param scale Logical, whether to scale columns to unit SD (default: TRUE);
@@ -190,8 +191,8 @@ ZScoreScaler <- R6::R6Class("ZScoreScaler",
 #'   when it is a double-storage matrix; other inputs are coerced to a double
 #'   matrix first, in which case the coerced copy is modified. The (modified)
 #'   matrix is returned in both cases. \code{X} may also be an
-#'   \code{mmap_matrix} created by \code{\link{mmap_matrix}} /
-#'   \code{\link{convert_to_memory_mapped}}: the disk-backed buffer is then
+#'   \code{mmap_matrix} created by \code{\link{mem_matrix}} /
+#'   \code{\link{mem_matrix_from}}: the disk-backed buffer is then
 #'   bound zero-copy through the same Eigen map interface and modified in
 #'   place on disk. All scaler methods — including \code{fit()} — require the
 #'   handle to be open in \code{"readwrite"} mode, because the scaler core
@@ -200,18 +201,19 @@ ZScoreScaler <- R6::R6Class("ZScoreScaler",
 #' @examples
 #' set.seed(1)
 #' X <- matrix(rnorm(50 * 5), 50, 5)
-#' scaler <- LpNormScaler$new(norm_type = 2)
+#' scaler <- MLLpNormScaler$new(norm_type = 2)
 #' scaler$fit(X)
 #' X_norm <- scaler$transform_inplace(X)
 #'
+#' @family ML methods
 #' @export
-LpNormScaler <- R6::R6Class("LpNormScaler",
+MLLpNormScaler <- R6::R6Class("MLLpNormScaler",
   private = list(
     cpp_ptr = NULL
   ),
   public = list(
 
-    #' @description Initialize the LpNormScaler
+    #' @description Initialize the MLLpNormScaler
     #'
     #' @param norm_type Integer, 1 for L1 norm, 2 for L2 norm (default: 2)
     #' @param center Logical, whether to center columns to mean 0 (default: TRUE)
@@ -378,17 +380,18 @@ LpNormScaler <- R6::R6Class("LpNormScaler",
 #' set.seed(1)
 #' X <- matrix(rnorm(50 * 5), 50, 5)
 #' y <- X[, 1] * 2 + rnorm(50)
-#' cv <- RidgeCV$new()
+#' cv <- MLRidgeCV$new()
 #' cv$fit(X, y, num_folds = 5)
 #' cv$cv_min()
 #'
+#' @family ML methods
 #' @export
-RidgeCV <- R6::R6Class("RidgeCV",
+MLRidgeCV <- R6::R6Class("MLRidgeCV",
   private = list(
     cpp_ptr = NULL
   ),
   public = list(
-    #' @description Initialize the RidgeCV object.
+    #' @description Initialize the MLRidgeCV object.
     initialize = function() {
       private$cpp_ptr <- ridge_cv_create()
     },
@@ -396,7 +399,7 @@ RidgeCV <- R6::R6Class("RidgeCV",
     #' @description Fit the CV model.
     #'
     #' @param X Predictor matrix, or an \code{mmap_matrix} created by
-    #'   \code{\link{mmap_matrix}} / \code{\link{convert_to_memory_mapped}}
+    #'   \code{\link{mem_matrix}} / \code{\link{mem_matrix_from}}
     #'   (bound zero-copy; \code{"readonly"} mode suffices since the fit does
     #'   not modify \code{X}).
     #' @param y Response vector.
@@ -476,7 +479,7 @@ RidgeCV <- R6::R6Class("RidgeCV",
 
 
 # ==============================================================================
-# ElasticNet
+# MLElasticNet
 # ==============================================================================
 
 #' @title Elastic Net (coordinate-descent path)
@@ -492,18 +495,19 @@ RidgeCV <- R6::R6Class("RidgeCV",
 #' n <- 50; p <- 8
 #' X <- matrix(rnorm(n * p), n, p)
 #' y <- X[, 1] * 2 + X[, 3] - X[, 5] + rnorm(n)
-#' en <- ElasticNet$new()
+#' en <- MLElasticNet$new()
 #' en$fit(X, y, alpha = 1.0)
 #' dim(en$get_coef())        # p x n_lambda
 #' en$predict(X[1:5, ])
 #'
+#' @family ML methods
 #' @export
-ElasticNet <- R6::R6Class("ElasticNet",
+MLElasticNet <- R6::R6Class("MLElasticNet",
   private = list(
     cpp_ptr = NULL
   ),
   public = list(
-    #' @description Initialize the ElasticNet object.
+    #' @description Initialize the MLElasticNet object.
     initialize = function() {
       private$cpp_ptr <- enet_create()
     },
@@ -601,7 +605,7 @@ ElasticNet <- R6::R6Class("ElasticNet",
 
 
 # ==============================================================================
-# ElasticNetCV
+# MLElasticNetCV
 # ==============================================================================
 
 #' @title Elastic Net with Cross-Validation
@@ -616,17 +620,18 @@ ElasticNet <- R6::R6Class("ElasticNet",
 #' n <- 60; p <- 10
 #' X <- matrix(rnorm(n * p), n, p)
 #' y <- X[, 1] * 2 - X[, 4] + rnorm(n)
-#' cv <- ElasticNetCV$new()
+#' cv <- MLElasticNetCV$new()
 #' cv$fit(X, y, alpha = 0.5)
 #' cv$cv_min()
 #'
+#' @family ML methods
 #' @export
-ElasticNetCV <- R6::R6Class("ElasticNetCV",
+MLElasticNetCV <- R6::R6Class("MLElasticNetCV",
   private = list(
     cpp_ptr = NULL
   ),
   public = list(
-    #' @description Initialize the ElasticNetCV object.
+    #' @description Initialize the MLElasticNetCV object.
     initialize = function() {
       private$cpp_ptr <- enet_cv_create()
     },
@@ -705,7 +710,7 @@ ElasticNetCV <- R6::R6Class("ElasticNetCV",
 
 
 # ==============================================================================
-# SVDSolver
+# MLSVD
 # ==============================================================================
 
 #' @title SVD Solver
@@ -714,17 +719,18 @@ ElasticNetCV <- R6::R6Class("ElasticNetCV",
 #'   internally between a direct (tall matrices), Gram (wide matrices), and
 #'   randomized path based on the shape of \code{X}.
 #'
-#' @details Wraps the C++ \code{SVDSolver::compute(X, M)} static method.
+#' @details Wraps the C++ \code{MLSVD::compute(X, M)} static method.
 #'
 #' @examples
 #' set.seed(42)
 #' X <- matrix(rnorm(50 * 10), 50, 10)
-#' solver <- SVDSolver$new()
+#' solver <- MLSVD$new()
 #' res <- solver$compute(X, M = 3)
 #' dim(res$U)  # 50 x 3
 #'
+#' @family ML methods
 #' @export
-SVDSolver <- R6::R6Class("SVDSolver",
+MLSVD <- R6::R6Class("MLSVD",
   public = list(
 
     #' @description Compute top-M singular value decomposition of \code{X}.
@@ -765,15 +771,16 @@ SVDSolver <- R6::R6Class("SVDSolver",
 #' @examples
 #' set.seed(42)
 #' X <- matrix(rnorm(50 * 8), 50, 8)
-#' pca <- PCA$new(X, M = 3, center = TRUE)
+#' pca <- MLPCA$new(X, M = 3, center = TRUE)
 #' pca$fit()
 #' pca$get_explained_variance()
 #' X_new <- matrix(rnorm(10 * 8), 10, 8)
 #' pca$transform(X_new)
 #' pca$restore()
 #'
+#' @family ML methods
 #' @export
-PCA <- R6::R6Class("PCA",
+MLPCA <- R6::R6Class("MLPCA",
   private = list(
     cpp_ptr = NULL,
     X_      = NULL,
@@ -868,7 +875,7 @@ PCA <- R6::R6Class("PCA",
 
 
 # ==============================================================================
-# RidgeSolver
+# MLRidge
 # ==============================================================================
 
 #' @title Ridge Regression Solver
@@ -878,7 +885,7 @@ PCA <- R6::R6Class("PCA",
 #'   for a single regularization value. Dispatches internally between primal
 #'   (\eqn{n \ge p}) and dual (\eqn{n < p}) Cholesky paths.
 #'
-#' @details Wraps the C++ \code{RidgeSolver::solve(X, y, lambda)} static method.
+#' @details Wraps the C++ \code{MLRidge::solve(X, y, lambda)} static method.
 #'
 #' @examples
 #' set.seed(42)
@@ -886,11 +893,12 @@ PCA <- R6::R6Class("PCA",
 #' X <- matrix(rnorm(n * p), n, p)
 #' beta_true <- c(1, -2, 0, 0.5, 0)
 #' y <- X %*% beta_true + rnorm(n, sd = 0.1)
-#' solver <- RidgeSolver$new()
+#' solver <- MLRidge$new()
 #' beta_hat <- solver$solve(X, y, lambda = 0.01)
 #'
+#' @family ML methods
 #' @export
-RidgeSolver <- R6::R6Class("RidgeSolver",
+MLRidge <- R6::R6Class("MLRidge",
   public = list(
 
     #' @description Solve ridge regression for a single \code{lambda}.

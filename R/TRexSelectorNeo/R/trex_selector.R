@@ -19,6 +19,7 @@
 #' sel$select()
 #' sel$selected_indices
 #' }
+#' @family T-Rex selectors and controls
 #' @export
 TRexSelector <- R6::R6Class("TRexSelector",
   public = list(

@@ -24,8 +24,33 @@ solver$execute_step(T_stop = 3)
 solver$get_beta()
 
 }
+\seealso{
+Other T-solvers:
+\code{\link{TACGP_Solver}},
+\code{\link{TAFS_Solver}},
+\code{\link{TCDENET_Solver}},
+\code{\link{TCDLASSO_Solver}},
+\code{\link{TCDTIKNET_Solver}},
+\code{\link{TENETAug_Solver}},
+\code{\link{TENET_Solver}},
+\code{\link{TGP_Solver}},
+\code{\link{TIENETAug_Solver}},
+\code{\link{TIENET_Solver}},
+\code{\link{TIKNET_Solver}},
+\code{\link{TIKOMP_Solver}},
+\code{\link{TLARS_Solver}},
+\code{\link{TLASSO_Solver}},
+\code{\link{TMP_Solver}},
+\code{\link{TNCGMP_Solver}},
+\code{\link{TOMP_Solver}},
+\code{\link{TOOLS_Solver}},
+\code{\link{TSTAGEWISE_Solver}},
+\code{\link{TSTEPWISE_Solver}},
+\code{\link[=tsolver_options]{tsolver_options()}}
+}
+\concept{T-solvers}
 \section{Super classes}{
-\code{\link[TRexSelectorNeo:TSolver_Base]{TSolver_Base}} -> \code{TCDSolver_Base} -> \code{TCDIENET_Solver}
+\code{\link[TRexSelectorNeo:TSolver_Base]{TSolver_Base}} -> \code{\link[TRexSelectorNeo:TCDSolver_Base]{TCDSolver_Base}} -> \code{TCDIENET_Solver}
 }
 \section{Methods}{
 \subsection{Public methods}{
@@ -51,12 +76,12 @@ solver$get_beta()
   <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="get_rss"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-get_rss'><code>TSolver_Base$get_rss()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="load"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-load'><code>TSolver_Base$load()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="save"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-save'><code>TSolver_Base$save()</code></a></span></li>
-  <li><code>TCDSolver_Base$get_lambda()</code></li>
-  <li><code>TCDSolver_Base$get_lambda2()</code></li>
-  <li><code>TCDSolver_Base$get_record_gaps()</code></li>
-  <li><code>TCDSolver_Base$get_record_kkt_violations()</code></li>
-  <li><code>TCDSolver_Base$is_certified_degraded()</code></li>
-  <li><code>TCDSolver_Base$is_certified_localization()</code></li>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TCDSolver_Base" data-id="get_lambda"><a href='../../TRexSelectorNeo/html/TCDSolver_Base.html#method-TCDSolver_Base-get_lambda'><code>TCDSolver_Base$get_lambda()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TCDSolver_Base" data-id="get_lambda2"><a href='../../TRexSelectorNeo/html/TCDSolver_Base.html#method-TCDSolver_Base-get_lambda2'><code>TCDSolver_Base$get_lambda2()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TCDSolver_Base" data-id="get_record_gaps"><a href='../../TRexSelectorNeo/html/TCDSolver_Base.html#method-TCDSolver_Base-get_record_gaps'><code>TCDSolver_Base$get_record_gaps()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TCDSolver_Base" data-id="get_record_kkt_violations"><a href='../../TRexSelectorNeo/html/TCDSolver_Base.html#method-TCDSolver_Base-get_record_kkt_violations'><code>TCDSolver_Base$get_record_kkt_violations()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TCDSolver_Base" data-id="is_certified_degraded"><a href='../../TRexSelectorNeo/html/TCDSolver_Base.html#method-TCDSolver_Base-is_certified_degraded'><code>TCDSolver_Base$is_certified_degraded()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TCDSolver_Base" data-id="is_certified_localization"><a href='../../TRexSelectorNeo/html/TCDSolver_Base.html#method-TCDSolver_Base-is_certified_localization'><code>TCDSolver_Base$is_certified_localization()</code></a></span></li>
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}

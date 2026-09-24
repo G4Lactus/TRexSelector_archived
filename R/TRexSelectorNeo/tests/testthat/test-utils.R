@@ -3,110 +3,110 @@
 # =======================================================================================
 
 
-test_that("compute_fdp returns correct values for known inputs", {
+test_that("trex_fdp returns correct values for known inputs", {
   # 1 false discovery out of 3 selected: FDP = 1/3
-  expect_equal(compute_fdp(c(1L, 2L, 3L), c(1L, 3L)), 1 / 3)
+  expect_equal(trex_fdp(c(1L, 2L, 3L), c(1L, 3L)), 1 / 3)
 
   # All selected are true positives: FDP = 0
-  expect_equal(compute_fdp(c(1L, 3L), c(1L, 3L)), 0.0)
+  expect_equal(trex_fdp(c(1L, 3L), c(1L, 3L)), 0.0)
 
   # All selected are false discoveries: FDP = 1
-  expect_equal(compute_fdp(c(2L, 4L), c(1L, 3L)), 1.0)
+  expect_equal(trex_fdp(c(2L, 4L), c(1L, 3L)), 1.0)
 })
 
 
-test_that("compute_fdp returns 0 for empty inputs", {
-  expect_equal(compute_fdp(integer(0), c(1L, 2L)), 0.0)
-  expect_equal(compute_fdp(c(1L, 2L), integer(0)), 0.0)
+test_that("trex_fdp returns 0 for empty inputs", {
+  expect_equal(trex_fdp(integer(0), c(1L, 2L)), 0.0)
+  expect_equal(trex_fdp(c(1L, 2L), integer(0)), 0.0)
 })
 
 
-test_that("compute_tpp returns correct values for known inputs", {
+test_that("trex_tpp returns correct values for known inputs", {
   # Both true support found: TPP = 1
-  expect_equal(compute_tpp(c(1L, 2L, 3L), c(1L, 3L)), 1.0)
+  expect_equal(trex_tpp(c(1L, 2L, 3L), c(1L, 3L)), 1.0)
 
   # Only 1 of 2 true positives found: TPP = 0.5
-  expect_equal(compute_tpp(c(1L, 4L), c(1L, 3L)), 0.5)
+  expect_equal(trex_tpp(c(1L, 4L), c(1L, 3L)), 0.5)
 
   # None of the true support selected: TPP = 0
-  expect_equal(compute_tpp(c(2L, 4L), c(1L, 3L)), 0.0)
+  expect_equal(trex_tpp(c(2L, 4L), c(1L, 3L)), 0.0)
 })
 
 
-test_that("compute_tpp returns 0 for empty inputs", {
-  expect_equal(compute_tpp(integer(0), c(1L, 2L)), 0.0)
-  expect_equal(compute_tpp(c(1L, 2L), integer(0)), 0.0)
+test_that("trex_tpp returns 0 for empty inputs", {
+  expect_equal(trex_tpp(integer(0), c(1L, 2L)), 0.0)
+  expect_equal(trex_tpp(c(1L, 2L), integer(0)), 0.0)
 })
 
 
-test_that("compute_precision returns correct values for known inputs", {
+test_that("trex_precision returns correct values for known inputs", {
   # 2 of 3 selected are true positives: precision = 2/3
-  expect_equal(compute_precision(c(1L, 2L, 3L), c(1L, 3L)), 2 / 3)
+  expect_equal(trex_precision(c(1L, 2L, 3L), c(1L, 3L)), 2 / 3)
 
   # All selected are true positives: precision = 1
-  expect_equal(compute_precision(c(1L, 3L), c(1L, 3L)), 1.0)
+  expect_equal(trex_precision(c(1L, 3L), c(1L, 3L)), 1.0)
 
   # No selected are true positives: precision = 0
-  expect_equal(compute_precision(c(2L, 4L), c(1L, 3L)), 0.0)
+  expect_equal(trex_precision(c(2L, 4L), c(1L, 3L)), 0.0)
 })
 
 
-test_that("compute_precision returns 0 for empty inputs", {
-  expect_equal(compute_precision(integer(0), c(1L, 2L)), 0.0)
-  expect_equal(compute_precision(c(1L, 2L), integer(0)), 0.0)
+test_that("trex_precision returns 0 for empty inputs", {
+  expect_equal(trex_precision(integer(0), c(1L, 2L)), 0.0)
+  expect_equal(trex_precision(c(1L, 2L), integer(0)), 0.0)
 })
 
 
-test_that("compute_recall returns correct values for known inputs", {
+test_that("trex_recall returns correct values for known inputs", {
   # Both true support found: recall = 1
-  expect_equal(compute_recall(c(1L, 2L, 3L), c(1L, 3L)), 1.0)
+  expect_equal(trex_recall(c(1L, 2L, 3L), c(1L, 3L)), 1.0)
 
   # Only 1 of 2 found: recall = 0.5
-  expect_equal(compute_recall(c(1L, 4L), c(1L, 3L)), 0.5)
+  expect_equal(trex_recall(c(1L, 4L), c(1L, 3L)), 0.5)
 
   # None found: recall = 0
-  expect_equal(compute_recall(c(2L, 4L), c(1L, 3L)), 0.0)
+  expect_equal(trex_recall(c(2L, 4L), c(1L, 3L)), 0.0)
 })
 
 
-test_that("compute_recall returns 0 for empty inputs", {
-  expect_equal(compute_recall(integer(0), c(1L, 2L)), 0.0)
-  expect_equal(compute_recall(c(1L, 2L), integer(0)), 0.0)
+test_that("trex_recall returns 0 for empty inputs", {
+  expect_equal(trex_recall(integer(0), c(1L, 2L)), 0.0)
+  expect_equal(trex_recall(c(1L, 2L), integer(0)), 0.0)
 })
 
 
-test_that("compute_fdp_dense returns correct values for known inputs", {
+test_that("trex_fdp_dense returns correct values for known inputs", {
   beta_hat <- c(1.0, 0.0, 1.0, 1.0)   # positions 1, 3, 4 non-zero
   beta     <- c(1.0, 0.0, 0.0, 1.0)   # true support: positions 1, 4
 
   # 1 false discovery (position 3) out of 3 selected: FDP = 1/3
-  expect_equal(compute_fdp_dense(beta_hat, beta), 1 / 3)
+  expect_equal(trex_fdp_dense(beta_hat, beta), 1 / 3)
 
   # All estimates match support: FDP = 0
-  expect_equal(compute_fdp_dense(c(1.0, 0.0, 1.0), c(1.0, 0.0, 1.0)), 0.0)
+  expect_equal(trex_fdp_dense(c(1.0, 0.0, 1.0), c(1.0, 0.0, 1.0)), 0.0)
 
   # All selected are false discoveries: FDP = 1
-  expect_equal(compute_fdp_dense(c(0.0, 1.0, 0.0), c(1.0, 0.0, 1.0)), 1.0)
+  expect_equal(trex_fdp_dense(c(0.0, 1.0, 0.0), c(1.0, 0.0, 1.0)), 1.0)
 })
 
 
-test_that("compute_fdp_dense returns 0 when nothing is selected", {
-  expect_equal(compute_fdp_dense(c(0.0, 0.0), c(1.0, 0.0)), 0.0)
+test_that("trex_fdp_dense returns 0 when nothing is selected", {
+  expect_equal(trex_fdp_dense(c(0.0, 0.0), c(1.0, 0.0)), 0.0)
 })
 
 
-test_that("compute_tpp_dense returns correct values for known inputs", {
+test_that("trex_tpp_dense returns correct values for known inputs", {
   beta_hat <- c(1.0, 0.0, 1.0, 1.0)
   beta     <- c(1.0, 0.0, 0.0, 1.0)
 
   # Both true positives (positions 1 and 4) recovered: TPP = 1
-  expect_equal(compute_tpp_dense(beta_hat, beta), 1.0)
+  expect_equal(trex_tpp_dense(beta_hat, beta), 1.0)
 
   # Only position 1 of 2 true positives found: TPP = 0.5
-  expect_equal(compute_tpp_dense(c(1.0, 0.0, 0.0), c(1.0, 0.0, 1.0)), 0.5)
+  expect_equal(trex_tpp_dense(c(1.0, 0.0, 0.0), c(1.0, 0.0, 1.0)), 0.5)
 
   # No true positive found: TPP = 0
-  expect_equal(compute_tpp_dense(c(0.0, 1.0, 0.0), c(1.0, 0.0, 1.0)), 0.0)
+  expect_equal(trex_tpp_dense(c(0.0, 1.0, 0.0), c(1.0, 0.0, 1.0)), 0.0)
 })
 
 
@@ -115,17 +115,17 @@ test_that("metric functions return values in [0, 1]", {
   selected <- sample(1:50, 10)
   support  <- sample(1:50, 10)
 
-  expect_gte(compute_fdp(selected, support), 0.0)
-  expect_lte(compute_fdp(selected, support), 1.0)
+  expect_gte(trex_fdp(selected, support), 0.0)
+  expect_lte(trex_fdp(selected, support), 1.0)
 
-  expect_gte(compute_tpp(selected, support), 0.0)
-  expect_lte(compute_tpp(selected, support), 1.0)
+  expect_gte(trex_tpp(selected, support), 0.0)
+  expect_lte(trex_tpp(selected, support), 1.0)
 
-  expect_gte(compute_precision(selected, support), 0.0)
-  expect_lte(compute_precision(selected, support), 1.0)
+  expect_gte(trex_precision(selected, support), 0.0)
+  expect_lte(trex_precision(selected, support), 1.0)
 
-  expect_gte(compute_recall(selected, support), 0.0)
-  expect_lte(compute_recall(selected, support), 1.0)
+  expect_gte(trex_recall(selected, support), 0.0)
+  expect_lte(trex_recall(selected, support), 1.0)
 })
 
 
@@ -137,7 +137,7 @@ test_that("mmap_matrix single element read returns plain scalar", {
   mat <- matrix(as.double(1:20), nrow = 4, ncol = 5)
   f <- tempfile(fileext = ".bin")
   on.exit(unlink(f), add = TRUE)
-  mm <- convert_to_memory_mapped(mat, f)
+  mm <- mem_matrix_from(mat, f)
 
   # Must return a plain numeric, not a 1x1 matrix
   val <- mm[2, 3]
@@ -151,7 +151,7 @@ test_that("mmap_matrix single element write round-trips correctly", {
   mat <- matrix(as.double(1:20), nrow = 4, ncol = 5)
   f <- tempfile(fileext = ".bin")
   on.exit(unlink(f), add = TRUE)
-  mm <- convert_to_memory_mapped(mat, f)
+  mm <- mem_matrix_from(mat, f)
 
   mm[2, 3] <- 99.0
   expect_equal(mm[2, 3], 99.0)
@@ -165,7 +165,7 @@ test_that("mmap_matrix block write round-trips correctly", {
   mat <- matrix(as.double(0), nrow = 4, ncol = 5)
   f <- tempfile(fileext = ".bin")
   on.exit(unlink(f), add = TRUE)
-  mm <- convert_to_memory_mapped(mat, f)
+  mm <- mem_matrix_from(mat, f)
 
   block <- matrix(as.double(1:6), nrow = 2, ncol = 3)
   mm[1:2, 2:4] <- block
@@ -179,8 +179,8 @@ test_that("mmap_matrix write on readonly matrix raises error", {
   mat <- matrix(as.double(1:12), nrow = 3, ncol = 4)
   f <- tempfile(fileext = ".bin")
   on.exit(unlink(f), add = TRUE)
-  convert_to_memory_mapped(mat, f)
-  mm_ro <- mmap_matrix(f, rows = 3, cols = 4, mode = "readonly")
+  mem_matrix_from(mat, f)
+  mm_ro <- mem_matrix(f, rows = 3, cols = 4, mode = "readonly")
   expect_error(mm_ro[1, 1] <- 0.0, regexp = "read-only")
 })
 
@@ -189,7 +189,7 @@ test_that("mmap_matrix element access respects bounds", {
   mat <- matrix(as.double(1:6), nrow = 2, ncol = 3)
   f <- tempfile(fileext = ".bin")
   on.exit(unlink(f), add = TRUE)
-  mm <- convert_to_memory_mapped(mat, f)
+  mm <- mem_matrix_from(mat, f)
 
   expect_error(mm[3, 1])  # row out of bounds
   expect_error(mm[1, 4])  # col out of bounds

@@ -10,6 +10,7 @@ Shared getters of the coordinate-descent solver family
 weight, and the certified-localization diagnostics. Not intended for direct
 instantiation.
 }
+\keyword{internal}
 \section{Super class}{
 \code{\link[TRexSelectorNeo:TSolver_Base]{TSolver_Base}} -> \code{TCDSolver_Base}
 }

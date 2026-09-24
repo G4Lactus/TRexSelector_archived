@@ -46,6 +46,7 @@
 #' trex_spca_control(mode = "Thresholded", K = 10)
 #' trex_spca_control(gvs_type = "IEN", lambda_2 = 0.01)
 #'
+#' @family T-Rex selectors and controls
 #' @export
 trex_spca_control <- function(mode                   = "ActiveSet",
                               lambda2_ridge_loadings  = 1e-6,
@@ -107,6 +108,7 @@ trex_spca_control <- function(mode                   = "ActiveSet",
 #' sel$active_sets
 #' }
 #'
+#' @family T-Rex selectors and controls
 #' @export
 TRexSPCASelector <- R6::R6Class("TRexSPCASelector",
   private = list(

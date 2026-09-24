@@ -86,8 +86,8 @@ library(TRexSelectorNeo)
 help(package = "TRexSelector")
 ?TRexSelector
 ?trex_control
-?compute_fdp
-?compute_tpp
+?trex_fdp
+?trex_tpp
 # etc.
 ```
 
@@ -189,8 +189,8 @@ for (t in seq_along(tFDR_vec)) {
     sel$select()
 
     # Results
-    FDP_mat[mc, t] <- compute_fdp(sel$selected_indices, true_actives)
-    TPP_mat[mc, t] <- compute_tpp(sel$selected_indices, true_actives)
+    FDP_mat[mc, t] <- trex_fdp(sel$selected_indices, true_actives)
+    TPP_mat[mc, t] <- trex_tpp(sel$selected_indices, true_actives)
   }
 }
 

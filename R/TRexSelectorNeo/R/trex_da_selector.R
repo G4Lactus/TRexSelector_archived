@@ -17,6 +17,7 @@
 #' sel$selected_indices
 #' }
 #'
+#' @family T-Rex selectors and controls
 #' @export
 TRexDASelector <- R6::R6Class("TRexDASelector",
   inherit = TRexSelector,

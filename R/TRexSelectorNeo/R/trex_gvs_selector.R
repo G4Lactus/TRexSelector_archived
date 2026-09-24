@@ -17,6 +17,7 @@
 #' sel$select()
 #' sel$selected_indices
 #' }
+#' @family T-Rex selectors and controls
 #' @export
 TRexGVSSelector <- R6::R6Class("TRexGVSSelector",
   inherit = TRexSelector,

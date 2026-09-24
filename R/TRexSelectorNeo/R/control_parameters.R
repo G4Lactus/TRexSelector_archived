@@ -127,6 +127,7 @@
 #' trex_control(solver = "TLASSO", K = 10)
 #' trex_control(scaling_mode = "NONE")  # user-managed centering and scaling
 #'
+#' @family T-Rex selectors and controls
 #' @export
 trex_control <- function(solver = "TLARS",
                          K = 20,
@@ -262,6 +263,7 @@ trex_control <- function(solver = "TLARS",
 #' # Prior-groups path (constraints over p = 4 variables):
 #' trex_da_control(prior_groups = list(c(1, 1, 2, 2)))
 #'
+#' @family T-Rex selectors and controls
 #' @export
 trex_da_control <- function(da_method = "BT",
                             cor_coef = -2.0,
@@ -355,6 +357,7 @@ trex_da_control <- function(da_method = "BT",
 #' trex_gvs_control()
 #' trex_gvs_control(gvs_type = "IEN", corr_max = 0.3)
 #'
+#' @family T-Rex selectors and controls
 #' @export
 trex_gvs_control <- function(gvs_type = "EN",
                              corr_max = 0.5,
@@ -426,6 +429,7 @@ trex_gvs_control <- function(gvs_type = "EN",
 #' trex_screen_control()
 #' trex_screen_control(use_bootstrap_CI = TRUE, R_boot = 500)
 #'
+#' @family T-Rex selectors and controls
 #' @export
 trex_screen_control <- function(use_bootstrap_CI = FALSE,
                                 R_boot = 1000,
@@ -457,6 +461,7 @@ trex_screen_control <- function(use_bootstrap_CI = FALSE,
 #' trex_biobank_control()
 #' trex_biobank_control(lower_bound_FDR = 0.02, upper_bound_FDR = 0.10)
 #'
+#' @family T-Rex selectors and controls
 #' @export
 trex_biobank_control <- function(lower_bound_FDR = 0.05,
                                  upper_bound_FDR = 0.15) {
@@ -502,6 +507,7 @@ trex_biobank_control <- function(lower_bound_FDR = 0.05,
 #' # Student-t with 3 degrees of freedom
 #' trex_dummy_distribution("StudentT", df = 3)
 #'
+#' @family T-Rex selectors and controls
 #' @export
 trex_dummy_distribution <- function(type     = "Normal",
                                     a        = NULL,
@@ -550,7 +556,7 @@ trex_dummy_distribution <- function(type     = "Normal",
 #'
 #' @param tikhonov_K Penalty matrix K (p x p): a base \code{matrix} or a
 #'   sparse \code{Matrix::dgCMatrix}. Build it from a regularization
-#'   operator Gamma with \code{\link{gamma_to_k}}. Required for
+#'   operator Gamma with \code{\link{trex_gamma_to_k}}. Required for
 #'   \code{penalty_structure = "SPARSE_GENERAL"}; ignored under
 #'   \code{"GROUP_CENTERING"}.
 #' @param penalty_structure \code{"SPARSE_GENERAL"} (default): the
@@ -643,6 +649,7 @@ trex_dummy_distribution <- function(type     = "Normal",
 #'                       prior_groups = rep(1:2, each = 5),
 #'                       lambda2_method = "PILOT_MAX")
 #'
+#' @family T-Rex selectors and controls
 #' @export
 trex_tikhonov_control <- function(tikhonov_K = NULL,
                                   penalty_structure = "SPARSE_GENERAL",
@@ -678,7 +685,7 @@ trex_tikhonov_control <- function(tikhonov_K = NULL,
   hc_linkage <- match.arg(hc_linkage,
                           c("Single", "Complete", "Average", "WPGMA"))
   if (penalty_structure == "SPARSE_GENERAL" && is.null(tikhonov_K)) {
-    stop("tikhonov_K is required (p x p penalty matrix; use gamma_to_k() ",
+    stop("tikhonov_K is required (p x p penalty matrix; use trex_gamma_to_k() ",
          "to build K from a regularization operator Gamma) unless ",
          "penalty_structure = \"GROUP_CENTERING\".")
   }

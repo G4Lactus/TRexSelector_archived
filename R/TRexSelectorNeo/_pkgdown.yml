@@ -1,0 +1,21 @@
+url: https://github.com/G4Lactus/TRexSelector
+template:
+  bootstrap: 5
+
+reference:
+- title: T-Rex selectors and controls
+  desc: The R6 selectors, their control lists, helpers and evaluation metrics.
+  contents:
+  - has_concept("T-Rex selectors and controls")
+- title: T-solvers
+  desc: The terminating solvers as R6 classes and their options.
+  contents:
+  - has_concept("T-solvers")
+- title: ML methods
+  desc: Scalers, regressions, decompositions and hierarchical clustering.
+  contents:
+  - has_concept("ML methods")
+- title: Memory-mapped matrices
+  desc: Disk-backed matrices accepted everywhere a matrix is.
+  contents:
+  - has_concept("memory-mapped matrices")

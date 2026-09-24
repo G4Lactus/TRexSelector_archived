@@ -18,6 +18,31 @@ solver$execute_step(T_stop = 3)
 solver$get_beta()
 
 }
+\seealso{
+Other T-solvers:
+\code{\link{TACGP_Solver}},
+\code{\link{TAFS_Solver}},
+\code{\link{TCDENET_Solver}},
+\code{\link{TCDIENET_Solver}},
+\code{\link{TCDLASSO_Solver}},
+\code{\link{TCDTIKNET_Solver}},
+\code{\link{TENETAug_Solver}},
+\code{\link{TENET_Solver}},
+\code{\link{TGP_Solver}},
+\code{\link{TIENETAug_Solver}},
+\code{\link{TIENET_Solver}},
+\code{\link{TIKNET_Solver}},
+\code{\link{TIKOMP_Solver}},
+\code{\link{TLARS_Solver}},
+\code{\link{TLASSO_Solver}},
+\code{\link{TMP_Solver}},
+\code{\link{TNCGMP_Solver}},
+\code{\link{TOOLS_Solver}},
+\code{\link{TSTAGEWISE_Solver}},
+\code{\link{TSTEPWISE_Solver}},
+\code{\link[=tsolver_options]{tsolver_options()}}
+}
+\concept{T-solvers}
 \section{Super class}{
 \code{\link[TRexSelectorNeo:TSolver_Base]{TSolver_Base}} -> \code{TOMP_Solver}
 }

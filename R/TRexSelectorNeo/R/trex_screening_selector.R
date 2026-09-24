@@ -20,6 +20,7 @@
 #' sel$selected_indices
 #' }
 #'
+#' @family T-Rex selectors and controls
 #' @export
 TRexScreeningSelector <- R6::R6Class("TRexScreeningSelector",
   inherit = TRexSelector,

@@ -66,6 +66,7 @@ NULL
 #' colMeans(d$X)            # ~ 0
 #' sqrt(colSums(d$X^2))     # 1
 #'
+#' @family T-Rex selectors and controls
 #' @export
 trex_normalize_design <- function(X, y, scaling_mode = c("L2", "ZSCORE", "NONE"),
                                   eps = 1e-6) {
@@ -91,12 +92,13 @@ trex_normalize_design <- function(X, y, scaling_mode = c("L2", "ZSCORE", "NONE")
 #' mat <- matrix(as.double(1:20), nrow = 4, ncol = 5)
 #' f <- tempfile(fileext = ".bin")
 #' on.exit(unlink(f), add = TRUE)
-#' mm <- convert_to_memory_mapped(mat, f)
+#' mm <- mem_matrix_from(mat, f)
 #' print(mm)
 #' }
 #'
+#' @family memory-mapped matrices
 #' @export
-convert_to_memory_mapped <- function(mat, filename) {
+mem_matrix_from <- function(mat, filename) {
   if (!is.matrix(mat) || !is.numeric(mat)) {
     stop("Input must be a numeric matrix.")
   }
@@ -105,7 +107,7 @@ convert_to_memory_mapped <- function(mat, filename) {
   }
 
   convert_to_memory_mapped_matrix(mat, filename)
-  mmap_matrix(filename, nrow(mat), ncol(mat))
+  mem_matrix(filename, nrow(mat), ncol(mat))
 }
 
 
@@ -125,12 +127,13 @@ convert_to_memory_mapped <- function(mat, filename) {
 #' mat <- matrix(as.double(1:20), nrow = 4, ncol = 5)
 #' f <- tempfile(fileext = ".bin")
 #' on.exit(unlink(f), add = TRUE)
-#' convert_to_memory_mapped(mat, f)
-#' mm <- mmap_matrix(f, rows = 4, cols = 5)
+#' mem_matrix_from(mat, f)
+#' mm <- mem_matrix(f, rows = 4, cols = 5)
 #' }
 #'
+#' @family memory-mapped matrices
 #' @export
-mmap_matrix <- function(filename, rows, cols, mode = "readwrite") {
+mem_matrix <- function(filename, rows, cols, mode = "readwrite") {
   if (!file.exists(filename) && mode == "readonly") {
     stop("Cannot open a non-existent file in readonly mode.")
   }
@@ -160,12 +163,12 @@ mmap_matrix <- function(filename, rows, cols, mode = "readwrite") {
 #' mat <- matrix(as.double(1:20), nrow = 4, ncol = 5)
 #' f <- tempfile(fileext = ".bin")
 #' on.exit(unlink(f), add = TRUE)
-#' convert_to_memory_mapped(mat, f)
-#' mm <- mmap_matrix(f, rows = 4, cols = 5)
+#' mem_matrix_from(mat, f)
+#' mm <- mem_matrix(f, rows = 4, cols = 5)
 #' get_ptr(mm)
 #' }
 #'
-#' @export
+#' @noRd
 get_ptr <- function(x, ...) UseMethod("get_ptr")
 
 #' @export
@@ -184,8 +187,8 @@ get_ptr.mmap_matrix <- function(x, ...) x
 #' mat <- matrix(as.double(1:20), nrow = 4, ncol = 5)
 #' f <- tempfile(fileext = ".bin")
 #' on.exit(unlink(f), add = TRUE)
-#' convert_to_memory_mapped(mat, f)
-#' mm <- mmap_matrix(f, rows = 4, cols = 5)
+#' mem_matrix_from(mat, f)
+#' mm <- mem_matrix(f, rows = 4, cols = 5)
 #' print(mm)
 #' }
 #'
@@ -210,8 +213,8 @@ print.mmap_matrix <- function(x, ...) {
 #' mat <- matrix(as.double(1:20), nrow = 4, ncol = 5)
 #' f <- tempfile(fileext = ".bin")
 #' on.exit(unlink(f), add = TRUE)
-#' convert_to_memory_mapped(mat, f)
-#' mm <- mmap_matrix(f, rows = 4, cols = 5)
+#' mem_matrix_from(mat, f)
+#' mm <- mem_matrix(f, rows = 4, cols = 5)
 #' dim(mm)
 #' }
 #' @export
@@ -238,8 +241,8 @@ dim.mmap_matrix <- function(x) {
 #' mat <- matrix(as.double(1:20), nrow = 4, ncol = 5)
 #' f <- tempfile(fileext = ".bin")
 #' on.exit(unlink(f), add = TRUE)
-#' convert_to_memory_mapped(mat, f)
-#' mm <- mmap_matrix(f, rows = 4, cols = 5)
+#' mem_matrix_from(mat, f)
+#' mm <- mem_matrix(f, rows = 4, cols = 5)
 #' mm[1:2, 1:3]
 #' mm[2, 3] <- 99.0
 #' mm[1:2, 1:3] <- matrix(as.double(1:6), nrow = 2, ncol = 3)
@@ -305,7 +308,7 @@ dim.mmap_matrix <- function(x) {
 #' mat <- matrix(as.double(1:20), nrow = 4, ncol = 5)
 #' f <- tempfile(fileext = ".bin")
 #' on.exit(unlink(f), add = TRUE)
-#' mm <- convert_to_memory_mapped(mat, f)
+#' mm <- mem_matrix_from(mat, f)
 #' mm[2, 3] <- 99.0
 #' mm[1:2, 1:3] <- matrix(as.double(1:6), nrow = 2, ncol = 3)
 #' }
@@ -373,8 +376,8 @@ dim.mmap_matrix <- function(x) {
 #' mat <- matrix(as.double(1:20), nrow = 4, ncol = 5)
 #' f <- tempfile(fileext = ".bin")
 #' on.exit(unlink(f), add = TRUE)
-#' convert_to_memory_mapped(mat, f)
-#' mm <- mmap_matrix(f, rows = 4, cols = 5)
+#' mem_matrix_from(mat, f)
+#' mm <- mem_matrix(f, rows = 4, cols = 5)
 #' as.matrix(mm)
 #' }
 #'
@@ -418,10 +421,11 @@ as.matrix.mmap_matrix <- function(x, ...) {
 #' @return Numeric FDP value.
 #'
 #' @examples
-#' compute_fdp(c(1L, 3L, 5L), c(1L, 2L, 3L))
+#' trex_fdp(c(1L, 3L, 5L), c(1L, 2L, 3L))
 #'
+#' @family T-Rex selectors and controls
 #' @export
-compute_fdp <- function(selected_indices, true_support) {
+trex_fdp <- function(selected_indices, true_support) {
   if (length(selected_indices) == 0 || length(true_support) == 0) return(0.0)
   rcpp_compute_fdp(as.integer(selected_indices), as.integer(true_support))
 }
@@ -435,10 +439,11 @@ compute_fdp <- function(selected_indices, true_support) {
 #' @return Numeric TPP value.
 #'
 #' @examples
-#' compute_tpp(c(1L, 3L, 5L), c(1L, 2L, 3L))
+#' trex_tpp(c(1L, 3L, 5L), c(1L, 2L, 3L))
 #'
+#' @family T-Rex selectors and controls
 #' @export
-compute_tpp <- function(selected_indices, true_support) {
+trex_tpp <- function(selected_indices, true_support) {
   if (length(selected_indices) == 0 || length(true_support) == 0) return(0.0)
   rcpp_compute_tpp(as.integer(selected_indices), as.integer(true_support))
 }
@@ -452,10 +457,11 @@ compute_tpp <- function(selected_indices, true_support) {
 #' @return Numeric precision value.
 #'
 #' @examples
-#' compute_precision(c(1L, 3L, 5L), c(1L, 2L, 3L))
+#' trex_precision(c(1L, 3L, 5L), c(1L, 2L, 3L))
 #'
+#' @family T-Rex selectors and controls
 #' @export
-compute_precision <- function(selected_indices, true_support) {
+trex_precision <- function(selected_indices, true_support) {
   if (length(selected_indices) == 0) return(0.0)
   if (length(true_support) == 0) return(0.0)
   rcpp_compute_precision(as.integer(selected_indices), as.integer(true_support))
@@ -470,10 +476,11 @@ compute_precision <- function(selected_indices, true_support) {
 #' @return Numeric recall value.
 #'
 #' @examples
-#' compute_recall(c(1L, 3L, 5L), c(1L, 2L, 3L))
+#' trex_recall(c(1L, 3L, 5L), c(1L, 2L, 3L))
 #'
+#' @family T-Rex selectors and controls
 #' @export
-compute_recall <- function(selected_indices, true_support) {
+trex_recall <- function(selected_indices, true_support) {
   if (length(true_support) == 0) return(0.0)
   if (length(selected_indices) == 0) return(0.0)
   rcpp_compute_recall(as.integer(selected_indices), as.integer(true_support))
@@ -487,9 +494,10 @@ compute_recall <- function(selected_indices, true_support) {
 #' @param eps Numeric threshold for counting non-zeros (default: 1e-15).
 #' @return Numeric FDP value.
 #' @examples
-#' compute_fdp_dense(c(1.5, 0, 0.8, 0, 0), c(2.0, 0, 1.0, 0, 0))
+#' trex_fdp_dense(c(1.5, 0, 0.8, 0, 0), c(2.0, 0, 1.0, 0, 0))
+#' @family T-Rex selectors and controls
 #' @export
-compute_fdp_dense <- function(beta_hat, beta, eps = 1e-15) {
+trex_fdp_dense <- function(beta_hat, beta, eps = 1e-15) {
   rcpp_compute_fdp_dense(as.numeric(beta_hat), as.numeric(beta), eps)
 }
 
@@ -503,9 +511,10 @@ compute_fdp_dense <- function(beta_hat, beta, eps = 1e-15) {
 #' @return Numeric TPP value.
 #'
 #' @examples
-#' compute_tpp_dense(c(1.5, 0, 0.8, 0, 0), c(2.0, 0, 1.0, 0, 0))
+#' trex_tpp_dense(c(1.5, 0, 0.8, 0, 0), c(2.0, 0, 1.0, 0, 0))
 #'
+#' @family T-Rex selectors and controls
 #' @export
-compute_tpp_dense <- function(beta_hat, beta, eps = 1e-15) {
+trex_tpp_dense <- function(beta_hat, beta, eps = 1e-15) {
   rcpp_compute_tpp_dense(as.numeric(beta_hat), as.numeric(beta), eps)
 }

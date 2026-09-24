@@ -62,6 +62,7 @@ NULL
 #' tsolver_options()
 #' tsolver_options(lambda2 = 0.5, normalize = FALSE)
 #'
+#' @family T-solvers
 #' @export
 tsolver_options <- function(normalize = TRUE,
                             intercept = TRUE,
@@ -128,7 +129,7 @@ tsolver_options <- function(normalize = TRUE,
 #' @examples
 #' # TSolver_Base is abstract; use a concrete subclass instead, e.g.:
 #' # solver <- TLARS_Solver$new(X, D, y)
-#' @export
+#' @keywords internal
 TSolver_Base <- R6::R6Class(
   "TSolver_Base",
   public = list(
@@ -291,6 +292,7 @@ TSolver_Base <- R6::R6Class(
 #' solver$get_beta()
 #' solver$get_actives()
 #'
+#' @family T-solvers
 #' @export
 TLARS_Solver <- R6::R6Class(
   "TLARS_Solver",
@@ -336,6 +338,7 @@ TLARS_Solver <- R6::R6Class(
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
+#' @family T-solvers
 #' @export
 TLASSO_Solver <- R6::R6Class(
   "TLASSO_Solver",
@@ -393,6 +396,7 @@ TLASSO_Solver <- R6::R6Class(
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
+#' @family T-solvers
 #' @export
 TSTEPWISE_Solver <- R6::R6Class(
   "TSTEPWISE_Solver",
@@ -438,6 +442,7 @@ TSTEPWISE_Solver <- R6::R6Class(
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
+#' @family T-solvers
 #' @export
 TENET_Solver <- R6::R6Class(
   "TENET_Solver",
@@ -502,6 +507,7 @@ TENET_Solver <- R6::R6Class(
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
+#' @family T-solvers
 #' @export
 TENETAug_Solver <- R6::R6Class(
   "TENETAug_Solver",
@@ -550,6 +556,7 @@ TENETAug_Solver <- R6::R6Class(
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
+#' @family T-solvers
 #' @export
 TIENETAug_Solver <- R6::R6Class(
   "TIENETAug_Solver",
@@ -615,6 +622,7 @@ TIENETAug_Solver <- R6::R6Class(
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
+#' @family T-solvers
 #' @export
 TSTAGEWISE_Solver <- R6::R6Class(
   "TSTAGEWISE_Solver",
@@ -677,6 +685,7 @@ TSTAGEWISE_Solver <- R6::R6Class(
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
+#' @family T-solvers
 #' @export
 TOMP_Solver <- R6::R6Class(
   "TOMP_Solver",
@@ -716,6 +725,7 @@ TOMP_Solver <- R6::R6Class(
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
+#' @family T-solvers
 #' @export
 TGP_Solver <- R6::R6Class(
   "TGP_Solver",
@@ -756,6 +766,7 @@ TGP_Solver <- R6::R6Class(
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
+#' @family T-solvers
 #' @export
 TACGP_Solver <- R6::R6Class(
   "TACGP_Solver",
@@ -795,6 +806,7 @@ TACGP_Solver <- R6::R6Class(
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
+#' @family T-solvers
 #' @export
 TMP_Solver <- R6::R6Class(
   "TMP_Solver",
@@ -834,6 +846,7 @@ TMP_Solver <- R6::R6Class(
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
+#' @family T-solvers
 #' @export
 TOOLS_Solver <- R6::R6Class(
   "TOOLS_Solver",
@@ -876,6 +889,7 @@ TOOLS_Solver <- R6::R6Class(
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
+#' @family T-solvers
 #' @export
 TNCGMP_Solver <- R6::R6Class(
   "TNCGMP_Solver",
@@ -922,6 +936,7 @@ TNCGMP_Solver <- R6::R6Class(
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
+#' @family T-solvers
 #' @export
 TAFS_Solver <- R6::R6Class(
   "TAFS_Solver",
@@ -972,6 +987,7 @@ TAFS_Solver <- R6::R6Class(
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
+#' @family T-solvers
 #' @export
 TIENET_Solver <- R6::R6Class(
   "TIENET_Solver",
@@ -1020,7 +1036,7 @@ TIENET_Solver <- R6::R6Class(
 #' @description
 #' Terminating Tikhonov Net solver: native LARS homotopy with a general
 #' quadratic penalty \code{lambda2 * beta' K beta} on the folded sums (a
-#' sparse PSD \code{K = Gamma' Gamma}, see \code{\link{gamma_to_k}}).
+#' sparse PSD \code{K = Gamma' Gamma}, see \code{\link{trex_gamma_to_k}}).
 #' FOLDED dummy coupling only. The solver used internally by
 #' \code{TRexTikhonovSelector} for \code{solver = "TIKNET"}. Inherits all
 #' common methods from \code{\link{TSolver_Base}}.
@@ -1037,6 +1053,7 @@ TIENET_Solver <- R6::R6Class(
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
+#' @family T-solvers
 #' @export
 TIKNET_Solver <- R6::R6Class(
   "TIKNET_Solver",
@@ -1092,6 +1109,7 @@ TIKNET_Solver <- R6::R6Class(
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
+#' @family T-solvers
 #' @export
 TIKOMP_Solver <- R6::R6Class(
   "TIKOMP_Solver",
@@ -1132,7 +1150,7 @@ TIKOMP_Solver <- R6::R6Class(
 #' weight, and the certified-localization diagnostics. Not intended for direct
 #' instantiation.
 #'
-#' @export
+#' @keywords internal
 TCDSolver_Base <- R6::R6Class(
   "TCDSolver_Base",
   inherit = TSolver_Base,
@@ -1202,6 +1220,7 @@ TCDSolver_Base <- R6::R6Class(
 #' solver$get_beta()
 #' solver$is_certified_localization()
 #'
+#' @family T-solvers
 #' @export
 TCDLASSO_Solver <- R6::R6Class(
   "TCDLASSO_Solver",
@@ -1244,6 +1263,7 @@ TCDLASSO_Solver <- R6::R6Class(
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
+#' @family T-solvers
 #' @export
 TCDENET_Solver <- R6::R6Class(
   "TCDENET_Solver",
@@ -1290,6 +1310,7 @@ TCDENET_Solver <- R6::R6Class(
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
+#' @family T-solvers
 #' @export
 TCDIENET_Solver <- R6::R6Class(
   "TCDIENET_Solver",
@@ -1350,6 +1371,7 @@ TCDIENET_Solver <- R6::R6Class(
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
+#' @family T-solvers
 #' @export
 TCDTIKNET_Solver <- R6::R6Class(
   "TCDTIKNET_Solver",
