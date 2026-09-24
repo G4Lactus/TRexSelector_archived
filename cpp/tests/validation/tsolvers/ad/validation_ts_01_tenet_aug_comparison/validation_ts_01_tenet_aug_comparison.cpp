@@ -44,9 +44,9 @@
 #include <Eigen/Dense>
 
 // tsolvers includes
-#include <tsolvers/linear_model/lars_based/tenet_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tenet_aug_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tlasso_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tenet_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tenet_aug_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tlasso_solver.hpp>
 
 // ml_methods includes
 #include <ml_methods/scaler_methods/z_score_scaler.hpp>
@@ -63,7 +63,7 @@
 namespace datagen   = trex::utils::datageneration::datagen;
 namespace scaler    = trex::ml_methods::scaler_methods;
 namespace cdiagnost = trex::utils::eval::cdiagnostics;
-namespace tsolvers  = trex::tsolvers::linear_model::lars_based;
+namespace tsolvers  = trex::tsolvers::ad::linear_model::lars_based;
 
 
 // ============================================================================
@@ -155,7 +155,7 @@ void run_comparison(
     // ------------------------------------------------------------------
     std::cout << "Running TENET_Solver   (Gram-based EN)...\n";
     tsolvers::TENET_Solver tenet(X_map, D_map, y_map,
-        trex::tsolvers::SolverOptions{.normalize = false, .intercept = false, .lambda2 = lambda2});
+        trex::tsolvers::ad::SolverOptions{.normalize = false, .intercept = false, .lambda2 = lambda2});
     tenet.executeStep(T_stop, /*early_stop=*/false);
 
     // ------------------------------------------------------------------
@@ -164,7 +164,7 @@ void run_comparison(
     // ------------------------------------------------------------------
     std::cout << "Running TENETAug_Solver (augmented LASSO)...\n";
     tsolvers::TENETAug_Solver tenet_aug(X_map, D_map, y_map,
-        trex::tsolvers::SolverOptions{.normalize = false, .intercept = false, .lambda2 = lambda2});
+        trex::tsolvers::ad::SolverOptions{.normalize = false, .intercept = false, .lambda2 = lambda2});
     tenet_aug.executeStep(T_stop, /*early_stop=*/false);
 
     // ------------------------------------------------------------------
@@ -209,7 +209,7 @@ void run_comparison(
     Eigen::Map<Eigen::VectorXd> ya_map(y_aug.data(), y_aug.size());
 
     tsolvers::TLASSO_Solver tlasso_aug(Xa_map, Da_map, ya_map,
-        trex::tsolvers::SolverOptions{.normalize = false, .intercept = false});
+        trex::tsolvers::ad::SolverOptions{.normalize = false, .intercept = false});
     tlasso_aug.executeStep(T_stop, /*early_stop=*/false);
 
     // ------------------------------------------------------------------

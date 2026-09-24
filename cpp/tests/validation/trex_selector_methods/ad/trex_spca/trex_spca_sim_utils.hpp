@@ -66,7 +66,7 @@
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <trex_selector_methods/trex_gvs/trex_gvs.hpp>
+#include <trex_selector_methods/ad/trex_gvs/trex_gvs.hpp>
 #include <vector>
 
 // Eigen includes
@@ -76,7 +76,7 @@
 #include <utils/openmp/utils_openmp.hpp>
 
 // T-Rex SPCA includes
-#include <trex_selector_methods/trex_spca/trex_spca.hpp>
+#include <trex_selector_methods/ad/trex_spca/trex_spca.hpp>
 
 // PCA baseline
 #include <ml_methods/pca/pca.hpp>
@@ -90,13 +90,13 @@ namespace spca_sim {
 
 // Namespace aliases
 namespace pca_ns = trex::ml_methods::pca;
-using trex::trex_selector_methods::trex_gvs::LambdaSelectionMethod;
-using trex::trex_selector_methods::trex_gvs::ENSolverType;
-using trex::trex_selector_methods::utils::data_normalizer::ScalingMode;
-using trex::trex_selector_methods::trex_spca::TRexSPCA;
-using trex::trex_selector_methods::trex_spca::TRexSPCAControlParameter;
-using trex::trex_selector_methods::trex_spca::TRexSPCAResult;
-using trex::trex_selector_methods::trex_spca::SPCAMode;
+using trex::trex_selector_methods::ad::trex_gvs::LambdaSelectionMethod;
+using trex::trex_selector_methods::ad::trex_gvs::ENSolverType;
+using trex::trex_selector_methods::ad::utils::data_normalizer::ScalingMode;
+using trex::trex_selector_methods::ad::trex_spca::TRexSPCA;
+using trex::trex_selector_methods::ad::trex_spca::TRexSPCAControlParameter;
+using trex::trex_selector_methods::ad::trex_spca::TRexSPCAResult;
+using trex::trex_selector_methods::ad::trex_spca::SPCAMode;
 
 
 // ==============================================================================

@@ -26,9 +26,9 @@
 #include <vector>
 
 // project trex includes
-#include <trex_selector_methods/trex_gvs/trex_gvs.hpp>
-#include <trex_selector_methods/trex_tikhonov/trex_tikhonov.hpp>
-#include <trex_selector_methods/trex_utils/trex_cluster_dummies.hpp>
+#include <trex_selector_methods/ad/trex_gvs/trex_gvs.hpp>
+#include <trex_selector_methods/ad/trex_tikhonov/trex_tikhonov.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_cluster_dummies.hpp>
 
 // project utils includes
 #include <utils/datageneration/utils_datagen.hpp>
@@ -36,14 +36,14 @@
 // ========================================================================================
 
 // Embed into test namespace
-namespace trex::test::trex_selector_methods::trex_tikhonov {
+namespace trex::test::trex_selector_methods::ad::trex_tikhonov {
 
 // Namespace aliases for convenience
-using namespace trex::trex_selector_methods::trex_tikhonov;
-using namespace trex::trex_selector_methods::trex_core;
+using namespace trex::trex_selector_methods::ad::trex_tikhonov;
+using namespace trex::trex_selector_methods::ad::trex_core;
 using namespace trex::utils::datageneration::datagen;
-namespace cdum = trex::trex_selector_methods::utils::cluster_dummies;
-namespace gvs  = trex::trex_selector_methods::trex_gvs;
+namespace cdum = trex::trex_selector_methods::ad::utils::cluster_dummies;
+namespace gvs  = trex::trex_selector_methods::ad::trex_gvs;
 
 // ========================================================================================
 
@@ -142,12 +142,12 @@ TEST_F(TRexTikhonovTest, Validation_ThrowsOnBadKOrSolver) {
 
     // Correct K, wrong solver.
     ctrl.tikhonov_K = identityK(10);
-    ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TLARS;
+    ctrl.trex_ctrl.solver_type = disp::SolverTypeForTRex::TLARS;
     EXPECT_THROW(TRexTikhonovSelector(X_map, y_map, 0.1, ctrl),
                  std::invalid_argument);
 
     // Correct K, default solver (TCDTIKNET) constructs.
-    ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TCDTIKNET;
+    ctrl.trex_ctrl.solver_type = disp::SolverTypeForTRex::TCDTIKNET;
     EXPECT_NO_THROW(TRexTikhonovSelector(X_map, y_map, 0.1, ctrl));
 }
 
@@ -219,7 +219,7 @@ TEST_F(TRexTikhonovTest, Equivalence_IdentityKMatchesTcdenetBaseRun) {
         Eigen::Map<Eigen::VectorXd> ym(yd.data(), yd.size());
 
         TRexControlParameter ctrl;
-        ctrl.solver_type = sd::SolverTypeForTRex::TCDENET;
+        ctrl.solver_type = disp::SolverTypeForTRex::TCDENET;
         ctrl.solver_params.lambda2 = lambda2;
         ctrl.K = 5;
         ctrl.max_dummy_multiplier = 2;
@@ -544,7 +544,7 @@ TEST_F(TRexTikhonovTest, Equivalence_FoldedGroupKMatchesGvsTcdienet) {
         ctrl.gvs_type     = gvs::GVSType::IEN;
         ctrl.prior_groups = prior_groups;
         ctrl.lambda_2     = 1.0;
-        ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TCDIENET;
+        ctrl.trex_ctrl.solver_type = disp::SolverTypeForTRex::TCDIENET;
         ctrl.trex_ctrl.K = 5;
         ctrl.trex_ctrl.max_dummy_multiplier = 2;
         gvs::TRexGVSSelector trex(Xm, ym, 0.2, ctrl, 42, false);
@@ -613,7 +613,7 @@ TEST_F(TRexTikhonovTest, Equivalence_FoldedGroupKMatchesGvsTcdienet_Singletons) 
         ctrl.gvs_type     = gvs::GVSType::IEN;
         ctrl.prior_groups = prior_groups;
         ctrl.lambda_2     = 10.0;
-        ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TCDIENET;
+        ctrl.trex_ctrl.solver_type = disp::SolverTypeForTRex::TCDIENET;
         ctrl.trex_ctrl.K = 5;
         ctrl.trex_ctrl.max_dummy_multiplier = 2;
         gvs::TRexGVSSelector trex(Xm, ym, 0.2, ctrl, 42, false);
@@ -694,7 +694,7 @@ TEST_F(TRexTikhonovTest, Equivalence_FoldedGroupKMatchesGvsTcdienet_DemoControl_
                 ctrl.gvs_type     = gvs::GVSType::IEN;
                 ctrl.prior_groups = prior_groups;
                 ctrl.lambda_2     = lambda2;
-                ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TCDIENET;
+                ctrl.trex_ctrl.solver_type = disp::SolverTypeForTRex::TCDIENET;
                 demo_control(ctrl.trex_ctrl, 1);
                 gvs::TRexGVSSelector trex(Xm, ym, 0.1, ctrl, 42, false);
                 return trex.select().selected_var;
@@ -771,7 +771,7 @@ TEST_F(TRexTikhonovTest, DISABLED_Equivalence_FoldedGroupK_LGrowthDivergence) {
         gvs::TRexGVSControlParameter gc;
         gc.gvs_type = gvs::GVSType::IEN; gc.prior_groups = prior_groups;
         gc.lambda_2 = c.lambda2;
-        gc.trex_ctrl.solver_type = sd::SolverTypeForTRex::TCDIENET;
+        gc.trex_ctrl.solver_type = disp::SolverTypeForTRex::TCDIENET;
         demo_control(gc.trex_ctrl);
         gvs::TRexGVSSelector g(Xm2, ym2, 0.1, gc, 42, false);
 
@@ -800,7 +800,7 @@ TEST_F(TRexTikhonovTest, GroupCentering_AllSingletonGroupsIsZeroKLasso) {
         singletons[static_cast<std::size_t>(j)] = j;
     }
 
-    auto run = [&](sd::SolverTypeForTRex solver) {
+    auto run = [&](disp::SolverTypeForTRex solver) {
         GroupedData d(n, p, 0.75, 1.0, 7);
         Eigen::Map<Eigen::MatrixXd> Xm(d.X.data(), d.X.rows(), d.X.cols());
         Eigen::Map<Eigen::VectorXd> ym(d.y.data(), d.y.size());
@@ -817,8 +817,8 @@ TEST_F(TRexTikhonovTest, GroupCentering_AllSingletonGroupsIsZeroKLasso) {
     };
 
     Eigen::VectorXi sel_cd;
-    EXPECT_NO_THROW(sel_cd = run(sd::SolverTypeForTRex::TCDTIKNET));
-    const Eigen::VectorXi sel_lars = run(sd::SolverTypeForTRex::TIKNET);
+    EXPECT_NO_THROW(sel_cd = run(disp::SolverTypeForTRex::TCDTIKNET));
+    const Eigen::VectorXi sel_lars = run(disp::SolverTypeForTRex::TIKNET);
 
     ASSERT_EQ(sel_cd.size(), p);
     ASSERT_EQ(sel_lars.size(), p);
@@ -952,24 +952,24 @@ TEST_F(TRexTikhonovTest, SolverGate_TiknetTikompFoldedOnly) {
 
     {   // TIKNET constructs on the default (FOLDED) path.
         auto ctrl = base;
-        ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TIKNET;
+        ctrl.trex_ctrl.solver_type = disp::SolverTypeForTRex::TIKNET;
         EXPECT_NO_THROW(TRexTikhonovSelector(X_map, y_map, 0.1, ctrl));
     }
     {   // TIKOMP likewise.
         auto ctrl = base;
-        ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TIKOMP;
+        ctrl.trex_ctrl.solver_type = disp::SolverTypeForTRex::TIKOMP;
         EXPECT_NO_THROW(TRexTikhonovSelector(X_map, y_map, 0.1, ctrl));
     }
     {   // INDEPENDENT_RIDGE exists only on the TCDTIKNET path.
         auto ctrl = base;
-        ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TIKNET;
+        ctrl.trex_ctrl.solver_type = disp::SolverTypeForTRex::TIKNET;
         ctrl.fold_dummy_coupling   = false;
         EXPECT_THROW(TRexTikhonovSelector(X_map, y_map, 0.1, ctrl),
                      std::invalid_argument);
     }
     {   // Same for TIKOMP.
         auto ctrl = base;
-        ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TIKOMP;
+        ctrl.trex_ctrl.solver_type = disp::SolverTypeForTRex::TIKOMP;
         ctrl.fold_dummy_coupling   = false;
         EXPECT_THROW(TRexTikhonovSelector(X_map, y_map, 0.1, ctrl),
                      std::invalid_argument);
@@ -995,7 +995,7 @@ TEST_F(TRexTikhonovTest, EndToEnd_TiknetKgcRecoversPlanted) {
     ctrl.penalty_structure = TikPenaltyStructure::GROUP_CENTERING;
     ctrl.prior_groups      = prior_groups;   // defines K_GC + cluster dummies
     ctrl.lambda_2          = 2.0;
-    ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TIKNET;
+    ctrl.trex_ctrl.solver_type = disp::SolverTypeForTRex::TIKNET;
     ctrl.trex_ctrl.K = 5;
     ctrl.trex_ctrl.max_dummy_multiplier = 2;
 
@@ -1034,7 +1034,7 @@ TEST_F(TRexTikhonovTest, EndToEnd_TikompKgcRecoversPlanted) {
     ctrl.penalty_structure = TikPenaltyStructure::GROUP_CENTERING;
     ctrl.prior_groups      = prior_groups;
     ctrl.lambda_2          = 2.0;
-    ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TIKOMP;
+    ctrl.trex_ctrl.solver_type = disp::SolverTypeForTRex::TIKOMP;
     ctrl.trex_ctrl.K = 5;
     ctrl.trex_ctrl.max_dummy_multiplier = 2;
 
@@ -1059,5 +1059,5 @@ TEST_F(TRexTikhonovTest, EndToEnd_TikompKgcRecoversPlanted) {
 }
 
 // ========================================================================================
-} /* End of namespace trex::test::trex_selector_methods::trex_tikhonov */
+} /* End of namespace trex::test::trex_selector_methods::ad::trex_tikhonov */
 // ========================================================================================

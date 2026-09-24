@@ -14,8 +14,8 @@
 #include <vector>
 
 // project trex includes
-#include <trex_selector_methods/trex_core/trex.hpp>
-#include <trex_selector_methods/trex_gvs/trex_gvs.hpp>
+#include <trex_selector_methods/ad/trex_core/trex.hpp>
+#include <trex_selector_methods/ad/trex_gvs/trex_gvs.hpp>
 
 // project utils includes
 #include <utils/datageneration/utils_datagen.hpp>
@@ -23,12 +23,12 @@
 // =================================================================================
 
 // Embed into test namespace
-namespace trex::test::trex_selector_methods::trex_gvs {
+namespace trex::test::trex_selector_methods::ad::trex_gvs {
 
 // Namespace aliases for convenience
-using namespace trex::trex_selector_methods::trex_gvs;
-using namespace trex::trex_selector_methods::trex_core;
-using namespace trex::trex_selector_methods::utils::solver_dispatch;
+using namespace trex::trex_selector_methods::ad::trex_gvs;
+using namespace trex::trex_selector_methods::ad::trex_core;
+using namespace trex::trex_selector_methods::ad::utils::solver_dispatch;
 using namespace trex::ml_methods::clustering::hierarchical::agglomerative;
 
 // =================================================================================
@@ -671,7 +671,7 @@ namespace {
  *         the selector normalizes X in place. */
 Eigen::VectorXi run_gvs_with_mode(
     const GroupedData& d,
-    trex::trex_selector_methods::utils::data_normalizer::ScalingMode mode,
+    trex::trex_selector_methods::ad::utils::data_normalizer::ScalingMode mode,
     ENSolverType en_solver,
     SolverTypeForTRex st,
     int seed) {
@@ -701,7 +701,7 @@ Eigen::VectorXi run_gvs_with_mode(
  *         scale-adaptive Sigma, MVN dummies, working-scale lambda_2) must
  *         recover the planted groups just like the L2 run. */
 TEST_F(TRexGVSTest, EndToEnd_EN_TENET_ZScore) {
-    namespace dnm = trex::trex_selector_methods::utils::data_normalizer;
+    namespace dnm = trex::trex_selector_methods::ad::utils::data_normalizer;
     GroupedData d(150, 40, 0.75, 1.0, 7);
 
     const Eigen::VectorXi sel = run_gvs_with_mode(
@@ -724,7 +724,7 @@ TEST_F(TRexGVSTest, EndToEnd_EN_TENET_ZScore) {
  *         augmented system a global scalar multiple of the L2 one, and LARS
  *         paths are invariant under global column scaling. */
 TEST_F(TRexGVSTest, ScalingModeParity_EN_AutoLambda2) {
-    namespace dnm = trex::trex_selector_methods::utils::data_normalizer;
+    namespace dnm = trex::trex_selector_methods::ad::utils::data_normalizer;
     GroupedData d(150, 40, 0.75, 1.0, 7);
 
     const std::pair<ENSolverType, SolverTypeForTRex> variants[] = {
@@ -755,7 +755,7 @@ TEST_F(TRexGVSTest, ScalingModeParity_EN_AutoLambda2) {
  *         LARS paths are invariant under global column scaling, so the
  *         selections must be identical — for BOTH IEN solver variants. */
 TEST_F(TRexGVSTest, ScalingModeParity_IEN_FixedLambda2) {
-    namespace dnm = trex::trex_selector_methods::utils::data_normalizer;
+    namespace dnm = trex::trex_selector_methods::ad::utils::data_normalizer;
     const Eigen::Index n = 150, p = 40;
     const double lambda2_l2 = 1.0;
 
@@ -792,5 +792,5 @@ TEST_F(TRexGVSTest, ScalingModeParity_IEN_FixedLambda2) {
 }
 
 // ========================================================================================
-} /* End of namespace trex::test::trex_selector_methods::trex_gvs */
+} /* End of namespace trex::test::trex_selector_methods::ad::trex_gvs */
 

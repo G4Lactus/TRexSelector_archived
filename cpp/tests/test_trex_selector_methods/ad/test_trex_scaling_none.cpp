@@ -41,10 +41,10 @@
 #include <vector>
 
 // project trex includes
-#include <trex_selector_methods/trex_core/trex.hpp>
-#include <trex_selector_methods/trex_da/trex_da.hpp>
-#include <trex_selector_methods/trex_gvs/trex_gvs.hpp>
-#include <trex_selector_methods/trex_utils/trex_data_normalizer.hpp>
+#include <trex_selector_methods/ad/trex_core/trex.hpp>
+#include <trex_selector_methods/ad/trex_da/trex_da.hpp>
+#include <trex_selector_methods/ad/trex_gvs/trex_gvs.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_data_normalizer.hpp>
 
 // project utils includes
 #include <utils/datageneration/utils_datagen.hpp>
@@ -54,9 +54,9 @@
 
 namespace trex::test::trex_selector_methods::scaling_none {
 
-using namespace trex::trex_selector_methods::trex_core;
+using namespace trex::trex_selector_methods::ad::trex_core;
 using trex::utils::datageneration::datagen::SyntheticData;
-namespace dn  = trex::trex_selector_methods::utils::data_normalizer;
+namespace dn  = trex::trex_selector_methods::ad::utils::data_normalizer;
 namespace fpc = trex::utils::fp_classify;
 
 namespace {
@@ -473,10 +473,10 @@ struct DerivedRun {
 };
 
 DerivedRun runGvs(Eigen::MatrixXd& X, Eigen::VectorXd& y, dn::ScalingMode mode) {
-    using trex::trex_selector_methods::trex_gvs::TRexGVSSelector;
-    using trex::trex_selector_methods::trex_gvs::TRexGVSControlParameter;
-    using trex::trex_selector_methods::trex_gvs::GVSType;
-    namespace sd = trex::trex_selector_methods::utils::solver_dispatch;
+    using trex::trex_selector_methods::ad::trex_gvs::TRexGVSSelector;
+    using trex::trex_selector_methods::ad::trex_gvs::TRexGVSControlParameter;
+    using trex::trex_selector_methods::ad::trex_gvs::GVSType;
+    namespace disp = trex::trex_selector_methods::ad::utils::solver_dispatch;
 
     Eigen::Map<Eigen::MatrixXd> X_map(X.data(), X.rows(), X.cols());
     Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
@@ -484,7 +484,7 @@ DerivedRun runGvs(Eigen::MatrixXd& X, Eigen::VectorXd& y, dn::ScalingMode mode) 
     TRexGVSControlParameter ctrl;
     ctrl.gvs_type = GVSType::EN;
     ctrl.lambda_2 = 0.5;                       // fixed: no CV tuner
-    ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TENET;
+    ctrl.trex_ctrl.solver_type = disp::SolverTypeForTRex::TENET;
     ctrl.trex_ctrl.K = 5;
     ctrl.trex_ctrl.max_dummy_multiplier = 2;
     ctrl.trex_ctrl.scaling_mode = mode;
@@ -495,9 +495,9 @@ DerivedRun runGvs(Eigen::MatrixXd& X, Eigen::VectorXd& y, dn::ScalingMode mode) 
 }
 
 DerivedRun runDa(Eigen::MatrixXd& X, Eigen::VectorXd& y, dn::ScalingMode mode) {
-    using trex::trex_selector_methods::trex_da::TRexDASelector;
-    using trex::trex_selector_methods::trex_da::TRexDAControlParameter;
-    using trex::trex_selector_methods::trex_da::DAMethod;
+    using trex::trex_selector_methods::ad::trex_da::TRexDASelector;
+    using trex::trex_selector_methods::ad::trex_da::TRexDAControlParameter;
+    using trex::trex_selector_methods::ad::trex_da::DAMethod;
 
     Eigen::Map<Eigen::MatrixXd> X_map(X.data(), X.rows(), X.cols());
     Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());

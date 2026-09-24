@@ -45,7 +45,7 @@
 #include <utils/openmp/utils_openmp.hpp>
 
 // T-Rex includes
-#include <trex_selector_methods/trex_da/trex_da.hpp>
+#include <trex_selector_methods/ad/trex_da/trex_da.hpp>
 
 //utils includes
 #include <utils/eval_metrics/utils_eval_cdiagnostics.hpp>
@@ -66,14 +66,14 @@ namespace rates       = trex::utils::eval::rates;
 namespace dummygen    = trex::utils::datageneration::dummygen;
 namespace hac         = trex::ml_methods::clustering::hierarchical::agglomerative;
 
-using trex::trex_selector_methods::trex_da::TRexDASelector;
-using trex::trex_selector_methods::trex_da::TRexDAControlParameter;
-using trex::trex_selector_methods::trex_da::DAMethod;
-using trex::trex_selector_methods::trex_core::TRexSelector;
-using trex::trex_selector_methods::trex_core::TRexControlParameter;
-using trex::trex_selector_methods::trex_core::LLoopStrategy;
-using trex::trex_selector_methods::utils::solver_dispatch::SolverTypeForTRex;
-using trex::trex_selector_methods::utils::solver_dispatch::SolverHyperparameters;
+using trex::trex_selector_methods::ad::trex_da::TRexDASelector;
+using trex::trex_selector_methods::ad::trex_da::TRexDAControlParameter;
+using trex::trex_selector_methods::ad::trex_da::DAMethod;
+using trex::trex_selector_methods::ad::trex_core::TRexSelector;
+using trex::trex_selector_methods::ad::trex_core::TRexControlParameter;
+using trex::trex_selector_methods::ad::trex_core::LLoopStrategy;
+using trex::trex_selector_methods::ad::utils::solver_dispatch::SolverTypeForTRex;
+using trex::trex_selector_methods::ad::utils::solver_dispatch::SolverHyperparameters;
 
 
 // ==============================================================================

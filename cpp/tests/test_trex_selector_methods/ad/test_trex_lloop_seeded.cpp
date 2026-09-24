@@ -20,8 +20,8 @@
 #include <vector>
 
 // project includes
-#include <trex_selector_methods/trex_core/trex.hpp>
-#include <trex_selector_methods/trex_utils/trex_dummy_generator.hpp>
+#include <trex_selector_methods/ad/trex_core/trex.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_dummy_generator.hpp>
 #include <utils/datageneration/utils_datagen.hpp>
 
 // Eigen includes
@@ -34,11 +34,11 @@ namespace trex::test::trex_selector_methods::lloop_seeded {
 
 namespace datagen = trex::utils::datageneration::datagen;
 namespace dummygen = trex::utils::datageneration::dummygen;
-using trex::trex_selector_methods::trex_core::TRexSelector;
-using trex::trex_selector_methods::trex_core::TRexControlParameter;
-using trex::trex_selector_methods::trex_core::LLoopStrategy;
-using trex::trex_selector_methods::utils::solver_dispatch::SolverTypeForTRex;
-using trex::trex_selector_methods::utils::dummy_generator::DummyGenerator;
+using trex::trex_selector_methods::ad::trex_core::TRexSelector;
+using trex::trex_selector_methods::ad::trex_core::TRexControlParameter;
+using trex::trex_selector_methods::ad::trex_core::LLoopStrategy;
+using trex::trex_selector_methods::ad::utils::solver_dispatch::SolverTypeForTRex;
+using trex::trex_selector_methods::ad::utils::dummy_generator::DummyGenerator;
 
 namespace {
 

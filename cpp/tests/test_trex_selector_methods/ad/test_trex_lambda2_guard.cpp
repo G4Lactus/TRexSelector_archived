@@ -38,17 +38,17 @@
 #include <vector>
 
 // project trex includes
-#include <trex_selector_methods/trex_gvs/trex_gvs.hpp>
-#include <trex_selector_methods/trex_tikhonov/trex_tikhonov.hpp>
+#include <trex_selector_methods/ad/trex_gvs/trex_gvs.hpp>
+#include <trex_selector_methods/ad/trex_tikhonov/trex_tikhonov.hpp>
 
 // ========================================================================================
 
 namespace trex::test::trex_selector_methods::lambda2_guard {
 
-using namespace trex::trex_selector_methods::trex_core;
-using namespace trex::trex_selector_methods::trex_gvs;
-using namespace trex::trex_selector_methods::trex_tikhonov;
-using namespace trex::trex_selector_methods::utils::solver_dispatch;
+using namespace trex::trex_selector_methods::ad::trex_core;
+using namespace trex::trex_selector_methods::ad::trex_gvs;
+using namespace trex::trex_selector_methods::ad::trex_tikhonov;
+using namespace trex::trex_selector_methods::ad::utils::solver_dispatch;
 namespace ms = trex::ml_methods::model_selection;
 
 namespace {

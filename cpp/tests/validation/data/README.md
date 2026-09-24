@@ -30,7 +30,7 @@ The **full** dump is committed, since the three validations together read all of
 These CSVs are produced by the R generator co-located with the t-solver gate:
 
 ```
-tests/validation/tsolvers/validation_ts_02_tlars_tlasso_rcompare/demo_ts_compare_tlars_tlasso.R
+tests/validation/tsolvers/ad/validation_ts_02_tlars_tlasso_rcompare/demo_ts_compare_tlars_tlasso.R
 ```
 
 It writes directly into this folder (its `outdir` resolves to `../../data/rdump_tlars`),
@@ -38,7 +38,7 @@ so refreshing the reference data (only needed if the reference algorithmic behav
 legitimately changes) is just re-running that script — no copy step:
 
 ```bash
-Rscript tests/validation/tsolvers/validation_ts_02_tlars_tlasso_rcompare/demo_ts_compare_tlars_tlasso.R
+Rscript tests/validation/tsolvers/ad/validation_ts_02_tlars_tlasso_rcompare/demo_ts_compare_tlars_tlasso.R
 ```
 
 It requires the CRAN `tlars` and `TRexSelector` packages (the independent external

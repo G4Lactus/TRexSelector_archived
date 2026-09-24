@@ -20,15 +20,15 @@
 #include <Eigen/Dense>
 
 // tsolvers includes
-#include <tsolvers/linear_model/lars_based/tlars_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tlasso_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tstagewise_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tienet_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tienet_aug_solver.hpp>
-#include <tsolvers/linear_model/omp_based/tncgmp_solver.hpp>
-#include <tsolvers/linear_model/omp_based/tmp_solver.hpp>
-#include <tsolvers/linear_model/omp_based/tomp_solver.hpp>
-#include <tsolvers/linear_model/omp_based/tgp_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tlars_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tlasso_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tstagewise_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tienet_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tienet_aug_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tncgmp_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tmp_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tomp_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tgp_solver.hpp>
 
 // utils includes
 #include <utils/datageneration/utils_datagen.hpp>
@@ -36,9 +36,9 @@
 // ========================================================================================
 
 // Embed into test namespace
-namespace trex::test::tsolvers::linear_model {
+namespace trex::test::tsolvers::ad::linear_model {
 
-using namespace trex::tsolvers::linear_model::lars_based;
+using namespace trex::tsolvers::ad::linear_model::lars_based;
 using namespace trex::utils::datageneration::datagen;
 
 // ========================================================================================
@@ -115,8 +115,8 @@ TEST_F(TSolverExecutionTest, MonotonicRSSDecrease) {
  *         OMP): on a full path, some atom is picked in more than one step,
  *         while the active set keeps each index exactly once. */
 TEST_F(TSolverExecutionTest, MPAndGPReSelectAtoms) {
-    using trex::tsolvers::linear_model::omp_based::TMP_Solver;
-    using trex::tsolvers::linear_model::omp_based::TGP_Solver;
+    using trex::tsolvers::ad::linear_model::omp_based::TMP_Solver;
+    using trex::tsolvers::ad::linear_model::omp_based::TGP_Solver;
 
     auto max_selection_count = [this](auto make_solver) {
         Eigen::MatrixXd Xc = X, Dc = D;
@@ -159,10 +159,10 @@ TEST_F(TSolverExecutionTest, MPAndGPReSelectAtoms) {
  *         the least-squares objective (L = 1), NCGMP-LineSearch is exactly
  *         T-MP and NCGMP-FullyCorrective is exactly T-OMP. */
 TEST_F(TSolverExecutionTest, NCGMPVariantsMatchMPAndOMP) {
-    using trex::tsolvers::linear_model::omp_based::TMP_Solver;
-    using trex::tsolvers::linear_model::omp_based::TOMP_Solver;
-    using trex::tsolvers::linear_model::omp_based::TNCGMP_Solver;
-    using trex::tsolvers::linear_model::omp_based::NCGMPVariant;
+    using trex::tsolvers::ad::linear_model::omp_based::TMP_Solver;
+    using trex::tsolvers::ad::linear_model::omp_based::TOMP_Solver;
+    using trex::tsolvers::ad::linear_model::omp_based::TNCGMP_Solver;
+    using trex::tsolvers::ad::linear_model::omp_based::NCGMPVariant;
 
     auto fit = [this](auto make_solver) {
         Eigen::MatrixXd Xc = X, Dc = D;
@@ -189,7 +189,7 @@ TEST_F(TSolverExecutionTest, NCGMPVariantsMatchMPAndOMP) {
         return TOMP_Solver(Xm, Dm, ym);
     });
     Eigen::MatrixXd ncg_fc_path = fit([](auto& Xm, auto& Dm, auto& ym) {
-        return TNCGMP_Solver(Xm, Dm, ym, trex::tsolvers::SolverOptions{.ncgmp_variant = NCGMPVariant::FullyCorrective});
+        return TNCGMP_Solver(Xm, Dm, ym, trex::tsolvers::ad::SolverOptions{.ncgmp_variant = NCGMPVariant::FullyCorrective});
     });
     ASSERT_EQ(omp_path.cols(), ncg_fc_path.cols());
     EXPECT_TRUE(omp_path.isApprox(ncg_fc_path, 1e-12))
@@ -202,14 +202,14 @@ TEST_F(TSolverExecutionTest, NCGMPVariantsMatchMPAndOMP) {
  *         asserts the actions/diagnostics alignment invariant that collinear
  *         rejections must not break. */
 TEST_F(TSolverExecutionTest, TNCGMPFullyCorrectiveExecutesAndStaysAligned) {
-    using trex::tsolvers::linear_model::omp_based::TNCGMP_Solver;
-    using trex::tsolvers::linear_model::omp_based::NCGMPVariant;
+    using trex::tsolvers::ad::linear_model::omp_based::TNCGMP_Solver;
+    using trex::tsolvers::ad::linear_model::omp_based::NCGMPVariant;
 
     Eigen::Map<Eigen::MatrixXd> X_map(X.data(), X.rows(), X.cols());
     Eigen::Map<Eigen::MatrixXd> D_map(D.data(), D.rows(), D.cols());
     Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
 
-    TNCGMP_Solver solver(X_map, D_map, y_map, trex::tsolvers::SolverOptions{.ncgmp_variant = NCGMPVariant::FullyCorrective});
+    TNCGMP_Solver solver(X_map, D_map, y_map, trex::tsolvers::ad::SolverOptions{.ncgmp_variant = NCGMPVariant::FullyCorrective});
     solver.executeStep(4, true);
 
     EXPECT_GT(solver.getNumSteps(), 0u);
@@ -360,7 +360,7 @@ TEST_F(TSolverExecutionTest, TIENETNativeMatchesAugmentedPath) {
         Eigen::Map<Eigen::MatrixXd> Xn_map(Xn.data(), Xn.rows(), Xn.cols());
         Eigen::Map<Eigen::MatrixXd> Dn_map(Dn.data(), Dn.rows(), Dn.cols());
         Eigen::Map<Eigen::VectorXd> yn_map(yn.data(), yn.size());
-        TIENET_Solver native(Xn_map, Dn_map, yn_map, groups, trex::tsolvers::SolverOptions{.lambda2 = lambda2});
+        TIENET_Solver native(Xn_map, Dn_map, yn_map, groups, trex::tsolvers::ad::SolverOptions{.lambda2 = lambda2});
         native.executeStep(5, true);
 
         Eigen::MatrixXd Xa = X, Da = D;
@@ -368,7 +368,7 @@ TEST_F(TSolverExecutionTest, TIENETNativeMatchesAugmentedPath) {
         Eigen::Map<Eigen::MatrixXd> Xa_map(Xa.data(), Xa.rows(), Xa.cols());
         Eigen::Map<Eigen::MatrixXd> Da_map(Da.data(), Da.rows(), Da.cols());
         Eigen::Map<Eigen::VectorXd> ya_map(ya.data(), ya.size());
-        TIENETAug_Solver aug(Xa_map, Da_map, ya_map, groups, trex::tsolvers::SolverOptions{.lambda2 = lambda2});
+        TIENETAug_Solver aug(Xa_map, Da_map, ya_map, groups, trex::tsolvers::ad::SolverOptions{.lambda2 = lambda2});
         aug.executeStep(5, true);
 
         // Identical step-by-step action sequences (adds and drops).
@@ -412,4 +412,4 @@ TEST_F(TSolverExecutionTest, TIENETLambda2ZeroReducesToTLASSO) {
 }
 
 // ========================================================================================
-} /* End of namespace trex::test::tsolvers::linear_model */
+} /* End of namespace trex::test::tsolvers::ad::linear_model */

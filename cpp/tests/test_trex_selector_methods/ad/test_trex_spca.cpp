@@ -15,16 +15,16 @@
 #include <vector>
 
 // project trex includes
-#include <trex_selector_methods/trex_spca/trex_spca.hpp>
+#include <trex_selector_methods/ad/trex_spca/trex_spca.hpp>
 
 // ========================================================================================
 
 // Embed into test namespace
-namespace trex::test::trex_selector_methods::trex_spca {
+namespace trex::test::trex_selector_methods::ad::trex_spca {
 
 // Namespace alias for convenience
-using namespace trex::trex_selector_methods::trex_spca;
-namespace tc = trex::trex_selector_methods::trex_core;
+using namespace trex::trex_selector_methods::ad::trex_spca;
+namespace tc = trex::trex_selector_methods::ad::trex_core;
 
 // ========================================================================================
 
@@ -354,4 +354,4 @@ TEST_F(TRexSPCATest, Exceptions_InvalidM) {
 }
 
 // ========================================================================================
-} /* End of namespace trex::test::trex_selector_methods::trex_spca */
+} /* End of namespace trex::test::trex_selector_methods::ad::trex_spca */

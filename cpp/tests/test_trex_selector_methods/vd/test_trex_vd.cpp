@@ -15,15 +15,15 @@
 #include <vector>
 
 // project trex includes
-#include <trex_selector_methods/trex_vd/trex_vd.hpp>
+#include <trex_selector_methods/vd/trex_vd/trex_vd.hpp>
 
 // =================================================================================
 
 // Embed into test namespace
-namespace trex::test::trex_selector_methods::trex_vd {
+namespace trex::test::trex_selector_methods::vd::trex_vd {
 
 // Namespace aliases for convenience
-using namespace trex::trex_selector_methods::trex_vd;
+using namespace trex::trex_selector_methods::vd::trex_vd;
 namespace vds = trex::tsolvers::vd;
 
 // =================================================================================
@@ -221,4 +221,4 @@ TEST_F(TRexVDTest, FixedTLModeRuns) {
     EXPECT_GE(result.selected_var.size(), 0);
 }
 
-}  // namespace trex::test::trex_selector_methods::trex_vd
+}  // namespace trex::test::trex_selector_methods::vd::trex_vd

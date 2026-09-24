@@ -20,7 +20,7 @@
 #include <string>
 
 // tsolvers includes
-#include <tsolvers/linear_model/lars_based/tlars_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tlars_solver.hpp>
 
 // utils includes
 #include <utils/datageneration/utils_datagen.hpp>
@@ -28,9 +28,9 @@
 // ========================================================================================
 
 // Embed into test namespace
-namespace trex::test::tsolvers::linear_model {
+namespace trex::test::tsolvers::ad::linear_model {
 
-using namespace trex::tsolvers::linear_model::lars_based;
+using namespace trex::tsolvers::ad::linear_model::lars_based;
 using namespace trex::utils::datageneration::datagen;
 namespace fs = std::filesystem;
 
@@ -115,4 +115,4 @@ TEST_F(TSolverSerializationTest, ExpectResumePathMatchesContinuousPath) {
 }
 
 // ========================================================================================
-} /* End of namespace trex::test::tsolvers::linear_model */
+} /* End of namespace trex::test::tsolvers::ad::linear_model */

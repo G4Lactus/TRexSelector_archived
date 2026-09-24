@@ -30,7 +30,7 @@
 
 // project includes
 #include <utils/datageneration/utils_dummygen.hpp>
-#include <trex_selector_methods/trex_utils/trex_dummy_generator.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_dummy_generator.hpp>
 
 // Eigen includes
 #include <Eigen/Dense>
@@ -41,7 +41,7 @@
 namespace trex::test::utils::dummyseeding {
 
 namespace dummygen = trex::utils::datageneration::dummygen;
-using trex::trex_selector_methods::utils::dummy_generator::DummyGenerator;
+using trex::trex_selector_methods::ad::utils::dummy_generator::DummyGenerator;
 
 namespace {
 

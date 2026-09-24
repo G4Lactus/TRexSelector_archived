@@ -32,19 +32,19 @@
 #include <vector>
 
 // project includes
-#include <trex_selector_methods/trex_core/trex.hpp>
-#include <trex_selector_methods/trex_gvs/trex_gvs.hpp>
+#include <trex_selector_methods/ad/trex_core/trex.hpp>
+#include <trex_selector_methods/ad/trex_gvs/trex_gvs.hpp>
 #include <utils/datageneration/utils_datagen.hpp>
 #include <utils/openmp/utils_openmp.hpp>
 
 // ========================================================================================
 
-namespace trex::test::trex_selector_methods::trex_core {
+namespace trex::test::trex_selector_methods::ad::trex_core {
 
-using namespace trex::trex_selector_methods::trex_core;
+using namespace trex::trex_selector_methods::ad::trex_core;
 using namespace trex::utils::datageneration::datagen;
-namespace sd  = trex::trex_selector_methods::utils::solver_dispatch;
-namespace gvs = trex::trex_selector_methods::trex_gvs;
+namespace disp = trex::trex_selector_methods::ad::utils::solver_dispatch;
+namespace gvs = trex::trex_selector_methods::ad::trex_gvs;
 
 namespace {
 
@@ -243,4 +243,4 @@ TEST(TRexThreadHygieneTest, GvsRunnerRestoresEigenThreadCount) {
 #endif  // EIGEN_USE_BLAS
 
 // ========================================================================================
-} /* End of namespace trex::test::trex_selector_methods::trex_core */
+} /* End of namespace trex::test::trex_selector_methods::ad::trex_core */

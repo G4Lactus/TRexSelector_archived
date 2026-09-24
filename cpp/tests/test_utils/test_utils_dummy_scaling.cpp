@@ -27,8 +27,8 @@
 
 // project includes
 #include <utils/datageneration/utils_dummygen.hpp>
-#include <trex_selector_methods/trex_utils/trex_data_normalizer.hpp>
-#include <trex_selector_methods/trex_utils/trex_dummy_generator.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_data_normalizer.hpp>
+#include <trex_selector_methods/ad/trex_utils/trex_dummy_generator.hpp>
 
 // Eigen includes
 #include <Eigen/Dense>
@@ -39,8 +39,8 @@
 namespace trex::test::utils::dummyscaling {
 
 namespace dummygen = trex::utils::datageneration::dummygen;
-namespace dn = trex::trex_selector_methods::utils::data_normalizer;
-using trex::trex_selector_methods::utils::dummy_generator::DummyGenerator;
+namespace dn = trex::trex_selector_methods::ad::utils::data_normalizer;
+using trex::trex_selector_methods::ad::utils::dummy_generator::DummyGenerator;
 
 namespace {
 

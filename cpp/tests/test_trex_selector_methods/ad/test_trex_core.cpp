@@ -13,7 +13,7 @@
 #include <vector>
 
 // project trex includes
-#include <trex_selector_methods/trex_core/trex.hpp>
+#include <trex_selector_methods/ad/trex_core/trex.hpp>
 
 // project utils includes
 #include <utils/datageneration/utils_datagen.hpp>
@@ -22,12 +22,12 @@
 // ========================================================================================
 
 // Embed into test namespace
-namespace trex::test::trex_selector_methods::trex_core {
+namespace trex::test::trex_selector_methods::ad::trex_core {
 
 // Namespace aliases for convenience
-using namespace trex::trex_selector_methods::trex_core;
+using namespace trex::trex_selector_methods::ad::trex_core;
 using namespace trex::utils::datageneration::datagen;
-namespace sd = trex::trex_selector_methods::utils::solver_dispatch;
+namespace disp = trex::trex_selector_methods::ad::utils::solver_dispatch;
 
 // ========================================================================================
 
@@ -43,7 +43,7 @@ namespace sd = trex::trex_selector_methods::utils::solver_dispatch;
  */
 void run_trex_core_test(Eigen::Index n,
                         Eigen::Index p,
-                        sd::SolverTypeForTRex solver = sd::SolverTypeForTRex::TLARS,
+                        disp::SolverTypeForTRex solver = disp::SolverTypeForTRex::TLARS,
                         LLoopStrategy l_strategy = LLoopStrategy::HCONCAT,
                         bool multi_threaded = false)
 {
@@ -112,25 +112,25 @@ TEST(TRexCoreTest, HighDimensional) {
 
 /** @brief Test TRexSelector with TLASSO solver. */
 TEST(TRexCoreTest, Param_Solvers_TLASSO) {
-    run_trex_core_test(150, 200, sd::SolverTypeForTRex::TLASSO);
+    run_trex_core_test(150, 200, disp::SolverTypeForTRex::TLASSO);
 }
 
 
 /** @brief Test TRexSelector with the CCD lasso solver (TCDLASSO). */
 TEST(TRexCoreTest, Param_Solvers_TCDLASSO) {
-    run_trex_core_test(150, 200, sd::SolverTypeForTRex::TCDLASSO);
+    run_trex_core_test(150, 200, disp::SolverTypeForTRex::TCDLASSO);
 }
 
 
 /** @brief Test TRexSelector with the CCD elastic-net solver (TCDENET). */
 TEST(TRexCoreTest, Param_Solvers_TCDENET) {
-    run_trex_core_test(150, 200, sd::SolverTypeForTRex::TCDENET);
+    run_trex_core_test(150, 200, disp::SolverTypeForTRex::TCDENET);
 }
 
 
 /** @brief Test TRexSelector with the row-augmented elastic net (TENET_AUG). */
 TEST(TRexCoreTest, Param_Solvers_TENET_AUG) {
-    run_trex_core_test(150, 200, sd::SolverTypeForTRex::TENET_AUG);
+    run_trex_core_test(150, 200, disp::SolverTypeForTRex::TENET_AUG);
 }
 
 
@@ -155,7 +155,7 @@ TEST(TRexCoreTest, SelectTimeThrowPropagatesInsteadOfTerminating) {
     TRexControlParameter trex_ctrl;
     trex_ctrl.K = 3;
     trex_ctrl.max_dummy_multiplier = 2;
-    trex_ctrl.solver_type = sd::SolverTypeForTRex::TCDIENET;
+    trex_ctrl.solver_type = disp::SolverTypeForTRex::TCDIENET;
 
     // Serial path (parallel_rnd_experiments = false): the omp region is
     // inactive but still a structured block.
@@ -182,7 +182,7 @@ TEST(TRexCoreTest, SelectTimeThrowPropagatesInsteadOfTerminating) {
  *  same variables in the core selector. */
 TEST(TRexCoreTest, Equivalence_TenetAugMatchesTenet) {
 
-    auto run_with = [](sd::SolverTypeForTRex solver) {
+    auto run_with = [](disp::SolverTypeForTRex solver) {
         std::vector<std::size_t> support = {1, 2, 3};
         std::vector<double> coefs = {5.0, -3.0, 2.0};
         SyntheticData data(150, 60, support, coefs, 1.0, 42);
@@ -201,8 +201,8 @@ TEST(TRexCoreTest, Equivalence_TenetAugMatchesTenet) {
         return trex.select().selected_var;
     };
 
-    const auto sel_tenet = run_with(sd::SolverTypeForTRex::TENET);
-    const auto sel_aug   = run_with(sd::SolverTypeForTRex::TENET_AUG);
+    const auto sel_tenet = run_with(disp::SolverTypeForTRex::TENET);
+    const auto sel_aug   = run_with(disp::SolverTypeForTRex::TENET_AUG);
 
     ASSERT_EQ(sel_tenet.size(), sel_aug.size());
     EXPECT_TRUE((sel_tenet.array() == sel_aug.array()).all())
@@ -212,7 +212,7 @@ TEST(TRexCoreTest, Equivalence_TenetAugMatchesTenet) {
 
 /** @brief Test TRexSelector with SKIPL L loop strategy. */
 TEST(TRexCoreTest, Param_LStrategies_SKIPL) {
-    run_trex_core_test(150, 200, sd::SolverTypeForTRex::TLARS,
+    run_trex_core_test(150, 200, disp::SolverTypeForTRex::TLARS,
                        LLoopStrategy::SKIPL);
 }
 
@@ -220,7 +220,7 @@ TEST(TRexCoreTest, Param_LStrategies_SKIPL) {
 /** @brief Test TRexSelector with concurrency enabled. */
 TEST(TRexCoreTest, Param_Concurrency) {
     // Tests autoConfigResources logic and threaded OpenMP execution
-    run_trex_core_test(150, 200, sd::SolverTypeForTRex::TLARS,
+    run_trex_core_test(150, 200, disp::SolverTypeForTRex::TLARS,
                        LLoopStrategy::HCONCAT, true);
 }
 
@@ -335,7 +335,7 @@ TEST(TRexCoreTest, StagnationStop_AutoDefaultResolvesBySolverFamily) {
     Eigen::Map<Eigen::MatrixXd> X_map(X.data(), X.rows(), X.cols());
     Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
 
-    auto resolved_default = [&](sd::SolverTypeForTRex solver,
+    auto resolved_default = [&](disp::SolverTypeForTRex solver,
                                 std::optional<bool> user_choice) {
         TRexControlParameter ctrl;
         ctrl.K = 3;
@@ -346,24 +346,24 @@ TEST(TRexCoreTest, StagnationStop_AutoDefaultResolvesBySolverFamily) {
     };
 
     // AUTO: off for the equiangular LARS family, on for greedy solvers.
-    EXPECT_FALSE(resolved_default(sd::SolverTypeForTRex::TLARS,  std::nullopt));
-    EXPECT_FALSE(resolved_default(sd::SolverTypeForTRex::TLASSO, std::nullopt));
-    EXPECT_FALSE(resolved_default(sd::SolverTypeForTRex::TENET,  std::nullopt));
-    EXPECT_TRUE(resolved_default(sd::SolverTypeForTRex::TOMP,    std::nullopt));
-    EXPECT_TRUE(resolved_default(sd::SolverTypeForTRex::TSTEPWISE, std::nullopt));
-    EXPECT_TRUE(resolved_default(sd::SolverTypeForTRex::TAFS,    std::nullopt));
+    EXPECT_FALSE(resolved_default(disp::SolverTypeForTRex::TLARS,  std::nullopt));
+    EXPECT_FALSE(resolved_default(disp::SolverTypeForTRex::TLASSO, std::nullopt));
+    EXPECT_FALSE(resolved_default(disp::SolverTypeForTRex::TENET,  std::nullopt));
+    EXPECT_TRUE(resolved_default(disp::SolverTypeForTRex::TOMP,    std::nullopt));
+    EXPECT_TRUE(resolved_default(disp::SolverTypeForTRex::TSTEPWISE, std::nullopt));
+    EXPECT_TRUE(resolved_default(disp::SolverTypeForTRex::TAFS,    std::nullopt));
 
     // CCD family: currently classified non-greedy (exact penalized-lasso
     // minimizers per crossing -> AUTO off, same as the equiangular paths).
     // Whether CD paths can stagnate in the T-loop is an open question under
     // investigation; these entries lock in the CURRENT default, not a
     // settled answer.
-    EXPECT_FALSE(resolved_default(sd::SolverTypeForTRex::TCDLASSO,   std::nullopt));
-    EXPECT_FALSE(resolved_default(sd::SolverTypeForTRex::TCDENET, std::nullopt));
+    EXPECT_FALSE(resolved_default(disp::SolverTypeForTRex::TCDLASSO,   std::nullopt));
+    EXPECT_FALSE(resolved_default(disp::SolverTypeForTRex::TCDENET, std::nullopt));
 
     // Explicit user choice overrides the family default in both directions.
-    EXPECT_TRUE(resolved_default(sd::SolverTypeForTRex::TLARS, true));
-    EXPECT_FALSE(resolved_default(sd::SolverTypeForTRex::TOMP, false));
+    EXPECT_TRUE(resolved_default(disp::SolverTypeForTRex::TLARS, true));
+    EXPECT_FALSE(resolved_default(disp::SolverTypeForTRex::TOMP, false));
 }
 
 
@@ -563,8 +563,8 @@ TEST(TRexCoreTest, WarmStart_MemoryMappedMatchesInMemory_CdFamily) {
     std::vector<std::size_t> support = {1, 2, 3};
     std::vector<double> coefs = {5.0, -3.0, 2.0};
 
-    for (auto solver : {sd::SolverTypeForTRex::TCDLASSO,
-                        sd::SolverTypeForTRex::TCDENET}) {
+    for (auto solver : {disp::SolverTypeForTRex::TCDLASSO,
+                        disp::SolverTypeForTRex::TCDENET}) {
         SyntheticData data(200, 50, support, coefs, 1.0, 42);
 
         auto X_mem = data.getX();
@@ -712,4 +712,4 @@ TEST(TRexCoreTest, SharedBufferClaim_DistinctBuffersOk) {
 }
 
 // ========================================================================================
-} /* End of namespace trex::test::trex_selector_methods::trex_core */
+} /* End of namespace trex::test::trex_selector_methods::ad::trex_core */

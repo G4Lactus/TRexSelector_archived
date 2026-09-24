@@ -67,8 +67,8 @@
 // ==============================================================================
 
 using namespace spca_sim;
-namespace tg = trex::trex_selector_methods::trex_gvs;
-namespace sd = trex::trex_selector_methods::utils::solver_dispatch;
+namespace tg = trex::trex_selector_methods::ad::trex_gvs;
+namespace disp = trex::trex_selector_methods::ad::utils::solver_dispatch;
 
 
 // ==============================================================================
@@ -89,7 +89,7 @@ tg::TRexGVSControlParameter make_legacy_gvs_ctrl()
     ctrl.en_solver             = tg::ENSolverType::TENET;
     ctrl.lambda_2              = -1.0;
     ctrl.lambda2_method        = tg::LambdaSelectionMethod::CV_1SE_CCD;
-    ctrl.trex_ctrl.solver_type = sd::SolverTypeForTRex::TENET;
+    ctrl.trex_ctrl.solver_type = disp::SolverTypeForTRex::TENET;
     return ctrl;
 }
 

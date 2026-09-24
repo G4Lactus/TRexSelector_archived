@@ -40,7 +40,7 @@
 
 using namespace gvs_demo;
 
-namespace dn = trex::trex_selector_methods::utils::data_normalizer;
+namespace dn = trex::trex_selector_methods::ad::utils::data_normalizer;
 using dn::ScalingMode;
 
 // =============================================================================

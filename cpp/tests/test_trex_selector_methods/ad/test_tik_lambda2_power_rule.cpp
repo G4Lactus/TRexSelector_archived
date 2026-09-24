@@ -33,19 +33,19 @@
 
 // project trex includes
 #include <ml_methods/model_selection/post_selection_criteria.hpp>
-#include <trex_selector_methods/trex_gvs/trex_gvs.hpp>
-#include <trex_selector_methods/trex_tikhonov/tik_lambda2_power_rule.hpp>
-#include <trex_selector_methods/trex_tikhonov/trex_tikhonov.hpp>
+#include <trex_selector_methods/ad/trex_gvs/trex_gvs.hpp>
+#include <trex_selector_methods/ad/trex_tikhonov/tik_lambda2_power_rule.hpp>
+#include <trex_selector_methods/ad/trex_tikhonov/trex_tikhonov.hpp>
 
 // ========================================================================================
 
-namespace trex::test::trex_selector_methods::trex_tikhonov {
+namespace trex::test::trex_selector_methods::ad::trex_tikhonov {
 
-using namespace trex::trex_selector_methods::trex_tikhonov;
-using namespace trex::trex_selector_methods::trex_core;
-namespace gvs = trex::trex_selector_methods::trex_gvs;
+using namespace trex::trex_selector_methods::ad::trex_tikhonov;
+using namespace trex::trex_selector_methods::ad::trex_core;
+namespace gvs = trex::trex_selector_methods::ad::trex_gvs;
 namespace ms  = trex::ml_methods::model_selection;
-using trex::trex_selector_methods::utils::solver_dispatch::SolverTypeForTRex;
+using trex::trex_selector_methods::ad::utils::solver_dispatch::SolverTypeForTRex;
 
 // ========================================================================================
 
@@ -674,4 +674,4 @@ TEST(TikLambda2Pilot, RunPilotOnly) {
     EXPECT_TRUE(X.isApprox(d.X));   // X released and restored
 }
 
-} // namespace trex::test::trex_selector_methods::trex_tikhonov
+} // namespace trex::test::trex_selector_methods::ad::trex_tikhonov

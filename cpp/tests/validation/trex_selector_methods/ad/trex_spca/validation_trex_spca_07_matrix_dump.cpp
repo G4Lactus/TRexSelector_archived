@@ -31,10 +31,10 @@
 
 #include <Eigen/Dense>
 
-#include <trex_selector_methods/trex_gvs/trex_gvs.hpp>
+#include <trex_selector_methods/ad/trex_gvs/trex_gvs.hpp>
 
-namespace tg = trex::trex_selector_methods::trex_gvs;
-namespace sd = trex::trex_selector_methods::utils::solver_dispatch;
+namespace tg = trex::trex_selector_methods::ad::trex_gvs;
+namespace disp = trex::trex_selector_methods::ad::utils::solver_dispatch;
 
 namespace {
 
@@ -85,7 +85,7 @@ int main(int argc, char** argv) {
     std::string dir = TREX_SPCA_RDUMP10_DIR;
 #else
     std::string dir =
-        "trex_selector_methods/trex_spca/rdump10";
+        "trex_selector_methods/ad/trex_spca/rdump10";
 #endif
     int n_trials = 100;
     int seed_base = 9000;
@@ -123,8 +123,8 @@ int main(int argc, char** argv) {
         ctrl.en_solver             = use_aug ? tg::ENSolverType::TENET_AUG
                                              : tg::ENSolverType::TENET;
         ctrl.lambda_2              = lam[static_cast<std::size_t>(mc)];
-        ctrl.trex_ctrl.solver_type = use_aug ? sd::SolverTypeForTRex::TENET_AUG
-                                             : sd::SolverTypeForTRex::TENET;
+        ctrl.trex_ctrl.solver_type = use_aug ? disp::SolverTypeForTRex::TENET_AUG
+                                             : disp::SolverTypeForTRex::TENET;
 
         Eigen::Map<Eigen::MatrixXd> X_map(X.data(), X.rows(), X.cols());
         Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());

@@ -99,7 +99,7 @@ add_trex_validation(validation_mlm_hac_02_gvs_dummy_rcompare
 # T-solver cross-checks against R lars/lasso/elastic-net reference dumps
 # (TLARS / TLASSO / TENET / TENET_AUG).
 add_trex_validation(validation_ts_02_tlars_tlasso_rcompare
-    tsolvers/validation_ts_02_tlars_tlasso_rcompare/validation_ts_02_tlars_tlasso_rcompare.cpp)
+    tsolvers/ad/validation_ts_02_tlars_tlasso_rcompare/validation_ts_02_tlars_tlasso_rcompare.cpp)
 
 add_custom_target(run_validations
     COMMAND $<TARGET_FILE:validation_mlm_hac_01_rcompare>
@@ -116,40 +116,40 @@ add_custom_target(run_validations
 
 # Classical T-Rex selector.
 add_trex_diagnostic(validation_trex_01_scaling_comparison
-    trex_selector_methods/trex/validation_trex_01_scaling_comparison.cpp)
+    trex_selector_methods/ad/trex/validation_trex_01_scaling_comparison.cpp)
 
 # GVS T-Rex selector.
 add_trex_diagnostic(validation_trex_gvs_01_scaling_solver_comparison
-    trex_selector_methods/trex_gvs/validation_trex_gvs_01_scaling_solver_comparison.cpp)
+    trex_selector_methods/ad/trex_gvs/validation_trex_gvs_01_scaling_solver_comparison.cpp)
 
 # Dependency-Aware T-Rex selector (writes diag_*.csv compared by the sibling R script).
 add_trex_diagnostic(validation_trex_da_01_bt_dendro_diag
-    trex_selector_methods/trex_da/validation_trex_da_01_bt_dendro_diag/validation_trex_da_01_bt_dendro_diag.cpp)
+    trex_selector_methods/ad/trex_da/validation_trex_da_01_bt_dendro_diag/validation_trex_da_01_bt_dendro_diag.cpp)
 
 # Sparse-PCA T-Rex selector probes (01 dropped: relied on removed CV API).
 add_trex_diagnostic(validation_trex_spca_02_solver_comparison
-    trex_selector_methods/trex_spca/validation_trex_spca_02_solver_comparison.cpp)
+    trex_selector_methods/ad/trex_spca/validation_trex_spca_02_solver_comparison.cpp)
 add_trex_diagnostic(validation_trex_spca_03_scaling_comparison
-    trex_selector_methods/trex_spca/validation_trex_spca_03_scaling_comparison.cpp)
+    trex_selector_methods/ad/trex_spca/validation_trex_spca_03_scaling_comparison.cpp)
 add_trex_diagnostic(validation_trex_spca_04_rdump_pipeline
-    trex_selector_methods/trex_spca/validation_trex_spca_04_rdump_pipeline.cpp)
+    trex_selector_methods/ad/trex_spca/validation_trex_spca_04_rdump_pipeline.cpp)
 # Point spca_04 at the baked R dump committed beside the program (from the
 # co-located demo_trex_spca_02.R generator); --dir still overrides.
 target_compile_definitions(validation_trex_spca_04_rdump_pipeline PRIVATE
-    TREX_SPCA_RDUMP_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trex_selector_methods/trex_spca/rdump")
+    TREX_SPCA_RDUMP_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trex_selector_methods/ad/trex_spca/rdump")
 add_trex_diagnostic(validation_trex_spca_05_lambda2_foldmatch
-    trex_selector_methods/trex_spca/validation_trex_spca_05_lambda2_foldmatch.cpp)
+    trex_selector_methods/ad/trex_spca/validation_trex_spca_05_lambda2_foldmatch.cpp)
 add_trex_diagnostic(validation_trex_spca_06_handrolled_comparison
-    trex_selector_methods/trex_spca/validation_trex_spca_06_handrolled_comparison.cpp)
+    trex_selector_methods/ad/trex_spca/validation_trex_spca_06_handrolled_comparison.cpp)
 add_trex_diagnostic(validation_trex_spca_07_matrix_dump
-    trex_selector_methods/trex_spca/validation_trex_spca_07_matrix_dump.cpp)
+    trex_selector_methods/ad/trex_spca/validation_trex_spca_07_matrix_dump.cpp)
 # Point spca_07 at the baked rdump10 committed beside the program; --dir overrides.
 target_compile_definitions(validation_trex_spca_07_matrix_dump PRIVATE
-    TREX_SPCA_RDUMP10_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trex_selector_methods/trex_spca/rdump10")
+    TREX_SPCA_RDUMP10_DIR="${CMAKE_CURRENT_SOURCE_DIR}/trex_selector_methods/ad/trex_spca/rdump10")
 
 # T-solver equivalence probe.
 add_trex_diagnostic(validation_ts_01_tenet_aug_comparison
-    tsolvers/validation_ts_01_tenet_aug_comparison/validation_ts_01_tenet_aug_comparison.cpp)
+    tsolvers/ad/validation_ts_01_tenet_aug_comparison/validation_ts_01_tenet_aug_comparison.cpp)
 
 # Compile-only aggregate: builds every diagnostic (catching API drift against the
 # library) without auto-running them. Run individual probes by hand from bin/.

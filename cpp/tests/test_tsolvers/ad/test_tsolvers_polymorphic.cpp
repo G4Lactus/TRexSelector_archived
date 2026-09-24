@@ -20,30 +20,30 @@
 #include <Eigen/Dense>
 
 // LARS-based solvers
-#include <tsolvers/linear_model/lars_based/tlars_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tlasso_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tenet_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tenet_aug_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tienet_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tienet_aug_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tstepwise_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tstagewise_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tlars_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tlasso_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tenet_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tenet_aug_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tienet_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tienet_aug_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tstepwise_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tstagewise_solver.hpp>
 
 // OMP-based solvers
-#include <tsolvers/linear_model/omp_based/tomp_solver.hpp>
-#include <tsolvers/linear_model/omp_based/tmp_solver.hpp>
-#include <tsolvers/linear_model/omp_based/tgp_solver.hpp>
-#include <tsolvers/linear_model/omp_based/tacgp_solver.hpp>
-#include <tsolvers/linear_model/omp_based/tncgmp_solver.hpp>
-#include <tsolvers/linear_model/omp_based/tools_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tomp_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tmp_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tgp_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tacgp_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tncgmp_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tools_solver.hpp>
 
 // CCD-based solvers
-#include <tsolvers/linear_model/cd_based/tcdlasso_solver.hpp>
-#include <tsolvers/linear_model/cd_based/tcdenet_solver.hpp>
-#include <tsolvers/linear_model/cd_based/tcdienet_solver.hpp>
+#include <tsolvers/ad/linear_model/cd_based/tcdlasso_solver.hpp>
+#include <tsolvers/ad/linear_model/cd_based/tcdenet_solver.hpp>
+#include <tsolvers/ad/linear_model/cd_based/tcdienet_solver.hpp>
 
 // AFS-based solver
-#include <tsolvers/linear_model/afs_based/tafs_solver.hpp>
+#include <tsolvers/ad/linear_model/afs_based/tafs_solver.hpp>
 
 // datagen
 #include <utils/datageneration/utils_datagen.hpp>
@@ -51,13 +51,13 @@
 // ========================================================================================
 
 // Embed into test namespace
-namespace trex::test::tsolvers::linear_model {
+namespace trex::test::tsolvers::ad::linear_model {
 
 // namespaces
-using namespace trex::tsolvers::linear_model::lars_based;
-using namespace trex::tsolvers::linear_model::cd_based;
-using namespace trex::tsolvers::linear_model::omp_based;
-using namespace trex::tsolvers::linear_model::afs_based;
+using namespace trex::tsolvers::ad::linear_model::lars_based;
+using namespace trex::tsolvers::ad::linear_model::cd_based;
+using namespace trex::tsolvers::ad::linear_model::omp_based;
+using namespace trex::tsolvers::ad::linear_model::afs_based;
 using namespace trex::utils::datageneration::datagen;
 namespace fs = std::filesystem;
 
@@ -80,7 +80,7 @@ std::unique_ptr<T> create_solver(Eigen::Map<Eigen::MatrixXd>& X,
     // Every solver takes (X, D, y, options); the EN / IEN families read
     // lambda2 from the options, the IEN family also takes the group vector
     // (PLAN WP9).
-    trex::tsolvers::SolverOptions opts;
+    trex::tsolvers::ad::SolverOptions opts;
     opts.lambda2 = 0.5;
     if constexpr (std::is_same_v<T, TENET_Solver> ||
                   std::is_same_v<T, TENETAug_Solver> ||
@@ -231,4 +231,4 @@ TYPED_TEST(TSolverPolymorphicTest, ActiveInactiveDroppedPartition) {
 }
 
 // ========================================================================================
-} /* End of namespace trex::test::tsolvers::linear_model */
+} /* End of namespace trex::test::tsolvers::ad::linear_model */

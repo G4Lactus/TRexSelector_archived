@@ -14,8 +14,8 @@
 #include <vector>
 
 // project trex includes
-#include <trex_selector_methods/trex_core/trex.hpp>
-#include <trex_selector_methods/trex_da/trex_da.hpp>
+#include <trex_selector_methods/ad/trex_core/trex.hpp>
+#include <trex_selector_methods/ad/trex_da/trex_da.hpp>
 
 // project utils includes
 #include <utils/datageneration/utils_datagen.hpp>
@@ -23,14 +23,14 @@
 // ========================================================================================
 
 // Embed into test namespace
-namespace trex::test::trex_selector_methods::trex_da {
+namespace trex::test::trex_selector_methods::ad::trex_da {
 
 // Namespace aliases for convenience
-using namespace trex::trex_selector_methods::trex_da;
-using namespace trex::trex_selector_methods::trex_core;
+using namespace trex::trex_selector_methods::ad::trex_da;
+using namespace trex::trex_selector_methods::ad::trex_core;
 using namespace trex::utils::datageneration::datagen;
-namespace dn = trex::trex_selector_methods::utils::data_normalizer;
-namespace sd = trex::trex_selector_methods::utils::solver_dispatch;
+namespace dn = trex::trex_selector_methods::ad::utils::data_normalizer;
+namespace disp = trex::trex_selector_methods::ad::utils::solver_dispatch;
 
 // ========================================================================================
 
@@ -47,7 +47,7 @@ void run_trex_da_test(Eigen::Index n,
                       DAMethod method,
                       std::size_t K = 3,
                       LLoopStrategy l_strategy = LLoopStrategy::HCONCAT,
-                      sd::SolverTypeForTRex solver = sd::SolverTypeForTRex::TLARS)
+                      disp::SolverTypeForTRex solver = disp::SolverTypeForTRex::TLARS)
 {
     // Explicit vectors prevent template resolution errors in the constructor
     std::vector<std::size_t> support = {1, 2, 3};
@@ -255,14 +255,14 @@ TEST(TRexDATest, Method_AR1_SKIPL) {
  *  the shared dispatch, so the CD path solver must run end-to-end. */
 TEST(TRexDATest, Param_Solvers_TCDLASSO) {
     run_trex_da_test(150, 300, DAMethod::AR1, 3, LLoopStrategy::HCONCAT,
-                     sd::SolverTypeForTRex::TCDLASSO);
+                     disp::SolverTypeForTRex::TCDLASSO);
 }
 
 
 /** @brief DA with the CCD elastic-net solver (TCDENET). */
 TEST(TRexDATest, Param_Solvers_TCDENET) {
     run_trex_da_test(150, 300, DAMethod::AR1, 3, LLoopStrategy::HCONCAT,
-                     sd::SolverTypeForTRex::TCDENET);
+                     disp::SolverTypeForTRex::TCDENET);
 }
 
 
@@ -642,4 +642,4 @@ TEST(TRexDATest, Method_PriorGroups_NegativeLabelThrows) {
 
 
 // ========================================================================================
-} /* End of namespace trex::test::trex_selector_methods::trex_da */
+} /* End of namespace trex::test::trex_selector_methods::ad::trex_da */

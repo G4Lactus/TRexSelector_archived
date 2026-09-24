@@ -30,20 +30,17 @@
 #include <Eigen/Dense>
 
 // SD solver includes (umbrella)
-#include <tsolvers/sd_tsolvers/sd_tsolvers.hpp>
+#include <tsolvers/sd.hpp>
 
 // TRexSD include
-#include <trex_selector_methods/trex_sd/trex_sd.hpp>
+#include <trex_selector_methods/sd/trex_sd/trex_sd.hpp>
 
 // ========================================================================================
 
 namespace trex::test::tsolvers::sd {
 
-using namespace trex::tsolvers;
-namespace lars = trex::tsolvers::linear_model::lars_based;
-namespace omp  = trex::tsolvers::linear_model::omp_based;
-namespace afs  = trex::tsolvers::linear_model::afs_based;
-namespace tsd  = trex::trex_selector_methods::trex_sd;
+using namespace trex::tsolvers::sd;
+namespace tsd  = trex::trex_selector_methods::sd::trex_sd;
 
 // ----------------------------------------------------------------------------------------
 // Fixed-seed data on the SD solver contract: X centered with unit-L2 columns,
@@ -97,8 +94,8 @@ TEST(SDTwinEquivalence, LarsPairTwinIdenticalSelectionPath) {
     auto Xm1 = data.Xmap(); auto ym1 = data.ymap();
     auto Xm2 = data.Xmap(); auto ym2 = data.ymap();
 
-    lars::SD_TLARS_Solver general(Xm1, ym1, pairRho(), kLMax, kT, true, kSeed);
-    lars::SD2_TLARS_Solver pair(Xm2, ym2, kLMax, kT, true, kSeed,
+    SD_TLARS_Solver general(Xm1, ym1, pairRho(), kLMax, kT, true, kSeed);
+    SD2_TLARS_Solver pair(Xm2, ym2, kLMax, kT, true, kSeed,
                                 SD2GenPolicy::OnDemand);
 
     general.executeStep(kT, true);
@@ -115,8 +112,8 @@ TEST(SDTwinEquivalence, OmpPairTwinIdenticalSelectionPath) {
     auto Xm1 = data.Xmap(); auto ym1 = data.ymap();
     auto Xm2 = data.Xmap(); auto ym2 = data.ymap();
 
-    omp::SD_TOMP_Solver general(Xm1, ym1, pairRho(), kLMax, kT, true, kSeed);
-    omp::SD2_TOMP_Solver pair(Xm2, ym2, kLMax, kT, true, kSeed,
+    SD_TOMP_Solver general(Xm1, ym1, pairRho(), kLMax, kT, true, kSeed);
+    SD2_TOMP_Solver pair(Xm2, ym2, kLMax, kT, true, kSeed,
                               SD2GenPolicy::OnDemand);
 
     general.executeStep(kT, true);
@@ -131,8 +128,8 @@ TEST(SDTwinEquivalence, AfsPairTwinIdenticalSelectionPath) {
     auto Xm1 = data.Xmap(); auto ym1 = data.ymap();
     auto Xm2 = data.Xmap(); auto ym2 = data.ymap();
 
-    afs::SD_TAFS_Solver general(Xm1, ym1, pairRho(), kLMax, kT, true, kSeed, 0.3);
-    afs::SD2_TAFS_Solver pair(Xm2, ym2, kLMax, kT, true, kSeed,
+    SD_TAFS_Solver general(Xm1, ym1, pairRho(), kLMax, kT, true, kSeed, 0.3);
+    SD2_TAFS_Solver pair(Xm2, ym2, kLMax, kT, true, kSeed,
                               SD2GenPolicy::OnDemand, 0.3);
 
     general.executeStep(kT, true);
@@ -152,9 +149,9 @@ TEST(SDAfsOmpReduction, GeneralFamilyRhoOneEqualsOmp) {
     auto Xm2 = data.Xmap(); auto ym2 = data.ymap();
 
     const double rho_d = 0.1;
-    afs::SD_TAFS_Solver afs_solver(Xm1, ym1, rho_d, kLMax, kT, true, kSeed,
+    SD_TAFS_Solver afs_solver(Xm1, ym1, rho_d, kLMax, kT, true, kSeed,
                                    /*rho=*/1.0);
-    omp::SD_TOMP_Solver omp_solver(Xm2, ym2, rho_d, kLMax, kT, true, kSeed);
+    SD_TOMP_Solver omp_solver(Xm2, ym2, rho_d, kLMax, kT, true, kSeed);
 
     afs_solver.executeStep(kT, true);
     omp_solver.executeStep(kT, true);
@@ -171,9 +168,9 @@ TEST(SDAfsOmpReduction, PairFamilyRhoOneEqualsOmp) {
         auto Xm1 = data.Xmap(); auto ym1 = data.ymap();
         auto Xm2 = data.Xmap(); auto ym2 = data.ymap();
 
-        afs::SD2_TAFS_Solver afs_solver(Xm1, ym1, kLMax, kT, true, kSeed,
+        SD2_TAFS_Solver afs_solver(Xm1, ym1, kLMax, kT, true, kSeed,
                                         policy, /*rho=*/1.0);
-        omp::SD2_TOMP_Solver omp_solver(Xm2, ym2, kLMax, kT, true, kSeed,
+        SD2_TOMP_Solver omp_solver(Xm2, ym2, kLMax, kT, true, kSeed,
                                         policy);
 
         afs_solver.executeStep(kT, true);
@@ -194,10 +191,10 @@ TEST(SDResumability, LarsIncrementalEqualsFresh) {
     auto Xm2 = data.Xmap(); auto ym2 = data.ymap();
 
     const double rho_d = 0.1;
-    lars::SD_TLARS_Solver fresh(Xm1, ym1, rho_d, kLMax, kT, true, kSeed);
+    SD_TLARS_Solver fresh(Xm1, ym1, rho_d, kLMax, kT, true, kSeed);
     fresh.executeStep(kT, true);
 
-    lars::SD_TLARS_Solver resumed(Xm2, ym2, rho_d, kLMax, kT, true, kSeed);
+    SD_TLARS_Solver resumed(Xm2, ym2, rho_d, kLMax, kT, true, kSeed);
     resumed.executeStep(1, true);
     resumed.executeStep(kT, true);
 
@@ -212,10 +209,10 @@ TEST(SDResumability, OmpIncrementalEqualsFresh) {
     auto Xm2 = data.Xmap(); auto ym2 = data.ymap();
 
     const double rho_d = 0.1;
-    omp::SD_TOMP_Solver fresh(Xm1, ym1, rho_d, kLMax, kT, true, kSeed);
+    SD_TOMP_Solver fresh(Xm1, ym1, rho_d, kLMax, kT, true, kSeed);
     fresh.executeStep(kT, true);
 
-    omp::SD_TOMP_Solver resumed(Xm2, ym2, rho_d, kLMax, kT, true, kSeed);
+    SD_TOMP_Solver resumed(Xm2, ym2, rho_d, kLMax, kT, true, kSeed);
     resumed.executeStep(1, true);
     resumed.executeStep(kT, true);
 
@@ -231,7 +228,7 @@ TEST(SDSelection, LarsRecoversPlantedSupportBeforeDummies) {
     SDData data(kN, kP, 8);
     auto Xm = data.Xmap(); auto ym = data.ymap();
 
-    lars::SD_TLARS_Solver solver(Xm, ym, 0.1, kLMax, kT, true, kSeed);
+    SD_TLARS_Solver solver(Xm, ym, 0.1, kLMax, kT, true, kSeed);
     solver.executeStep(kT, true);
 
     // The three planted predictors carry equal strong signal: they must all

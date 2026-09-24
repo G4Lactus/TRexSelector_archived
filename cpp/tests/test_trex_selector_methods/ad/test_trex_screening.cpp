@@ -13,8 +13,8 @@
 #include <vector>
 
 // project trex includes
-#include <trex_selector_methods/trex_core/trex.hpp>
-#include <trex_selector_methods/trex_screening/trex_biobank_screening.hpp>
+#include <trex_selector_methods/ad/trex_core/trex.hpp>
+#include <trex_selector_methods/ad/trex_screening/trex_biobank_screening.hpp>
 
 // project utils includes
 #include <utils/datageneration/utils_datagen.hpp>
@@ -23,14 +23,14 @@
 // ========================================================================================
 
 // Embed into test namespace
-namespace trex::test::trex_selector_methods::trex_screening {
+namespace trex::test::trex_selector_methods::ad::trex_screening {
 
 // Namespace aliases for convenience
-using namespace trex::trex_selector_methods::trex_screening;
-using namespace trex::trex_selector_methods::trex_core;
+using namespace trex::trex_selector_methods::ad::trex_screening;
+using namespace trex::trex_selector_methods::ad::trex_core;
 using namespace trex::utils::datageneration::datagen;
-namespace dn = trex::trex_selector_methods::utils::data_normalizer;
-namespace sd = trex::trex_selector_methods::utils::solver_dispatch;
+namespace dn = trex::trex_selector_methods::ad::utils::data_normalizer;
+namespace disp = trex::trex_selector_methods::ad::utils::solver_dispatch;
 
 // ========================================================================================
 
@@ -171,8 +171,8 @@ TEST_F(TRexScreeningTest, Execution_OrdinaryScreenTRexDoesNotThrow) {
  *  and no warm start engages, so this exercises the plain fresh-construction
  *  dispatch of the CD family under the screening loop. */
 TEST_F(TRexScreeningTest, Execution_CdFamilyDoesNotThrow) {
-    for (auto solver : {sd::SolverTypeForTRex::TCDLASSO,
-                        sd::SolverTypeForTRex::TCDENET}) {
+    for (auto solver : {disp::SolverTypeForTRex::TCDLASSO,
+                        disp::SolverTypeForTRex::TCDENET}) {
         ScreenTRexControlParameter screen_params;
         screen_params.trex_method = ScreenTRexMethod::TREX;
         screen_params.use_bootstrap_CI = false;
@@ -316,4 +316,4 @@ TEST(TRexScreeningScalingTest, Method_DA_BLOCK_EQUI_ScalingModeParity) {
 }
 
 /// ========================================================================================
-} /* End of namespace trex::test::trex_selector_methods::trex_screening */
+} /* End of namespace trex::test::trex_selector_methods::ad::trex_screening */

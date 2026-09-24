@@ -56,13 +56,13 @@
 #include <Eigen/Dense>
 
 #include <utils/openmp/utils_openmp.hpp>
-#include <tsolvers/linear_model/lars_based/tlars_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tlasso_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tenet_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tenet_aug_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tlars_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tlasso_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tenet_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tenet_aug_solver.hpp>
 
-namespace lars     = trex::tsolvers::linear_model::lars_based;
-namespace ts       = trex::tsolvers;
+namespace lars     = trex::tsolvers::ad::linear_model::lars_based;
+namespace ts       = trex::tsolvers::ad;
 namespace omp_util = trex::utils::openmp;
 
 // ============================================================================
@@ -274,7 +274,7 @@ int main(int argc, char** argv)
 
         // ----- TLARS vs r_lar -----
         {
-            lars::TLARS_Solver s(X_map, D_map, y_map, trex::tsolvers::SolverOptions{.normalize = false, .intercept = false});
+            lars::TLARS_Solver s(X_map, D_map, y_map, trex::tsolvers::ad::SolverOptions{.normalize = false, .intercept = false});
             s.executeStep(full, /*early_stop=*/false);
             const auto cmp = compare(s.getBetaPathSparse().dense(), flatten_actions_to_r(s.getActions()),
                                      read_csv_matrix(dir / ("r_lar_beta_" + si + ".csv")),
@@ -285,7 +285,7 @@ int main(int argc, char** argv)
         }
         // ----- TLASSO vs r_lasso -----
         {
-            lars::TLASSO_Solver s(X_map, D_map, y_map, trex::tsolvers::SolverOptions{.normalize = false, .intercept = false});
+            lars::TLASSO_Solver s(X_map, D_map, y_map, trex::tsolvers::ad::SolverOptions{.normalize = false, .intercept = false});
             s.executeStep(full, /*early_stop=*/false);
             const auto cmp = compare(s.getBetaPathSparse().dense(), flatten_actions_to_r(s.getActions()),
                                      read_csv_matrix(dir / ("r_lasso_beta_" + si + ".csv")),
@@ -295,7 +295,7 @@ int main(int argc, char** argv)
         }
         // ----- TENET (Gram EN) vs r_en -----
         {
-            lars::TENET_Solver s(X_map, D_map, y_map, trex::tsolvers::SolverOptions{.normalize = false, .intercept = false, .lambda2 = lambda2});
+            lars::TENET_Solver s(X_map, D_map, y_map, trex::tsolvers::ad::SolverOptions{.normalize = false, .intercept = false, .lambda2 = lambda2});
             s.executeStep(full, /*early_stop=*/false);
             const auto cmp = compare(s.getBetaPathSparse().dense(), flatten_actions_to_r(s.getActions()),
                                      read_csv_matrix(dir / ("r_en_beta_" + si + ".csv")),
@@ -305,7 +305,7 @@ int main(int argc, char** argv)
         }
         // ----- TENET_AUG (augmented-lasso EN) vs r_en -----
         {
-            lars::TENETAug_Solver s(X_map, D_map, y_map, trex::tsolvers::SolverOptions{.normalize = false, .intercept = false, .lambda2 = lambda2});
+            lars::TENETAug_Solver s(X_map, D_map, y_map, trex::tsolvers::ad::SolverOptions{.normalize = false, .intercept = false, .lambda2 = lambda2});
             s.executeStep(full, /*early_stop=*/false);
             const auto cmp = compare(s.getBetaPathSparse().dense(), flatten_actions_to_r(s.getActions()),
                                      read_csv_matrix(dir / ("r_en_beta_" + si + ".csv")),
@@ -315,7 +315,7 @@ int main(int argc, char** argv)
         }
         // ----- TENET_AUG with pure-LARS inner vs r_enlar (augmented type="lar") -----
         {
-            lars::TENETAug_Solver s(X_map, D_map, y_map, trex::tsolvers::SolverOptions{.normalize = false, .intercept = false, .lambda2 = lambda2, .tenet_aug_use_lars = true});
+            lars::TENETAug_Solver s(X_map, D_map, y_map, trex::tsolvers::ad::SolverOptions{.normalize = false, .intercept = false, .lambda2 = lambda2, .tenet_aug_use_lars = true});
             s.executeStep(full, /*early_stop=*/false);
             const auto cmp = compare(s.getBetaPathSparse().dense(), flatten_actions_to_r(s.getActions()),
                                      read_csv_matrix(dir / ("r_enlar_beta_" + si + ".csv")),

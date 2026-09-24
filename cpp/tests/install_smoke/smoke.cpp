@@ -6,13 +6,13 @@
 #include <vector>
 
 #include <ml_methods/clustering/hierarchical/agglomerative/dendrogram_utils.hpp>
-#include <trex_selector_methods/trex_core/trex.hpp>
-#include <tsolvers/linear_model/lars_based/tlars_solver.hpp>
+#include <trex_selector_methods/ad/trex_core/trex.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tlars_solver.hpp>
 #include <utils/checked_arith.hpp>
 #include <utils/datageneration/utils_datagen.hpp>
 
 int main() {
-    using namespace trex::trex_selector_methods::trex_core;
+    using namespace trex::trex_selector_methods::ad::trex_core;
     using namespace trex::utils::datageneration::datagen;
 
     std::vector<std::size_t> support = {1, 2, 3};

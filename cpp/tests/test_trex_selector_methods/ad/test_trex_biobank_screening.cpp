@@ -12,19 +12,19 @@
 #include <stdexcept>
 
 // project trex includes
-#include <trex_selector_methods/trex_core/trex.hpp>
-#include <trex_selector_methods/trex_screening/trex_screening.hpp>
-#include <trex_selector_methods/trex_screening/trex_biobank_screening.hpp>
+#include <trex_selector_methods/ad/trex_core/trex.hpp>
+#include <trex_selector_methods/ad/trex_screening/trex_screening.hpp>
+#include <trex_selector_methods/ad/trex_screening/trex_biobank_screening.hpp>
 
 // ===================================================================================
 
 // Embed into test namespace
-namespace trex::test::trex_selector_methods::trex_biobank_screening {
+namespace trex::test::trex_selector_methods::ad::trex_biobank_screening {
 
 // Namespace aliases for convenience
-using namespace trex::trex_selector_methods::trex_core;
-using namespace trex::trex_selector_methods::trex_screening;
-using namespace trex::trex_selector_methods::trex_biobank_screening;
+using namespace trex::trex_selector_methods::ad::trex_core;
+using namespace trex::trex_selector_methods::ad::trex_screening;
+using namespace trex::trex_selector_methods::ad::trex_biobank_screening;
 
 
 // ===================================================================================
@@ -100,4 +100,4 @@ TEST_F(TRexBiobankScreeningTest, Execution_FallbackLogicActivation) {
 }
 
 // ===================================================================================
-} /* End of namespace trex::test::trex_selector_methods::trex_biobank_screening */
+} /* End of namespace trex::test::trex_selector_methods::ad::trex_biobank_screening */

@@ -61,17 +61,17 @@
 #include <utils/openmp/utils_openmp.hpp>
 
 // T-Rex GVS selector + PCA baseline
-#include <trex_selector_methods/trex_gvs/trex_gvs.hpp>
+#include <trex_selector_methods/ad/trex_gvs/trex_gvs.hpp>
 #include <ml_methods/pca/pca.hpp>
 
 // ==============================================================================
 // Namespace aliases
 // ==============================================================================
 
-namespace tg     = trex::trex_selector_methods::trex_gvs;
-namespace tc     = trex::trex_selector_methods::trex_core;
+namespace tg     = trex::trex_selector_methods::ad::trex_gvs;
+namespace tc     = trex::trex_selector_methods::ad::trex_core;
 namespace pca_ns = trex::ml_methods::pca;
-namespace dn     = trex::trex_selector_methods::utils::data_normalizer;
+namespace dn     = trex::trex_selector_methods::ad::utils::data_normalizer;
 
 // ==============================================================================
 // CSV helpers
@@ -226,7 +226,7 @@ int main(int argc, char** argv)
     std::filesystem::path rdump_dir = TREX_SPCA_RDUMP_DIR;
 #else
     std::filesystem::path rdump_dir =
-        "trex_selector_methods/trex_spca/rdump";
+        "trex_selector_methods/ad/trex_spca/rdump";
 #endif
     int    num_trials   = 100;
     double tFDR         = 0.10;
@@ -313,7 +313,7 @@ int main(int argc, char** argv)
         }
 
         tc::TRexControlParameter trex_ctrl;
-        trex_ctrl.solver_type   = trex::trex_selector_methods::utils::solver_dispatch::
+        trex_ctrl.solver_type   = trex::trex_selector_methods::ad::utils::solver_dispatch::
                                       SolverTypeForTRex::TENET_AUG;
         trex_ctrl.scaling_mode  = zscore ? dn::ScalingMode::ZSCORE : dn::ScalingMode::L2;
         if (no_stagnation) {

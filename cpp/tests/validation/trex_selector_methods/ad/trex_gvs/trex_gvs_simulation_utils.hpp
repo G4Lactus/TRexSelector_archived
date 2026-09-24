@@ -69,7 +69,7 @@
 #include <utils/openmp/utils_openmp.hpp>
 
 // T-Rex+GVS includes
-#include <trex_selector_methods/trex_gvs/trex_gvs.hpp>
+#include <trex_selector_methods/ad/trex_gvs/trex_gvs.hpp>
 
 // Eval metrics
 #include <utils/eval_metrics/utils_eval_cdiagnostics.hpp>
@@ -89,16 +89,16 @@ namespace rates       = trex::utils::eval::rates;
 namespace cdiag       = trex::utils::eval::cdiagnostics;
 namespace hac         = trex::ml_methods::clustering::hierarchical::agglomerative;
 
-using trex::trex_selector_methods::trex_gvs::TRexGVSSelector;
-using trex::trex_selector_methods::trex_gvs::TRexGVSControlParameter;
-using trex::trex_selector_methods::trex_gvs::GVSType;
-using trex::trex_selector_methods::trex_gvs::ENSolverType;
-using trex::trex_selector_methods::trex_gvs::LambdaSelectionMethod;
-using trex::trex_selector_methods::trex_core::TRexSelector;
-using trex::trex_selector_methods::trex_core::TRexControlParameter;
-using trex::trex_selector_methods::trex_core::LLoopStrategy;
-using trex::trex_selector_methods::utils::solver_dispatch::SolverTypeForTRex;
-using trex::trex_selector_methods::utils::solver_dispatch::SolverHyperparameters;
+using trex::trex_selector_methods::ad::trex_gvs::TRexGVSSelector;
+using trex::trex_selector_methods::ad::trex_gvs::TRexGVSControlParameter;
+using trex::trex_selector_methods::ad::trex_gvs::GVSType;
+using trex::trex_selector_methods::ad::trex_gvs::ENSolverType;
+using trex::trex_selector_methods::ad::trex_gvs::LambdaSelectionMethod;
+using trex::trex_selector_methods::ad::trex_core::TRexSelector;
+using trex::trex_selector_methods::ad::trex_core::TRexControlParameter;
+using trex::trex_selector_methods::ad::trex_core::LLoopStrategy;
+using trex::trex_selector_methods::ad::utils::solver_dispatch::SolverTypeForTRex;
+using trex::trex_selector_methods::ad::utils::solver_dispatch::SolverHyperparameters;
 
 
 // ==============================================================================

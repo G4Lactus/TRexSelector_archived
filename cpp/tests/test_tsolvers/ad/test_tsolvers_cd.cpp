@@ -26,13 +26,13 @@
 #include <Eigen/Sparse>
 
 // tsolvers includes
-#include <tsolvers/linear_model/cd_based/tcdlasso_solver.hpp>
-#include <tsolvers/linear_model/cd_based/tcdenet_solver.hpp>
-#include <tsolvers/linear_model/cd_based/tcdienet_solver.hpp>
-#include <tsolvers/linear_model/cd_based/tcdtiknet_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tlasso_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tenet_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tienet_solver.hpp>
+#include <tsolvers/ad/linear_model/cd_based/tcdlasso_solver.hpp>
+#include <tsolvers/ad/linear_model/cd_based/tcdenet_solver.hpp>
+#include <tsolvers/ad/linear_model/cd_based/tcdienet_solver.hpp>
+#include <tsolvers/ad/linear_model/cd_based/tcdtiknet_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tlasso_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tenet_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tienet_solver.hpp>
 
 // utils includes
 #include <utils/datageneration/utils_datagen.hpp>
@@ -40,12 +40,12 @@
 // ========================================================================================
 
 // Embed into test namespace
-namespace trex::test::tsolvers::linear_model {
+namespace trex::test::tsolvers::ad::linear_model {
 
-using namespace trex::tsolvers::linear_model::cd_based;
-using namespace trex::tsolvers::linear_model::lars_based;
+using namespace trex::tsolvers::ad::linear_model::cd_based;
+using namespace trex::tsolvers::ad::linear_model::lars_based;
 using namespace trex::utils::datageneration::datagen;
-using trex::tsolvers::SparseBetaPath;
+using trex::tsolvers::ad::SparseBetaPath;
 
 // ========================================================================================
 
@@ -194,13 +194,13 @@ TEST_F(TSolverCdTest, KktCertificateAtTermination) {
     }
     {
         Mapped m(X, D, y);
-        TCDENET_Solver s(m.Xm, m.Dm, m.ym, trex::tsolvers::SolverOptions{.lambda2 = 0.5});
+        TCDENET_Solver s(m.Xm, m.Dm, m.ym, trex::tsolvers::ad::SolverOptions{.lambda2 = 0.5});
         s.executeStep(5, true);
         EXPECT_LT(s.getKktViolation(), 1e-6);
     }
     {
         Mapped m(X, D, y);
-        TCDIENET_Solver s(m.Xm, m.Dm, m.ym, groups, trex::tsolvers::SolverOptions{.lambda2 = 1.0});
+        TCDIENET_Solver s(m.Xm, m.Dm, m.ym, groups, trex::tsolvers::ad::SolverOptions{.lambda2 = 1.0});
         s.executeStep(5, true);
         EXPECT_LT(s.getKktViolation(), 1e-6);
     }
@@ -244,12 +244,12 @@ TEST_F(TSolverCdTest, CrossingSupportsMatchTENET) {
     const double lambda2 = 0.5;
 
     Mapped mc(X, D, y);
-    TCDENET_Solver ccd(mc.Xm, mc.Dm, mc.ym, trex::tsolvers::SolverOptions{.lambda2 = lambda2});
+    TCDENET_Solver ccd(mc.Xm, mc.Dm, mc.ym, trex::tsolvers::ad::SolverOptions{.lambda2 = lambda2});
     ccd.setLambdaRelTol(1e-6);
     ccd.executeStep(T, true);
 
     Mapped ml(X, D, y);
-    TENET_Solver enet(ml.Xm, ml.Dm, ml.ym, trex::tsolvers::SolverOptions{.lambda2 = lambda2});
+    TENET_Solver enet(ml.Xm, ml.Dm, ml.ym, trex::tsolvers::ad::SolverOptions{.lambda2 = lambda2});
     enet.executeStep(T, true);
 
     const auto sup_ccd = supportsAtDummyCounts(ccd.getBetaPathSparse(), p, T);
@@ -270,12 +270,12 @@ TEST_F(TSolverCdTest, CrossingSupportsMatchTIENET) {
     const double lambda2 = 1.0;
 
     Mapped mc(X, D, y);
-    TCDIENET_Solver ccd(mc.Xm, mc.Dm, mc.ym, groups, trex::tsolvers::SolverOptions{.lambda2 = lambda2});
+    TCDIENET_Solver ccd(mc.Xm, mc.Dm, mc.ym, groups, trex::tsolvers::ad::SolverOptions{.lambda2 = lambda2});
     ccd.setLambdaRelTol(1e-6);
     ccd.executeStep(T, true);
 
     Mapped ml(X, D, y);
-    TIENET_Solver ien(ml.Xm, ml.Dm, ml.ym, groups, trex::tsolvers::SolverOptions{.lambda2 = lambda2});
+    TIENET_Solver ien(ml.Xm, ml.Dm, ml.ym, groups, trex::tsolvers::ad::SolverOptions{.lambda2 = lambda2});
     ien.executeStep(T, true);
 
     const auto sup_ccd = supportsAtDummyCounts(ccd.getBetaPathSparse(), p, T);
@@ -317,11 +317,11 @@ TEST_F(TSolverCdTest, TikhonovIdentityMatchesTcdenet) {
     K.setIdentity();
 
     Mapped mt(X, D, y);
-    TCDTIKNET_Solver tik(mt.Xm, mt.Dm, mt.ym, K, trex::tsolvers::SolverOptions{.lambda2 = lambda2});
+    TCDTIKNET_Solver tik(mt.Xm, mt.Dm, mt.ym, K, trex::tsolvers::ad::SolverOptions{.lambda2 = lambda2});
     tik.executeStep(5, true);
 
     Mapped me(X, D, y);
-    TCDENET_Solver enet(me.Xm, me.Dm, me.ym, trex::tsolvers::SolverOptions{.lambda2 = lambda2});
+    TCDENET_Solver enet(me.Xm, me.Dm, me.ym, trex::tsolvers::ad::SolverOptions{.lambda2 = lambda2});
     enet.executeStep(5, true);
 
     EXPECT_EQ(tik.getActions(), enet.getActions());
@@ -345,7 +345,7 @@ TEST_F(TSolverCdTest, SingletonGroupsNoDummiesMatchTcdenet) {
     Eigen::Map<Eigen::MatrixXd> Xi_m(Xi.data(), Xi.rows(), Xi.cols());
     Eigen::Map<Eigen::MatrixXd> Di_m(D_empty.data(), D_empty.rows(), 0);
     Eigen::Map<Eigen::VectorXd> yi_m(yi.data(), yi.size());
-    TCDIENET_Solver ien(Xi_m, Di_m, yi_m, singleton, trex::tsolvers::SolverOptions{.lambda2 = lambda2});
+    TCDIENET_Solver ien(Xi_m, Di_m, yi_m, singleton, trex::tsolvers::ad::SolverOptions{.lambda2 = lambda2});
     ien.setFullPathGrid(20, 1e-2);
     ien.executeStep(0, true);
 
@@ -354,7 +354,7 @@ TEST_F(TSolverCdTest, SingletonGroupsNoDummiesMatchTcdenet) {
     Eigen::Map<Eigen::MatrixXd> Xe_m(Xe.data(), Xe.rows(), Xe.cols());
     Eigen::Map<Eigen::MatrixXd> De_m(D_empty.data(), D_empty.rows(), 0);
     Eigen::Map<Eigen::VectorXd> ye_m(ye.data(), ye.size());
-    TCDENET_Solver enet(Xe_m, De_m, ye_m, trex::tsolvers::SolverOptions{.lambda2 = lambda2});
+    TCDENET_Solver enet(Xe_m, De_m, ye_m, trex::tsolvers::ad::SolverOptions{.lambda2 = lambda2});
     enet.setFullPathGrid(20, 1e-2);
     enet.executeStep(0, true);
 
@@ -386,12 +386,12 @@ TEST_F(TSolverCdTest, GroupCenteringMatchesSparseFoldedKgc) {
     K_gc.setFromTriplets(trip.begin(), trip.end());
 
     Mapped ms(X, D, y);
-    TCDTIKNET_Solver sparse_path(ms.Xm, ms.Dm, ms.ym, K_gc, trex::tsolvers::SolverOptions{.lambda2 = lambda2, .fold_dummies = true});
+    TCDTIKNET_Solver sparse_path(ms.Xm, ms.Dm, ms.ym, K_gc, trex::tsolvers::ad::SolverOptions{.lambda2 = lambda2, .fold_dummies = true});
     sparse_path.setLambdaRelTol(1e-6);
     sparse_path.executeStep(5, true);
 
     Mapped mg(X, D, y);
-    TCDIENET_Solver fast_path(mg.Xm, mg.Dm, mg.ym, groups, trex::tsolvers::SolverOptions{.lambda2 = lambda2, .group_penalty = GroupPenaltyVariant::CENTERING});
+    TCDIENET_Solver fast_path(mg.Xm, mg.Dm, mg.ym, groups, trex::tsolvers::ad::SolverOptions{.lambda2 = lambda2, .group_penalty = GroupPenaltyVariant::CENTERING});
     fast_path.setLambdaRelTol(1e-6);
     fast_path.executeStep(5, true);
 
@@ -408,7 +408,7 @@ TEST_F(TSolverCdTest, GroupCenteringSingletonGroupsMatchTcdlasso) {
         X.cols(), 0, static_cast<int>(X.cols()) - 1);
 
     Mapped mg(X, D, y);
-    TCDIENET_Solver cen(mg.Xm, mg.Dm, mg.ym, singleton, trex::tsolvers::SolverOptions{.lambda2 = 3.0, .group_penalty = GroupPenaltyVariant::CENTERING});
+    TCDIENET_Solver cen(mg.Xm, mg.Dm, mg.ym, singleton, trex::tsolvers::ad::SolverOptions{.lambda2 = 3.0, .group_penalty = GroupPenaltyVariant::CENTERING});
     cen.executeStep(5, true);
 
     Mapped mc(X, D, y);
@@ -475,7 +475,7 @@ TEST_F(TSolverCdTest, SerializeLoadContinueMatchesContinuous_TCDLASSO) {
 TEST_F(TSolverCdTest, SerializeLoadContinueMatchesContinuous_TCDENET) {
     expectRoundTripMatchesContinuous<TCDENET_Solver>(
         [](Mapped& m) {
-            return TCDENET_Solver(m.Xm, m.Dm, m.ym, trex::tsolvers::SolverOptions{.lambda2 = 0.5});
+            return TCDENET_Solver(m.Xm, m.Dm, m.ym, trex::tsolvers::ad::SolverOptions{.lambda2 = 0.5});
         },
         "tcdenet");
 }
@@ -486,7 +486,7 @@ TEST_F(TSolverCdTest, SerializeLoadContinueMatchesContinuous_TCDENET) {
 TEST_F(TSolverCdTest, SerializeLoadContinueMatchesContinuous_TCDIENET) {
     expectRoundTripMatchesContinuous<TCDIENET_Solver>(
         [this](Mapped& m) {
-            return TCDIENET_Solver(m.Xm, m.Dm, m.ym, groups, trex::tsolvers::SolverOptions{.lambda2 = 1.0});
+            return TCDIENET_Solver(m.Xm, m.Dm, m.ym, groups, trex::tsolvers::ad::SolverOptions{.lambda2 = 1.0});
         },
         "tcdienet");
 }
@@ -510,7 +510,7 @@ TEST_F(TSolverCdTest, SerializeLoadContinueMatchesContinuous_TCDTIKNET) {
 
     expectRoundTripMatchesContinuous<TCDTIKNET_Solver>(
         [&K](Mapped& m) {
-            return TCDTIKNET_Solver(m.Xm, m.Dm, m.ym, K, trex::tsolvers::SolverOptions{.lambda2 = 0.5});
+            return TCDTIKNET_Solver(m.Xm, m.Dm, m.ym, K, trex::tsolvers::ad::SolverOptions{.lambda2 = 0.5});
         },
         "tcdtiknet_sparse_k");
 }
@@ -591,12 +591,12 @@ TEST_F(TSolverCdTest, CertifiedRecordsCarryCertificates) {
     }
     {
         Mapped m(X, D, y);
-        TCDENET_Solver s(m.Xm, m.Dm, m.ym, trex::tsolvers::SolverOptions{.lambda2 = 0.5});
+        TCDENET_Solver s(m.Xm, m.Dm, m.ym, trex::tsolvers::ad::SolverOptions{.lambda2 = 0.5});
         check(s, "TCDENET");
     }
     {
         Mapped m(X, D, y);
-        TCDIENET_Solver s(m.Xm, m.Dm, m.ym, groups, trex::tsolvers::SolverOptions{.lambda2 = 1.0});
+        TCDIENET_Solver s(m.Xm, m.Dm, m.ym, groups, trex::tsolvers::ad::SolverOptions{.lambda2 = 1.0});
         check(s, "TCDIENET");
     }
     {
@@ -612,7 +612,7 @@ TEST_F(TSolverCdTest, CertifiedRecordsCarryCertificates) {
         Eigen::SparseMatrix<double> K_gc(p, p);
         K_gc.setFromTriplets(trip.begin(), trip.end());
         Mapped m(X, D, y);
-        TCDTIKNET_Solver s(m.Xm, m.Dm, m.ym, K_gc, trex::tsolvers::SolverOptions{.lambda2 = 2.0, .fold_dummies = true});
+        TCDTIKNET_Solver s(m.Xm, m.Dm, m.ym, K_gc, trex::tsolvers::ad::SolverOptions{.lambda2 = 2.0, .fold_dummies = true});
         check(s, "TCDTIKNET(folded)");
     }
 }
@@ -717,5 +717,5 @@ TEST_F(TSolverCdTest, CertifiedResumeReproducesKnots) {
 }
 
 // ========================================================================================
-} /* End of namespace trex::test::tsolvers::linear_model */
+} /* End of namespace trex::test::tsolvers::ad::linear_model */
 
