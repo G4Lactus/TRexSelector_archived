@@ -1,10 +1,55 @@
 # TRexSelector changelog
 
-## TRexSelector ?.?.?
+## TRexSelector C++ 1.0.0 / R 2.0.0 / Python 1.0.0
 
-????-??-??
+Release candidate on `dev_beyond` (2026-09-24); the three packages carry
+their own version numbers from here on: the C++ SDK 1.0.0 (CMake project
+version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
+2.0.0, the Python package TRexSelectorNeo 1.0.0.
+
+### Breaking changes since 2.0.0 (June 2026)
+
+- L-loop strategies: `ONDEMAND` and `PERMUTATION_ONDEMAND` are `SEEDED` and
+  `PERMUTATION_SEEDED` (the seed-derived, nothing-stored strategies); the old strings
+  are rejected by `trex_control()` and the Python enum has no alias.
+- `SolverTypeForTRex` was renumbered when the CD family and the Tikhonov solvers
+  were added; serialized integer codes from before July are not portable.
+- CD solver family renamed: `TCCD`, `TCENET`, `TCIENET` are `TCDLASSO`, `TCDENET`,
+  `TCDIENET`; the general-Tikhonov mode of `TCIENET` was extracted into
+  `TCDTIKNET`, which is the Tikhonov selector's default solver. Checkpoints written
+  by the old classes are unreadable by the new ones (formats incompatible).
+- The CD family localizes every dummy crossing with certificates by default
+  (`cd_certified_localization = TRUE`); the pre-August probe bisection is the
+  LEGACY fallback and opt-in.
+- `TRexGVSSelector`, `gvs_type = "IEN"`: the default solver is the native pathwise
+  `TIENET`; `TIENET_AUG` and `TCDIENET` are the alternatives.
+- `TRexTikhonovSelector` defaults: cluster-aware dummies (`cluster_dummies = TRUE`)
+  and FOLDED dummy coupling (`fold_dummy_coupling = TRUE`); the `PILOT_MAX` /
+  `PILOT_KNEE` lambda_2 rules exist next to the CV tuners (default `CV_1SE_IEN_CCD`).
+- The SDK headers install under `<prefix>/include/TRexSelector/` (manual include
+  paths change; exported targets do not), see the 2026-09-24 entry.
+- The selectors reject non-finite entries and constant columns of X (constant
+  columns were silently unselectable before), see `ScalingMode::NONE` below.
+- Every T-solver is constructed as `(X, D, y, [groups | K,] options)` with one
+  options structure; the positional constructors and the per-solver R / Python
+  keyword arguments are gone, see below.
+- Floating-point classification is bit-based and the Release build no longer uses
+  `-ffast-math`: results are IEEE 754 conformant; runs from fast-math builds are
+  not bit-reproducible against these.
 
 ### 2026-09-24
+
+#### The CD family, native TIENET, TIKNET and TIKOMP as R6 and Python solvers
+
+- R: `TCDLASSO_Solver`, `TCDENET_Solver`, `TCDIENET_Solver`, `TCDTIKNET_Solver`
+  (sharing the CD getters through `TCDSolver_Base`), `TIENET_Solver`,
+  `TIKNET_Solver`, `TIKOMP_Solver`, all on `$new(X, D, y, [groups | tikhonov_K,]
+  options)`; a Tikhonov matrix is a `Matrix::dgCMatrix`, another `Matrix` sparse
+  class, or a dense matrix.
+- Python: the `tsolvers.cd_based` submodule with the four CD solvers;
+  `TIENET_Solver` and `TIKNET_Solver` in `lars_based`, `TIKOMP_Solver` in
+  `omp_based`; a Tikhonov matrix is a dense array (converted internally, no SciPy
+  dependency).
 
 #### C++ install layout (breaking for manual include paths)
 
