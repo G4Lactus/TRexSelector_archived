@@ -103,12 +103,29 @@
 #'   baseline). Ignored by the non-CD solvers.
 #' @param dummy_distribution Dummy variable distribution, created with
 #'   \code{\link{trex_dummy_distribution}} (default: standard Normal).
+#' @param scaling_mode Working-design convention, one of \code{"L2"}
+#'   (default), \code{"ZSCORE"} or \code{"NONE"}. \code{"L2"} centers
+#'   \code{X} and \code{y} inside the selector and divides each column of
+#'   \code{X} by its L2 norm; \code{"ZSCORE"} centers and divides by the
+#'   sample SD (glmnet \code{standardize = TRUE} convention); the dummies
+#'   follow the same convention. \code{"NONE"} takes \code{X} and \code{y}
+#'   exactly as supplied (no centering, no scaling): pre-center and
+#'   pre-scale as the model demands (\code{\link{trex_normalize_design}}
+#'   reproduces the selector's own preprocessing), or supply an
+#'   intercept-free dictionary (steering vectors, Vandermonde, Fourier
+#'   atoms) whose columns must not be centered. The dummies keep the
+#'   unit-L2 standard, so a \code{"NONE"} design should be
+#'   unit-L2-commensurate (a warning names columns whose L2 norm leaves
+#'   [0.25, 4]). Non-finite entries and dead columns (constant under
+#'   \code{"L2"} / \code{"ZSCORE"}, all-zero under \code{"NONE"}) are
+#'   rejected in every mode with the column named.
 #'
 #' @return A named list suitable for passing to TRex selector constructors.
 #'
 #' @examples
 #' trex_control()
 #' trex_control(solver = "TLASSO", K = 10)
+#' trex_control(scaling_mode = "NONE")  # user-managed centering and scaling
 #'
 #' @export
 trex_control <- function(solver = "TLARS",
@@ -136,11 +153,18 @@ trex_control <- function(solver = "TLARS",
                          cd_gram_cap = 0,
                          cd_max_sweeps = 0,
                          cd_certified_localization = TRUE,
-                         dummy_distribution = trex_dummy_distribution()) {
+                         dummy_distribution = trex_dummy_distribution(),
+                         scaling_mode = c("L2", "ZSCORE", "NONE")) {
 
   if (max_dummy_multiplier < 1) {
     stop("max_dummy_multiplier must be >= 1. Got: ", max_dummy_multiplier)
   }
+  if (!is.character(scaling_mode) || length(scaling_mode) < 1 ||
+      !(scaling_mode[1] %in% c("L2", "ZSCORE", "NONE"))) {
+    stop("scaling_mode must be one of \"L2\", \"ZSCORE\", \"NONE\". Got: ",
+         paste(scaling_mode, collapse = ", "))
+  }
+  scaling_mode <- scaling_mode[1]
   if (tloop_max_stagnant_steps < 0) {
     stop("tloop_max_stagnant_steps must be >= 0. Got: ", tloop_max_stagnant_steps)
   }
@@ -196,7 +220,8 @@ trex_control <- function(solver = "TLARS",
     cd_gram_cap             = cd_gram_cap,
     cd_max_sweeps           = cd_max_sweeps,
     cd_certified_localization = as.logical(cd_certified_localization),
-    dummy_distribution      = dummy_distribution
+    dummy_distribution      = dummy_distribution,
+    scaling_mode            = scaling_mode
   )
 }
 

@@ -73,6 +73,23 @@ TRexControlParameter parse_control_parameter(const Rcpp::List& control) {
         }
     }
 
+    // Working-design convention (PLAN WP5): L2 (default) / ZSCORE center and
+    // scale inside the selector; NONE takes X and y as supplied.
+    if (control.containsElementNamed("scaling_mode")) {
+        namespace dn = trex::trex_selector_methods::utils::data_normalizer;
+        std::string mode = control["scaling_mode"];
+        if (mode == "L2") {
+            params.scaling_mode = dn::ScalingMode::L2;
+        } else if (mode == "ZSCORE") {
+            params.scaling_mode = dn::ScalingMode::ZSCORE;
+        } else if (mode == "NONE") {
+            params.scaling_mode = dn::ScalingMode::NONE;
+        } else {
+            Rcpp::stop("Unknown scaling_mode: " + mode +
+                       " (expected \"L2\", \"ZSCORE\" or \"NONE\")");
+        }
+    }
+
     // T-Loop Early Stopping
     if (control.containsElementNamed("tloop_stagnation_stop")) {
         params.tloop_stagnation_stop = control["tloop_stagnation_stop"];

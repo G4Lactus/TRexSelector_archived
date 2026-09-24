@@ -31,6 +31,51 @@ NULL
 }
 
 
+#' @title Apply the T-Rex data normalization to a design
+#'
+#' @description The selectors' own preprocessing as a user-callable helper:
+#'   the same code path a selector runs at construction for the given
+#'   \code{scaling_mode}. Use it to pre-normalize a design and then run a
+#'   selector with \code{trex_control(scaling_mode = "NONE")} (the selection
+#'   is identical to running the raw design under \code{"L2"}), to inspect
+#'   the centering and scaling parameters, or to validate a design before a
+#'   long run. The inputs are copied and left untouched.
+#'
+#' @param X Numeric design matrix (n x p).
+#' @param y Numeric response vector (length n).
+#' @param scaling_mode One of \code{"L2"} (default; center, divide by the
+#'   column L2 norm), \code{"ZSCORE"} (center, divide by the sample SD) or
+#'   \code{"NONE"} (copies equal the inputs; identity parameters).
+#' @param eps Dead-column threshold on the working L2 norm (default 1e-6,
+#'   the selectors' default solver tolerance).
+#'
+#' @return A list with \code{X} and \code{y} (the normalized copies),
+#'   \code{X_means}, \code{X_scales} (the per-column divisors: L2 norms for
+#'   \code{"L2"}, sample SDs for \code{"ZSCORE"}, ones for \code{"NONE"}) and
+#'   \code{y_mean}.
+#'
+#' @details Errors on a non-finite entry or a dead column (constant under
+#'   \code{"L2"} / \code{"ZSCORE"}, all-zero under \code{"NONE"}), naming
+#'   the column (0-based, as reported by the C++ core).
+#'
+#' @examples
+#' set.seed(1)
+#' X <- matrix(rnorm(200), 40, 5)
+#' y <- X[, 1] + rnorm(40)
+#' d <- trex_normalize_design(X, y)
+#' colMeans(d$X)            # ~ 0
+#' sqrt(colSums(d$X^2))     # 1
+#'
+#' @export
+trex_normalize_design <- function(X, y, scaling_mode = c("L2", "ZSCORE", "NONE"),
+                                  eps = 1e-6) {
+  scaling_mode <- match.arg(scaling_mode)
+  X <- .as_double_matrix(X)
+  y <- .as_double_vector(y)
+  rcpp_normalize_design(X, y, scaling_mode, eps)
+}
+
+
 #' @title Convert R Matrix to System Memory Mapped Matrix
 #'
 #' @description Writes a numeric matrix to a binary memory-mapped file on disk and returns

@@ -1661,3 +1661,17 @@ rcpp_compute_tpp_dense <- function(beta_hat, beta, eps = 1e-15) {
     .Call(`_TRexSelectorNeo_rcpp_compute_tpp_dense`, beta_hat, beta, eps)
 }
 
+#' @title Apply the T-Rex data normalization to copies of X and y
+#'
+#' @param X Design matrix (copied; the input is untouched).
+#' @param y Response vector (copied).
+#' @param scaling_mode "L2", "ZSCORE" or "NONE".
+#' @param eps Dead-column threshold on the working L2 norm.
+#'
+#' @return List with X, y, X_means, X_scales, y_mean.
+#'
+#' @noRd
+rcpp_normalize_design <- function(X, y, scaling_mode, eps) {
+    .Call(`_TRexSelectorNeo_rcpp_normalize_design`, X, y, scaling_mode, eps)
+}
+

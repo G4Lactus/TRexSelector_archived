@@ -2510,6 +2510,20 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// rcpp_normalize_design
+Rcpp::List rcpp_normalize_design(Eigen::MatrixXd X, Eigen::VectorXd y, const std::string& scaling_mode, double eps);
+RcppExport SEXP _TRexSelectorNeo_rcpp_normalize_design(SEXP XSEXP, SEXP ySEXP, SEXP scaling_modeSEXP, SEXP epsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Eigen::MatrixXd >::type X(XSEXP);
+    Rcpp::traits::input_parameter< Eigen::VectorXd >::type y(ySEXP);
+    Rcpp::traits::input_parameter< const std::string& >::type scaling_mode(scaling_modeSEXP);
+    Rcpp::traits::input_parameter< double >::type eps(epsSEXP);
+    rcpp_result_gen = Rcpp::wrap(rcpp_normalize_design(X, y, scaling_mode, eps));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_TRexSelectorNeo_rcpp_agglomerative_cluster", (DL_FUNC) &_TRexSelectorNeo_rcpp_agglomerative_cluster, 4},
@@ -2711,6 +2725,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_TRexSelectorNeo_rcpp_compute_recall", (DL_FUNC) &_TRexSelectorNeo_rcpp_compute_recall, 2},
     {"_TRexSelectorNeo_rcpp_compute_fdp_dense", (DL_FUNC) &_TRexSelectorNeo_rcpp_compute_fdp_dense, 3},
     {"_TRexSelectorNeo_rcpp_compute_tpp_dense", (DL_FUNC) &_TRexSelectorNeo_rcpp_compute_tpp_dense, 3},
+    {"_TRexSelectorNeo_rcpp_normalize_design", (DL_FUNC) &_TRexSelectorNeo_rcpp_normalize_design, 4},
     {NULL, NULL, 0}
 };
 

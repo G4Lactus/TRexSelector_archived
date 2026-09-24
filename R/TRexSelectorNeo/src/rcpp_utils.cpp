@@ -24,6 +24,9 @@
 // Include the TempDirManager
 #include <trex_selector_methods/trex_utils/trex_temp_dir_manager.hpp>
 
+// Include the selectors' data normalizer (trex_normalize_design)
+#include <trex_selector_methods/trex_utils/trex_data_normalizer.hpp>
+
 // ========================================================================================
 
 // Namespace convenience
@@ -386,4 +389,51 @@ double rcpp_compute_tpp_dense(
     double eps = 1e-15
 ) {
     return trex::utils::eval::rates::compute_tpp(beta_hat, beta, eps);
+}
+
+// ========================================================================================
+// Utils: the selectors' data normalization as a user-callable helper
+// ========================================================================================
+
+//' @title Apply the T-Rex data normalization to copies of X and y
+//'
+//' @param X Design matrix (copied; the input is untouched).
+//' @param y Response vector (copied).
+//' @param scaling_mode "L2", "ZSCORE" or "NONE".
+//' @param eps Dead-column threshold on the working L2 norm.
+//'
+//' @return List with X, y, X_means, X_scales, y_mean.
+//'
+//' @noRd
+// [[Rcpp::export]]
+Rcpp::List rcpp_normalize_design(
+    Eigen::MatrixXd X,
+    Eigen::VectorXd y,
+    const std::string& scaling_mode,
+    double eps
+) {
+    namespace dn = trex::trex_selector_methods::utils::data_normalizer;
+    dn::ScalingMode mode;
+    if (scaling_mode == "L2") {
+        mode = dn::ScalingMode::L2;
+    } else if (scaling_mode == "ZSCORE") {
+        mode = dn::ScalingMode::ZSCORE;
+    } else if (scaling_mode == "NONE") {
+        mode = dn::ScalingMode::NONE;
+    } else {
+        Rcpp::stop("Unknown scaling_mode: " + scaling_mode +
+                   " (expected \"L2\", \"ZSCORE\" or \"NONE\")");
+    }
+
+    dn::NormalizationParams params;
+    dn::centerY(y, params, mode);
+    dn::centerAndL2NormalizeX(X, params, eps, /*verbose=*/false, mode);
+
+    return Rcpp::List::create(
+        Rcpp::Named("X")        = X,
+        Rcpp::Named("y")        = y,
+        Rcpp::Named("X_means")  = params.X_means,
+        Rcpp::Named("X_scales") = params.X_l2norms,
+        Rcpp::Named("y_mean")   = params.y_mean
+    );
 }

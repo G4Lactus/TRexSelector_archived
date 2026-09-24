@@ -30,7 +30,8 @@ trex_control(
   cd_gram_cap = 0,
   cd_max_sweeps = 0,
   cd_certified_localization = TRUE,
-  dummy_distribution = trex_dummy_distribution()
+  dummy_distribution = trex_dummy_distribution(),
+  scaling_mode = c("L2", "ZSCORE", "NONE")
 )
 }
 \arguments{
@@ -137,6 +138,23 @@ baseline). Ignored by the non-CD solvers.}
 
 \item{dummy_distribution}{Dummy variable distribution, created with
 \code{\link{trex_dummy_distribution}} (default: standard Normal).}
+
+\item{scaling_mode}{Working-design convention, one of \code{"L2"}
+(default), \code{"ZSCORE"} or \code{"NONE"}. \code{"L2"} centers
+\code{X} and \code{y} inside the selector and divides each column of
+\code{X} by its L2 norm; \code{"ZSCORE"} centers and divides by the
+sample SD (glmnet \code{standardize = TRUE} convention); the dummies
+follow the same convention. \code{"NONE"} takes \code{X} and \code{y}
+exactly as supplied (no centering, no scaling): pre-center and
+pre-scale as the model demands (\code{\link{trex_normalize_design}}
+reproduces the selector's own preprocessing), or supply an
+intercept-free dictionary (steering vectors, Vandermonde, Fourier
+atoms) whose columns must not be centered. The dummies keep the
+unit-L2 standard, so a \code{"NONE"} design should be
+unit-L2-commensurate (a warning names columns whose L2 norm leaves
+\link{0.25, 4}). Non-finite entries and dead columns (constant under
+\code{"L2"} / \code{"ZSCORE"}, all-zero under \code{"NONE"}) are
+rejected in every mode with the column named.}
 }
 \value{
 A named list suitable for passing to TRex selector constructors.
@@ -158,5 +176,6 @@ behaviour of the standalone C++ demo.
 \examples{
 trex_control()
 trex_control(solver = "TLASSO", K = 10)
+trex_control(scaling_mode = "NONE")  # user-managed centering and scaling
 
 }
