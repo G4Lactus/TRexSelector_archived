@@ -4,6 +4,49 @@
 
 ????-??-??
 
+### 2026-09-24
+
+#### C++ install layout (breaking for manual include paths)
+
+- The SDK headers now install under a namespaced root,
+  `<prefix>/include/TRexSelector/{ml_methods,trex_selector_methods,tsolvers,utils}`,
+  instead of directly under `<prefix>/include/`. Consumers that link the exported
+  targets (`find_package(TRexSelector)`, `TRexSelector::trex_selector_methods`, ...)
+  need no change; a manual `-I<prefix>/include` becomes `-I<prefix>/include/TRexSelector`.
+  The pre-install prune that kept the header tree free of stale files now removes only
+  that namespaced root, and only when it carries the `TRexSelector.install-stamp` written
+  by a previous install: a foreign directory of the same name is refused, never deleted.
+  Previously the prune deleted the generic `include/utils`, `include/ml_methods`, ...
+  under the prefix, which in a shared prefix (conda, /usr/local) could belong to
+  another package. `cpp/tests/install_smoke/run_install_smoke.sh` installs into a
+  scratch prefix and builds a `find_package` consumer against it. Its first run
+  found seven headers that the code includes but no install file set carried
+  (`lambda2_cv_diagnostics.hpp`, `post_selection_criteria.hpp`,
+  `trex_cluster_dummies.hpp`, `trex_cluster_hac.hpp`, three `sd_tsolvers` headers):
+  an installed SDK could not compile a consumer since August. Fixed.
+- New CMake option `TREX_INSTALL_CPP_SDK` (default ON): headers, static archives and
+  the CMake package files. The Python build forces it OFF, so wheels no longer ship
+  about 16 MB of C++ SDK into `site-packages/include` and `site-packages/lib`.
+
+#### Hardening
+
+- Agglomerative clustering rejects non-finite input at its entry with a message naming
+  the entry (a NaN distance made the nearest-neighbour search index out of range);
+  the NN chain also refuses its own sentinel. A zero-norm column keeps its documented
+  convention (maximally dissimilar, distance 1).
+- `cut_tree` / `cut_tree_by_height` validate a merge matrix before indexing it: row
+  count, cluster ids that exist at their step, no self-merge, no id consumed twice,
+  finite and (for the height cut) non-decreasing distances. Reachable through the
+  public R and Python `cut_tree`.
+- Overflow-checked byte counts (`utils/checked_arith.hpp`) for the memory-mapped
+  matrix, the tiled distance matrix and the binary Eigen serialization: a wrapping
+  `rows * cols * sizeof` throws `std::overflow_error` before any file is touched.
+- Eigen's process-global thread count is set once per experiment runner from the
+  calling thread and restored on exit, never written inside an OpenMP team. Before,
+  the sequential runners left it changed in the host process (an R or Python session)
+  and the workers raced on it. Only observable in builds without `EIGEN_USE_BLAS`
+  (the R package and the Python wheel); with a BLAS, Eigen's count is inert.
+
 ### 2026-07-21
 
 #### R package refreshed: vendored core synced, exchangeable tie-break exposed
