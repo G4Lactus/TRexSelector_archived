@@ -28,6 +28,13 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   `PILOT_KNEE` lambda_2 rules exist next to the CV tuners (default `CV_1SE_IEN_CCD`).
 - The SDK headers install under `<prefix>/include/TRexSelector/` (manual include
   paths change; exported targets do not), see the 2026-09-24 entry.
+- The C++ tree has one folder per dummy mechanism: `ad/` (augmented dummies, the
+  classical family), `vd/` (virtual dummies), `sd/` (sparse dummies), in both
+  `tsolvers/` and `trex_selector_methods/`, and the namespaces follow:
+  `trex::tsolvers::ad::linear_model::lars_based::TLARS_Solver`,
+  `trex::trex_selector_methods::ad::trex_core::TRexSelector`. Include paths and
+  namespaces of every C++ user change; the R and Python surfaces do not. See the
+  2026-09-24 entry.
 - The selectors reject non-finite entries and constant columns of X (constant
   columns were silently unselectable before), see `ScalingMode::NONE` below.
 - Every T-solver is constructed as `(X, D, y, [groups | K,] options)` with one
@@ -38,6 +45,34 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   not bit-reproducible against these.
 
 ### 2026-09-24
+
+#### Beyond architecture: one folder per dummy mechanism (breaking, C++ only)
+
+- `cpp/src/tsolvers/` and `cpp/src/trex_selector_methods/` each hold three peer
+  folders, `ad/` (augmented dummies: the classical T-solvers and every T-Rex
+  selector, with `trex_utils`), `vd/` (virtual dummies: `vd/` solvers, `trex_vd`)
+  and `sd/` (sparse dummies: `sd/` solvers, `trex_sd`). The families share no
+  code, and no class serves more than one mechanism; a fourth mechanism would be a
+  fourth sibling. Placement rule: a file lives at the level of its lowest common
+  user (`TSolver_Base`, `SolverOptions`, `solver_utils/` and all of `trex_utils/`
+  are AD-only today; `VD_Base` and `SDTSolver_Base` are standalone roots).
+- Namespaces follow the folders: `trex::tsolvers::ad::{linear_model::…,
+  solver_utils::…, TSolver_Base, SolverOptions, ScalingMode, …}`,
+  `trex::tsolvers::vd`, `trex::tsolvers::sd` (the SD solvers were declared inside
+  the AD subnamespaces before; `sd_calibration` is `sd::calibration`),
+  `trex::trex_selector_methods::ad::{trex_core, trex_da, trex_gvs, trex_screening,
+  trex_spca, trex_tikhonov, utils::…}`, `…::vd::trex_vd`, `…::sd::trex_sd`.
+- Umbrellas: `tsolvers/ad.hpp` (was `lm_tsolvers.hpp`), `tsolvers/vd.hpp`,
+  `tsolvers/sd.hpp`; `tsolvers/tsolvers.hpp` still means the classical family.
+  Installed header paths move with the tree (`TRexSelector/tsolvers/ad/…`,
+  `TRexSelector/trex_selector_methods/ad/…`).
+- The AD alias for the solver dispatch is `disp` (was `sd`, which now names the
+  sparse-dummy family). Tests and validation programs mirror the layout
+  (`test_tsolvers/{ad,sd}/`, `test_trex_selector_methods/{ad,vd}/`,
+  `validation/{tsolvers,trex_selector_methods}/ad/`).
+- R and Python: the glue includes and namespaces follow; no exported name changes.
+  `bundle_for_cran.sh` excludes the `vd` and `sd` folders and umbrellas (four
+  patterns, was five).
 
 #### R namespace: one prefix per group (breaking)
 
