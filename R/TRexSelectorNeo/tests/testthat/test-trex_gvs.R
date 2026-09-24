@@ -574,4 +574,18 @@ test_that("the IEN tuner grids pass through and the tuner diagnostics are expose
   expect_gte(diag$seconds, 0)
   expect_true(is.numeric(diag$n_profile_at_edge))
   expect_gt(sel_cv$lambda2_used, 0)
+
+  # Boundary-pick guard fields (PLAN WP6): the chosen pick on its grid.
+  expect_identical(diag$grid_size, 10L)
+  expect_true(diag$grid_index >= 0L && diag$grid_index < diag$grid_size)
+  expect_type(diag$at_grid_edge, "logical")
+  expect_type(diag$profile_at_edge, "logical")
+  expect_identical(diag$boundary_pick, diag$at_grid_edge || diag$profile_at_edge)
+  expect_identical(diag$at_grid_edge,
+                   diag$grid_index == 0L || diag$grid_index == diag$grid_size - 1L)
+  # No tuner: identity defaults.
+  d0 <- sel_fixed$lambda2_cv_diagnostics
+  expect_identical(d0$grid_index, -1L)
+  expect_identical(d0$grid_size, 0L)
+  expect_false(d0$boundary_pick)
 })

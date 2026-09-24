@@ -108,8 +108,13 @@ TRexTikhonovSelector <- R6::R6Class("TRexTikhonovSelector",
     #'   the last \code{select()}: a list with \code{ran} (a tuner or the
     #'   pilot ran), \code{seconds}, \code{n_profile_at_edge} (lambda_2
     #'   values whose profiled lambda_1 optimum sat on a truncation edge; 0
-    #'   is healthy), \code{support_cap} (-1 = disabled) and
-    #'   \code{low_dimensional}.
+    #'   is healthy), \code{support_cap} (-1 = disabled),
+    #'   \code{low_dimensional}, and the boundary-pick guard fields
+    #'   \code{grid_index} / \code{grid_size}, \code{at_grid_edge},
+    #'   \code{profile_at_edge} and \code{boundary_pick} (see
+    #'   \code{TRexGVSSelector}; the CV methods warn once on a boundary pick
+    #'   and return it unchanged; the pilot rules leave them at their
+    #'   defaults).
     lambda2_cv_diagnostics = function(value) {
       if (!missing(value)) {
         stop("Field is read-only.")

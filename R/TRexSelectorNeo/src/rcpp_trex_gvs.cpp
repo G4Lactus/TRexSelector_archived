@@ -123,7 +123,13 @@ Rcpp::List lambda2_cv_diagnostics_to_list(
         Rcpp::Named("seconds")           = d.seconds,
         Rcpp::Named("n_profile_at_edge") = static_cast<int>(d.n_profile_at_edge),
         Rcpp::Named("support_cap")       = static_cast<int>(d.support_cap),
-        Rcpp::Named("low_dimensional")   = d.low_dimensional
+        Rcpp::Named("low_dimensional")   = d.low_dimensional,
+        // Boundary-pick guard (PLAN WP6): the chosen pick on its grid.
+        Rcpp::Named("grid_index")        = static_cast<int>(d.grid_index),
+        Rcpp::Named("grid_size")         = static_cast<int>(d.grid_size),
+        Rcpp::Named("at_grid_edge")      = d.at_grid_edge,
+        Rcpp::Named("profile_at_edge")   = d.profile_at_edge,
+        Rcpp::Named("boundary_pick")     = d.boundary_pick
     );
 }
 
