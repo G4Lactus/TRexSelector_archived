@@ -400,34 +400,115 @@ py::class_<PySolverWrapper<Solver>>& add_standard_tsolver_methods(
 
 
 /**
- * @brief Standardized Pybind11 registration for typical T-Solvers.
+ * @brief Standardized Pybind11 registration for the T-Solvers.
  *
- * @details Binds the canonical `(X, D, y, normalize, intercept, verbose, scaling_mode)`
- *          constructor plus the shared method set. Solvers with a different constructor
- *          signature bind their own init and call add_standard_tsolver_methods().
+ * @details Binds the canonical `(X, D, y, options)` constructor (PLAN WP9:
+ *          every input except the data lives in SolverOptions) plus the
+ *          shared method set. The IEN solvers, which also take a group
+ *          vector, bind their own init and call add_standard_tsolver_methods().
  *
  * @tparam Solver The specific underlying T-Solver class being wrapped.
  *
  * @param m The Pybind11 sub-module where this solver will be exposed.
  * @param name The class name assigned in the Python wrapper space.
+ * @param doc One sentence naming the SolverOptions fields this solver reads.
  */
 template<typename Solver>
-py::class_<PySolverWrapper<Solver>> bind_standard_tsolver(py::module& m, const std::string& name) {
-    using ScalingMode = trex::tsolvers::solver_utils::preprocessing::ScalingMode;
+py::class_<PySolverWrapper<Solver>> bind_standard_tsolver(py::module& m, const std::string& name,
+                                                          const std::string& doc = {}) {
+    using trex::tsolvers::SolverOptions;
     py::class_<PySolverWrapper<Solver>> cls(m, name.c_str());
+    const std::string init_doc =
+        "Initializes the solver via zero-copy views of X, D and y; every other input "
+        "comes from `options` (SolverOptions). " + doc;
     cls.def(py::init<Eigen::Ref<Eigen::MatrixXd>, Eigen::Ref<Eigen::MatrixXd>,
-                      Eigen::Ref<Eigen::VectorXd>, bool, bool, bool, ScalingMode>(),
+                      Eigen::Ref<Eigen::VectorXd>, const SolverOptions&>(),
              py::arg("X"),
              py::arg("D"),
              py::arg("y"),
-             py::arg("normalize") = true,
-             py::arg("intercept") = true,
-             py::arg("verbose") = false,
-             py::arg("scaling_mode") = ScalingMode::L2,
+             py::arg("options") = SolverOptions{},
              py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(),
-             "Initializes the solver via zero-copy views to facilitate safe in-place mutations.");
+             init_doc.c_str());
     add_standard_tsolver_methods<Solver>(cls);
     return cls;
+}
+
+
+/**
+ * @brief Bind trex::tsolvers::SolverOptions with a keyword constructor
+ *        (`SolverOptions(lambda2=0.5, normalize=False)`) and read/write fields.
+ */
+inline void bind_solver_options(py::module& m) {
+    using trex::tsolvers::SolverOptions;
+    using trex::tsolvers::NCGMPVariant;
+    using trex::tsolvers::GroupPenaltyVariant;
+    using ScalingMode = trex::tsolvers::ScalingMode;
+
+    py::class_<SolverOptions> cls(m, "SolverOptions",
+        "Every T-solver input except the data X, D and y. Each solver reads the fields it "
+        "needs and ignores the rest; the defaults are the solver-level defaults. Construct "
+        "with keywords (`SolverOptions(lambda2=0.5, normalize=False)`) or set attributes.");
+    cls.def(py::init<>(), "All defaults.")
+       .def(py::init([](py::kwargs kwargs) {
+                SolverOptions o;
+                py::object self = py::cast(&o, py::return_value_policy::reference);
+                for (auto item : kwargs) {
+                    const std::string key = py::str(item.first);
+                    if (!py::hasattr(self, key.c_str())) {
+                        throw py::type_error("SolverOptions: unknown option '" + key + "'");
+                    }
+                    py::setattr(self, key.c_str(), item.second);
+                }
+                return o;
+            }), "Keyword constructor: every keyword must name a SolverOptions field.")
+       .def_readwrite("normalize", &SolverOptions::normalize,
+            "Scale each column of X (and D) to unit L2 norm (or unit SD, see scaling_mode). Default True.")
+       .def_readwrite("intercept", &SolverOptions::intercept,
+            "Center X, D and y (an intercept is fitted). Default True.")
+       .def_readwrite("scaling_mode", &SolverOptions::scaling_mode,
+            "Column scaling applied when normalize is True: ScalingMode.L2 (default) or ZSCORE.")
+       .def_readwrite("verbose", &SolverOptions::verbose, "Print status and diagnostics. Default False.")
+       .def_readwrite("tol", &SolverOptions::tol,
+            "Numerical tolerance of the solver's internal comparisons. Default: machine epsilon.")
+       .def_readwrite("tie_seed", &SolverOptions::tie_seed,
+            "Seed of the tie-break engine; < 0 (default) seeds from std::random_device.")
+       .def_readwrite("exch_tie_alpha", &SolverOptions::exch_tie_alpha,
+            "Exchangeable-tie band width for the greedy solvers (TOMP/TAFS families); 0 (default) = off.")
+       .def_readwrite("exch_tie_floor", &SolverOptions::exch_tie_floor,
+            "Minimum |correlation| for exchangeable-tie candidates in [0, 1). Default 0.5.")
+       .def_readwrite("lambda2", &SolverOptions::lambda2,
+            "L2 (ridge / group-ridge / Tikhonov) penalty weight, >= 0; read by the elastic-net, "
+            "IEN and Tikhonov solvers. Default 0 (no quadratic penalty).")
+       .def_readwrite("rho_afs", &SolverOptions::rho_afs,
+            "TAFS shrinkage step in (0, 1]; 1 (default) is forward stepwise.")
+       .def_readwrite("ncgmp_variant", &SolverOptions::ncgmp_variant,
+            "TNCGMP variant (NCGMPVariant). Default LineSearch.")
+       .def_readwrite("tenet_aug_use_lars", &SolverOptions::tenet_aug_use_lars,
+            "TENETAug / TIENETAug: pure-LARS inner path that never drops variables (True) instead of the LASSO inner path (False, default).")
+       .def_readwrite("kappa_dummy", &SolverOptions::kappa_dummy,
+            "Ridge weight of the dummy block (TCDENET; TCDTIKNET under INDEPENDENT_RIDGE). Default 1.0.")
+       .def_readwrite("fold_dummies", &SolverOptions::fold_dummies,
+            "TCDTIKNET dummy coupling: False (default) INDEPENDENT_RIDGE, True FOLDED.")
+       .def_readwrite("group_penalty", &SolverOptions::group_penalty,
+            "TCDIENET structured penalty (GroupPenaltyVariant). Default MEAN.")
+       .def_readwrite("cd_lambda_rel_tol", &SolverOptions::cd_lambda_rel_tol,
+            "CD family: relative lambda tolerance of the crossing search, in (0, 1). Default 1e-3.")
+       .def_readwrite("cd_tol_certify", &SolverOptions::cd_tol_certify,
+            "CD family: certification-sweep tolerance. Default 1e-10.")
+       .def_readwrite("cd_tol_probe", &SolverOptions::cd_tol_probe,
+            "CD family: probe-sweep tolerance. Default 1e-8.")
+       .def_readwrite("cd_gram_cap", &SolverOptions::cd_gram_cap,
+            "CD family: ever-active Gram slots cached before falling back to naive sweeps. Default 400.")
+       .def_readwrite("cd_max_sweeps", &SolverOptions::cd_max_sweeps,
+            "CD family: maximum coordinate sweeps per fixed-lambda solve. Default 2000.")
+       .def_readwrite("cd_certified_localization", &SolverOptions::cd_certified_localization,
+            "CD family: True (default) CERTIFIED crossing localization, False LEGACY.")
+       .def("__repr__", [](const SolverOptions& o) {
+            return "SolverOptions(normalize=" + std::string(o.normalize ? "True" : "False") +
+                   ", intercept=" + (o.intercept ? "True" : "False") +
+                   ", lambda2=" + std::to_string(o.lambda2) +
+                   ", rho_afs=" + std::to_string(o.rho_afs) + ", ...)";
+       });
 }
 
 
@@ -451,36 +532,42 @@ inline void bind_tsolvers_module(py::module& m) {
                "Divide each centered column by its sample SD (n-1).")
         .export_values();
 
+    // Sub-modules first: the option enums live where their solvers live and
+    // SolverOptions (bound next) refers to them.
+    py::module m_lars = m.def_submodule("lars_based", "LARS-based T-Solvers");
+    py::module m_omp  = m.def_submodule("omp_based",  "OMP-based T-Solvers");
+    py::module m_afs  = m.def_submodule("afs_based",  "AFS-based T-Solvers");
+
+    /**
+     * @brief Variants defining the internal optimization mode utilized by the TNCGMP solver.
+     */
+    py::enum_<trex::tsolvers::NCGMPVariant>(m_omp, "NCGMPVariant")
+        .value("LineSearch",
+               trex::tsolvers::NCGMPVariant::LineSearch,
+               "Computes updates using standard backtracking / exact line search.")
+        .value("FullyCorrective",
+              trex::tsolvers::NCGMPVariant::FullyCorrective,
+              "Computes fully corrective projections for all active set members at each step.")
+        .export_values();
+
+    py::enum_<trex::tsolvers::GroupPenaltyVariant>(m, "GroupPenaltyVariant",
+        "Structured penalty of the group CCD solver (TCDIENET).")
+        .value("MEAN", trex::tsolvers::GroupPenaltyVariant::MEAN,
+               "K = blockdiag(1 1^T / p_m): the canonical IEN group-sum penalty.")
+        .value("CENTERING", trex::tsolvers::GroupPenaltyVariant::CENTERING,
+               "K = blockdiag(I - 1 1^T / p_m): within-group centering.")
+        .export_values();
+
+    // Every input except X, D, y (PLAN WP9).
+    bind_solver_options(m);
+
     // -------------------------------------------------------------------------
     // LARS-based sub-module
     // -------------------------------------------------------------------------
-
-    py::module m_lars = m.def_submodule("lars_based", "LARS-based T-Solvers");
     using namespace trex::tsolvers::linear_model::lars_based;
 
-    // TLARS: the C++ constructor carries the internal algorithm_type discriminator
-    // before scaling_mode; pin it to TLARS and expose the canonical signature.
-    py::class_<PySolverWrapper<TLARS_Solver>> cls_tlars(m_lars, "TLARS_Solver");
-    cls_tlars.def(py::init([](Eigen::Ref<Eigen::MatrixXd> X,
-                              Eigen::Ref<Eigen::MatrixXd> D,
-                              Eigen::Ref<Eigen::VectorXd> y,
-                              bool normalize, bool intercept, bool verbose,
-                              ScalingMode scaling_mode) {
-                     return std::make_unique<PySolverWrapper<TLARS_Solver>>(
-                         X, D, y, normalize, intercept, verbose,
-                         SolverTypeLarsBased::TLARS, scaling_mode);
-                 }),
-             py::arg("X"),
-             py::arg("D"),
-             py::arg("y"),
-             py::arg("normalize") = true,
-             py::arg("intercept") = true,
-             py::arg("verbose") = false,
-             py::arg("scaling_mode") = ScalingMode::L2,
-             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(),
-             "Initializes the solver via zero-copy views to facilitate safe in-place mutations.");
-    add_standard_tsolver_methods<TLARS_Solver>(cls_tlars);
-    cls_tlars
+    bind_standard_tsolver<TLARS_Solver>(m_lars, "TLARS_Solver",
+        "Plain T-LARS reads no family hyperparameter.")
         .def("getLambda", &PySolverWrapper<TLARS_Solver>::getLambda,
              "Get the regularization parameter sequence (max correlation per step).")
         .def("getKahanRefreshInterval", &PySolverWrapper<TLARS_Solver>::getKahanRefreshInterval,
@@ -503,23 +590,8 @@ inline void bind_tsolvers_module(py::module& m) {
         .def("getCyclingRatio", &PySolverWrapper<TSTAGEWISE_Solver>::getCyclingRatio,
              "Get the cycling ratio (removals / additions).");
 
-    // TENET: constructor takes the secondary L2 penalty lambda2
-    py::class_<PySolverWrapper<TENET_Solver>> cls_tenet(m_lars, "TENET_Solver");
-    cls_tenet.def(py::init<Eigen::Ref<Eigen::MatrixXd>, Eigen::Ref<Eigen::MatrixXd>,
-                           Eigen::Ref<Eigen::VectorXd>, double, bool, bool, bool, ScalingMode>(),
-             py::arg("X"),
-             py::arg("D"),
-             py::arg("y"),
-             py::arg("lambda2"),
-             py::arg("normalize") = true,
-             py::arg("intercept") = true,
-             py::arg("verbose") = false,
-             py::arg("scaling_mode") = ScalingMode::L2,
-             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(),
-             "Initializes the TENET solver array, using an explicit secondary L2"
-             " penalty `lambda2`.");
-    add_standard_tsolver_methods<TENET_Solver>(cls_tenet);
-    cls_tenet
+    bind_standard_tsolver<TENET_Solver>(m_lars, "TENET_Solver",
+        "Reads options.lambda2, the secondary L2 penalty (default 0: the lasso path).")
         .def("getAlpha", &PySolverWrapper<TENET_Solver>::getAlpha,
              "Get the Elastic Net mixing parameter alpha implied by lambda2.")
         .def("getNumRemovals", &PySolverWrapper<TENET_Solver>::getNumRemovals,
@@ -527,45 +599,24 @@ inline void bind_tsolvers_module(py::module& m) {
         .def("getCyclingRatio", &PySolverWrapper<TENET_Solver>::getCyclingRatio,
              "Get the cycling ratio (removals / additions).");
 
-    // TENETAug: Elastic Net via augmented LASSO (constructor takes lambda2)
-    py::class_<PySolverWrapper<TENETAug_Solver>> cls_tenet_aug(m_lars, "TENETAug_Solver");
-    cls_tenet_aug.def(py::init<Eigen::Ref<Eigen::MatrixXd>, Eigen::Ref<Eigen::MatrixXd>,
-                               Eigen::Ref<Eigen::VectorXd>, double, bool, bool, bool,
-                               ScalingMode, bool>(),
-             py::arg("X"),
-             py::arg("D"),
-             py::arg("y"),
-             py::arg("lambda2"),
-             py::arg("normalize") = true,
-             py::arg("intercept") = true,
-             py::arg("verbose") = false,
-             py::arg("scaling_mode") = ScalingMode::L2,
-             py::arg("use_lars_inner") = false,
-             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(),
-             "Initializes the augmented-LASSO Elastic Net solver with an explicit"
-             " secondary L2 penalty `lambda2`. Set `use_lars_inner` to run the"
-             " inner path with a pure-LARS solver (never drops variables).");
-    add_standard_tsolver_methods<TENETAug_Solver>(cls_tenet_aug);
+    bind_standard_tsolver<TENETAug_Solver>(m_lars, "TENETAug_Solver",
+        "Reads options.lambda2 and options.tenet_aug_use_lars (pure-LARS inner path).");
 
-    // TIENETAug: Informed Elastic Net via augmented LASSO (group-ridge penalty)
+    // TIENETAug: Informed Elastic Net via augmented LASSO (group-ridge penalty);
+    // the group vector is data, not an option.
     py::class_<PySolverWrapper<TIENETAug_Solver>> cls_tienet_aug(m_lars, "TIENETAug_Solver");
     cls_tienet_aug.def(py::init<Eigen::Ref<Eigen::MatrixXd>, Eigen::Ref<Eigen::MatrixXd>,
-                                Eigen::Ref<Eigen::VectorXd>, double, const Eigen::VectorXi&,
-                                bool, bool, bool, ScalingMode, bool>(),
+                                Eigen::Ref<Eigen::VectorXd>, const Eigen::VectorXi&,
+                                const trex::tsolvers::SolverOptions&>(),
              py::arg("X"),
              py::arg("D"),
              py::arg("y"),
-             py::arg("lambda2"),
              py::arg("groups"),
-             py::arg("normalize") = true,
-             py::arg("intercept") = true,
-             py::arg("verbose") = false,
-             py::arg("scaling_mode") = ScalingMode::L2,
-             py::arg("use_lars_inner") = false,
+             py::arg("options") = trex::tsolvers::SolverOptions{},
              py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(),
-             "Initializes the augmented-LASSO Informed Elastic Net solver with a"
-             " group-ridge penalty `lambda2` and a 0-based group id per original"
-             " variable (`groups`, length p).");
+             "Initializes the augmented-LASSO Informed Elastic Net solver with a 0-based group"
+             " id per original variable (`groups`, length p); reads options.lambda2 (the"
+             " group-ridge penalty) and options.tenet_aug_use_lars.");
     add_standard_tsolver_methods<TIENETAug_Solver>(cls_tienet_aug);
     cls_tienet_aug
         .def("getLambda2", &PySolverWrapper<TIENETAug_Solver>::getLambda2,
@@ -578,92 +629,25 @@ inline void bind_tsolvers_module(py::module& m) {
     // -------------------------------------------------------------------------
     // OMP-based sub-module
     // -------------------------------------------------------------------------
-
-    py::module m_omp = m.def_submodule("omp_based", "OMP-based T-Solvers");
     using namespace trex::tsolvers::linear_model::omp_based;
 
-    // TOMP: like TLARS, pin the internal algorithm_type discriminator
-    py::class_<PySolverWrapper<TOMP_Solver>> cls_tomp(m_omp, "TOMP_Solver");
-    cls_tomp.def(py::init([](Eigen::Ref<Eigen::MatrixXd> X,
-                             Eigen::Ref<Eigen::MatrixXd> D,
-                             Eigen::Ref<Eigen::VectorXd> y,
-                             bool normalize, bool intercept, bool verbose,
-                             ScalingMode scaling_mode) {
-                    return std::make_unique<PySolverWrapper<TOMP_Solver>>(
-                        X, D, y, normalize, intercept, verbose,
-                        SolverTypeOMPBased::TOMP, scaling_mode);
-                }),
-             py::arg("X"),
-             py::arg("D"),
-             py::arg("y"),
-             py::arg("normalize") = true,
-             py::arg("intercept") = true,
-             py::arg("verbose") = false,
-             py::arg("scaling_mode") = ScalingMode::L2,
-             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(),
-             "Initializes the solver via zero-copy views to facilitate safe in-place mutations.");
-    add_standard_tsolver_methods<TOMP_Solver>(cls_tomp);
-
+    bind_standard_tsolver<TOMP_Solver>(m_omp, "TOMP_Solver",
+        "Greedy: reads options.exch_tie_alpha / exch_tie_floor.");
     bind_standard_tsolver<TGP_Solver>(m_omp, "TGP_Solver");
     bind_standard_tsolver<TACGP_Solver>(m_omp, "TACGP_Solver");
     bind_standard_tsolver<TMP_Solver>(m_omp, "TMP_Solver");
     bind_standard_tsolver<TOOLS_Solver>(m_omp, "TOOLS_Solver");
-
-    /**
-     * @brief Variants defining the internal optimization mode utilized by the TNCGMP solver.
-     */
-    py::enum_<NCGMPVariant>(m_omp, "NCGMPVariant")
-        .value("LineSearch",
-               NCGMPVariant::LineSearch,
-               "Computes updates using standard backtracking / exact line search.")
-        .value("FullyCorrective",
-              NCGMPVariant::FullyCorrective,
-              "Computes fully corrective projections for all active set members at each step.")
-        .export_values();
-
-    // TNCGMP requires variant
-    py::class_<PySolverWrapper<TNCGMP_Solver>> cls_tncgmp(m_omp, "TNCGMP_Solver");
-    cls_tncgmp.def(py::init<Eigen::Ref<Eigen::MatrixXd>,
-                            Eigen::Ref<Eigen::MatrixXd>,
-                            Eigen::Ref<Eigen::VectorXd>,
-                            NCGMPVariant,
-                            bool, bool, bool, ScalingMode>(),
-             py::arg("X"),
-             py::arg("D"),
-             py::arg("y"),
-             py::arg("variant") = NCGMPVariant::LineSearch,
-             py::arg("normalize") = true,
-             py::arg("intercept") = true,
-             py::arg("verbose") = false,
-             py::arg("scaling_mode") = ScalingMode::L2,
-             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(),
-             "Initializes the TNCGMP solver array, enforcing a strictly specified LineSearch"
-             " or FullyCorrective variant.");
-    add_standard_tsolver_methods<TNCGMP_Solver>(cls_tncgmp);
+    bind_standard_tsolver<TNCGMP_Solver>(m_omp, "TNCGMP_Solver",
+        "Reads options.ncgmp_variant (LineSearch or FullyCorrective).");
 
     // -------------------------------------------------------------------------
     // AFS-based sub-module
     // -------------------------------------------------------------------------
-
-    py::module m_afs = m.def_submodule("afs_based", "AFS-based T-Solvers");
     using namespace trex::tsolvers::linear_model::afs_based;
 
-    py::class_<PySolverWrapper<TAFS_Solver>> cls_tafs(m_afs, "TAFS_Solver");
-    cls_tafs.def(py::init<Eigen::Ref<Eigen::MatrixXd>,
-                          Eigen::Ref<Eigen::MatrixXd>,
-                          Eigen::Ref<Eigen::VectorXd>,
-                          double, bool, bool, bool, ScalingMode>(),
-             py::arg("X"),
-             py::arg("D"),
-             py::arg("y"),
-             py::arg("rho") = 1.0,
-             py::arg("normalize") = true,
-             py::arg("intercept") = true,
-             py::arg("verbose") = false,
-             py::arg("scaling_mode") = ScalingMode::L2,
-             py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(),
-             "Initializes the AFS solver array allowing for custom `rho` tuning.");
-    add_standard_tsolver_methods<TAFS_Solver>(cls_tafs);
+    bind_standard_tsolver<TAFS_Solver>(m_afs, "TAFS_Solver",
+        "Reads options.rho_afs, the shrinkage step in (0, 1] (1: forward stepwise), and the"
+        " exchangeable-tie fields.");
 }
 // =====================================================================================
 #endif /* End of TREX_PYTHON_TSOLVER_BINDINGS_HPP */

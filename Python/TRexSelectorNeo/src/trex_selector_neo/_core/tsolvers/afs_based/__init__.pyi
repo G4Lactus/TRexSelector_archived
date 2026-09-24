@@ -8,9 +8,9 @@ import trex_selector_neo._core.tsolvers
 import typing
 __all__: list[str] = ['TAFS_Solver']
 class TAFS_Solver:
-    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], rho: typing.SupportsFloat | typing.SupportsIndex = 1.0, normalize: bool = True, intercept: bool = True, verbose: bool = False, scaling_mode: trex_selector_neo._core.tsolvers.ScalingMode = ...) -> None:
+    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.SolverOptions = ...) -> None:
         """
-        Initializes the AFS solver array allowing for custom `rho` tuning.
+        Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). Reads options.rho_afs, the shrinkage step in (0, 1] (1: forward stepwise), and the exchangeable-tie fields.
         """
     def clearWarnings(self) -> None:
         """

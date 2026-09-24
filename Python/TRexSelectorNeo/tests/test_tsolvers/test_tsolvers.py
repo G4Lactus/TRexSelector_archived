@@ -21,6 +21,7 @@ from trex_selector_neo.tsolvers.omp_based import (
     NCGMPVariant,
 )
 from trex_selector_neo.tsolvers.afs_based import TAFS_Solver
+from trex_selector_neo.tsolvers import SolverOptions
 
 
 # ---------------------------------------------------------------------------
@@ -40,10 +41,10 @@ def make_tstagewise(X, D, y):
     return TSTAGEWISE_Solver(X, D, y)
 
 def make_tenet(X, D, y):
-    return TENET_Solver(X, D, y, 0.1)
+    return TENET_Solver(X, D, y, SolverOptions(lambda2=0.1))
 
 def make_tenet_aug(X, D, y):
-    return TENETAug_Solver(X, D, y, 0.1)
+    return TENETAug_Solver(X, D, y, SolverOptions(lambda2=0.1))
 
 def make_tomp(X, D, y):
     return TOMP_Solver(X, D, y)
@@ -61,10 +62,10 @@ def make_tools(X, D, y):
     return TOOLS_Solver(X, D, y)
 
 def make_tncgmp(X, D, y):
-    return TNCGMP_Solver(X, D, y, NCGMPVariant.LineSearch)
+    return TNCGMP_Solver(X, D, y, SolverOptions(ncgmp_variant=NCGMPVariant.LineSearch))
 
 def make_tafs(X, D, y):
-    return TAFS_Solver(X, D, y, 1.0)
+    return TAFS_Solver(X, D, y, SolverOptions(rho_afs=1.0))
 
 
 STANDARD_SOLVER_FACTORIES = [
@@ -98,27 +99,31 @@ def test_instantiation(solver_data, factory):
 def test_tenet_requires_lambda2(solver_data):
     """TENET needs a lambda2 positional argument."""
     X, D, y, n, p = solver_data
-    with pytest.raises(Exception):
-        TENET_Solver(X, D, y)  # missing lambda2
+    # lambda2 lives in SolverOptions (default 0: the lasso path); a negative
+    # value is rejected by the solver.
+    assert TENET_Solver(X, D, y) is not None
+    with pytest.raises(ValueError):
+        TENET_Solver(X, D, y, SolverOptions(lambda2=-0.1))
 
 
 def test_tncgmp_line_search(solver_data):
     X, D, y, n, p = solver_data
-    solver = TNCGMP_Solver(X, D, y, NCGMPVariant.LineSearch)
+    solver = TNCGMP_Solver(X, D, y, SolverOptions(ncgmp_variant=NCGMPVariant.LineSearch))
     assert solver is not None
 
 
 def test_tncgmp_fully_corrective(solver_data):
     X, D, y, n, p = solver_data
-    solver = TNCGMP_Solver(X, D, y, NCGMPVariant.FullyCorrective)
+    solver = TNCGMP_Solver(X, D, y, SolverOptions(ncgmp_variant=NCGMPVariant.FullyCorrective))
     assert solver is not None
 
 
 def test_tenet_aug_requires_lambda2(solver_data):
     """TENETAug needs a lambda2 positional argument."""
     X, D, y, n, p = solver_data
-    with pytest.raises(Exception):
-        TENETAug_Solver(X, D, y)  # missing lambda2
+    assert TENETAug_Solver(X, D, y) is not None
+    with pytest.raises(ValueError):
+        TENETAug_Solver(X, D, y, SolverOptions(lambda2=-0.1))
 
 
 def test_tenet_aug_execute_and_beta(solver_data):
@@ -294,14 +299,14 @@ def test_tstagewise_get_cycling_ratio(solver_data):
 
 def test_tenet_get_num_removals(solver_data):
     X, D, y, n, p = solver_data
-    solver = TENET_Solver(X, D, y, 0.1)
+    solver = TENET_Solver(X, D, y, SolverOptions(lambda2=0.1))
     solver.executeStep(T_stop=0, early_stop=True)
     assert isinstance(solver.getNumRemovals(), int)
 
 
 def test_tenet_get_cycling_ratio(solver_data):
     X, D, y, n, p = solver_data
-    solver = TENET_Solver(X, D, y, 0.1)
+    solver = TENET_Solver(X, D, y, SolverOptions(lambda2=0.1))
     solver.executeStep(T_stop=0, early_stop=True)
     assert isinstance(solver.getCyclingRatio(), float)
 

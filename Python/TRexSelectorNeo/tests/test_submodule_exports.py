@@ -152,6 +152,9 @@ def test_tsolver_symbols_importable():
         assert callable(cls)
     assert ScalingMode.L2 is not None
     assert ScalingMode.ZSCORE is not None
+    from trex_selector_neo.tsolvers import SolverOptions, GroupPenaltyVariant
+    assert SolverOptions().lambda2 == 0.0
+    assert GroupPenaltyVariant.MEAN is not None
     assert NCGMPVariant.LineSearch is not None
 
 

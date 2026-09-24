@@ -8,9 +8,9 @@ import trex_selector_neo._core.tsolvers
 import typing
 __all__: list[str] = ['TENETAug_Solver', 'TENET_Solver', 'TIENETAug_Solver', 'TLARS_Solver', 'TLASSO_Solver', 'TSTAGEWISE_Solver', 'TSTEPWISE_Solver']
 class TENETAug_Solver:
-    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], lambda2: typing.SupportsFloat | typing.SupportsIndex, normalize: bool = True, intercept: bool = True, verbose: bool = False, scaling_mode: trex_selector_neo._core.tsolvers.ScalingMode = ..., use_lars_inner: bool = False) -> None:
+    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.SolverOptions = ...) -> None:
         """
-        Initializes the augmented-LASSO Elastic Net solver with an explicit secondary L2 penalty `lambda2`. Set `use_lars_inner` to run the inner path with a pure-LARS solver (never drops variables).
+        Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). Reads options.lambda2 and options.tenet_aug_use_lars (pure-LARS inner path).
         """
     def clearWarnings(self) -> None:
         """
@@ -133,9 +133,9 @@ class TENETAug_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TENET_Solver:
-    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], lambda2: typing.SupportsFloat | typing.SupportsIndex, normalize: bool = True, intercept: bool = True, verbose: bool = False, scaling_mode: trex_selector_neo._core.tsolvers.ScalingMode = ...) -> None:
+    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.SolverOptions = ...) -> None:
         """
-        Initializes the TENET solver array, using an explicit secondary L2 penalty `lambda2`.
+        Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). Reads options.lambda2, the secondary L2 penalty (default 0: the lasso path).
         """
     def clearWarnings(self) -> None:
         """
@@ -270,9 +270,9 @@ class TENET_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TIENETAug_Solver:
-    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], lambda2: typing.SupportsFloat | typing.SupportsIndex, groups: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"], normalize: bool = True, intercept: bool = True, verbose: bool = False, scaling_mode: trex_selector_neo._core.tsolvers.ScalingMode = ..., use_lars_inner: bool = False) -> None:
+    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], groups: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"], options: trex_selector_neo._core.tsolvers.SolverOptions = ...) -> None:
         """
-        Initializes the augmented-LASSO Informed Elastic Net solver with a group-ridge penalty `lambda2` and a 0-based group id per original variable (`groups`, length p).
+        Initializes the augmented-LASSO Informed Elastic Net solver with a 0-based group id per original variable (`groups`, length p); reads options.lambda2 (the group-ridge penalty) and options.tenet_aug_use_lars.
         """
     def clearWarnings(self) -> None:
         """
@@ -407,9 +407,9 @@ class TIENETAug_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TLARS_Solver:
-    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], normalize: bool = True, intercept: bool = True, verbose: bool = False, scaling_mode: trex_selector_neo._core.tsolvers.ScalingMode = ...) -> None:
+    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.SolverOptions = ...) -> None:
         """
-        Initializes the solver via zero-copy views to facilitate safe in-place mutations.
+        Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). Plain T-LARS reads no family hyperparameter.
         """
     def clearWarnings(self) -> None:
         """
@@ -544,9 +544,9 @@ class TLARS_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TLASSO_Solver:
-    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], normalize: bool = True, intercept: bool = True, verbose: bool = False, scaling_mode: trex_selector_neo._core.tsolvers.ScalingMode = ...) -> None:
+    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.SolverOptions = ...) -> None:
         """
-        Initializes the solver via zero-copy views to facilitate safe in-place mutations.
+        Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). 
         """
     def clearWarnings(self) -> None:
         """
@@ -677,9 +677,9 @@ class TLASSO_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TSTAGEWISE_Solver:
-    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], normalize: bool = True, intercept: bool = True, verbose: bool = False, scaling_mode: trex_selector_neo._core.tsolvers.ScalingMode = ...) -> None:
+    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.SolverOptions = ...) -> None:
         """
-        Initializes the solver via zero-copy views to facilitate safe in-place mutations.
+        Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). 
         """
     def clearWarnings(self) -> None:
         """
@@ -810,9 +810,9 @@ class TSTAGEWISE_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TSTEPWISE_Solver:
-    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], normalize: bool = True, intercept: bool = True, verbose: bool = False, scaling_mode: trex_selector_neo._core.tsolvers.ScalingMode = ...) -> None:
+    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.SolverOptions = ...) -> None:
         """
-        Initializes the solver via zero-copy views to facilitate safe in-place mutations.
+        Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). 
         """
     def clearWarnings(self) -> None:
         """

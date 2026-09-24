@@ -10,7 +10,7 @@ import os
 import numpy as np
 import pytest
 
-from trex_selector_neo.tsolvers import ScalingMode
+from trex_selector_neo.tsolvers import ScalingMode, SolverOptions
 from trex_selector_neo.tsolvers.lars_based import (
     TLARS_Solver,
     TENET_Solver,
@@ -35,9 +35,9 @@ def data():
 def test_scaling_mode_enum_and_ctor_arg(data):
     X, D, y = data
     s_l2 = TLARS_Solver(X.copy(order="F"), D.copy(order="F"), y.copy(order="F"),
-                        scaling_mode=ScalingMode.L2)
+                        SolverOptions(scaling_mode=ScalingMode.L2))
     s_z = TLARS_Solver(X.copy(order="F"), D.copy(order="F"), y.copy(order="F"),
-                       scaling_mode=ScalingMode.ZSCORE)
+                       SolverOptions(scaling_mode=ScalingMode.ZSCORE))
     s_l2.executeStep(2)
     s_z.executeStep(2)
     # Different scaling conventions must both run; coefficient paths are
@@ -63,7 +63,7 @@ def test_set_tolerance_and_active_index_getters(data):
 
 def test_tenet_get_alpha(data):
     X, D, y = data
-    t = TENET_Solver(X, D, y, lambda2=0.5)
+    t = TENET_Solver(X, D, y, SolverOptions(lambda2=0.5))
     # Before the path runs there is no lambda1 yet -> alpha defaults to 1.0
     assert t.getAlpha() == pytest.approx(1.0)
     t.executeStep(2)
@@ -74,14 +74,14 @@ def test_tenet_get_alpha(data):
 
 def test_tenet_aug_ctor_extensions_and_save_load(tmp_path, data):
     X, D, y = data
-    ta = TENETAug_Solver(X, D, y, lambda2=0.5,
-                         scaling_mode=ScalingMode.L2, use_lars_inner=True)
+    ta = TENETAug_Solver(X, D, y, SolverOptions(lambda2=0.5, scaling_mode=ScalingMode.L2,
+                                                tenet_aug_use_lars=True))
     ta.executeStep(2)
     assert ta.getNumSteps() > 0
 
     filepath = os.path.join(tmp_path, "tenet_aug.bin")
     ta.save(filepath)
-    ta2 = TENETAug_Solver(X, D, y, lambda2=0.5)
+    ta2 = TENETAug_Solver(X, D, y, SolverOptions(lambda2=0.5))
     ta2.load(filepath)
     assert np.allclose(ta.getBetaPath(), ta2.getBetaPath())
 
@@ -90,7 +90,7 @@ def test_tienet_aug_solver(tmp_path, data):
     X, D, y = data
     groups = np.array([0, 0, 1, 1, 2, 2, 3, 3, 4, 4], dtype=np.int32)
 
-    ti = TIENETAug_Solver(X, D, y, lambda2=0.5, groups=groups)
+    ti = TIENETAug_Solver(X, D, y, groups, SolverOptions(lambda2=0.5))
     ti.executeStep(2)
 
     assert ti.solverTypeToString() == "TIENETAug"
@@ -101,7 +101,7 @@ def test_tienet_aug_solver(tmp_path, data):
 
     filepath = os.path.join(tmp_path, "tienet_aug.bin")
     ti.save(filepath)
-    ti2 = TIENETAug_Solver(X, D, y, lambda2=0.5, groups=groups)
+    ti2 = TIENETAug_Solver(X, D, y, groups, SolverOptions(lambda2=0.5))
     ti2.load(filepath)
     assert np.allclose(ti.getBetaPath(), ti2.getBetaPath())
 
@@ -112,7 +112,7 @@ def test_tienet_aug_rejects_misaligned_dummies(data):
     D_bad = np.asfortranarray(rng.standard_normal((X.shape[0], 5)))
     groups = np.zeros(X.shape[1], dtype=np.int32)
     with pytest.raises(ValueError):
-        TIENETAug_Solver(X, D_bad, y, lambda2=0.5, groups=groups)
+        TIENETAug_Solver(X, D_bad, y, groups, SolverOptions(lambda2=0.5))
 
 
 def test_eval_counts_and_f1():
@@ -159,7 +159,7 @@ def _clustered_data(seed=3):
 
 @pytest.mark.parametrize("make_solver", [
     lambda X, D, y: __import__("trex_selector_neo").tsolvers.omp_based.TOMP_Solver(X, D, y),
-    lambda X, D, y: __import__("trex_selector_neo").tsolvers.afs_based.TAFS_Solver(X, D, y, 1.0),
+    lambda X, D, y: __import__("trex_selector_neo").tsolvers.afs_based.TAFS_Solver(X, D, y),
 ])
 def test_set_exchangeable_tie_reproducible(make_solver):
     X, D, y = _clustered_data()
@@ -178,3 +178,19 @@ def test_set_exchangeable_tie_reproducible(make_solver):
     s_ref.executeStep(0, True)
     ref = [a for step in s_ref.getActions() for a in step]
     assert run(0.0, 123) == ref
+
+
+def test_solver_options_keywords_and_fields(data):
+    """SolverOptions: keyword constructor, unknown keywords rejected, fields round-trip,
+    and the options reach the solver (PLAN WP9)."""
+    X, D, y = data
+    o = SolverOptions(lambda2=0.25, normalize=False, tol=1e-9, tie_seed=7)
+    assert o.lambda2 == 0.25 and o.normalize is False and o.intercept is True
+    assert o.tol == 1e-9 and o.tie_seed == 7
+    o.exch_tie_alpha = 0.25
+    assert o.exch_tie_alpha == 0.25
+    with pytest.raises(TypeError):
+        SolverOptions(lambda_2=0.25)
+    t = TENET_Solver(X, D, y, o)
+    t.executeStep(2)
+    assert t.getNumSteps() > 0

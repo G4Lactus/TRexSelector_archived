@@ -53,9 +53,9 @@ class NCGMPVariant:
     def value(self) -> int:
         ...
 class TACGP_Solver:
-    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], normalize: bool = True, intercept: bool = True, verbose: bool = False, scaling_mode: trex_selector_neo._core.tsolvers.ScalingMode = ...) -> None:
+    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.SolverOptions = ...) -> None:
         """
-        Initializes the solver via zero-copy views to facilitate safe in-place mutations.
+        Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). 
         """
     def clearWarnings(self) -> None:
         """
@@ -178,9 +178,9 @@ class TACGP_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TGP_Solver:
-    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], normalize: bool = True, intercept: bool = True, verbose: bool = False, scaling_mode: trex_selector_neo._core.tsolvers.ScalingMode = ...) -> None:
+    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.SolverOptions = ...) -> None:
         """
-        Initializes the solver via zero-copy views to facilitate safe in-place mutations.
+        Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). 
         """
     def clearWarnings(self) -> None:
         """
@@ -303,9 +303,9 @@ class TGP_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TMP_Solver:
-    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], normalize: bool = True, intercept: bool = True, verbose: bool = False, scaling_mode: trex_selector_neo._core.tsolvers.ScalingMode = ...) -> None:
+    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.SolverOptions = ...) -> None:
         """
-        Initializes the solver via zero-copy views to facilitate safe in-place mutations.
+        Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). 
         """
     def clearWarnings(self) -> None:
         """
@@ -428,9 +428,9 @@ class TMP_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TNCGMP_Solver:
-    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], variant: NCGMPVariant = ..., normalize: bool = True, intercept: bool = True, verbose: bool = False, scaling_mode: trex_selector_neo._core.tsolvers.ScalingMode = ...) -> None:
+    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.SolverOptions = ...) -> None:
         """
-        Initializes the TNCGMP solver array, enforcing a strictly specified LineSearch or FullyCorrective variant.
+        Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). Reads options.ncgmp_variant (LineSearch or FullyCorrective).
         """
     def clearWarnings(self) -> None:
         """
@@ -553,9 +553,9 @@ class TNCGMP_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TOMP_Solver:
-    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], normalize: bool = True, intercept: bool = True, verbose: bool = False, scaling_mode: trex_selector_neo._core.tsolvers.ScalingMode = ...) -> None:
+    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.SolverOptions = ...) -> None:
         """
-        Initializes the solver via zero-copy views to facilitate safe in-place mutations.
+        Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). Greedy: reads options.exch_tie_alpha / exch_tie_floor.
         """
     def clearWarnings(self) -> None:
         """
@@ -678,9 +678,9 @@ class TOMP_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TOOLS_Solver:
-    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], normalize: bool = True, intercept: bool = True, verbose: bool = False, scaling_mode: trex_selector_neo._core.tsolvers.ScalingMode = ...) -> None:
+    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.SolverOptions = ...) -> None:
         """
-        Initializes the solver via zero-copy views to facilitate safe in-place mutations.
+        Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). 
         """
     def clearWarnings(self) -> None:
         """
