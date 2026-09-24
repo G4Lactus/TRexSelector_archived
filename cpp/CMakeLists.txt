@@ -63,6 +63,7 @@ else()
     option(TREX_USE_BLAS_LAPACK "Use BLAS/LAPACK backends for Eigen" ON)
 endif()
 option(TREX_PORTABLE_BUILD "Disable -march=native for portable/wheel builds. Set ON when building for PyPI or CI." OFF)
+option(TREX_INSTALL_CPP_SDK "Install the C++ SDK: headers, static libraries and the CMake package files. OFF for Python wheels, which need only the extension module." ON)
 
 # Shared per-target compiler flags (GCC/Clang vs MSVC)
 include(cmake/TRexCompilerOptions.cmake)
@@ -229,26 +230,45 @@ endif()
 
 
 # ============================================================================
-# Install hygiene: prune package-owned header trees before installing
+# Install layout and hygiene (PLAN WP4 4.4 / 4.6)
 # ============================================================================
+# Headers install under a NAMESPACED root, <prefix>/include/TRexSelector/, so
+# the package never owns generic names such as include/utils inside a shared
+# prefix (a conda environment, /usr/local). Consumers receive the directory
+# through the exported targets (find_package); manual -I users append
+# /TRexSelector.
+#
 # `cmake --install` only copies files; it never removes headers that were
-# renamed or deleted since the previous install. A stale header (e.g. one
+# renamed or deleted since the previous install, and a stale header (one
 # that #includes a since-renamed file) poisons every consumer of the install
-# tree until it is cleaned by hand. Pruning is restricted to the four header
-# subtrees this project owns, so the operation stays safe in shared prefixes.
-# Declared before add_subdirectory(src) so it runs ahead of the FILE_SET
-# header installs (CMP0082: install rules execute in declaration order).
+# tree. The namespaced root is therefore pruned before the FILE_SET header
+# installs — but only when a stamp file proves the tree was written by this
+# project: a foreign directory of the same name is refused, never deleted.
+# Declared before add_subdirectory(src) so it runs ahead of the header
+# installs (CMP0082: install rules execute in declaration order). Skipped
+# entirely without the SDK (Python wheels install only the extension).
 include(GNUInstallDirs)   # gives portable CMAKE_INSTALL_LIBDIR / INCLUDEDIR
-install(CODE "set(_trex_include_root \"${CMAKE_INSTALL_INCLUDEDIR}\")")
-install(CODE [[
-    foreach(_trex_subdir ml_methods trex_selector_methods tsolvers utils)
-        file(REMOVE_RECURSE
-             "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${_trex_include_root}/${_trex_subdir}")
-    endforeach()
-    message(STATUS
-        "TRexSelector: pruned package header trees under "
-        "${CMAKE_INSTALL_PREFIX}/${_trex_include_root}")
-]])
+set(TREX_INSTALL_INCLUDE_ROOT "${CMAKE_INSTALL_INCLUDEDIR}/TRexSelector")
+if(TREX_INSTALL_CPP_SDK)
+    set(_trex_install_stamp "${CMAKE_CURRENT_BINARY_DIR}/TRexSelector.install-stamp")
+    file(WRITE "${_trex_install_stamp}"
+         "TRexSelector ${PROJECT_VERSION} header tree; pruned and rewritten by cmake --install.\n")
+    install(CODE "set(_trex_include_root \"${TREX_INSTALL_INCLUDE_ROOT}\")")
+    install(CODE [[
+        set(_trex_dir "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${_trex_include_root}")
+        if(EXISTS "${_trex_dir}")
+            if(NOT EXISTS "${_trex_dir}/TRexSelector.install-stamp")
+                message(FATAL_ERROR
+                    "TRexSelector: refusing to prune ${_trex_dir}: it carries no "
+                    "TRexSelector.install-stamp, so it was not written by this "
+                    "project. Remove or rename it by hand if it is stale.")
+            endif()
+            file(REMOVE_RECURSE "${_trex_dir}")
+            message(STATUS "TRexSelector: pruned the package header tree ${_trex_dir}")
+        endif()
+    ]])
+    install(FILES "${_trex_install_stamp}" DESTINATION "${TREX_INSTALL_INCLUDE_ROOT}")
+endif()
 
 
 # ============================================================================
@@ -283,19 +303,20 @@ write_basic_package_version_file(
     COMPATIBILITY   SameMajorVersion
 )
 
-# 3. Install both config files
-install(FILES
-    ${CMAKE_CURRENT_BINARY_DIR}/TRexSelectorConfig.cmake
-    ${CMAKE_CURRENT_BINARY_DIR}/TRexSelectorConfigVersion.cmake
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/TRexSelector
-)
-
-# 4. Install the exported target manifest
-install(EXPORT TRexSelectorTargets
-    FILE        TRexSelectorTargets.cmake
-    NAMESPACE   TRexSelector::
-    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/TRexSelector
-)
+# 3. + 4. Install the config files and the exported target manifest — SDK only
+#         (the export set is empty without the library install rules).
+if(TREX_INSTALL_CPP_SDK)
+    install(FILES
+        ${CMAKE_CURRENT_BINARY_DIR}/TRexSelectorConfig.cmake
+        ${CMAKE_CURRENT_BINARY_DIR}/TRexSelectorConfigVersion.cmake
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/TRexSelector
+    )
+    install(EXPORT TRexSelectorTargets
+        FILE        TRexSelectorTargets.cmake
+        NAMESPACE   TRexSelector::
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/TRexSelector
+    )
+endif()
 
 
 # ============================================================================

@@ -8,7 +8,25 @@ include(CMakeFindDependencyMacro)
 find_dependency(Eigen3    REQUIRED NO_MODULE)
 find_dependency(OpenMP    REQUIRED)
 find_dependency(cereal    REQUIRED)
-find_dependency(Boost 1.80 REQUIRED COMPONENTS headers)
+# Boost is header-only here (Interprocess / Random / Math). Mirror the root
+# build: the legacy FindBoost module (CMP0167 OLD) also locates header-only
+# installs that ship no BoostConfig.cmake, and it provides Boost::headers
+# without COMPONENTS (requesting "COMPONENTS headers" fails in module mode).
+# Config mode (CMP0167 NEW, CMake >= 3.30) would fail on such installs and
+# warns whenever the policy is unset. Called DIRECTLY, not through
+# find_dependency(): the macro re-evaluates find_package in a scope where the
+# policy is unset again and warns at every consumer configure (CMake 4.4,
+# verified). A config file has its own policy scope, so the consumer's
+# settings are untouched.
+if(POLICY CMP0167)
+    cmake_policy(SET CMP0167 OLD)
+endif()
+find_package(Boost 1.80 REQUIRED)
+if(NOT Boost_FOUND)
+    set(${CMAKE_FIND_PACKAGE_NAME}_NOT_FOUND_MESSAGE "TRexSelector needs Boost >= 1.80 (headers)")
+    set(${CMAKE_FIND_PACKAGE_NAME}_FOUND FALSE)
+    return()
+endif()
 
 # BLAS/LAPACK: mirror the Accelerate → OpenBLAS fallback logic
 if(APPLE)
