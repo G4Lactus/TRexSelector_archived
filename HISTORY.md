@@ -73,6 +73,28 @@
   Designs that carry constant columns must drop them now (breaking, deliberate:
   PLAN WP4 4.1 (d)). The matrix is unmodified when the constructor throws.
 
+#### lambda_2 tuner boundary guard (warning-only)
+
+- The GVS and Tikhonov selectors warn once when a CV tuner returns a
+  boundary-dominated lambda_2, and return the pick unchanged. Two modes are
+  covered: the returned lambda_2 sits on the first or last point of its grid (the
+  grid boundary, not a CV optimum: a flat or still-improving curve, typically low
+  SNR), and, for the IEN tuner, the profiled lambda_1 optimum of the chosen
+  lambda_2 sits on the truncation edge of the lambda_1 path. Before, both were
+  visible only in `n_profile_at_edge`, which is blind to the grid-ceiling mode
+  (measured in August on the demo designs: a pick at the ceiling with the counter at
+  zero). The warning names the selector, the method, the mode and the remedies
+  (1SE over MIN, a fixed lambda_2, a longer lambda_1 path, a finer grid). For the
+  EN CCD tuner a last-point pick on a path that glmnet's deviance rules truncated
+  is benign and is not flagged.
+- The lambda_2 diagnostics record (C++ `lambda2_cv_diagnostics`, R
+  `lambda2_cv_diagnostics`, Python `Lambda2CVDiagnostics`) carries the pick:
+  `grid_index` / `grid_size`, `at_grid_edge`, `profile_at_edge` and
+  `boundary_pick`. Every CV method fills the grid fields now, not only the IEN
+  tuner. `ienet_cv_ccd` gained `selection_at_grid_edge()` and a per-lambda_2
+  `profile_at_edge(k)`; its `diagnostics()` takes the rule (MIN or 1SE) whose pick
+  the caller uses.
+
 ### 2026-07-21
 
 #### R package refreshed: vendored core synced, exchangeable tie-break exposed
