@@ -662,7 +662,25 @@ public:
      *                          measurement table at the rule's use site.
      * @param seed              Fold-permutation seed (default 0).
      * @param max_iter          CD sweeps per lambda1 (default 100000).
-     * @param tol               CD tolerance (default 1e-7).
+     * @param tol               CD tolerance of the tuner's solves (default
+     *                          1e-4; the pathwise fit() keeps 1e-7). The
+     *                          wrapper consumes only predict(), and the
+     *                          criterion sqrt(d_j)*|delta_j| already
+     *                          measures the change in FITTED VALUES, so the
+     *                          lambda2 pick needs far less precision than a
+     *                          reported path. Measured at the shipped grid
+     *                          (n_lambda2 = 100, n_lambda1 = 40, dfmax 0.8)
+     *                          on two designs (n=150/p=100 and n=200/p=500
+     *                          Hastie blocks): both picks bit-identical from
+     *                          1e-7 down to 1e-4, the CV curve within 1e-4
+     *                          relative, 5-6x faster (26.7 s -> 5.3 s and
+     *                          34.8 s -> 5.6 s per call). In this file's
+     *                          unit-L2 column scaling glmnet's own criterion
+     *                          is |delta| < sqrt(n)*3.16e-4 (~4.5e-3 at
+     *                          n = 200): 1e-4 is still ~45x stricter.
+     *                          Decision Fabian, 2026-09-24 (PLAN WP3);
+     *                          evidence in the Scientific Notes
+     *                          (tccd_agreement_and_tolerance_findings.md).
      * @param dfmax_ratio       Support cap as a fraction of the (smallest)
      *                          fold training size: the reference scan stops
      *                          each lambda1 path at the first point with
@@ -681,7 +699,7 @@ public:
              double       lambda1_min_ratio = -1.0,
              unsigned int seed              = 0,
              int          max_iter          = 100000,
-             double       tol               = 1e-7,
+             double       tol               = 1e-4,
              double       dfmax_ratio       = 0.8)
     {
         groups_ = groups;
@@ -703,7 +721,7 @@ public:
              double       lambda1_min_ratio = -1.0,
              unsigned int seed              = 0,
              int          max_iter          = 100000,
-             double       tol               = 1e-7,
+             double       tol               = 1e-4,
              double       dfmax_ratio       = 0.8)
     {
         K_ = K;
