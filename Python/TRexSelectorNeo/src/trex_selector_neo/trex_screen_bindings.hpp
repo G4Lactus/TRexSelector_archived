@@ -18,13 +18,13 @@
 #include <pybind11/stl.h>
 
 // trex includes
-#include <trex_selector_methods/trex_screening/trex_screening.hpp>
+#include <trex_selector_methods/ad/trex_screening/trex_screening.hpp>
 #include "trex_core_bindings.hpp"
 
 // =====================================================================================
 namespace py = pybind11;
-using namespace trex::trex_selector_methods::trex_screening;
-using namespace trex::trex_selector_methods::trex_core;
+using namespace trex::trex_selector_methods::ad::trex_screening;
+using namespace trex::trex_selector_methods::ad::trex_core;
 
 // =====================================================================================
 

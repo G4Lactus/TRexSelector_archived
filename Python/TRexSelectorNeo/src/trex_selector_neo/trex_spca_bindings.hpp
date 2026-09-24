@@ -20,15 +20,15 @@
 #include <pybind11/stl.h>
 
 // trex_spca include
-#include <trex_selector_methods/trex_spca/trex_spca.hpp>
+#include <trex_selector_methods/ad/trex_spca/trex_spca.hpp>
 
 // =====================================================================================
 
 namespace py = pybind11;
 
-using namespace trex::trex_selector_methods::trex_spca;
-namespace tc = trex::trex_selector_methods::trex_core;
-namespace tg = trex::trex_selector_methods::trex_gvs;
+using namespace trex::trex_selector_methods::ad::trex_spca;
+namespace tc = trex::trex_selector_methods::ad::trex_core;
+namespace tg = trex::trex_selector_methods::ad::trex_gvs;
 
 // =====================================================================================
 

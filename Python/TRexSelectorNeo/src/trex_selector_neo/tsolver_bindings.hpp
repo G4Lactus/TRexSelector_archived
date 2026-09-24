@@ -18,33 +18,33 @@
 
 // T-Solvers includes
 // LARS-based solvers
-#include <tsolvers/linear_model/lars_based/tlars_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tlasso_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tstepwise_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tstagewise_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tenet_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tenet_aug_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tienet_aug_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tlars_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tlasso_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tstepwise_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tstagewise_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tenet_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tenet_aug_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tienet_aug_solver.hpp>
 
 // OMP-based solvers
-#include <tsolvers/linear_model/omp_based/tomp_solver.hpp>
-#include <tsolvers/linear_model/omp_based/tgp_solver.hpp>
-#include <tsolvers/linear_model/omp_based/tacgp_solver.hpp>
-#include <tsolvers/linear_model/omp_based/tmp_solver.hpp>
-#include <tsolvers/linear_model/omp_based/tncgmp_solver.hpp>
-#include <tsolvers/linear_model/omp_based/tools_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tomp_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tgp_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tacgp_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tmp_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tncgmp_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tools_solver.hpp>
 
 // AFS-based solvers
-#include <tsolvers/linear_model/afs_based/tafs_solver.hpp>
+#include <tsolvers/ad/linear_model/afs_based/tafs_solver.hpp>
 // Native IEN and the sparse-K solvers
-#include <tsolvers/linear_model/lars_based/tienet_solver.hpp>
-#include <tsolvers/linear_model/lars_based/tiknet_solver.hpp>
-#include <tsolvers/linear_model/omp_based/tikomp_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tienet_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tiknet_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tikomp_solver.hpp>
 // CD-based solvers
-#include <tsolvers/linear_model/cd_based/tcdlasso_solver.hpp>
-#include <tsolvers/linear_model/cd_based/tcdenet_solver.hpp>
-#include <tsolvers/linear_model/cd_based/tcdienet_solver.hpp>
-#include <tsolvers/linear_model/cd_based/tcdtiknet_solver.hpp>
+#include <tsolvers/ad/linear_model/cd_based/tcdlasso_solver.hpp>
+#include <tsolvers/ad/linear_model/cd_based/tcdenet_solver.hpp>
+#include <tsolvers/ad/linear_model/cd_based/tcdienet_solver.hpp>
+#include <tsolvers/ad/linear_model/cd_based/tcdtiknet_solver.hpp>
 
 // =====================================================================================
 
@@ -166,7 +166,7 @@ public:
 
     /** @brief Get the estimated Mallow's Cp values at each step with provided sigma squared. */
     std::vector<double> getCpWithSigma(double sigma_hat_sq) const {
-        return static_cast<const trex::tsolvers::TSolver_Base*>(solver_.get())->getCp(sigma_hat_sq);
+        return static_cast<const trex::tsolvers::ad::TSolver_Base*>(solver_.get())->getCp(sigma_hat_sq);
     }
 
     /** @brief Get the residual sum of squares at each step. */
@@ -453,7 +453,7 @@ py::class_<PySolverWrapper<Solver>>& add_standard_tsolver_methods(
 template<typename Solver>
 py::class_<PySolverWrapper<Solver>> bind_standard_tsolver(py::module& m, const std::string& name,
                                                           const std::string& doc = {}) {
-    using trex::tsolvers::SolverOptions;
+    using trex::tsolvers::ad::SolverOptions;
     py::class_<PySolverWrapper<Solver>> cls(m, name.c_str());
     const std::string init_doc =
         "Initializes the solver via zero-copy views of X, D and y; every other input "
@@ -478,7 +478,7 @@ py::class_<PySolverWrapper<Solver>> bind_standard_tsolver(py::module& m, const s
 template<typename Solver>
 py::class_<PySolverWrapper<Solver>> bind_groups_tsolver(py::module& m, const std::string& name,
                                                         const std::string& doc = {}) {
-    using trex::tsolvers::SolverOptions;
+    using trex::tsolvers::ad::SolverOptions;
     py::class_<PySolverWrapper<Solver>> cls(m, name.c_str());
     const std::string init_doc =
         "Initializes the solver via zero-copy views of X, D and y with a 0-based group id per "
@@ -504,7 +504,7 @@ py::class_<PySolverWrapper<Solver>> bind_groups_tsolver(py::module& m, const std
 template<typename Solver>
 py::class_<PySolverWrapper<Solver>> bind_tikhonov_tsolver(py::module& m, const std::string& name,
                                                           const std::string& doc = {}) {
-    using trex::tsolvers::SolverOptions;
+    using trex::tsolvers::ad::SolverOptions;
     py::class_<PySolverWrapper<Solver>> cls(m, name.c_str());
     const std::string init_doc =
         "Initializes the solver via zero-copy views of X, D and y with the p x p PSD Tikhonov "
@@ -551,14 +551,14 @@ py::class_<PySolverWrapper<Solver>>& add_cd_tsolver_methods(py::class_<PySolverW
 
 
 /**
- * @brief Bind trex::tsolvers::SolverOptions with a keyword constructor
+ * @brief Bind trex::tsolvers::ad::SolverOptions with a keyword constructor
  *        (`SolverOptions(lambda2=0.5, normalize=False)`) and read/write fields.
  */
 inline void bind_solver_options(py::module& m) {
-    using trex::tsolvers::SolverOptions;
-    using trex::tsolvers::NCGMPVariant;
-    using trex::tsolvers::GroupPenaltyVariant;
-    using ScalingMode = trex::tsolvers::ScalingMode;
+    using trex::tsolvers::ad::SolverOptions;
+    using trex::tsolvers::ad::NCGMPVariant;
+    using trex::tsolvers::ad::GroupPenaltyVariant;
+    using ScalingMode = trex::tsolvers::ad::ScalingMode;
 
     py::class_<SolverOptions> cls(m, "SolverOptions",
         "Every T-solver input except the data X, D and y. Each solver reads the fields it "
@@ -635,7 +635,7 @@ inline void bind_solver_options(py::module& m) {
  */
 inline void bind_tsolvers_module(py::module& m) {
 
-    using ScalingMode = trex::tsolvers::solver_utils::preprocessing::ScalingMode;
+    using ScalingMode = trex::tsolvers::ad::solver_utils::preprocessing::ScalingMode;
 
     // Column-scaling convention used by all solver constructors. This is the
     // solver-side enum (solver_utils::preprocessing::ScalingMode); the
@@ -658,20 +658,20 @@ inline void bind_tsolvers_module(py::module& m) {
     /**
      * @brief Variants defining the internal optimization mode utilized by the TNCGMP solver.
      */
-    py::enum_<trex::tsolvers::NCGMPVariant>(m_omp, "NCGMPVariant")
+    py::enum_<trex::tsolvers::ad::NCGMPVariant>(m_omp, "NCGMPVariant")
         .value("LineSearch",
-               trex::tsolvers::NCGMPVariant::LineSearch,
+               trex::tsolvers::ad::NCGMPVariant::LineSearch,
                "Computes updates using standard backtracking / exact line search.")
         .value("FullyCorrective",
-              trex::tsolvers::NCGMPVariant::FullyCorrective,
+              trex::tsolvers::ad::NCGMPVariant::FullyCorrective,
               "Computes fully corrective projections for all active set members at each step.")
         .export_values();
 
-    py::enum_<trex::tsolvers::GroupPenaltyVariant>(m, "GroupPenaltyVariant",
+    py::enum_<trex::tsolvers::ad::GroupPenaltyVariant>(m, "GroupPenaltyVariant",
         "Structured penalty of the group CCD solver (TCDIENET).")
-        .value("MEAN", trex::tsolvers::GroupPenaltyVariant::MEAN,
+        .value("MEAN", trex::tsolvers::ad::GroupPenaltyVariant::MEAN,
                "K = blockdiag(1 1^T / p_m): the canonical IEN group-sum penalty.")
-        .value("CENTERING", trex::tsolvers::GroupPenaltyVariant::CENTERING,
+        .value("CENTERING", trex::tsolvers::ad::GroupPenaltyVariant::CENTERING,
                "K = blockdiag(I - 1 1^T / p_m): within-group centering.")
         .export_values();
 
@@ -681,7 +681,7 @@ inline void bind_tsolvers_module(py::module& m) {
     // -------------------------------------------------------------------------
     // LARS-based sub-module
     // -------------------------------------------------------------------------
-    using namespace trex::tsolvers::linear_model::lars_based;
+    using namespace trex::tsolvers::ad::linear_model::lars_based;
 
     bind_standard_tsolver<TLARS_Solver>(m_lars, "TLARS_Solver",
         "Plain T-LARS reads no family hyperparameter.")
@@ -724,12 +724,12 @@ inline void bind_tsolvers_module(py::module& m) {
     py::class_<PySolverWrapper<TIENETAug_Solver>> cls_tienet_aug(m_lars, "TIENETAug_Solver");
     cls_tienet_aug.def(py::init<Eigen::Ref<Eigen::MatrixXd>, Eigen::Ref<Eigen::MatrixXd>,
                                 Eigen::Ref<Eigen::VectorXd>, const Eigen::VectorXi&,
-                                const trex::tsolvers::SolverOptions&>(),
+                                const trex::tsolvers::ad::SolverOptions&>(),
              py::arg("X"),
              py::arg("D"),
              py::arg("y"),
              py::arg("groups"),
-             py::arg("options") = trex::tsolvers::SolverOptions{},
+             py::arg("options") = trex::tsolvers::ad::SolverOptions{},
              py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(),
              "Initializes the augmented-LASSO Informed Elastic Net solver with a 0-based group"
              " id per original variable (`groups`, length p); reads options.lambda2 (the"
@@ -769,7 +769,7 @@ inline void bind_tsolvers_module(py::module& m) {
     // -------------------------------------------------------------------------
     // OMP-based sub-module
     // -------------------------------------------------------------------------
-    using namespace trex::tsolvers::linear_model::omp_based;
+    using namespace trex::tsolvers::ad::linear_model::omp_based;
 
     bind_standard_tsolver<TOMP_Solver>(m_omp, "TOMP_Solver",
         "Greedy: reads options.exch_tie_alpha / exch_tie_floor.");
@@ -791,7 +791,7 @@ inline void bind_tsolvers_module(py::module& m) {
     // -------------------------------------------------------------------------
     // AFS-based sub-module
     // -------------------------------------------------------------------------
-    using namespace trex::tsolvers::linear_model::afs_based;
+    using namespace trex::tsolvers::ad::linear_model::afs_based;
 
     bind_standard_tsolver<TAFS_Solver>(m_afs, "TAFS_Solver",
         "Reads options.rho_afs, the shrinkage step in (0, 1] (1: forward stepwise), and the"
@@ -800,7 +800,7 @@ inline void bind_tsolvers_module(py::module& m) {
     // -------------------------------------------------------------------------
     // CD-based sub-module (TODO 5.4)
     // -------------------------------------------------------------------------
-    using namespace trex::tsolvers::linear_model::cd_based;
+    using namespace trex::tsolvers::ad::linear_model::cd_based;
 
     {
         auto cls = bind_standard_tsolver<TCDLASSO_Solver>(m_cd, "TCDLASSO_Solver",

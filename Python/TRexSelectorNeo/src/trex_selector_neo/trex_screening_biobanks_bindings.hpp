@@ -17,13 +17,13 @@
 #include <pybind11/stl.h>
 
 // trex includes
-#include <trex_selector_methods/trex_screening/trex_biobank_screening.hpp>
+#include <trex_selector_methods/ad/trex_screening/trex_biobank_screening.hpp>
 
 // =====================================================================================
 
 namespace py = pybind11;
-using namespace trex::trex_selector_methods::trex_screening;
-using namespace trex::trex_selector_methods::trex_biobank_screening;
+using namespace trex::trex_selector_methods::ad::trex_screening;
+using namespace trex::trex_selector_methods::ad::trex_biobank_screening;
 
 // =====================================================================================
 

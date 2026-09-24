@@ -18,15 +18,15 @@
 
 // trex includes
 #include <ml_methods/model_selection/lambda2_cv_diagnostics.hpp>
-#include <trex_selector_methods/trex_gvs/trex_gvs.hpp>
+#include <trex_selector_methods/ad/trex_gvs/trex_gvs.hpp>
 #include "trex_core_bindings.hpp"
 
 // =====================================================================================
 
 namespace py = pybind11;
-using namespace trex::trex_selector_methods::trex_gvs;
-using namespace trex::trex_selector_methods::trex_core;
-namespace gvs_sd = trex::trex_selector_methods::utils::solver_dispatch;
+using namespace trex::trex_selector_methods::ad::trex_gvs;
+using namespace trex::trex_selector_methods::ad::trex_core;
+namespace gvs_sd = trex::trex_selector_methods::ad::utils::solver_dispatch;
 
 // =====================================================================================
 
