@@ -40,31 +40,33 @@
 #   - SD_TLARS:  T-LARS racing X against an on-demand sparse-dummy pool.
 #
 #
-# Organization:
-# -------------
+# Organization (one peer folder per dummy mechanism; the three families share
+# no code, and no class serves more than one mechanism):
+# ----------------------------------------------------------------------------
 # src/tsolvers/
-# |-- linear_model/
-#     |-- lars_based/
-#     |-- omp_based/
-#     |-- afs_based/
+# |-- tsolvers.hpp              umbrella of the classical family (= ad.hpp)
+# |-- ad.hpp  vd.hpp  sd.hpp    one umbrella per family
 # |
-# |-- logistic_model/
+# |-- ad/                       augmented (appended) dummies: solvers run on [X, D]
+#     |-- tsolver_base.{hpp,cpp}, solver_options.hpp, solver_utils/
+#     |-- linear_model/{lars_based, omp_based, afs_based, cd_based}/
+#     |-- logistic_model/       (future)
 # |
-# |-- vd_tsolvers/
+# |-- vd/                       virtual dummies, realized on demand (VD_Base root)
 # |
-# |-- poisson_model/
-# |
-# |-- cox_model/
-# |
-# |-- etc.
+# |-- sd/                       sparse virtual dummies (SDTSolver_Base root)
+#
+# Placement rule: a file lives at the level of its lowest common user; it is
+# promoted to a shared folder only when a second family needs it.
 # ==============================================================================
 
 
 # ==============================================================================
 # 1. Library Target
 # ==============================================================================
-# Create a static library for tsolvers (sources are appended by subdirs)
-add_library(trex_tsolvers STATIC "tsolver_base.cpp")
+# Create a static library for tsolvers (sources are appended by the family
+# subdirectories ad/, vd/, sd/)
+add_library(trex_tsolvers STATIC "")
 
 # Set target alias for consistent naming
 add_library(trex::tsolvers ALIAS trex_tsolvers)
@@ -138,33 +140,11 @@ target_sources(trex_tsolvers PUBLIC
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
         $<INSTALL_INTERFACE:${TREX_INSTALL_INCLUDE_ROOT}>
     FILES
+        # Umbrellas only; every family lists its own headers in its subtree.
         ${CMAKE_CURRENT_SOURCE_DIR}/tsolvers.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/tsolver_base.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/lm_tsolvers.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/vd_tsolvers.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/solver_utils/solver_preprocessing.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/solver_options.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/cd_based.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/cd_based/tcdlasso_solver.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/cd_based/tcdenet_solver.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/cd_based/tcdienet_solver.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/lars_based.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/lars_based/tlars_solver.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/lars_based/tlasso_solver.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/lars_based/tenet_solver.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/lars_based/tienet_solver.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/lars_based/tienet_aug_solver.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/lars_based/tstagewise_solver.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/lars_based/tstepwise_solver.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/omp_based.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/omp_based/tomp_solver.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/omp_based/tmp_solver.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/omp_based/tgp_solver.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/omp_based/tncgmp_solver.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/omp_based/tacgp_solver.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/omp_based/tools_solver.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/afs_based.hpp
-        ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/afs_based/tafs_solver.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/ad.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/vd.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/sd.hpp
 )
 # ==============================================================================
 
@@ -172,13 +152,10 @@ target_sources(trex_tsolvers PUBLIC
 # ==============================================================================
 # 5. Include Subdirectories
 # ==============================================================================
-# Sources and headers from subfolders are appended to target
-add_subdirectory(linear_model)
-add_subdirectory(logistic_model)
-add_subdirectory(solver_utils)
-add_subdirectory(vd_tsolvers)
-add_subdirectory(sd_tsolvers)
-# Future expansion: ...
+# One subdirectory per dummy mechanism; each appends its sources and headers.
+add_subdirectory(ad)
+add_subdirectory(vd)
+add_subdirectory(sd)
 # ==============================================================================
 
 
