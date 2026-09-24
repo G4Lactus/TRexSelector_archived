@@ -19,6 +19,11 @@ set(TREX_USE_BLAS_LAPACK OFF CACHE BOOL "Disable BLAS for Python" FORCE)
 # Disable Tests to avoid linker errors with executable targets
 set(TREX_BUILD_TESTS     OFF CACHE BOOL "Disable Tests for Python"  FORCE)
 
+# No C++ SDK inside the wheel: the headers, static archives and CMake package
+# files (about 16 MB) are useless to Python users; only the extension module
+# below is installed (PLAN WP4 4.6, Arnau).
+set(TREX_INSTALL_CPP_SDK OFF CACHE BOOL "No C++ SDK in the wheel" FORCE)
+
 # The cpp/ libraries are static and get linked into the _core shared object.
 # On Linux, static archives must be compiled position-independent (-fPIC) to be
 # linkable into a .so, otherwise the linker errors with

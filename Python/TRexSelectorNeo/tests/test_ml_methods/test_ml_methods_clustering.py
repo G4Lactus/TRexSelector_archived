@@ -128,3 +128,47 @@ def test_cut_tree_all_singletons(cluster_data):
     linkage = agglomerative_cluster(X, LinkageMethod.Average, DistanceMetric.Euclidean)
     labels = cut_tree(linkage, n, n)
     assert len(set(labels)) == n
+
+
+# ---------------------------------------------------------------------------
+# Input guards (PLAN WP4 4.1 / 4.2): the C++ core rejects non-finite data and
+# malformed linkage matrices with ValueError instead of indexing out of range.
+# ---------------------------------------------------------------------------
+
+def test_non_finite_input_is_rejected(cluster_data):
+    X, n, p = cluster_data
+    bad = X.copy()
+    bad[1, 2] = np.nan
+    with pytest.raises(ValueError, match="non-finite"):
+        agglomerative_cluster(bad, LinkageMethod.Single, DistanceMetric.Euclidean)
+    bad[1, 2] = np.inf
+    with pytest.raises(ValueError, match="non-finite"):
+        agglomerative_cluster(bad, LinkageMethod.Average, DistanceMetric.Correlation)
+
+
+def test_cut_tree_rejects_malformed_linkage(cluster_data):
+    X, n, p = cluster_data
+    linkage = agglomerative_cluster(X, LinkageMethod.Single, DistanceMetric.Euclidean)
+
+    # Too few rows for the requested cut; the same prefix still cuts coarser.
+    with pytest.raises(ValueError, match="rows"):
+        cut_tree(linkage[:2], n, 1)
+    assert len(cut_tree(linkage[:2], n, n - 2)) == n
+
+    # A cluster id that does not exist yet at its step (0-based n at merge 0).
+    bad = linkage.copy()
+    bad[0, 1] = n
+    with pytest.raises(ValueError, match="does not exist"):
+        cut_tree(bad, n, 2)
+
+    # A self-merge.
+    bad = linkage.copy()
+    bad[0, 1] = bad[0, 0]
+    with pytest.raises(ValueError, match="itself"):
+        cut_tree(bad, n, 2)
+
+    # An id consumed twice.
+    bad = linkage.copy()
+    bad[1, 0] = linkage[0, 0]
+    with pytest.raises(ValueError, match="already consumed"):
+        cut_tree(bad, n, 2)
