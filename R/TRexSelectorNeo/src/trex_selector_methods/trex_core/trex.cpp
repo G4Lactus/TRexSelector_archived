@@ -164,7 +164,11 @@ TRexSelector::TRexSelector(
 
     eps_ = (trex_ctrl_.solver_params.tol > 0.0) ?
             trex_ctrl_.solver_params.tol : std::numeric_limits<double>::epsilon();
-    dn::centerY(y_, norm_params_);
+    // Under ScalingMode::NONE both calls leave the data untouched and store
+    // the identity parameters (user-managed design); X and y are still
+    // validated (non-finite entries and dead columns throw). The buffer
+    // claim is kept in every mode: one live selector per X buffer.
+    dn::centerY(y_, norm_params_, trex_ctrl_.scaling_mode);
     dn::centerAndL2NormalizeX(*X_, norm_params_, eps_,
                              verbose_, trex_ctrl_.scaling_mode);
     X_is_normalized_ = true;
@@ -431,6 +435,10 @@ er::ExperimentRunnerConfig TRexSelector::buildRunnerConfig(
     cfg.existing_cols_on_disk = existing_cols_on_disk;
     cfg.solver_type           = trex_ctrl_.solver_type;
     cfg.solver_params         = trex_ctrl_.solver_params;
+    // Solver-side convention. The solvers receive pre-scaled X / D
+    // (normalize = false, intercept = false), so this only governs internal
+    // augmented-column handling. NONE maps to L2: the user-managed design is
+    // unit-L2-commensurate by contract (see dn::ScalingMode).
     cfg.scaling_mode          = (trex_ctrl_.scaling_mode == dn::ScalingMode::ZSCORE)
                                     ? trex::tsolvers::ScalingMode::ZSCORE
                                     : trex::tsolvers::ScalingMode::L2;

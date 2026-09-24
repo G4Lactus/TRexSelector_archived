@@ -388,7 +388,8 @@ double TRexTikhonovSelector::computeLambda2() const {
     // to unit L2, so the selected lambda_2 is on the unit-L2 solver scale;
     // the ZSCORE working scale (squared column norm n - 1 instead of 1)
     // needs the (n - 1) factor — same conversion as the IEN-geometry
-    // methods in TRexGVSSelector::computeLambda2().
+    // methods in TRexGVSSelector::computeLambda2(). L2 and NONE (user-managed
+    // design, unit-L2-commensurate by contract) need no factor.
     const double scale_adjust =
         (trex_ctrl_.scaling_mode == dn::ScalingMode::ZSCORE && n_ > 1)
             ? static_cast<double>(n_ - 1)

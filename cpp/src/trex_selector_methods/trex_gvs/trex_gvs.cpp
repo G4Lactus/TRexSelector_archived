@@ -609,7 +609,8 @@ double TRexGVSSelector::computeLambda2() const {
 
     lambda2_cv_diag_.ran = true;
 
-    // Working-scale conversion (see the scale_adjust note above).
+    // Working-scale conversion (see the scale_adjust note above). L2 and
+    // NONE (unit-L2-commensurate by contract) need no factor.
     const double scale_adjust =
         (trex_ctrl_.scaling_mode == dn::ScalingMode::ZSCORE && n_ > 1)
             ? static_cast<double>(n_ - 1)
@@ -775,6 +776,7 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
     // (normalize=false, intercept=false), so this only governs any internal
     // augmented-column handling; propagating it keeps the convention coherent
     // (mirrors the base-class conversion in trex.cpp buildSolverConfig()).
+    // NONE (user-managed, unit-L2-commensurate by contract) maps to L2.
     const tsolvers::ScalingMode solver_scaling =
         (trex_ctrl_.scaling_mode == dn::ScalingMode::ZSCORE)
             ? tsolvers::ScalingMode::ZSCORE

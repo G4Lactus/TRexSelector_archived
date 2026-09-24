@@ -86,6 +86,10 @@ public:
      * @param scaling_mode  Column scaling convention applied to generated
      *                      dummies (default: L2). Must match the scaling used
      *                      for X so dummy and predictor columns share a scale.
+     *                      ScalingMode::NONE (user-managed design) maps to the
+     *                      unit-L2 standard here: dummies are always centered
+     *                      and scaled, so a unit-L2-commensurate design behaves
+     *                      exactly as under L2.
      */
     explicit DummyGenerator(
         std::size_t n,
@@ -96,7 +100,9 @@ public:
         : n_(n),
         distribution_(distribution),
         verbose_(verbose),
-        scaling_mode_(scaling_mode),
+        scaling_mode_(scaling_mode == data_normalizer::ScalingMode::NONE
+                          ? data_normalizer::ScalingMode::L2
+                          : scaling_mode),
         resolved_base_seed_((seed >= 0)
             ? static_cast<std::uint64_t>(seed)
             : ((static_cast<std::uint64_t>(std::random_device{}()) << 32)

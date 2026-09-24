@@ -248,12 +248,20 @@ struct TRexControlParameter {
     // Data Scaling
     // ===================================
 
-    /** @brief Column scaling convention applied to X (and dummies) after
-     *  centering. ScalingMode::L2 (default) divides each column by its L2 norm;
-     *  ScalingMode::ZSCORE divides by the sample SD (n-1) to unit variance
-     *  (glmnet `standardize=TRUE` convention). For the plain LASSO path the two
-     *  are equivalent (uniform column rescaling), but they differ for the
-     *  Elastic-Net ridge term — see TRexGVSSelector. */
+    /** @brief Working-design convention. ScalingMode::L2 (default) centers X
+     *  and y and divides each column of X by its L2 norm; ScalingMode::ZSCORE
+     *  centers and divides by the sample SD (n-1) to unit variance (glmnet
+     *  `standardize=TRUE` convention). For the plain LASSO path the two are
+     *  equivalent (uniform column rescaling), but they differ for the
+     *  Elastic-Net ridge term — see TRexGVSSelector. ScalingMode::NONE leaves
+     *  X and y exactly as supplied (no centering, no scaling): the caller
+     *  pre-centers and pre-scales as the model demands, or supplies an
+     *  intercept-free dictionary (steering, Vandermonde, Fourier atoms). The
+     *  dummies keep the unit-L2 standard, so a NONE design should be
+     *  unit-L2-commensurate; a design pre-normalized with
+     *  data_normalizer::centerAndL2NormalizeX / centerY selects under NONE
+     *  exactly what the raw design selects under L2. Non-finite entries and
+     *  dead columns are rejected in every mode (std::invalid_argument). */
     dn::ScalingMode scaling_mode = dn::ScalingMode::L2;
 
 };
