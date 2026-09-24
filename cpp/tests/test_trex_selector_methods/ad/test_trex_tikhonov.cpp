@@ -711,17 +711,19 @@ TEST_F(TRexTikhonovTest, Equivalence_FoldedGroupKMatchesGvsTcdienet_DemoControl_
 }
 
 
-/** @brief KNOWN DIVERGENCE (2026-08-25), kept DISABLED as the reproduction:
- *  the same configuration with the L-loop allowed to grow
- *  (max_dummy_multiplier = 10) selects DIFFERENT sets in ~4 % of trials
- *  (6 of 160 over seeds 1-80 x lambda_2 {10, 0}; the seeds below are the
- *  divergent ones, both directions occur, lambda_2 = 0 included — so it is
- *  neither the penalty nor the solver). With L capped at p (test above)
- *  every case agrees. The two selectors therefore extend the cluster-dummy
- *  layers beyond L = p differently (GVS in-memory K-loop vs the base
- *  DummyGenerator cluster mode under HCONCAT). Which convention is
- *  canonical is an open decision; enable this test once they coincide. */
-TEST_F(TRexTikhonovTest, DISABLED_Equivalence_FoldedGroupK_LGrowthDivergence) {
+/** @brief The same configuration with the L-loop allowed to grow
+ *  (max_dummy_multiplier = 10) on the six seeds that used to diverge
+ *  (6 of 160 over seeds 1-80 x lambda_2 {10, 0}; both directions,
+ *  lambda_2 = 0 included). Root cause (2026-09-24): the dummies and the
+ *  per-experiment paths were identical; the classical runner accumulated
+ *  Phi as K additions of 1/K, leaving a rounding residue that decided the
+ *  strict `Phi > v` comparison at the ties the 1/K voting lattice makes
+ *  routine (15 x 0.05 > 0.75), while the GVS K-loop divides exact counts
+ *  once (0.75, not selected). One tie flips the L-loop stop, and the two
+ *  selectors then stop at different L. Fixed by exact vote counts in
+ *  ExperimentRunner::aggregateResults and a single-division voting grid;
+ *  this test pins the equivalence beyond L = p. */
+TEST_F(TRexTikhonovTest, Equivalence_FoldedGroupK_LGrowth) {
     const Eigen::Index n = 150, p = 100, grouped = 20, gsize = 5;
     std::vector<Eigen::Index> prior_groups(static_cast<std::size_t>(p));
     for (Eigen::Index j = 0; j < p; ++j) {
