@@ -27,16 +27,16 @@ D_g <- matrix(rnorm(n_g * p_g), n_g, p_g)
   TLARS      = function() TLARS_Solver$new(X_g, D_g, y_g),
   TLASSO     = function() TLASSO_Solver$new(X_g, D_g, y_g),
   TSTEPWISE  = function() TSTEPWISE_Solver$new(X_g, D_g, y_g),
-  TENET      = function() TENET_Solver$new(X_g, D_g, y_g, lambda2 = 0.5),
+  TENET      = function() TENET_Solver$new(X_g, D_g, y_g, options = tsolver_options(lambda2 = 0.5)),
   TSTAGEWISE = function() TSTAGEWISE_Solver$new(X_g, D_g, y_g),
   TOMP       = function() TOMP_Solver$new(X_g, D_g, y_g),
   TGP        = function() TGP_Solver$new(X_g, D_g, y_g),
   TACGP      = function() TACGP_Solver$new(X_g, D_g, y_g),
   TMP        = function() TMP_Solver$new(X_g, D_g, y_g),
   TOOLS      = function() TOOLS_Solver$new(X_g, D_g, y_g),
-  TNCGMP_ls  = function() TNCGMP_Solver$new(X_g, D_g, y_g, variant = "line_search"),
-  TNCGMP_fc  = function() TNCGMP_Solver$new(X_g, D_g, y_g, variant = "fully_corrective"),
-  TAFS       = function() TAFS_Solver$new(X_g, D_g, y_g, rho = 1.0)
+  TNCGMP_ls  = function() TNCGMP_Solver$new(X_g, D_g, y_g, options = tsolver_options(ncgmp_variant = "line_search")),
+  TNCGMP_fc  = function() TNCGMP_Solver$new(X_g, D_g, y_g, options = tsolver_options(ncgmp_variant = "fully_corrective")),
+  TAFS       = function() TAFS_Solver$new(X_g, D_g, y_g, options = tsolver_options(rho_afs = 1.0))
 )
 
 test_that("All TSolver variants execute on Gauss_data with T_stop = 3", {

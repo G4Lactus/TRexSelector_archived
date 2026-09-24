@@ -81,12 +81,76 @@ struct TSolverRcpp {
 // ==============================================================================
 // TSolver Instance Creators
 // ==============================================================================
+//
+// Every solver is constructed as (X, D, y, options) — plus the 1-based group
+// vector for TIENETAug — where `options` is the R list built by
+// tsolver_options() (PLAN WP9). parse_solver_options() maps it onto the
+// C++ SolverOptions; absent fields keep the C++ defaults.
 
-//' @title Create LARS Solver
+/**
+ * @brief Parse the tsolver_options() list into trex::tsolvers::SolverOptions.
+ */
+SolverOptions parse_solver_options(const Rcpp::List& o) {
+    SolverOptions opts;
+    auto has = [&](const char* name) { return o.containsElementNamed(name); };
+
+    if (has("normalize")) opts.normalize = Rcpp::as<bool>(o["normalize"]);
+    if (has("intercept")) opts.intercept = Rcpp::as<bool>(o["intercept"]);
+    if (has("verbose"))   opts.verbose   = Rcpp::as<bool>(o["verbose"]);
+    if (has("scaling_mode")) {
+        const std::string m = Rcpp::as<std::string>(o["scaling_mode"]);
+        if (m == "L2")          opts.scaling_mode = ScalingMode::L2;
+        else if (m == "ZSCORE") opts.scaling_mode = ScalingMode::ZSCORE;
+        else Rcpp::stop("tsolver_options: scaling_mode must be \"L2\" or \"ZSCORE\"; got " + m);
+    }
+    if (has("tol"))            opts.tol            = Rcpp::as<double>(o["tol"]);
+    if (has("tie_seed"))       opts.tie_seed       = static_cast<long long>(Rcpp::as<double>(o["tie_seed"]));
+    if (has("exch_tie_alpha")) opts.exch_tie_alpha = Rcpp::as<double>(o["exch_tie_alpha"]);
+    if (has("exch_tie_floor")) opts.exch_tie_floor = Rcpp::as<double>(o["exch_tie_floor"]);
+    if (has("lambda2"))        opts.lambda2        = Rcpp::as<double>(o["lambda2"]);
+    if (has("rho_afs"))        opts.rho_afs        = Rcpp::as<double>(o["rho_afs"]);
+    if (has("ncgmp_variant")) {
+        const std::string v = Rcpp::as<std::string>(o["ncgmp_variant"]);
+        if (v == "line_search")           opts.ncgmp_variant = NCGMPVariant::LineSearch;
+        else if (v == "fully_corrective") opts.ncgmp_variant = NCGMPVariant::FullyCorrective;
+        else Rcpp::stop("tsolver_options: ncgmp_variant must be \"line_search\" or \"fully_corrective\"; got " + v);
+    }
+    if (has("tenet_aug_use_lars")) opts.tenet_aug_use_lars = Rcpp::as<bool>(o["tenet_aug_use_lars"]);
+    if (has("kappa_dummy"))        opts.kappa_dummy        = Rcpp::as<double>(o["kappa_dummy"]);
+    if (has("fold_dummies"))       opts.fold_dummies       = Rcpp::as<bool>(o["fold_dummies"]);
+    if (has("group_penalty")) {
+        const std::string g = Rcpp::as<std::string>(o["group_penalty"]);
+        if (g == "MEAN")           opts.group_penalty = GroupPenaltyVariant::MEAN;
+        else if (g == "CENTERING") opts.group_penalty = GroupPenaltyVariant::CENTERING;
+        else Rcpp::stop("tsolver_options: group_penalty must be \"MEAN\" or \"CENTERING\"; got " + g);
+    }
+    if (has("cd_lambda_rel_tol")) opts.cd_lambda_rel_tol = Rcpp::as<double>(o["cd_lambda_rel_tol"]);
+    if (has("cd_tol_certify"))    opts.cd_tol_certify    = Rcpp::as<double>(o["cd_tol_certify"]);
+    if (has("cd_tol_probe"))      opts.cd_tol_probe      = Rcpp::as<double>(o["cd_tol_probe"]);
+    if (has("cd_gram_cap"))       opts.cd_gram_cap       = static_cast<std::size_t>(Rcpp::as<double>(o["cd_gram_cap"]));
+    if (has("cd_max_sweeps"))     opts.cd_max_sweeps     = static_cast<std::size_t>(Rcpp::as<double>(o["cd_max_sweeps"]));
+    if (has("cd_certified_localization"))
+        opts.cd_certified_localization = Rcpp::as<bool>(o["cd_certified_localization"]);
+    return opts;
+}
+
+/** @brief 1-based R group ids -> 0-based contiguous ids (the solver contract). */
+static Eigen::VectorXi groups_from_r(const IntegerVector& groups) {
+    Eigen::VectorXi c_groups(groups.size());
+    for (int i = 0; i < groups.size(); ++i) c_groups[i] = groups[i] - 1;
+    return c_groups;
+}
+
+// ==============================================================================
+// Instance creators (in-memory X)
+// ==============================================================================
+
+//' @title Create TLARS_Solver
 //'
 //' @param X Design matrix
 //' @param D Dummy matrix
 //' @param y Response vector
+//' @param options List from tsolver_options()
 //'
 //' @return XPtr to TSolverRcpp
 //' @noRd
@@ -95,21 +159,154 @@ XPtr<TSolverRcpp> tsolver_lars_create(
     Eigen::Map<Eigen::MatrixXd> X,
     Eigen::Map<Eigen::MatrixXd> D,
     Eigen::Map<Eigen::VectorXd> y,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
+    Rcpp::List options
 ) {
+    const SolverOptions opts = parse_solver_options(options);
     auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
-    h->solver_ = new TLARS_Solver(h->X_map_, h->D_map_, y, normalize, intercept, verbose);
+    h->solver_ = new TLARS_Solver(h->X_map_, h->D_map_, y, opts);
     return XPtr<TSolverRcpp>(h);
 }
 
-
-//' @title Create OMP Solver
+//' @title Create TLASSO_Solver
 //'
 //' @param X Design matrix
 //' @param D Dummy matrix
 //' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tlasso_create(
+    Eigen::Map<Eigen::MatrixXd> X,
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    Rcpp::List options
+) {
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
+    h->solver_ = new TLASSO_Solver(h->X_map_, h->D_map_, y, opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TSTEPWISE_Solver
+//'
+//' @param X Design matrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tstepwise_create(
+    Eigen::Map<Eigen::MatrixXd> X,
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    Rcpp::List options
+) {
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
+    h->solver_ = new TSTEPWISE_Solver(h->X_map_, h->D_map_, y, opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TSTAGEWISE_Solver
+//'
+//' @param X Design matrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tstagewise_create(
+    Eigen::Map<Eigen::MatrixXd> X,
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    Rcpp::List options
+) {
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
+    h->solver_ = new TSTAGEWISE_Solver(h->X_map_, h->D_map_, y, opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TENET_Solver
+//'
+//' @param X Design matrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tenet_create(
+    Eigen::Map<Eigen::MatrixXd> X,
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    Rcpp::List options
+) {
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
+    h->solver_ = new TENET_Solver(h->X_map_, h->D_map_, y, opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TENETAug_Solver
+//'
+//' @param X Design matrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tenet_aug_create(
+    Eigen::Map<Eigen::MatrixXd> X,
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    Rcpp::List options
+) {
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
+    h->solver_ = new TENETAug_Solver(h->X_map_, h->D_map_, y, opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TIENETAug_Solver
+//'
+//' @param X Design matrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param groups 1-based group ids, one per predictor
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tienet_aug_create(
+    Eigen::Map<Eigen::MatrixXd> X,
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    IntegerVector groups,
+    Rcpp::List options
+) {
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
+    h->solver_ = new TIENETAug_Solver(h->X_map_, h->D_map_, y, groups_from_r(groups), opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TOMP_Solver
+//'
+//' @param X Design matrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
 //'
 //' @return XPtr to TSolverRcpp
 //' @noRd
@@ -118,21 +315,156 @@ XPtr<TSolverRcpp> tsolver_omp_create(
     Eigen::Map<Eigen::MatrixXd> X,
     Eigen::Map<Eigen::MatrixXd> D,
     Eigen::Map<Eigen::VectorXd> y,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
+    Rcpp::List options
 ) {
+    const SolverOptions opts = parse_solver_options(options);
     auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
-    h->solver_ = new TOMP_Solver(h->X_map_, h->D_map_, y, normalize, intercept, verbose);
+    h->solver_ = new TOMP_Solver(h->X_map_, h->D_map_, y, opts);
     return XPtr<TSolverRcpp>(h);
 }
 
-
-//' @title Create LARS Solver with Memory Mapped Matrix
+//' @title Create TGP_Solver
 //'
-//' @param X_ptr Pointer to MemoryMappedMatrix
+//' @param X Design matrix
 //' @param D Dummy matrix
 //' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tgp_create(
+    Eigen::Map<Eigen::MatrixXd> X,
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    Rcpp::List options
+) {
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
+    h->solver_ = new TGP_Solver(h->X_map_, h->D_map_, y, opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TACGP_Solver
+//'
+//' @param X Design matrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tacgp_create(
+    Eigen::Map<Eigen::MatrixXd> X,
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    Rcpp::List options
+) {
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
+    h->solver_ = new TACGP_Solver(h->X_map_, h->D_map_, y, opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TMP_Solver
+//'
+//' @param X Design matrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tmp_create(
+    Eigen::Map<Eigen::MatrixXd> X,
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    Rcpp::List options
+) {
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
+    h->solver_ = new TMP_Solver(h->X_map_, h->D_map_, y, opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TOOLS_Solver
+//'
+//' @param X Design matrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tools_create(
+    Eigen::Map<Eigen::MatrixXd> X,
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    Rcpp::List options
+) {
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
+    h->solver_ = new TOOLS_Solver(h->X_map_, h->D_map_, y, opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TNCGMP_Solver
+//'
+//' @param X Design matrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tncgmp_create(
+    Eigen::Map<Eigen::MatrixXd> X,
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    Rcpp::List options
+) {
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
+    h->solver_ = new TNCGMP_Solver(h->X_map_, h->D_map_, y, opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TAFS_Solver
+//'
+//' @param X Design matrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tafs_create(
+    Eigen::Map<Eigen::MatrixXd> X,
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    Rcpp::List options
+) {
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
+    h->solver_ = new TAFS_Solver(h->X_map_, h->D_map_, y, opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+// ==============================================================================
+// Instance creators (memory-mapped X)
+// ==============================================================================
+
+//' @title Create TLARS_Solver (memory-mapped X)
+//'
+//' @param X_ptr XPtr to a MemoryMappedMatrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
 //'
 //' @return XPtr to TSolverRcpp
 //' @noRd
@@ -141,22 +473,161 @@ XPtr<TSolverRcpp> tsolver_lars_mmap_create(
     XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
     Eigen::Map<Eigen::MatrixXd> D,
     Eigen::Map<Eigen::VectorXd> y,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
+    Rcpp::List options
 ) {
     auto X_map = X_ptr->getMap();
+    const SolverOptions opts = parse_solver_options(options);
     auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
-    h->solver_ = new TLARS_Solver(h->X_map_, h->D_map_, y, normalize, intercept, verbose);
+    h->solver_ = new TLARS_Solver(h->X_map_, h->D_map_, y, opts);
     return XPtr<TSolverRcpp>(h);
 }
 
-
-//' @title Create OMP Solver with Memory Mapped Matrix
+//' @title Create TLASSO_Solver (memory-mapped X)
 //'
-//' @param X_ptr Pointer to MemoryMappedMatrix
+//' @param X_ptr XPtr to a MemoryMappedMatrix
 //' @param D Dummy matrix
 //' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tlasso_mmap_create(
+    XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    Rcpp::List options
+) {
+    auto X_map = X_ptr->getMap();
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
+    h->solver_ = new TLASSO_Solver(h->X_map_, h->D_map_, y, opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TSTEPWISE_Solver (memory-mapped X)
+//'
+//' @param X_ptr XPtr to a MemoryMappedMatrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tstepwise_mmap_create(
+    XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    Rcpp::List options
+) {
+    auto X_map = X_ptr->getMap();
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
+    h->solver_ = new TSTEPWISE_Solver(h->X_map_, h->D_map_, y, opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TSTAGEWISE_Solver (memory-mapped X)
+//'
+//' @param X_ptr XPtr to a MemoryMappedMatrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tstagewise_mmap_create(
+    XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    Rcpp::List options
+) {
+    auto X_map = X_ptr->getMap();
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
+    h->solver_ = new TSTAGEWISE_Solver(h->X_map_, h->D_map_, y, opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TENET_Solver (memory-mapped X)
+//'
+//' @param X_ptr XPtr to a MemoryMappedMatrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tenet_mmap_create(
+    XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    Rcpp::List options
+) {
+    auto X_map = X_ptr->getMap();
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
+    h->solver_ = new TENET_Solver(h->X_map_, h->D_map_, y, opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TENETAug_Solver (memory-mapped X)
+//'
+//' @param X_ptr XPtr to a MemoryMappedMatrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tenet_aug_mmap_create(
+    XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    Rcpp::List options
+) {
+    auto X_map = X_ptr->getMap();
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
+    h->solver_ = new TENETAug_Solver(h->X_map_, h->D_map_, y, opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TIENETAug_Solver (memory-mapped X)
+//'
+//' @param X_ptr XPtr to a MemoryMappedMatrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param groups 1-based group ids, one per predictor
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
+//' @noRd
+// [[Rcpp::export]]
+XPtr<TSolverRcpp> tsolver_tienet_aug_mmap_create(
+    XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
+    Eigen::Map<Eigen::MatrixXd> D,
+    Eigen::Map<Eigen::VectorXd> y,
+    IntegerVector groups,
+    Rcpp::List options
+) {
+    auto X_map = X_ptr->getMap();
+    const SolverOptions opts = parse_solver_options(options);
+    auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
+    h->solver_ = new TIENETAug_Solver(h->X_map_, h->D_map_, y, groups_from_r(groups), opts);
+    return XPtr<TSolverRcpp>(h);
+}
+
+//' @title Create TOMP_Solver (memory-mapped X)
+//'
+//' @param X_ptr XPtr to a MemoryMappedMatrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
 //'
 //' @return XPtr to TSolverRcpp
 //' @noRd
@@ -165,471 +636,152 @@ XPtr<TSolverRcpp> tsolver_omp_mmap_create(
     XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
     Eigen::Map<Eigen::MatrixXd> D,
     Eigen::Map<Eigen::VectorXd> y,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
+    Rcpp::List options
 ) {
     auto X_map = X_ptr->getMap();
+    const SolverOptions opts = parse_solver_options(options);
     auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
-    h->solver_ = new TOMP_Solver(h->X_map_, h->D_map_, y, normalize, intercept, verbose);
+    h->solver_ = new TOMP_Solver(h->X_map_, h->D_map_, y, opts);
     return XPtr<TSolverRcpp>(h);
 }
 
-// ==============================================================================
-// Additional TSolver Instance Creators (LARS family)
-// ==============================================================================
-
-//' @noRd
-// [[Rcpp::export]]
-XPtr<TSolverRcpp> tsolver_tlasso_create(
-    Eigen::Map<Eigen::MatrixXd> X,
-    Eigen::Map<Eigen::MatrixXd> D,
-    Eigen::Map<Eigen::VectorXd> y,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
-) {
-    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
-    h->solver_ = new TLASSO_Solver(h->X_map_, h->D_map_, y, normalize, intercept, verbose);
-    return XPtr<TSolverRcpp>(h);
-}
-
-
-//' @noRd
-// [[Rcpp::export]]
-XPtr<TSolverRcpp> tsolver_tstepwise_create(
-    Eigen::Map<Eigen::MatrixXd> X,
-    Eigen::Map<Eigen::MatrixXd> D,
-    Eigen::Map<Eigen::VectorXd> y,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
-) {
-    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
-    h->solver_ = new TSTEPWISE_Solver(h->X_map_, h->D_map_, y, normalize, intercept, verbose);
-    return XPtr<TSolverRcpp>(h);
-}
-
-
-//' @noRd
-// [[Rcpp::export]]
-XPtr<TSolverRcpp> tsolver_tenet_create(
-    Eigen::Map<Eigen::MatrixXd> X,
-    Eigen::Map<Eigen::MatrixXd> D,
-    Eigen::Map<Eigen::VectorXd> y,
-    double lambda2,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
-) {
-    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
-    h->solver_ = new TENET_Solver(h->X_map_, h->D_map_, y, lambda2, normalize, intercept, verbose);
-    return XPtr<TSolverRcpp>(h);
-}
-
-
-//' @noRd
-// [[Rcpp::export]]
-XPtr<TSolverRcpp> tsolver_tenet_aug_create(
-    Eigen::Map<Eigen::MatrixXd> X,
-    Eigen::Map<Eigen::MatrixXd> D,
-    Eigen::Map<Eigen::VectorXd> y,
-    double lambda2,
-    bool normalize      = true,
-    bool intercept      = true,
-    bool verbose        = false,
-    bool use_lars_inner = false
-) {
-    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
-    h->solver_ = new TENETAug_Solver(h->X_map_, h->D_map_, y, lambda2,
-                                     normalize, intercept, verbose,
-                                     ScalingMode::L2, use_lars_inner);
-    return XPtr<TSolverRcpp>(h);
-}
-
-
-//' @noRd
-// [[Rcpp::export]]
-XPtr<TSolverRcpp> tsolver_tienet_aug_create(
-    Eigen::Map<Eigen::MatrixXd> X,
-    Eigen::Map<Eigen::MatrixXd> D,
-    Eigen::Map<Eigen::VectorXd> y,
-    double lambda2,
-    IntegerVector groups,
-    bool normalize      = true,
-    bool intercept      = true,
-    bool verbose        = false,
-    bool use_lars_inner = false
-) {
-    // R supplies 1-based group ids (package convention, cf. trex_gvs_control);
-    // the solver expects 0-based contiguous ids.
-    Eigen::VectorXi c_groups(groups.size());
-    for (int i = 0; i < groups.size(); ++i) c_groups[i] = groups[i] - 1;
-
-    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
-    h->solver_ = new TIENETAug_Solver(h->X_map_, h->D_map_, y, lambda2, c_groups,
-                                      normalize, intercept, verbose,
-                                      ScalingMode::L2, use_lars_inner);
-    return XPtr<TSolverRcpp>(h);
-}
-
-
-//' @noRd
-// [[Rcpp::export]]
-XPtr<TSolverRcpp> tsolver_tstagewise_create(
-    Eigen::Map<Eigen::MatrixXd> X,
-    Eigen::Map<Eigen::MatrixXd> D,
-    Eigen::Map<Eigen::VectorXd> y,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
-) {
-    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
-    h->solver_ = new TSTAGEWISE_Solver(h->X_map_, h->D_map_, y, normalize, intercept, verbose);
-    return XPtr<TSolverRcpp>(h);
-}
-
-
-// ==============================================================================
-// Additional TSolver Instance Creators (OMP family)
-// ==============================================================================
-
-//' @noRd
-// [[Rcpp::export]]
-XPtr<TSolverRcpp> tsolver_tgp_create(
-    Eigen::Map<Eigen::MatrixXd> X,
-    Eigen::Map<Eigen::MatrixXd> D,
-    Eigen::Map<Eigen::VectorXd> y,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
-) {
-    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
-    h->solver_ = new TGP_Solver(h->X_map_, h->D_map_, y, normalize, intercept, verbose);
-    return XPtr<TSolverRcpp>(h);
-}
-
-
-//' @noRd
-// [[Rcpp::export]]
-XPtr<TSolverRcpp> tsolver_tacgp_create(
-    Eigen::Map<Eigen::MatrixXd> X,
-    Eigen::Map<Eigen::MatrixXd> D,
-    Eigen::Map<Eigen::VectorXd> y,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
-) {
-    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
-    h->solver_ = new TACGP_Solver(h->X_map_, h->D_map_, y, normalize, intercept, verbose);
-    return XPtr<TSolverRcpp>(h);
-}
-
-
-//' @noRd
-// [[Rcpp::export]]
-XPtr<TSolverRcpp> tsolver_tmp_create(
-    Eigen::Map<Eigen::MatrixXd> X,
-    Eigen::Map<Eigen::MatrixXd> D,
-    Eigen::Map<Eigen::VectorXd> y,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
-) {
-    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
-    h->solver_ = new TMP_Solver(h->X_map_, h->D_map_, y, normalize, intercept, verbose);
-    return XPtr<TSolverRcpp>(h);
-}
-
-
-//' @noRd
-// [[Rcpp::export]]
-XPtr<TSolverRcpp> tsolver_tools_create(
-    Eigen::Map<Eigen::MatrixXd> X,
-    Eigen::Map<Eigen::MatrixXd> D,
-    Eigen::Map<Eigen::VectorXd> y,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
-) {
-    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
-    h->solver_ = new TOOLS_Solver(h->X_map_, h->D_map_, y, normalize, intercept, verbose);
-    return XPtr<TSolverRcpp>(h);
-}
-
-
-//' @noRd
-// [[Rcpp::export]]
-XPtr<TSolverRcpp> tsolver_tncgmp_create(
-    Eigen::Map<Eigen::MatrixXd> X,
-    Eigen::Map<Eigen::MatrixXd> D,
-    Eigen::Map<Eigen::VectorXd> y,
-    int variant    = 0,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
-) {
-    auto v = static_cast<NCGMPVariant>(variant);
-    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
-    h->solver_ = new TNCGMP_Solver(h->X_map_, h->D_map_, y, v, normalize, intercept, verbose);
-    return XPtr<TSolverRcpp>(h);
-}
-
-
-// ==============================================================================
-// Additional TSolver Instance Creators (AFS family)
-// ==============================================================================
-
-//' @noRd
-// [[Rcpp::export]]
-XPtr<TSolverRcpp> tsolver_tafs_create(
-    Eigen::Map<Eigen::MatrixXd> X,
-    Eigen::Map<Eigen::MatrixXd> D,
-    Eigen::Map<Eigen::VectorXd> y,
-    double rho     = 1.0,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
-) {
-    auto* h = new TSolverRcpp(Eigen::MatrixXd(X), Eigen::MatrixXd(D));
-    h->solver_ = new TAFS_Solver(h->X_map_, h->D_map_, y, rho, normalize, intercept, verbose);
-    return XPtr<TSolverRcpp>(h);
-}
-
-
-// ==============================================================================
-// Additional TSolver Instance Creators (LARS family, mmap)
-// ==============================================================================
-
-//' @noRd
-// [[Rcpp::export]]
-XPtr<TSolverRcpp> tsolver_tlasso_mmap_create(
-    XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
-    Eigen::Map<Eigen::MatrixXd> D,
-    Eigen::Map<Eigen::VectorXd> y,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
-) {
-    auto X_map = X_ptr->getMap();
-    auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
-    h->solver_ = new TLASSO_Solver(h->X_map_, h->D_map_, y, normalize, intercept, verbose);
-    return XPtr<TSolverRcpp>(h);
-}
-
-
-//' @noRd
-// [[Rcpp::export]]
-XPtr<TSolverRcpp> tsolver_tstepwise_mmap_create(
-    XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
-    Eigen::Map<Eigen::MatrixXd> D,
-    Eigen::Map<Eigen::VectorXd> y,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
-) {
-    auto X_map = X_ptr->getMap();
-    auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
-    h->solver_ = new TSTEPWISE_Solver(h->X_map_, h->D_map_, y, normalize, intercept, verbose);
-    return XPtr<TSolverRcpp>(h);
-}
-
-
-//' @noRd
-// [[Rcpp::export]]
-XPtr<TSolverRcpp> tsolver_tenet_mmap_create(
-    XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
-    Eigen::Map<Eigen::MatrixXd> D,
-    Eigen::Map<Eigen::VectorXd> y,
-    double lambda2,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
-) {
-    auto X_map = X_ptr->getMap();
-    auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
-    h->solver_ = new TENET_Solver(h->X_map_, h->D_map_, y, lambda2, normalize, intercept, verbose);
-    return XPtr<TSolverRcpp>(h);
-}
-
-
-//' @noRd
-// [[Rcpp::export]]
-XPtr<TSolverRcpp> tsolver_tenet_aug_mmap_create(
-    XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
-    Eigen::Map<Eigen::MatrixXd> D,
-    Eigen::Map<Eigen::VectorXd> y,
-    double lambda2,
-    bool normalize      = true,
-    bool intercept      = true,
-    bool verbose        = false,
-    bool use_lars_inner = false
-) {
-    auto X_map = X_ptr->getMap();
-    auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
-    h->solver_ = new TENETAug_Solver(h->X_map_, h->D_map_, y, lambda2,
-                                     normalize, intercept, verbose,
-                                     ScalingMode::L2, use_lars_inner);
-    return XPtr<TSolverRcpp>(h);
-}
-
-
-//' @noRd
-// [[Rcpp::export]]
-XPtr<TSolverRcpp> tsolver_tienet_aug_mmap_create(
-    XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
-    Eigen::Map<Eigen::MatrixXd> D,
-    Eigen::Map<Eigen::VectorXd> y,
-    double lambda2,
-    IntegerVector groups,
-    bool normalize      = true,
-    bool intercept      = true,
-    bool verbose        = false,
-    bool use_lars_inner = false
-) {
-    // R supplies 1-based group ids (package convention, cf. trex_gvs_control);
-    // the solver expects 0-based contiguous ids.
-    Eigen::VectorXi c_groups(groups.size());
-    for (int i = 0; i < groups.size(); ++i) c_groups[i] = groups[i] - 1;
-
-    auto X_map = X_ptr->getMap();
-    auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
-    h->solver_ = new TIENETAug_Solver(h->X_map_, h->D_map_, y, lambda2, c_groups,
-                                      normalize, intercept, verbose,
-                                      ScalingMode::L2, use_lars_inner);
-    return XPtr<TSolverRcpp>(h);
-}
-
-
-//' @noRd
-// [[Rcpp::export]]
-XPtr<TSolverRcpp> tsolver_tstagewise_mmap_create(
-    XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
-    Eigen::Map<Eigen::MatrixXd> D,
-    Eigen::Map<Eigen::VectorXd> y,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
-) {
-    auto X_map = X_ptr->getMap();
-    auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
-    h->solver_ = new TSTAGEWISE_Solver(h->X_map_, h->D_map_, y, normalize, intercept, verbose);
-    return XPtr<TSolverRcpp>(h);
-}
-
-
-// ==============================================================================
-// Additional TSolver Instance Creators (OMP family, mmap)
-// ==============================================================================
-
+//' @title Create TGP_Solver (memory-mapped X)
+//'
+//' @param X_ptr XPtr to a MemoryMappedMatrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
 //' @noRd
 // [[Rcpp::export]]
 XPtr<TSolverRcpp> tsolver_tgp_mmap_create(
     XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
     Eigen::Map<Eigen::MatrixXd> D,
     Eigen::Map<Eigen::VectorXd> y,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
+    Rcpp::List options
 ) {
     auto X_map = X_ptr->getMap();
+    const SolverOptions opts = parse_solver_options(options);
     auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
-    h->solver_ = new TGP_Solver(h->X_map_, h->D_map_, y, normalize, intercept, verbose);
+    h->solver_ = new TGP_Solver(h->X_map_, h->D_map_, y, opts);
     return XPtr<TSolverRcpp>(h);
 }
 
-
+//' @title Create TACGP_Solver (memory-mapped X)
+//'
+//' @param X_ptr XPtr to a MemoryMappedMatrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
 //' @noRd
 // [[Rcpp::export]]
 XPtr<TSolverRcpp> tsolver_tacgp_mmap_create(
     XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
     Eigen::Map<Eigen::MatrixXd> D,
     Eigen::Map<Eigen::VectorXd> y,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
+    Rcpp::List options
 ) {
     auto X_map = X_ptr->getMap();
+    const SolverOptions opts = parse_solver_options(options);
     auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
-    h->solver_ = new TACGP_Solver(h->X_map_, h->D_map_, y, normalize, intercept, verbose);
+    h->solver_ = new TACGP_Solver(h->X_map_, h->D_map_, y, opts);
     return XPtr<TSolverRcpp>(h);
 }
 
-
+//' @title Create TMP_Solver (memory-mapped X)
+//'
+//' @param X_ptr XPtr to a MemoryMappedMatrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
 //' @noRd
 // [[Rcpp::export]]
 XPtr<TSolverRcpp> tsolver_tmp_mmap_create(
     XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
     Eigen::Map<Eigen::MatrixXd> D,
     Eigen::Map<Eigen::VectorXd> y,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
+    Rcpp::List options
 ) {
     auto X_map = X_ptr->getMap();
+    const SolverOptions opts = parse_solver_options(options);
     auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
-    h->solver_ = new TMP_Solver(h->X_map_, h->D_map_, y, normalize, intercept, verbose);
+    h->solver_ = new TMP_Solver(h->X_map_, h->D_map_, y, opts);
     return XPtr<TSolverRcpp>(h);
 }
 
-
+//' @title Create TOOLS_Solver (memory-mapped X)
+//'
+//' @param X_ptr XPtr to a MemoryMappedMatrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
 //' @noRd
 // [[Rcpp::export]]
 XPtr<TSolverRcpp> tsolver_tools_mmap_create(
     XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
     Eigen::Map<Eigen::MatrixXd> D,
     Eigen::Map<Eigen::VectorXd> y,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
+    Rcpp::List options
 ) {
     auto X_map = X_ptr->getMap();
+    const SolverOptions opts = parse_solver_options(options);
     auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
-    h->solver_ = new TOOLS_Solver(h->X_map_, h->D_map_, y, normalize, intercept, verbose);
+    h->solver_ = new TOOLS_Solver(h->X_map_, h->D_map_, y, opts);
     return XPtr<TSolverRcpp>(h);
 }
 
-
+//' @title Create TNCGMP_Solver (memory-mapped X)
+//'
+//' @param X_ptr XPtr to a MemoryMappedMatrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
 //' @noRd
 // [[Rcpp::export]]
 XPtr<TSolverRcpp> tsolver_tncgmp_mmap_create(
     XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
     Eigen::Map<Eigen::MatrixXd> D,
     Eigen::Map<Eigen::VectorXd> y,
-    int variant    = 0,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
+    Rcpp::List options
 ) {
     auto X_map = X_ptr->getMap();
-    auto v = static_cast<NCGMPVariant>(variant);
+    const SolverOptions opts = parse_solver_options(options);
     auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
-    h->solver_ = new TNCGMP_Solver(h->X_map_, h->D_map_, y, v, normalize, intercept, verbose);
+    h->solver_ = new TNCGMP_Solver(h->X_map_, h->D_map_, y, opts);
     return XPtr<TSolverRcpp>(h);
 }
 
-
-// ==============================================================================
-// Additional TSolver Instance Creators (AFS family, mmap)
-// ==============================================================================
-
+//' @title Create TAFS_Solver (memory-mapped X)
+//'
+//' @param X_ptr XPtr to a MemoryMappedMatrix
+//' @param D Dummy matrix
+//' @param y Response vector
+//' @param options List from tsolver_options()
+//'
+//' @return XPtr to TSolverRcpp
 //' @noRd
 // [[Rcpp::export]]
 XPtr<TSolverRcpp> tsolver_tafs_mmap_create(
     XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
     Eigen::Map<Eigen::MatrixXd> D,
     Eigen::Map<Eigen::VectorXd> y,
-    double rho     = 1.0,
-    bool normalize = true,
-    bool intercept = true,
-    bool verbose   = false
+    Rcpp::List options
 ) {
     auto X_map = X_ptr->getMap();
+    const SolverOptions opts = parse_solver_options(options);
     auto* h = new TSolverRcpp(Eigen::MatrixXd(X_map), Eigen::MatrixXd(D));
-    h->solver_ = new TAFS_Solver(h->X_map_, h->D_map_, y, rho, normalize, intercept, verbose);
+    h->solver_ = new TAFS_Solver(h->X_map_, h->D_map_, y, opts);
     return XPtr<TSolverRcpp>(h);
 }
-
 
 // ==============================================================================
 // Common TSolver API endpoints (called via XPtr<TSolverRcpp>)

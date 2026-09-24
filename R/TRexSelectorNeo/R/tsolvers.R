@@ -11,6 +11,108 @@ NULL
 # TSolver_Base
 # ==============================================================================
 
+#' T-Solver Options
+#'
+#' @description
+#' Every T-solver input except the data \code{X}, \code{D} and \code{y},
+#' as one list (the C++ \code{SolverOptions}). Pass it to a solver's
+#' \code{$new(X, D, y, options = ...)}. Each solver reads the fields it
+#' needs and ignores the rest; the defaults are the solver-level defaults.
+#'
+#' @param normalize Logical; scale each column of X and D to unit L2 norm (or
+#'   unit SD, see \code{scaling_mode}). Default \code{TRUE}.
+#' @param intercept Logical; center X, D and y (an intercept is fitted).
+#'   Default \code{TRUE}.
+#' @param scaling_mode \code{"L2"} (default) or \code{"ZSCORE"}: the column
+#'   scaling applied when \code{normalize} is \code{TRUE}.
+#' @param verbose Logical; print status and diagnostics. Default \code{FALSE}.
+#' @param tol Numerical tolerance of the solver's internal comparisons.
+#'   Default: machine epsilon.
+#' @param tie_seed Seed of the solver's tie-break engine; a negative value
+#'   (default) seeds from the system entropy source.
+#' @param exch_tie_alpha Exchangeable-tie band width for the greedy solvers
+#'   (TOMP and TAFS families), in units of the pairwise ranking-noise sd;
+#'   0 (default) turns it off. Ignored by the path solvers.
+#' @param exch_tie_floor Minimum absolute correlation for exchangeable-tie
+#'   candidates, in [0, 1). Default 0.5.
+#' @param lambda2 L2 (ridge / group-ridge) penalty weight, >= 0. Read by
+#'   TENET, TENETAug and TIENETAug. Default 0 (no quadratic penalty: the
+#'   elastic nets reduce to their lasso).
+#' @param rho_afs TAFS shrinkage step in (0, 1]; 1 (default) is forward
+#'   stepwise.
+#' @param ncgmp_variant TNCGMP variant: \code{"line_search"} (default) or
+#'   \code{"fully_corrective"}.
+#' @param tenet_aug_use_lars Logical; TENETAug and TIENETAug run the
+#'   augmented system with a pure-LARS inner path that never drops variables
+#'   (default \code{FALSE}: LASSO inner path).
+#' @param kappa_dummy Ridge weight of the dummy block of the CCD elastic nets
+#'   (not bound to R yet). Default 1.
+#' @param fold_dummies Logical; TCDTIKNET dummy coupling (not bound to R
+#'   yet). Default \code{FALSE}.
+#' @param group_penalty TCDIENET structured penalty, \code{"MEAN"} (default)
+#'   or \code{"CENTERING"} (not bound to R yet).
+#' @param cd_lambda_rel_tol,cd_tol_certify,cd_tol_probe,cd_gram_cap,cd_max_sweeps,cd_certified_localization
+#'   Knobs of the CD solver family (not bound to R yet); the defaults are the
+#'   solver defaults (1e-3, 1e-10, 1e-8, 400, 2000, \code{TRUE}).
+#'
+#' @return A named list suitable for the \code{options} argument of every
+#'   T-solver constructor.
+#'
+#' @examples
+#' tsolver_options()
+#' tsolver_options(lambda2 = 0.5, normalize = FALSE)
+#'
+#' @export
+tsolver_options <- function(normalize = TRUE,
+                            intercept = TRUE,
+                            scaling_mode = c("L2", "ZSCORE"),
+                            verbose = FALSE,
+                            tol = .Machine$double.eps,
+                            tie_seed = -1,
+                            exch_tie_alpha = 0,
+                            exch_tie_floor = 0.5,
+                            lambda2 = 0,
+                            rho_afs = 1,
+                            ncgmp_variant = c("line_search", "fully_corrective"),
+                            tenet_aug_use_lars = FALSE,
+                            kappa_dummy = 1,
+                            fold_dummies = FALSE,
+                            group_penalty = c("MEAN", "CENTERING"),
+                            cd_lambda_rel_tol = 1e-3,
+                            cd_tol_certify = 1e-10,
+                            cd_tol_probe = 1e-8,
+                            cd_gram_cap = 400,
+                            cd_max_sweeps = 2000,
+                            cd_certified_localization = TRUE) {
+  scaling_mode  <- match.arg(scaling_mode)
+  ncgmp_variant <- match.arg(ncgmp_variant)
+  group_penalty <- match.arg(group_penalty)
+  list(
+    normalize                 = as.logical(normalize),
+    intercept                 = as.logical(intercept),
+    scaling_mode              = scaling_mode,
+    verbose                   = as.logical(verbose),
+    tol                       = as.numeric(tol),
+    tie_seed                  = as.numeric(tie_seed),
+    exch_tie_alpha            = as.numeric(exch_tie_alpha),
+    exch_tie_floor            = as.numeric(exch_tie_floor),
+    lambda2                   = as.numeric(lambda2),
+    rho_afs                   = as.numeric(rho_afs),
+    ncgmp_variant             = ncgmp_variant,
+    tenet_aug_use_lars        = as.logical(tenet_aug_use_lars),
+    kappa_dummy               = as.numeric(kappa_dummy),
+    fold_dummies              = as.logical(fold_dummies),
+    group_penalty             = group_penalty,
+    cd_lambda_rel_tol         = as.numeric(cd_lambda_rel_tol),
+    cd_tol_certify            = as.numeric(cd_tol_certify),
+    cd_tol_probe              = as.numeric(cd_tol_probe),
+    cd_gram_cap               = as.numeric(cd_gram_cap),
+    cd_max_sweeps             = as.numeric(cd_max_sweeps),
+    cd_certified_localization = as.logical(cd_certified_localization)
+  )
+}
+
+
 #' Base T-Solver Class
 #'
 #' @description
@@ -198,20 +300,14 @@ TLARS_Solver <- R6::R6Class(
     #' @param X Numeric matrix of predictors, or \code{mmap_matrix}.
     #' @param D Numeric matrix of dummies.
     #' @param y Numeric response vector.
-    #' @param normalize Logical; column-normalize X and D (default \code{TRUE}).
-    #' @param intercept Logical; fit an intercept (default \code{TRUE}).
-    #' @param verbose Logical; print progress (default \code{FALSE}).
-    initialize = function(X, D, y,
-                          normalize = TRUE,
-                          intercept = TRUE,
-                          verbose   = FALSE) {
+    #' @param options Solver options from \code{\link{tsolver_options}} (default:
+    #'   \code{tsolver_options()}).
+    initialize = function(X, D, y, options = tsolver_options()) {
       super$initialize(X, D, y)
       if (inherits(self$X, "mmap_matrix")) {
-        self$ptr <- tsolver_lars_mmap_create(self$X, self$D, self$y,
-                                             normalize, intercept, verbose)
+        self$ptr <- tsolver_lars_mmap_create(self$X, self$D, self$y, options)
       } else {
-        self$ptr <- tsolver_lars_create(self$X, self$D, self$y,
-                                        normalize, intercept, verbose)
+        self$ptr <- tsolver_lars_create(self$X, self$D, self$y, options)
       }
     },
 
@@ -249,20 +345,14 @@ TLASSO_Solver <- R6::R6Class(
     #' @param X Numeric matrix of predictors, or \code{mmap_matrix}.
     #' @param D Numeric matrix of dummies.
     #' @param y Numeric response vector.
-    #' @param normalize Logical; column-normalize X and D (default \code{TRUE}).
-    #' @param intercept Logical; fit an intercept (default \code{TRUE}).
-    #' @param verbose Logical; print progress (default \code{FALSE}).
-    initialize = function(X, D, y,
-                          normalize = TRUE,
-                          intercept = TRUE,
-                          verbose   = FALSE) {
+    #' @param options Solver options from \code{\link{tsolver_options}} (default:
+    #'   \code{tsolver_options()}).
+    initialize = function(X, D, y, options = tsolver_options()) {
       super$initialize(X, D, y)
       if (inherits(self$X, "mmap_matrix")) {
-        self$ptr <- tsolver_tlasso_mmap_create(self$X, self$D, self$y,
-                                               normalize, intercept, verbose)
+        self$ptr <- tsolver_tlasso_mmap_create(self$X, self$D, self$y, options)
       } else {
-        self$ptr <- tsolver_tlasso_create(self$X, self$D, self$y,
-                                          normalize, intercept, verbose)
+        self$ptr <- tsolver_tlasso_create(self$X, self$D, self$y, options)
       }
     },
 
@@ -312,20 +402,14 @@ TSTEPWISE_Solver <- R6::R6Class(
     #' @param X Numeric matrix of predictors, or \code{mmap_matrix}.
     #' @param D Numeric matrix of dummies.
     #' @param y Numeric response vector.
-    #' @param normalize Logical; column-normalize X and D (default \code{TRUE}).
-    #' @param intercept Logical; fit an intercept (default \code{TRUE}).
-    #' @param verbose Logical; print progress (default \code{FALSE}).
-    initialize = function(X, D, y,
-                          normalize = TRUE,
-                          intercept = TRUE,
-                          verbose   = FALSE) {
+    #' @param options Solver options from \code{\link{tsolver_options}} (default:
+    #'   \code{tsolver_options()}).
+    initialize = function(X, D, y, options = tsolver_options()) {
       super$initialize(X, D, y)
       if (inherits(self$X, "mmap_matrix")) {
-        self$ptr <- tsolver_tstepwise_mmap_create(self$X, self$D, self$y,
-                                                  normalize, intercept, verbose)
+        self$ptr <- tsolver_tstepwise_mmap_create(self$X, self$D, self$y, options)
       } else {
-        self$ptr <- tsolver_tstepwise_create(self$X, self$D, self$y,
-                                             normalize, intercept, verbose)
+        self$ptr <- tsolver_tstepwise_create(self$X, self$D, self$y, options)
       }
     },
 
@@ -350,7 +434,7 @@ TSTEPWISE_Solver <- R6::R6Class(
 #' X <- matrix(rnorm(n * p), n, p)
 #' D <- matrix(rnorm(n * p), n, p)
 #' y <- X[, 1] * 2 + rnorm(n)
-#' solver <- TENET_Solver$new(X, D, y, lambda2 = 0.1)
+#' solver <- TENET_Solver$new(X, D, y, options = tsolver_options(lambda2 = 0.1))
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
@@ -364,22 +448,15 @@ TENET_Solver <- R6::R6Class(
     #' @param X Numeric matrix of predictors, or \code{mmap_matrix}.
     #' @param D Numeric matrix of dummies.
     #' @param y Numeric response vector.
-    #' @param lambda2 Numeric L2 (ridge) penalty parameter (>= 0).
-    #' @param normalize Logical; column-normalize X and D (default \code{TRUE}).
-    #' @param intercept Logical; fit an intercept (default \code{TRUE}).
-    #' @param verbose Logical; print progress (default \code{FALSE}).
-    initialize = function(X, D, y,
-                          lambda2,
-                          normalize = TRUE,
-                          intercept = TRUE,
-                          verbose   = FALSE) {
+    #' @param options Solver options from \code{\link{tsolver_options}}; this
+    #'   solver reads \code{lambda2}, the L2 (ridge) penalty (>= 0; the
+    #'   default 0 is the plain lasso path).
+    initialize = function(X, D, y, options = tsolver_options()) {
       super$initialize(X, D, y)
       if (inherits(self$X, "mmap_matrix")) {
-        self$ptr <- tsolver_tenet_mmap_create(self$X, self$D, self$y,
-                                              lambda2, normalize, intercept, verbose)
+        self$ptr <- tsolver_tenet_mmap_create(self$X, self$D, self$y, options)
       } else {
-        self$ptr <- tsolver_tenet_create(self$X, self$D, self$y,
-                                         lambda2, normalize, intercept, verbose)
+        self$ptr <- tsolver_tenet_create(self$X, self$D, self$y, options)
       }
     },
 
@@ -421,7 +498,7 @@ TENET_Solver <- R6::R6Class(
 #' X <- matrix(rnorm(n * p), n, p)
 #' D <- matrix(rnorm(n * p), n, p)
 #' y <- X[, 1] * 2 + rnorm(n)
-#' solver <- TENETAug_Solver$new(X, D, y, lambda2 = 0.1)
+#' solver <- TENETAug_Solver$new(X, D, y, options = tsolver_options(lambda2 = 0.1))
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
@@ -435,27 +512,16 @@ TENETAug_Solver <- R6::R6Class(
     #' @param X Numeric matrix of predictors, or \code{mmap_matrix}.
     #' @param D Numeric matrix of dummies.
     #' @param y Numeric response vector.
-    #' @param lambda2 Numeric L2 (ridge) penalty parameter (>= 0).
-    #' @param normalize Logical; column-normalize X and D (default \code{TRUE}).
-    #' @param intercept Logical; fit an intercept (default \code{TRUE}).
-    #' @param verbose Logical; print progress (default \code{FALSE}).
-    #' @param use_lars_inner Logical; run the inner path with a pure-LARS
-    #'   solver that never drops variables (default \code{FALSE}).
-    initialize = function(X, D, y,
-                          lambda2,
-                          normalize = TRUE,
-                          intercept = TRUE,
-                          verbose   = FALSE,
-                          use_lars_inner = FALSE) {
+    #' @param options Solver options from \code{\link{tsolver_options}}; this
+    #'   solver reads \code{lambda2} (the ridge penalty, >= 0) and
+    #'   \code{tenet_aug_use_lars} (run the inner path with a pure-LARS
+    #'   solver that never drops variables).
+    initialize = function(X, D, y, options = tsolver_options()) {
       super$initialize(X, D, y)
       if (inherits(self$X, "mmap_matrix")) {
-        self$ptr <- tsolver_tenet_aug_mmap_create(self$X, self$D, self$y,
-                                                  lambda2, normalize, intercept,
-                                                  verbose, use_lars_inner)
+        self$ptr <- tsolver_tenet_aug_mmap_create(self$X, self$D, self$y, options)
       } else {
-        self$ptr <- tsolver_tenet_aug_create(self$X, self$D, self$y,
-                                             lambda2, normalize, intercept,
-                                             verbose, use_lars_inner)
+        self$ptr <- tsolver_tenet_aug_create(self$X, self$D, self$y, options)
       }
     }
   )
@@ -479,7 +545,8 @@ TENETAug_Solver <- R6::R6Class(
 #' D <- matrix(rnorm(n * p), n, p)
 #' y <- X[, 1] * 2 + rnorm(n)
 #' groups <- c(1, 1, 2, 2)  # 1-based group id per predictor
-#' solver <- TIENETAug_Solver$new(X, D, y, lambda2 = 0.1, groups = groups)
+#' solver <- TIENETAug_Solver$new(X, D, y, groups = groups,
+#'                                options = tsolver_options(lambda2 = 0.1))
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
@@ -493,33 +560,21 @@ TIENETAug_Solver <- R6::R6Class(
     #' @param X Numeric matrix of predictors, or \code{mmap_matrix}.
     #' @param D Numeric matrix of dummies.
     #' @param y Numeric response vector.
-    #' @param lambda2 Numeric group-ridge penalty parameter (>= 0).
     #' @param groups Integer vector of 1-based group ids, one per predictor
     #'   column of \code{X} (contiguous ids starting at 1).
-    #' @param normalize Logical; column-normalize X and D (default \code{TRUE}).
-    #' @param intercept Logical; fit an intercept (default \code{TRUE}).
-    #' @param verbose Logical; print progress (default \code{FALSE}).
-    #' @param use_lars_inner Logical; run the inner path with a pure-LARS
-    #'   solver that never drops variables (default \code{FALSE}).
-    initialize = function(X, D, y,
-                          lambda2,
-                          groups,
-                          normalize = TRUE,
-                          intercept = TRUE,
-                          verbose   = FALSE,
-                          use_lars_inner = FALSE) {
+    #' @param options Solver options from \code{\link{tsolver_options}}; this
+    #'   solver reads \code{lambda2} (the group-ridge penalty, >= 0) and
+    #'   \code{tenet_aug_use_lars} (run the inner path with a pure-LARS
+    #'   solver that never drops variables).
+    initialize = function(X, D, y, groups, options = tsolver_options()) {
       super$initialize(X, D, y)
       groups <- as.integer(groups)
       if (inherits(self$X, "mmap_matrix")) {
         self$ptr <- tsolver_tienet_aug_mmap_create(self$X, self$D, self$y,
-                                                   lambda2, groups, normalize,
-                                                   intercept, verbose,
-                                                   use_lars_inner)
+                                                   groups, options)
       } else {
         self$ptr <- tsolver_tienet_aug_create(self$X, self$D, self$y,
-                                              lambda2, groups, normalize,
-                                              intercept, verbose,
-                                              use_lars_inner)
+                                              groups, options)
       }
     },
 
@@ -570,20 +625,14 @@ TSTAGEWISE_Solver <- R6::R6Class(
     #' @param X Numeric matrix of predictors, or \code{mmap_matrix}.
     #' @param D Numeric matrix of dummies.
     #' @param y Numeric response vector.
-    #' @param normalize Logical; column-normalize X and D (default \code{TRUE}).
-    #' @param intercept Logical; fit an intercept (default \code{TRUE}).
-    #' @param verbose Logical; print progress (default \code{FALSE}).
-    initialize = function(X, D, y,
-                          normalize = TRUE,
-                          intercept = TRUE,
-                          verbose   = FALSE) {
+    #' @param options Solver options from \code{\link{tsolver_options}} (default:
+    #'   \code{tsolver_options()}).
+    initialize = function(X, D, y, options = tsolver_options()) {
       super$initialize(X, D, y)
       if (inherits(self$X, "mmap_matrix")) {
-        self$ptr <- tsolver_tstagewise_mmap_create(self$X, self$D, self$y,
-                                                   normalize, intercept, verbose)
+        self$ptr <- tsolver_tstagewise_mmap_create(self$X, self$D, self$y, options)
       } else {
-        self$ptr <- tsolver_tstagewise_create(self$X, self$D, self$y,
-                                              normalize, intercept, verbose)
+        self$ptr <- tsolver_tstagewise_create(self$X, self$D, self$y, options)
       }
     },
 
@@ -637,20 +686,14 @@ TOMP_Solver <- R6::R6Class(
     #' @param X Numeric matrix of predictors, or \code{mmap_matrix}.
     #' @param D Numeric matrix of dummies.
     #' @param y Numeric response vector.
-    #' @param normalize Logical; column-normalize X and D (default \code{TRUE}).
-    #' @param intercept Logical; fit an intercept (default \code{TRUE}).
-    #' @param verbose Logical; print progress (default \code{FALSE}).
-    initialize = function(X, D, y,
-                          normalize = TRUE,
-                          intercept = TRUE,
-                          verbose   = FALSE) {
+    #' @param options Solver options from \code{\link{tsolver_options}} (default:
+    #'   \code{tsolver_options()}).
+    initialize = function(X, D, y, options = tsolver_options()) {
       super$initialize(X, D, y)
       if (inherits(self$X, "mmap_matrix")) {
-        self$ptr <- tsolver_omp_mmap_create(self$X, self$D, self$y,
-                                            normalize, intercept, verbose)
+        self$ptr <- tsolver_omp_mmap_create(self$X, self$D, self$y, options)
       } else {
-        self$ptr <- tsolver_omp_create(self$X, self$D, self$y,
-                                       normalize, intercept, verbose)
+        self$ptr <- tsolver_omp_create(self$X, self$D, self$y, options)
       }
     }
   )
@@ -683,20 +726,14 @@ TGP_Solver <- R6::R6Class(
     #' @param X Numeric matrix of predictors, or \code{mmap_matrix}.
     #' @param D Numeric matrix of dummies.
     #' @param y Numeric response vector.
-    #' @param normalize Logical; column-normalize X and D (default \code{TRUE}).
-    #' @param intercept Logical; fit an intercept (default \code{TRUE}).
-    #' @param verbose Logical; print progress (default \code{FALSE}).
-    initialize = function(X, D, y,
-                          normalize = TRUE,
-                          intercept = TRUE,
-                          verbose   = FALSE) {
+    #' @param options Solver options from \code{\link{tsolver_options}} (default:
+    #'   \code{tsolver_options()}).
+    initialize = function(X, D, y, options = tsolver_options()) {
       super$initialize(X, D, y)
       if (inherits(self$X, "mmap_matrix")) {
-        self$ptr <- tsolver_tgp_mmap_create(self$X, self$D, self$y,
-                                            normalize, intercept, verbose)
+        self$ptr <- tsolver_tgp_mmap_create(self$X, self$D, self$y, options)
       } else {
-        self$ptr <- tsolver_tgp_create(self$X, self$D, self$y,
-                                       normalize, intercept, verbose)
+        self$ptr <- tsolver_tgp_create(self$X, self$D, self$y, options)
       }
     }
   )
@@ -728,20 +765,14 @@ TACGP_Solver <- R6::R6Class(
     #' @param X Numeric matrix of predictors, or \code{mmap_matrix}.
     #' @param D Numeric matrix of dummies.
     #' @param y Numeric response vector.
-    #' @param normalize Logical; column-normalize X and D (default \code{TRUE}).
-    #' @param intercept Logical; fit an intercept (default \code{TRUE}).
-    #' @param verbose Logical; print progress (default \code{FALSE}).
-    initialize = function(X, D, y,
-                          normalize = TRUE,
-                          intercept = TRUE,
-                          verbose   = FALSE) {
+    #' @param options Solver options from \code{\link{tsolver_options}} (default:
+    #'   \code{tsolver_options()}).
+    initialize = function(X, D, y, options = tsolver_options()) {
       super$initialize(X, D, y)
       if (inherits(self$X, "mmap_matrix")) {
-        self$ptr <- tsolver_tacgp_mmap_create(self$X, self$D, self$y,
-                                              normalize, intercept, verbose)
+        self$ptr <- tsolver_tacgp_mmap_create(self$X, self$D, self$y, options)
       } else {
-        self$ptr <- tsolver_tacgp_create(self$X, self$D, self$y,
-                                         normalize, intercept, verbose)
+        self$ptr <- tsolver_tacgp_create(self$X, self$D, self$y, options)
       }
     }
   )
@@ -773,20 +804,14 @@ TMP_Solver <- R6::R6Class(
     #' @param X Numeric matrix of predictors, or \code{mmap_matrix}.
     #' @param D Numeric matrix of dummies.
     #' @param y Numeric response vector.
-    #' @param normalize Logical; column-normalize X and D (default \code{TRUE}).
-    #' @param intercept Logical; fit an intercept (default \code{TRUE}).
-    #' @param verbose Logical; print progress (default \code{FALSE}).
-    initialize = function(X, D, y,
-                          normalize = TRUE,
-                          intercept = TRUE,
-                          verbose   = FALSE) {
+    #' @param options Solver options from \code{\link{tsolver_options}} (default:
+    #'   \code{tsolver_options()}).
+    initialize = function(X, D, y, options = tsolver_options()) {
       super$initialize(X, D, y)
       if (inherits(self$X, "mmap_matrix")) {
-        self$ptr <- tsolver_tmp_mmap_create(self$X, self$D, self$y,
-                                            normalize, intercept, verbose)
+        self$ptr <- tsolver_tmp_mmap_create(self$X, self$D, self$y, options)
       } else {
-        self$ptr <- tsolver_tmp_create(self$X, self$D, self$y,
-                                       normalize, intercept, verbose)
+        self$ptr <- tsolver_tmp_create(self$X, self$D, self$y, options)
       }
     }
   )
@@ -818,20 +843,14 @@ TOOLS_Solver <- R6::R6Class(
     #' @param X Numeric matrix of predictors, or \code{mmap_matrix}.
     #' @param D Numeric matrix of dummies.
     #' @param y Numeric response vector.
-    #' @param normalize Logical; column-normalize X and D (default \code{TRUE}).
-    #' @param intercept Logical; fit an intercept (default \code{TRUE}).
-    #' @param verbose Logical; print progress (default \code{FALSE}).
-    initialize = function(X, D, y,
-                          normalize = TRUE,
-                          intercept = TRUE,
-                          verbose   = FALSE) {
+    #' @param options Solver options from \code{\link{tsolver_options}} (default:
+    #'   \code{tsolver_options()}).
+    initialize = function(X, D, y, options = tsolver_options()) {
       super$initialize(X, D, y)
       if (inherits(self$X, "mmap_matrix")) {
-        self$ptr <- tsolver_tools_mmap_create(self$X, self$D, self$y,
-                                              normalize, intercept, verbose)
+        self$ptr <- tsolver_tools_mmap_create(self$X, self$D, self$y, options)
       } else {
-        self$ptr <- tsolver_tools_create(self$X, self$D, self$y,
-                                         normalize, intercept, verbose)
+        self$ptr <- tsolver_tools_create(self$X, self$D, self$y, options)
       }
     }
   )
@@ -852,7 +871,8 @@ TOOLS_Solver <- R6::R6Class(
 #' X <- matrix(rnorm(n * p), n, p)
 #' D <- matrix(rnorm(n * p), n, p)
 #' y <- X[, 1] * 2 + rnorm(n)
-#' solver <- TNCGMP_Solver$new(X, D, y, variant = "line_search")
+#' solver <- TNCGMP_Solver$new(X, D, y,
+#'                             options = tsolver_options(ncgmp_variant = "line_search"))
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
@@ -865,29 +885,15 @@ TNCGMP_Solver <- R6::R6Class(
     #' @param X Numeric matrix of predictors, or \code{mmap_matrix}.
     #' @param D Numeric matrix of dummies.
     #' @param y Numeric response vector.
-    #' @param variant Character; \code{"line_search"} (default) or
-    #'   \code{"fully_corrective"}.
-    #' @param normalize Logical; column-normalize X and D (default \code{TRUE}).
-    #' @param intercept Logical; fit an intercept (default \code{TRUE}).
-    #' @param verbose Logical; print progress (default \code{FALSE}).
-    initialize = function(X, D, y,
-                          variant   = "line_search",
-                          normalize = TRUE,
-                          intercept = TRUE,
-                          verbose   = FALSE) {
+    #' @param options Solver options from \code{\link{tsolver_options}}; this
+    #'   solver reads \code{ncgmp_variant}: \code{"line_search"} (default)
+    #'   or \code{"fully_corrective"}.
+    initialize = function(X, D, y, options = tsolver_options()) {
       super$initialize(X, D, y)
-      v <- switch(variant,
-        "line_search"      = 0L,
-        "fully_corrective" = 1L,
-        stop("TNCGMP_Solver: unknown variant '", variant,
-             "'. Use \"line_search\" or \"fully_corrective\".")
-      )
       if (inherits(self$X, "mmap_matrix")) {
-        self$ptr <- tsolver_tncgmp_mmap_create(self$X, self$D, self$y,
-                                               v, normalize, intercept, verbose)
+        self$ptr <- tsolver_tncgmp_mmap_create(self$X, self$D, self$y, options)
       } else {
-        self$ptr <- tsolver_tncgmp_create(self$X, self$D, self$y,
-                                          v, normalize, intercept, verbose)
+        self$ptr <- tsolver_tncgmp_create(self$X, self$D, self$y, options)
       }
     }
   )
@@ -912,7 +918,7 @@ TNCGMP_Solver <- R6::R6Class(
 #' X <- matrix(rnorm(n * p), n, p)
 #' D <- matrix(rnorm(n * p), n, p)
 #' y <- X[, 1] * 2 + rnorm(n)
-#' solver <- TAFS_Solver$new(X, D, y, rho = 0.5)
+#' solver <- TAFS_Solver$new(X, D, y, options = tsolver_options(rho_afs = 0.5))
 #' solver$execute_step(T_stop = 3)
 #' solver$get_beta()
 #'
@@ -925,22 +931,15 @@ TAFS_Solver <- R6::R6Class(
     #' @param X Numeric matrix of predictors, or \code{mmap_matrix}.
     #' @param D Numeric matrix of dummies.
     #' @param y Numeric response vector.
-    #' @param rho Numeric shrinkage parameter in (0, 1]; default \code{1.0}.
-    #' @param normalize Logical; column-normalize X and D (default \code{TRUE}).
-    #' @param intercept Logical; fit an intercept (default \code{TRUE}).
-    #' @param verbose Logical; print progress (default \code{FALSE}).
-    initialize = function(X, D, y,
-                          rho       = 1.0,
-                          normalize = TRUE,
-                          intercept = TRUE,
-                          verbose   = FALSE) {
+    #' @param options Solver options from \code{\link{tsolver_options}}; this
+    #'   solver reads \code{rho_afs}, the shrinkage parameter in (0, 1]
+    #'   (default 1: forward stepwise).
+    initialize = function(X, D, y, options = tsolver_options()) {
       super$initialize(X, D, y)
       if (inherits(self$X, "mmap_matrix")) {
-        self$ptr <- tsolver_tafs_mmap_create(self$X, self$D, self$y,
-                                             rho, normalize, intercept, verbose)
+        self$ptr <- tsolver_tafs_mmap_create(self$X, self$D, self$y, options)
       } else {
-        self$ptr <- tsolver_tafs_create(self$X, self$D, self$y,
-                                        rho, normalize, intercept, verbose)
+        self$ptr <- tsolver_tafs_create(self$X, self$D, self$y, options)
       }
     }
   )

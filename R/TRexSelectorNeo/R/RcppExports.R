@@ -1144,172 +1144,370 @@ trex_tikhonov_gamma_to_k <- function(gamma) {
     .Call(`_TRexSelectorNeo_trex_tikhonov_gamma_to_k`, gamma)
 }
 
-#' @title Create LARS Solver
+#' @title Create TLARS_Solver
 #'
 #' @param X Design matrix
 #' @param D Dummy matrix
 #' @param y Response vector
+#' @param options List from tsolver_options()
 #'
 #' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_lars_create <- function(X, D, y, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_lars_create`, X, D, y, normalize, intercept, verbose)
+tsolver_lars_create <- function(X, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_lars_create`, X, D, y, options)
 }
 
-#' @title Create OMP Solver
+#' @title Create TLASSO_Solver
 #'
 #' @param X Design matrix
 #' @param D Dummy matrix
 #' @param y Response vector
+#' @param options List from tsolver_options()
 #'
 #' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_omp_create <- function(X, D, y, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_omp_create`, X, D, y, normalize, intercept, verbose)
+tsolver_tlasso_create <- function(X, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tlasso_create`, X, D, y, options)
 }
 
-#' @title Create LARS Solver with Memory Mapped Matrix
+#' @title Create TSTEPWISE_Solver
 #'
-#' @param X_ptr Pointer to MemoryMappedMatrix
+#' @param X Design matrix
 #' @param D Dummy matrix
 #' @param y Response vector
+#' @param options List from tsolver_options()
 #'
 #' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_lars_mmap_create <- function(X_ptr, D, y, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_lars_mmap_create`, X_ptr, D, y, normalize, intercept, verbose)
+tsolver_tstepwise_create <- function(X, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tstepwise_create`, X, D, y, options)
 }
 
-#' @title Create OMP Solver with Memory Mapped Matrix
+#' @title Create TSTAGEWISE_Solver
 #'
-#' @param X_ptr Pointer to MemoryMappedMatrix
+#' @param X Design matrix
 #' @param D Dummy matrix
 #' @param y Response vector
+#' @param options List from tsolver_options()
 #'
 #' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_omp_mmap_create <- function(X_ptr, D, y, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_omp_mmap_create`, X_ptr, D, y, normalize, intercept, verbose)
+tsolver_tstagewise_create <- function(X, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tstagewise_create`, X, D, y, options)
 }
 
+#' @title Create TENET_Solver
+#'
+#' @param X Design matrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tlasso_create <- function(X, D, y, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tlasso_create`, X, D, y, normalize, intercept, verbose)
+tsolver_tenet_create <- function(X, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tenet_create`, X, D, y, options)
 }
 
+#' @title Create TENETAug_Solver
+#'
+#' @param X Design matrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tstepwise_create <- function(X, D, y, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tstepwise_create`, X, D, y, normalize, intercept, verbose)
+tsolver_tenet_aug_create <- function(X, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tenet_aug_create`, X, D, y, options)
 }
 
+#' @title Create TIENETAug_Solver
+#'
+#' @param X Design matrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param groups 1-based group ids, one per predictor
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tenet_create <- function(X, D, y, lambda2, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tenet_create`, X, D, y, lambda2, normalize, intercept, verbose)
+tsolver_tienet_aug_create <- function(X, D, y, groups, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tienet_aug_create`, X, D, y, groups, options)
 }
 
+#' @title Create TOMP_Solver
+#'
+#' @param X Design matrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tenet_aug_create <- function(X, D, y, lambda2, normalize = TRUE, intercept = TRUE, verbose = FALSE, use_lars_inner = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tenet_aug_create`, X, D, y, lambda2, normalize, intercept, verbose, use_lars_inner)
+tsolver_omp_create <- function(X, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_omp_create`, X, D, y, options)
 }
 
+#' @title Create TGP_Solver
+#'
+#' @param X Design matrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tienet_aug_create <- function(X, D, y, lambda2, groups, normalize = TRUE, intercept = TRUE, verbose = FALSE, use_lars_inner = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tienet_aug_create`, X, D, y, lambda2, groups, normalize, intercept, verbose, use_lars_inner)
+tsolver_tgp_create <- function(X, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tgp_create`, X, D, y, options)
 }
 
+#' @title Create TACGP_Solver
+#'
+#' @param X Design matrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tstagewise_create <- function(X, D, y, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tstagewise_create`, X, D, y, normalize, intercept, verbose)
+tsolver_tacgp_create <- function(X, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tacgp_create`, X, D, y, options)
 }
 
+#' @title Create TMP_Solver
+#'
+#' @param X Design matrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tgp_create <- function(X, D, y, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tgp_create`, X, D, y, normalize, intercept, verbose)
+tsolver_tmp_create <- function(X, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tmp_create`, X, D, y, options)
 }
 
+#' @title Create TOOLS_Solver
+#'
+#' @param X Design matrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tacgp_create <- function(X, D, y, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tacgp_create`, X, D, y, normalize, intercept, verbose)
+tsolver_tools_create <- function(X, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tools_create`, X, D, y, options)
 }
 
+#' @title Create TNCGMP_Solver
+#'
+#' @param X Design matrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tmp_create <- function(X, D, y, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tmp_create`, X, D, y, normalize, intercept, verbose)
+tsolver_tncgmp_create <- function(X, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tncgmp_create`, X, D, y, options)
 }
 
+#' @title Create TAFS_Solver
+#'
+#' @param X Design matrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tools_create <- function(X, D, y, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tools_create`, X, D, y, normalize, intercept, verbose)
+tsolver_tafs_create <- function(X, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tafs_create`, X, D, y, options)
 }
 
+#' @title Create TLARS_Solver (memory-mapped X)
+#'
+#' @param X_ptr XPtr to a MemoryMappedMatrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tncgmp_create <- function(X, D, y, variant = 0L, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tncgmp_create`, X, D, y, variant, normalize, intercept, verbose)
+tsolver_lars_mmap_create <- function(X_ptr, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_lars_mmap_create`, X_ptr, D, y, options)
 }
 
+#' @title Create TLASSO_Solver (memory-mapped X)
+#'
+#' @param X_ptr XPtr to a MemoryMappedMatrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tafs_create <- function(X, D, y, rho = 1.0, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tafs_create`, X, D, y, rho, normalize, intercept, verbose)
+tsolver_tlasso_mmap_create <- function(X_ptr, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tlasso_mmap_create`, X_ptr, D, y, options)
 }
 
+#' @title Create TSTEPWISE_Solver (memory-mapped X)
+#'
+#' @param X_ptr XPtr to a MemoryMappedMatrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tlasso_mmap_create <- function(X_ptr, D, y, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tlasso_mmap_create`, X_ptr, D, y, normalize, intercept, verbose)
+tsolver_tstepwise_mmap_create <- function(X_ptr, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tstepwise_mmap_create`, X_ptr, D, y, options)
 }
 
+#' @title Create TSTAGEWISE_Solver (memory-mapped X)
+#'
+#' @param X_ptr XPtr to a MemoryMappedMatrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tstepwise_mmap_create <- function(X_ptr, D, y, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tstepwise_mmap_create`, X_ptr, D, y, normalize, intercept, verbose)
+tsolver_tstagewise_mmap_create <- function(X_ptr, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tstagewise_mmap_create`, X_ptr, D, y, options)
 }
 
+#' @title Create TENET_Solver (memory-mapped X)
+#'
+#' @param X_ptr XPtr to a MemoryMappedMatrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tenet_mmap_create <- function(X_ptr, D, y, lambda2, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tenet_mmap_create`, X_ptr, D, y, lambda2, normalize, intercept, verbose)
+tsolver_tenet_mmap_create <- function(X_ptr, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tenet_mmap_create`, X_ptr, D, y, options)
 }
 
+#' @title Create TENETAug_Solver (memory-mapped X)
+#'
+#' @param X_ptr XPtr to a MemoryMappedMatrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tenet_aug_mmap_create <- function(X_ptr, D, y, lambda2, normalize = TRUE, intercept = TRUE, verbose = FALSE, use_lars_inner = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tenet_aug_mmap_create`, X_ptr, D, y, lambda2, normalize, intercept, verbose, use_lars_inner)
+tsolver_tenet_aug_mmap_create <- function(X_ptr, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tenet_aug_mmap_create`, X_ptr, D, y, options)
 }
 
+#' @title Create TIENETAug_Solver (memory-mapped X)
+#'
+#' @param X_ptr XPtr to a MemoryMappedMatrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param groups 1-based group ids, one per predictor
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tienet_aug_mmap_create <- function(X_ptr, D, y, lambda2, groups, normalize = TRUE, intercept = TRUE, verbose = FALSE, use_lars_inner = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tienet_aug_mmap_create`, X_ptr, D, y, lambda2, groups, normalize, intercept, verbose, use_lars_inner)
+tsolver_tienet_aug_mmap_create <- function(X_ptr, D, y, groups, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tienet_aug_mmap_create`, X_ptr, D, y, groups, options)
 }
 
+#' @title Create TOMP_Solver (memory-mapped X)
+#'
+#' @param X_ptr XPtr to a MemoryMappedMatrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tstagewise_mmap_create <- function(X_ptr, D, y, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tstagewise_mmap_create`, X_ptr, D, y, normalize, intercept, verbose)
+tsolver_omp_mmap_create <- function(X_ptr, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_omp_mmap_create`, X_ptr, D, y, options)
 }
 
+#' @title Create TGP_Solver (memory-mapped X)
+#'
+#' @param X_ptr XPtr to a MemoryMappedMatrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tgp_mmap_create <- function(X_ptr, D, y, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tgp_mmap_create`, X_ptr, D, y, normalize, intercept, verbose)
+tsolver_tgp_mmap_create <- function(X_ptr, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tgp_mmap_create`, X_ptr, D, y, options)
 }
 
+#' @title Create TACGP_Solver (memory-mapped X)
+#'
+#' @param X_ptr XPtr to a MemoryMappedMatrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tacgp_mmap_create <- function(X_ptr, D, y, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tacgp_mmap_create`, X_ptr, D, y, normalize, intercept, verbose)
+tsolver_tacgp_mmap_create <- function(X_ptr, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tacgp_mmap_create`, X_ptr, D, y, options)
 }
 
+#' @title Create TMP_Solver (memory-mapped X)
+#'
+#' @param X_ptr XPtr to a MemoryMappedMatrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tmp_mmap_create <- function(X_ptr, D, y, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tmp_mmap_create`, X_ptr, D, y, normalize, intercept, verbose)
+tsolver_tmp_mmap_create <- function(X_ptr, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tmp_mmap_create`, X_ptr, D, y, options)
 }
 
+#' @title Create TOOLS_Solver (memory-mapped X)
+#'
+#' @param X_ptr XPtr to a MemoryMappedMatrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tools_mmap_create <- function(X_ptr, D, y, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tools_mmap_create`, X_ptr, D, y, normalize, intercept, verbose)
+tsolver_tools_mmap_create <- function(X_ptr, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tools_mmap_create`, X_ptr, D, y, options)
 }
 
+#' @title Create TNCGMP_Solver (memory-mapped X)
+#'
+#' @param X_ptr XPtr to a MemoryMappedMatrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tncgmp_mmap_create <- function(X_ptr, D, y, variant = 0L, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tncgmp_mmap_create`, X_ptr, D, y, variant, normalize, intercept, verbose)
+tsolver_tncgmp_mmap_create <- function(X_ptr, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tncgmp_mmap_create`, X_ptr, D, y, options)
 }
 
+#' @title Create TAFS_Solver (memory-mapped X)
+#'
+#' @param X_ptr XPtr to a MemoryMappedMatrix
+#' @param D Dummy matrix
+#' @param y Response vector
+#' @param options List from tsolver_options()
+#'
+#' @return XPtr to TSolverRcpp
 #' @noRd
-tsolver_tafs_mmap_create <- function(X_ptr, D, y, rho = 1.0, normalize = TRUE, intercept = TRUE, verbose = FALSE) {
-    .Call(`_TRexSelectorNeo_tsolver_tafs_mmap_create`, X_ptr, D, y, rho, normalize, intercept, verbose)
+tsolver_tafs_mmap_create <- function(X_ptr, D, y, options) {
+    .Call(`_TRexSelectorNeo_tsolver_tafs_mmap_create`, X_ptr, D, y, options)
 }
 
 #' @title Execute Step in TSolver

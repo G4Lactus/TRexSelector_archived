@@ -38,19 +38,19 @@ y <- X[, 5] * 4.0 + X[, 15] * (-2.5) + X[, 25] * 3.1 + rnorm(n)
   TLARS      = function() TLARS_Solver$new(X, D, y),
   TLASSO     = function() TLASSO_Solver$new(X, D, y),
   TSTEPWISE  = function() TSTEPWISE_Solver$new(X, D, y),
-  TENET      = function() TENET_Solver$new(X, D, y, lambda2 = 0.5),
-  TENET_AUG  = function() TENETAug_Solver$new(X, D, y, lambda2 = 0.5),
-  TIENET_AUG = function() TIENETAug_Solver$new(X, D, y, lambda2 = 0.5,
-                                              groups = .tienet_groups),
+  TENET      = function() TENET_Solver$new(X, D, y, options = tsolver_options(lambda2 = 0.5)),
+  TENET_AUG  = function() TENETAug_Solver$new(X, D, y, options = tsolver_options(lambda2 = 0.5)),
+  TIENET_AUG = function() TIENETAug_Solver$new(X, D, y, groups = .tienet_groups,
+                                              options = tsolver_options(lambda2 = 0.5)),
   TSTAGEWISE = function() TSTAGEWISE_Solver$new(X, D, y),
   TOMP       = function() TOMP_Solver$new(X, D, y),
   TGP        = function() TGP_Solver$new(X, D, y),
   TACGP      = function() TACGP_Solver$new(X, D, y),
   TMP        = function() TMP_Solver$new(X, D, y),
   TOOLS      = function() TOOLS_Solver$new(X, D, y),
-  TNCGMP_ls  = function() TNCGMP_Solver$new(X, D, y, variant = "line_search"),
-  TNCGMP_fc  = function() TNCGMP_Solver$new(X, D, y, variant = "fully_corrective"),
-  TAFS       = function() TAFS_Solver$new(X, D, y, rho = 1.0)
+  TNCGMP_ls  = function() TNCGMP_Solver$new(X, D, y, options = tsolver_options(ncgmp_variant = "line_search")),
+  TNCGMP_fc  = function() TNCGMP_Solver$new(X, D, y, options = tsolver_options(ncgmp_variant = "fully_corrective")),
+  TAFS       = function() TAFS_Solver$new(X, D, y, options = tsolver_options(rho_afs = 1.0))
 )
 
 
@@ -71,11 +71,11 @@ test_that("TSolver_Base rejects D row count mismatch", {
 })
 
 test_that("TENET_Solver rejects negative lambda2", {
-  expect_error(TENET_Solver$new(X, D, y, lambda2 = -0.1))
+  expect_error(TENET_Solver$new(X, D, y, options = tsolver_options(lambda2 = -0.1)))
 })
 
 test_that("TNCGMP_Solver rejects unknown variant string", {
-  expect_error(TNCGMP_Solver$new(X, D, y, variant = "bad_variant"))
+  expect_error(TNCGMP_Solver$new(X, D, y, options = tsolver_options(ncgmp_variant = "bad_variant")))
 })
 
 
@@ -244,7 +244,7 @@ test_that("TSTEPWISE_Solver: get_lambda returns a numeric vector", {
 })
 
 test_that("TENET_Solver: get_lambda, get_num_removals, get_cycling_ratio all correct", {
-  s <- TENET_Solver$new(X, D, y, lambda2 = 0.5)
+  s <- TENET_Solver$new(X, D, y, options = tsolver_options(lambda2 = 0.5))
   s$execute_step(T_stop = 8)
   expect_type(s$get_lambda(), "double")
   nr <- s$get_num_removals()
@@ -269,7 +269,8 @@ test_that("TSTAGEWISE_Solver: get_num_removals non-negative, get_cycling_ratio i
 })
 
 test_that("TIENETAug_Solver: get_lambda2, get_groups (1-based), get_num_groups", {
-  s <- TIENETAug_Solver$new(X, D, y, lambda2 = 0.5, groups = .tienet_groups)
+  s <- TIENETAug_Solver$new(X, D, y, groups = .tienet_groups,
+                            options = tsolver_options(lambda2 = 0.5))
   s$execute_step(T_stop = 8)
   expect_equal(s$get_lambda2(), 0.5)
   expect_identical(s$get_groups(), as.integer(.tienet_groups))

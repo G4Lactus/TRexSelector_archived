@@ -15,7 +15,8 @@ n <- 20; p <- 5
 X <- matrix(rnorm(n * p), n, p)
 D <- matrix(rnorm(n * p), n, p)
 y <- X[, 1] * 2 + rnorm(n)
-solver <- TNCGMP_Solver$new(X, D, y, variant = "line_search")
+solver <- TNCGMP_Solver$new(X, D, y,
+                            options = tsolver_options(ncgmp_variant = "line_search"))
 solver$execute_step(T_stop = 3)
 solver$get_beta()
 
@@ -54,15 +55,7 @@ solver$get_beta()
   Create a new \code{TNCGMP_Solver}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{TNCGMP_Solver$new(
-  X,
-  D,
-  y,
-  variant = "line_search",
-  normalize = TRUE,
-  intercept = TRUE,
-  verbose = FALSE
-)}
+    \preformatted{TNCGMP_Solver$new(X, D, y, options = tsolver_options())}
     \if{html}{\out{</div>}}
   }
   \subsection{Arguments}{
@@ -71,11 +64,9 @@ solver$get_beta()
       \item{\code{X}}{Numeric matrix of predictors, or \code{mmap_matrix}.}
       \item{\code{D}}{Numeric matrix of dummies.}
       \item{\code{y}}{Numeric response vector.}
-      \item{\code{variant}}{Character; \code{"line_search"} (default) or
-\code{"fully_corrective"}.}
-      \item{\code{normalize}}{Logical; column-normalize X and D (default \code{TRUE}).}
-      \item{\code{intercept}}{Logical; fit an intercept (default \code{TRUE}).}
-      \item{\code{verbose}}{Logical; print progress (default \code{FALSE}).}
+      \item{\code{options}}{Solver options from \code{\link{tsolver_options}}; this
+solver reads \code{ncgmp_variant}: \code{"line_search"} (default)
+or \code{"fully_corrective"}.}
     }
     \if{html}{\out{</div>}}
   }

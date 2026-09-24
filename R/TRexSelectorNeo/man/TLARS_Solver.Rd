@@ -54,7 +54,7 @@ solver$get_actives()
   Create a new \code{TLARS_Solver}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{TLARS_Solver$new(X, D, y, normalize = TRUE, intercept = TRUE, verbose = FALSE)}
+    \preformatted{TLARS_Solver$new(X, D, y, options = tsolver_options())}
     \if{html}{\out{</div>}}
   }
   \subsection{Arguments}{
@@ -63,9 +63,8 @@ solver$get_actives()
       \item{\code{X}}{Numeric matrix of predictors, or \code{mmap_matrix}.}
       \item{\code{D}}{Numeric matrix of dummies.}
       \item{\code{y}}{Numeric response vector.}
-      \item{\code{normalize}}{Logical; column-normalize X and D (default \code{TRUE}).}
-      \item{\code{intercept}}{Logical; fit an intercept (default \code{TRUE}).}
-      \item{\code{verbose}}{Logical; print progress (default \code{FALSE}).}
+      \item{\code{options}}{Solver options from \code{\link{tsolver_options}} (default:
+\code{tsolver_options()}).}
     }
     \if{html}{\out{</div>}}
   }
