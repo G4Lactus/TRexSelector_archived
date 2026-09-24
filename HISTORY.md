@@ -47,6 +47,32 @@
   and the workers raced on it. Only observable in builds without `EIGEN_USE_BLAS`
   (the R package and the Python wheel); with a BLAS, Eigen's count is inert.
 
+#### Scaling mode NONE: the user-managed design
+
+- `ScalingMode::NONE` joins `L2` (default, unchanged) and `ZSCORE`. Under NONE the
+  selectors take `X` and `y` exactly as supplied: no centering, no scaling, the
+  stored normalization parameters are the identity (means 0, divisors 1, `y_mean` 0)
+  and nothing is written back into the caller's buffer. The caller pre-centers and
+  pre-scales as the model demands, or supplies an intercept-free dictionary
+  (steering vectors, Vandermonde, Fourier atoms) whose columns must not be centered
+  and may contain a constant atom. The dummies keep the unit-L2 standard, so a NONE
+  design should be unit-L2-commensurate; one warning names how many columns have an
+  L2 norm outside [0.25, 4] (z-scored or raw-amplitude data). A design pre-normalized
+  with the library's own helper and run under NONE selects exactly what the raw design
+  selects under L2 (bitwise, test-enforced in C++, R and Python). The solver-side
+  convention and the lambda_2 tuners treat NONE as unit-L2; the correlation HAC of the
+  cluster-dummy selectors then measures cosine coherence on the columns as supplied.
+- The selectors' preprocessing is callable: `trex_normalize_design(X, y, scaling_mode)`
+  in R and `trex_selector_neo.normalize_design(X, y, scaling_mode)` in Python return
+  the normalized copies and the parameters. R exposes the mode as
+  `trex_control(scaling_mode = "L2" | "ZSCORE" | "NONE")` (it had no scaling switch).
+- The normalizer rejects bad input in every mode with the column named (0-based):
+  a non-finite entry in `X` or `y`, and a dead column — constant under L2 / ZSCORE,
+  all-zero under NONE (`std::invalid_argument`; `ValueError` in Python; an R error).
+  Before, a constant column was silently pinned to scale 1 and could never be selected.
+  Designs that carry constant columns must drop them now (breaking, deliberate:
+  PLAN WP4 4.1 (d)). The matrix is unmodified when the constructor throws.
+
 ### 2026-07-21
 
 #### R package refreshed: vendored core synced, exchangeable tie-break exposed
