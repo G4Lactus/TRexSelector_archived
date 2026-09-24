@@ -64,8 +64,7 @@ TEST(TSolverGettersTest, ValidateCoefficientPathExtraction) {
     Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
 
     // Intercept activated
-    TLARS_Solver solver(X_map, D_map, y_map,
-                        true, true, false);
+    TLARS_Solver solver(X_map, D_map, y_map);
     solver.executeStep(2, true);
 
     // Check sizes match step execution
@@ -104,7 +103,7 @@ TEST(TSolverGettersTest, GetBetaStepOutOfRangeThrows) {
     Eigen::Map<Eigen::MatrixXd> D_map(D.data(), D.rows(), D.cols());
     Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
 
-    TLARS_Solver solver(X_map, D_map, y_map, true, true, false);
+    TLARS_Solver solver(X_map, D_map, y_map);
     solver.executeStep(2, true);
 
     Eigen::Index n_cols = solver.getBetaPathSparse().dense().cols();
@@ -138,7 +137,7 @@ TEST(TSolverGettersTest, GetCpWorksOnDisconnectedSolver) {
     Eigen::Map<Eigen::MatrixXd> D_map(D.data(), D.rows(), D.cols());
     Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
 
-    TLARS_Solver solver(X_map, D_map, y_map, true, true, false);
+    TLARS_Solver solver(X_map, D_map, y_map);
     solver.executeStep(3, true);
     std::vector<double> cp_connected = solver.getCp();
 
@@ -185,7 +184,7 @@ TEST(TSolverGettersTest, TENETBetaDeNormalizesDummies) {
     Eigen::Map<Eigen::MatrixXd> XA_map(XA.data(), n, p);
     Eigen::Map<Eigen::MatrixXd> DA_map(DA.data(), n, L);
     Eigen::Map<Eigen::VectorXd> yA_map(yA.data(), n);
-    TENET_Solver A(XA_map, DA_map, yA_map, 0.5, true, true, false);
+    TENET_Solver A(XA_map, DA_map, yA_map, trex::tsolvers::SolverOptions{.lambda2 = 0.5});
     A.executeStep(2, true);
 
     // Solver B: manually preprocessed copies, internal preprocessing disabled
@@ -207,7 +206,7 @@ TEST(TSolverGettersTest, TENETBetaDeNormalizesDummies) {
     Eigen::Map<Eigen::MatrixXd> XB_map(XB.data(), n, p);
     Eigen::Map<Eigen::MatrixXd> DB_map(DB.data(), n, L);
     Eigen::Map<Eigen::VectorXd> yB_map(yB.data(), n);
-    TENET_Solver B(XB_map, DB_map, yB_map, 0.5, false, false, false);
+    TENET_Solver B(XB_map, DB_map, yB_map, trex::tsolvers::SolverOptions{.normalize = false, .intercept = false, .lambda2 = 0.5});
     B.executeStep(2, true);
 
     ASSERT_EQ(A.getNumSteps(), B.getNumSteps());
@@ -242,8 +241,7 @@ TEST(TSolverGettersTest, ZScoreScalingMatchesManualStandardization) {
     Eigen::Map<Eigen::MatrixXd> XA_map(XA.data(), n, p);
     Eigen::Map<Eigen::MatrixXd> DA_map(DA.data(), n, L);
     Eigen::Map<Eigen::VectorXd> yA_map(yA.data(), n);
-    TLARS_Solver A(XA_map, DA_map, yA_map, true, true, false,
-                   SolverTypeLarsBased::TLARS, trex::tsolvers::ScalingMode::ZSCORE);
+    TLARS_Solver A(XA_map, DA_map, yA_map, trex::tsolvers::SolverOptions{.scaling_mode = trex::tsolvers::ScalingMode::ZSCORE});
     A.executeStep(2, true);
 
     // Solver B: manual z-scoring (divisor = sample SD), preprocessing disabled
@@ -266,7 +264,7 @@ TEST(TSolverGettersTest, ZScoreScalingMatchesManualStandardization) {
     Eigen::Map<Eigen::MatrixXd> XB_map(XB.data(), n, p);
     Eigen::Map<Eigen::MatrixXd> DB_map(DB.data(), n, L);
     Eigen::Map<Eigen::VectorXd> yB_map(yB.data(), n);
-    TLARS_Solver B(XB_map, DB_map, yB_map, false, false, false);
+    TLARS_Solver B(XB_map, DB_map, yB_map, trex::tsolvers::SolverOptions{.normalize = false, .intercept = false});
     B.executeStep(2, true);
 
     ASSERT_EQ(A.getNumSteps(), B.getNumSteps());
@@ -306,7 +304,7 @@ TEST(TSolverGettersTest, TENETAugMatchesGramBasedTENET) {
     Eigen::Map<Eigen::MatrixXd> X1_map(X1.data(), n, p);
     Eigen::Map<Eigen::MatrixXd> D1_map(D1.data(), n, L);
     Eigen::Map<Eigen::VectorXd> y1_map(y1.data(), n);
-    TENET_Solver gram(X1_map, D1_map, y1_map, lambda2, false, false, false);
+    TENET_Solver gram(X1_map, D1_map, y1_map, trex::tsolvers::SolverOptions{.normalize = false, .intercept = false, .lambda2 = lambda2});
     gram.executeStep(3, true);
 
     Eigen::MatrixXd X2 = X, D2 = D;
@@ -314,7 +312,7 @@ TEST(TSolverGettersTest, TENETAugMatchesGramBasedTENET) {
     Eigen::Map<Eigen::MatrixXd> X2_map(X2.data(), n, p);
     Eigen::Map<Eigen::MatrixXd> D2_map(D2.data(), n, L);
     Eigen::Map<Eigen::VectorXd> y2_map(y2.data(), n);
-    TENETAug_Solver aug(X2_map, D2_map, y2_map, lambda2);
+    TENETAug_Solver aug(X2_map, D2_map, y2_map, trex::tsolvers::SolverOptions{.lambda2 = lambda2});
     aug.executeStep(3, true);
 
     ASSERT_EQ(gram.getNumSteps(), aug.getNumSteps());
@@ -337,7 +335,7 @@ TEST(TSolverGettersTest, TENETCpIsNaNInHighDimensionalRegime) {
     Eigen::Map<Eigen::MatrixXd> D_map(D.data(), n, L);
     Eigen::Map<Eigen::VectorXd> y_map(y.data(), n);
 
-    TENET_Solver solver(X_map, D_map, y_map, 0.5, true, true, false);
+    TENET_Solver solver(X_map, D_map, y_map, trex::tsolvers::SolverOptions{.lambda2 = 0.5});
     solver.executeStep(2, true);
 
     std::vector<double> cp = solver.getCp();
@@ -366,7 +364,7 @@ TEST(TSolverGettersTest, TENETWithZeroLambda2MatchesTLASSO) {
     Eigen::Map<Eigen::MatrixXd> X1_map(X1.data(), n, p);
     Eigen::Map<Eigen::MatrixXd> D1_map(D1.data(), n, L);
     Eigen::Map<Eigen::VectorXd> y1_map(y1.data(), n);
-    TENET_Solver tenet(X1_map, D1_map, y1_map, 0.0, true, true, false);
+    TENET_Solver tenet(X1_map, D1_map, y1_map);
     tenet.executeStep(3, true);
 
     Eigen::MatrixXd X2 = X, D2 = D;
@@ -374,7 +372,7 @@ TEST(TSolverGettersTest, TENETWithZeroLambda2MatchesTLASSO) {
     Eigen::Map<Eigen::MatrixXd> X2_map(X2.data(), n, p);
     Eigen::Map<Eigen::MatrixXd> D2_map(D2.data(), n, L);
     Eigen::Map<Eigen::VectorXd> y2_map(y2.data(), n);
-    TLASSO_Solver tlasso(X2_map, D2_map, y2_map, true, true, false);
+    TLASSO_Solver tlasso(X2_map, D2_map, y2_map);
     tlasso.executeStep(3, true);
 
     ASSERT_EQ(tenet.getNumSteps(), tlasso.getNumSteps());

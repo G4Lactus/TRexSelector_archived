@@ -154,12 +154,8 @@ void run_comparison(
     // normalize=false / intercept=false: data already scaled above.
     // ------------------------------------------------------------------
     std::cout << "Running TENET_Solver   (Gram-based EN)...\n";
-    tsolvers::TENET_Solver tenet(
-        X_map, D_map, y_map,
-        lambda2,
-        /*normalize=*/false,
-        /*intercept=*/false,
-        /*verbose=*/false);
+    tsolvers::TENET_Solver tenet(X_map, D_map, y_map,
+        trex::tsolvers::SolverOptions{.normalize = false, .intercept = false, .lambda2 = lambda2});
     tenet.executeStep(T_stop, /*early_stop=*/false);
 
     // ------------------------------------------------------------------
@@ -167,12 +163,8 @@ void run_comparison(
     // normalize=false / intercept=false: same pre-scaled maps as TENET.
     // ------------------------------------------------------------------
     std::cout << "Running TENETAug_Solver (augmented LASSO)...\n";
-    tsolvers::TENETAug_Solver tenet_aug(
-        X_map, D_map, y_map,
-        lambda2,
-        /*normalize=*/false,
-        /*intercept=*/false,
-        /*verbose=*/false);
+    tsolvers::TENETAug_Solver tenet_aug(X_map, D_map, y_map,
+        trex::tsolvers::SolverOptions{.normalize = false, .intercept = false, .lambda2 = lambda2});
     tenet_aug.executeStep(T_stop, /*early_stop=*/false);
 
     // ------------------------------------------------------------------
@@ -216,11 +208,8 @@ void run_comparison(
     Eigen::Map<Eigen::MatrixXd> Da_map(D_aug.data(), D_aug.rows(), D_aug.cols());
     Eigen::Map<Eigen::VectorXd> ya_map(y_aug.data(), y_aug.size());
 
-    tsolvers::TLASSO_Solver tlasso_aug(
-        Xa_map, Da_map, ya_map,
-        /*normalize=*/false,
-        /*intercept=*/false,
-        /*verbose=*/false);
+    tsolvers::TLASSO_Solver tlasso_aug(Xa_map, Da_map, ya_map,
+        trex::tsolvers::SolverOptions{.normalize = false, .intercept = false});
     tlasso_aug.executeStep(T_stop, /*early_stop=*/false);
 
     // ------------------------------------------------------------------

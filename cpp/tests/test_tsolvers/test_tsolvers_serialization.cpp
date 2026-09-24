@@ -75,8 +75,7 @@ TEST_F(TSolverSerializationTest, ExpectResumePathMatchesContinuousPath) {
     Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
 
     // 1. Continuous Reference execution to T_stop = 10
-    TLARS_Solver ref_solver(X_map, D_map, y_map,
-                            true, true, false);
+    TLARS_Solver ref_solver(X_map, D_map, y_map);
     ref_solver.executeStep(10, true);
 
     Eigen::Map<Eigen::MatrixXd> X_map2(X2.data(), X2.rows(), X2.cols());
@@ -84,8 +83,7 @@ TEST_F(TSolverSerializationTest, ExpectResumePathMatchesContinuousPath) {
     Eigen::Map<Eigen::VectorXd> y_map2(y2.data(), y2.size());
 
     // 2. Partial execution followed by save and resume
-    TLARS_Solver partial_solver(X_map2, D_map2, y_map2,
-                                true, true, false);
+    TLARS_Solver partial_solver(X_map2, D_map2, y_map2);
     partial_solver.executeStep(5, true);
 
     std::string checkpoint = ::testing::TempDir() + "temp_tlars_checkpoint.bin";

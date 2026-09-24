@@ -74,8 +74,7 @@ TEST_F(TSolverExecutionTest, ExecuteEarlyStoppingAtTStop) {
     Eigen::Map<Eigen::MatrixXd> D_map(D.data(), D.rows(), D.cols());
     Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
 
-    TLARS_Solver solver(X_map, D_map, y_map, true,
-                        true, false);
+    TLARS_Solver solver(X_map, D_map, y_map);
 
     // Goal: Stop when 4 dummy variables have entered the active set.
     int T_stop = 4;
@@ -96,8 +95,7 @@ TEST_F(TSolverExecutionTest, MonotonicRSSDecrease) {
     Eigen::Map<Eigen::MatrixXd> D_map(D.data(), D.rows(), D.cols());
     Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
 
-    TLARS_Solver solver(X_map, D_map, y_map, true,
-                        true, false);
+    TLARS_Solver solver(X_map, D_map, y_map);
 
     // Execute multiple steps
     solver.executeStep(10, true);
@@ -146,12 +144,12 @@ TEST_F(TSolverExecutionTest, MPAndGPReSelectAtoms) {
     };
 
     int mp_max = max_selection_count([](auto& Xm, auto& Dm, auto& ym) {
-        return TMP_Solver(Xm, Dm, ym, true, true, false);
+        return TMP_Solver(Xm, Dm, ym);
     });
     EXPECT_GE(mp_max, 2) << "MP never re-selected an atom on a full path";
 
     int gp_max = max_selection_count([](auto& Xm, auto& Dm, auto& ym) {
-        return TGP_Solver(Xm, Dm, ym, true, true, false);
+        return TGP_Solver(Xm, Dm, ym);
     });
     EXPECT_GE(gp_max, 2) << "GP never re-selected an atom on a full path";
 }
@@ -178,20 +176,20 @@ TEST_F(TSolverExecutionTest, NCGMPVariantsMatchMPAndOMP) {
     };
 
     Eigen::MatrixXd mp_path = fit([](auto& Xm, auto& Dm, auto& ym) {
-        return TMP_Solver(Xm, Dm, ym, true, true, false);
+        return TMP_Solver(Xm, Dm, ym);
     });
     Eigen::MatrixXd ncg_ls_path = fit([](auto& Xm, auto& Dm, auto& ym) {
-        return TNCGMP_Solver(Xm, Dm, ym, NCGMPVariant::LineSearch, true, true, false);
+        return TNCGMP_Solver(Xm, Dm, ym);
     });
     ASSERT_EQ(mp_path.cols(), ncg_ls_path.cols());
     EXPECT_TRUE(mp_path.isApprox(ncg_ls_path, 1e-12))
         << "max abs diff: " << (mp_path - ncg_ls_path).cwiseAbs().maxCoeff();
 
     Eigen::MatrixXd omp_path = fit([](auto& Xm, auto& Dm, auto& ym) {
-        return TOMP_Solver(Xm, Dm, ym, true, true, false);
+        return TOMP_Solver(Xm, Dm, ym);
     });
     Eigen::MatrixXd ncg_fc_path = fit([](auto& Xm, auto& Dm, auto& ym) {
-        return TNCGMP_Solver(Xm, Dm, ym, NCGMPVariant::FullyCorrective, true, true, false);
+        return TNCGMP_Solver(Xm, Dm, ym, trex::tsolvers::SolverOptions{.ncgmp_variant = NCGMPVariant::FullyCorrective});
     });
     ASSERT_EQ(omp_path.cols(), ncg_fc_path.cols());
     EXPECT_TRUE(omp_path.isApprox(ncg_fc_path, 1e-12))
@@ -211,8 +209,7 @@ TEST_F(TSolverExecutionTest, TNCGMPFullyCorrectiveExecutesAndStaysAligned) {
     Eigen::Map<Eigen::MatrixXd> D_map(D.data(), D.rows(), D.cols());
     Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
 
-    TNCGMP_Solver solver(X_map, D_map, y_map, NCGMPVariant::FullyCorrective,
-                         true, true, false);
+    TNCGMP_Solver solver(X_map, D_map, y_map, trex::tsolvers::SolverOptions{.ncgmp_variant = NCGMPVariant::FullyCorrective});
     solver.executeStep(4, true);
 
     EXPECT_GT(solver.getNumSteps(), 0u);
@@ -242,14 +239,14 @@ TEST_F(TSolverExecutionTest, DefaultExecuteStepComputesFullPath) {
     Eigen::Map<Eigen::MatrixXd> D_map(D.data(), D.rows(), D.cols());
     Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
 
-    TLARS_Solver by_default(X_map, D_map, y_map, true, true, false);
+    TLARS_Solver by_default(X_map, D_map, y_map);
     by_default.executeStep(); // T_stop = 0, early_stop = true
 
     Eigen::Map<Eigen::MatrixXd> X_map2(X2.data(), X2.rows(), X2.cols());
     Eigen::Map<Eigen::MatrixXd> D_map2(D2.data(), D2.rows(), D2.cols());
     Eigen::Map<Eigen::VectorXd> y_map2(y2.data(), y2.size());
 
-    TLARS_Solver explicit_full(X_map2, D_map2, y_map2, true, true, false);
+    TLARS_Solver explicit_full(X_map2, D_map2, y_map2);
     explicit_full.executeStep(0, false); // documented full-path form
 
     EXPECT_GT(by_default.getNumSteps(), 0u);
@@ -277,7 +274,7 @@ TEST_F(TSolverExecutionTest, LassoZeroCrossingDropsBehaveConsistently) {
     Eigen::Map<Eigen::MatrixXd> D_map(Dc.data(), Dc.rows(), Dc.cols());
     Eigen::Map<Eigen::VectorXd> y_map(yc.data(), yc.size());
 
-    TLASSO_Solver solver(X_map, D_map, y_map, true, true, false);
+    TLASSO_Solver solver(X_map, D_map, y_map);
     solver.executeStep(0, false); // full path
 
     // The design must actually trigger drops, otherwise this test is vacuous.
@@ -329,7 +326,7 @@ TEST_F(TSolverExecutionTest, StagewiseNNLSDropKeepsLambdaMonotone) {
     Eigen::Map<Eigen::MatrixXd> D_map(Dc.data(), Dc.rows(), Dc.cols());
     Eigen::Map<Eigen::VectorXd> y_map(yc.data(), yc.size());
 
-    TSTAGEWISE_Solver solver(X_map, D_map, y_map, true, true, false);
+    TSTAGEWISE_Solver solver(X_map, D_map, y_map);
     solver.executeStep(0, false); // full path
 
     // The design must actually trigger NNLS removals, otherwise this test is vacuous.
@@ -363,8 +360,7 @@ TEST_F(TSolverExecutionTest, TIENETNativeMatchesAugmentedPath) {
         Eigen::Map<Eigen::MatrixXd> Xn_map(Xn.data(), Xn.rows(), Xn.cols());
         Eigen::Map<Eigen::MatrixXd> Dn_map(Dn.data(), Dn.rows(), Dn.cols());
         Eigen::Map<Eigen::VectorXd> yn_map(yn.data(), yn.size());
-        TIENET_Solver native(Xn_map, Dn_map, yn_map, lambda2, groups,
-                             true, true, false);
+        TIENET_Solver native(Xn_map, Dn_map, yn_map, groups, trex::tsolvers::SolverOptions{.lambda2 = lambda2});
         native.executeStep(5, true);
 
         Eigen::MatrixXd Xa = X, Da = D;
@@ -372,8 +368,7 @@ TEST_F(TSolverExecutionTest, TIENETNativeMatchesAugmentedPath) {
         Eigen::Map<Eigen::MatrixXd> Xa_map(Xa.data(), Xa.rows(), Xa.cols());
         Eigen::Map<Eigen::MatrixXd> Da_map(Da.data(), Da.rows(), Da.cols());
         Eigen::Map<Eigen::VectorXd> ya_map(ya.data(), ya.size());
-        TIENETAug_Solver aug(Xa_map, Da_map, ya_map, lambda2, groups,
-                             true, true, false);
+        TIENETAug_Solver aug(Xa_map, Da_map, ya_map, groups, trex::tsolvers::SolverOptions{.lambda2 = lambda2});
         aug.executeStep(5, true);
 
         // Identical step-by-step action sequences (adds and drops).
@@ -399,7 +394,7 @@ TEST_F(TSolverExecutionTest, TIENETLambda2ZeroReducesToTLASSO) {
     Eigen::Map<Eigen::MatrixXd> Xi_map(Xi.data(), Xi.rows(), Xi.cols());
     Eigen::Map<Eigen::MatrixXd> Di_map(Di.data(), Di.rows(), Di.cols());
     Eigen::Map<Eigen::VectorXd> yi_map(yi.data(), yi.size());
-    TIENET_Solver ien(Xi_map, Di_map, yi_map, 0.0, groups, true, true, false);
+    TIENET_Solver ien(Xi_map, Di_map, yi_map, groups);
     ien.executeStep(5, true);
 
     Eigen::MatrixXd Xl = X, Dl = D;
@@ -407,7 +402,7 @@ TEST_F(TSolverExecutionTest, TIENETLambda2ZeroReducesToTLASSO) {
     Eigen::Map<Eigen::MatrixXd> Xl_map(Xl.data(), Xl.rows(), Xl.cols());
     Eigen::Map<Eigen::MatrixXd> Dl_map(Dl.data(), Dl.rows(), Dl.cols());
     Eigen::Map<Eigen::VectorXd> yl_map(yl.data(), yl.size());
-    TLASSO_Solver lasso(Xl_map, Dl_map, yl_map, true, true, false);
+    TLASSO_Solver lasso(Xl_map, Dl_map, yl_map);
     lasso.executeStep(5, true);
 
     EXPECT_EQ(ien.getActions(), lasso.getActions());

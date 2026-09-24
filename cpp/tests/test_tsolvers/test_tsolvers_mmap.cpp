@@ -60,8 +60,7 @@ TEST(TSolverMmapTest, ValidateMapMutation) {
     Eigen::Map<Eigen::MatrixXd> D_map(D.data(), D.rows(), D.cols());
     Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
 
-    TLARS_Solver solver(X_map, D_map, y_map,
-                        true, true, false);
+    TLARS_Solver solver(X_map, D_map, y_map);
 
     // Initialization changes the original X memory (via Map) because of centering/scaling
     EXPECT_FALSE(X.isApprox(X_copy, 1e-10));
@@ -98,8 +97,7 @@ TEST(TSolverMmapTest, ValidateDiskMappedDataExecution) {
         Eigen::Map<Eigen::VectorXd> y_map(data.getY().data(), data.rows());
 
         // 3. Feed the memory-mapped views to the solver
-        TLARS_Solver solver(X_map, D_map, y_map,
-                            true, true, false);
+        TLARS_Solver solver(X_map, D_map, y_map);
         solver.executeStep(5, true);
 
         // 4. Verify that execution over mapped memory succeeds correctly

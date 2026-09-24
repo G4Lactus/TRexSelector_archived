@@ -77,29 +77,28 @@ template <typename T>
 std::unique_ptr<T> create_solver(Eigen::Map<Eigen::MatrixXd>& X,
                                  Eigen::Map<Eigen::MatrixXd>& D,
                                  Eigen::Map<Eigen::VectorXd>& y) {
+    // Every solver takes (X, D, y, options); the EN / IEN families read
+    // lambda2 from the options, the IEN family also takes the group vector
+    // (PLAN WP9).
+    trex::tsolvers::SolverOptions opts;
+    opts.lambda2 = 0.5;
     if constexpr (std::is_same_v<T, TENET_Solver> ||
                   std::is_same_v<T, TENETAug_Solver> ||
                   std::is_same_v<T, TCDENET_Solver>) {
-        // TENET / TENETAug / TCDENET require lambda2
-        return std::make_unique<T>(X, D, y, 0.5, true, true, false);
+        return std::make_unique<T>(X, D, y, opts);
     } else if constexpr (std::is_same_v<T, TIENET_Solver> ||
                          std::is_same_v<T, TIENETAug_Solver> ||
                          std::is_same_v<T, TCDIENET_Solver>) {
-        // TIENET / TIENETAug / TCDIENET require lambda2 + a group assignment.
         // Singleton groups (each variable its own group) exercise the full
         // group machinery; per Corollary 1 of the IEN paper this is the
         // EN-like special case.
         Eigen::VectorXi groups = Eigen::VectorXi::LinSpaced(
             X.cols(), 0, static_cast<int>(X.cols()) - 1);
-        return std::make_unique<T>(X, D, y, 0.5, groups, true, true, false);
-    } else if constexpr (std::is_same_v<T, TAFS_Solver>) {
-        // TAFS has rho with a default, but to be sure we just match signature
-        return std::make_unique<T>(X, D, y, 1.0, true, true, false);
-    } else if constexpr (std::is_same_v<T, TNCGMP_Solver>) {
-        // TNCGMP expects NCGMPVariant variant
-        return std::make_unique<T>(X, D, y, NCGMPVariant::LineSearch, true, true, false);
+        return std::make_unique<T>(X, D, y, groups, opts);
     } else {
-        return std::make_unique<T>(X, D, y, true, true, false);
+        // TAFS (rho_afs = 1), TNCGMP (LineSearch) and the plain solvers run
+        // on the option defaults.
+        return std::make_unique<T>(X, D, y);
     }
 }
 

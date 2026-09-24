@@ -63,9 +63,7 @@ TEST_F(TSolverInitTest, NormalizationAndCentering) {
     Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
 
     // Creating the solver triggers the preprocessing inside TSolver_Base
-    TLARS_Solver solver(X_map, D_map, y_map,
-                        true /*normalize*/, true /*intercept*/,
-                        false /*verbose*/);
+    TLARS_Solver solver(X_map, D_map, y_map);
 
     // After centering and scaling, each column should have a zero mean and unit L2-norm
     for (int j = 0; j < X.cols(); ++j) {
@@ -92,9 +90,7 @@ TEST_F(TSolverInitTest, CollinearDroppingLogic) {
     Eigen::Map<Eigen::MatrixXd> D_map(D.data(), D.rows(), D.cols());
     Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
 
-    TLARS_Solver solver(X_map, D_map, y_map,
-                        true /*normalize*/, true /*intercept*/,
-                        false /*verbose*/);
+    TLARS_Solver solver(X_map, D_map, y_map);
 
     // Since we forced dependent columns, there should be dropped indices
     const auto& dropped = solver.getDroppedIndices();
@@ -117,9 +113,7 @@ TEST_F(TSolverInitTest, NearConstantColumnIsDropped) {
     Eigen::Map<Eigen::MatrixXd> D_map(D.data(), D.rows(), D.cols());
     Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
 
-    TLARS_Solver solver(X_map, D_map, y_map,
-                        true /*normalize*/, true /*intercept*/,
-                        false /*verbose*/);
+    TLARS_Solver solver(X_map, D_map, y_map);
 
     const auto& dropped = solver.getDroppedIndices();
     EXPECT_TRUE(std::find(dropped.begin(), dropped.end(), 3u) != dropped.end())
@@ -137,7 +131,7 @@ TEST_F(TSolverInitTest, RestoreReversesPreprocessing) {
     Eigen::Map<Eigen::MatrixXd> D_map(D.data(), D.rows(), D.cols());
     Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
 
-    TLARS_Solver solver(X_map, D_map, y_map, true, true, false);
+    TLARS_Solver solver(X_map, D_map, y_map);
 
     // Preprocessing mutated the buffers in place
     ASSERT_FALSE(X.isApprox(X0, 1e-12));
