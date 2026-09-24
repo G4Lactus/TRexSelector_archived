@@ -66,6 +66,14 @@ protected:
     /** @brief Protected constructor for inheritance. */
     explicit TOMP_Solver(SolverTypeOMPBased type);
 
+    /** @brief Protected data constructor for inheritance: the public
+     *  constructor with the algorithm variant passed through. */
+    TOMP_Solver(Eigen::Map<Eigen::MatrixXd>& X,
+                Eigen::Map<Eigen::MatrixXd>& D,
+                Eigen::Map<Eigen::VectorXd>& y,
+                const SolverOptions& options,
+                SolverTypeOMPBased algorithm_type);
+
 public:
     // ==========================================================================
     // Constructor/Destructor
@@ -77,20 +85,14 @@ public:
      * @param X Map to predictor matrix (n x p).
      * @param D Map to the dummy predictor matrix (n x num_dummies).
      * @param y Map to the response vector (n x 1).
-     * @param normalize Whether to normalize the predictors.
-     * @param intercept Whether to include an intercept term.
-     * @param verbose Whether to enable verbose output.
-     * @param algorithm_type Specific T-OMP variant to execute
-     * candidates are: TOMP, TGP, TACGP, TMP, TOOLS.
+     * @param options Every other input (SolverOptions): preprocessing flags,
+     *        tolerance and tie-breaking (the greedy family reads
+     *        exch_tie_alpha / exch_tie_floor).
      */
     TOMP_Solver(Eigen::Map<Eigen::MatrixXd>& X,
                 Eigen::Map<Eigen::MatrixXd>& D,
                 Eigen::Map<Eigen::VectorXd>& y,
-                bool normalize = true,
-                bool intercept = true,
-                bool verbose = false,
-                SolverTypeOMPBased algorithm_type = SolverTypeOMPBased::TOMP,
-                ScalingMode scaling_mode = ScalingMode::L2);
+                const SolverOptions& options = SolverOptions{});
 
     /** @brief Default constructor for serialization. */
     TOMP_Solver();

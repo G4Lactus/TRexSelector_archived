@@ -32,13 +32,10 @@ namespace trex::tsolvers::linear_model::omp_based {
 
 // ===================================================================================
 
-/**
- * @brief Variants for the Norm-Corrective GMP solver.
- */
-enum class NCGMPVariant : int {
-    LineSearch = 0,       // Standard Matching Pursuit (1D projection)
-    FullyCorrective = 1   // Orthogonal Matching Pursuit (Least Squares over active set)
-};
+/** @brief Variants for the Norm-Corrective GMP solver — defined with the
+ *  other option enums in tsolvers/solver_options.hpp (PLAN WP9); visible
+ *  here under its historical name. */
+using trex::tsolvers::NCGMPVariant;
 
 /**
  * @brief Terminating Norm-Corrective Generalized Matching Pursuit (T-NCGMP) solver.
@@ -73,19 +70,13 @@ public:
      * @param X Map to the predictor matrix (n x p).
      * @param D Map to the dummy predictor matrix (n x num_dummies).
      * @param y Map to the response vector (n x 1).
-     * @param variant Variant of the NCGMP algorithm to use (Line Search or Fully Corrective).
-     * @param normalize Whether to normalize the predictors.
-     * @param intercept Whether to include an intercept term.
-     * @param verbose Whether to enable verbose output.
+     * @param options Every other input (SolverOptions); this solver reads
+     *        ncgmp_variant (Line Search or Fully Corrective).
      */
     TNCGMP_Solver(Eigen::Map<Eigen::MatrixXd>& X,
                   Eigen::Map<Eigen::MatrixXd>& D,
                   Eigen::Map<Eigen::VectorXd>& y,
-                  NCGMPVariant variant = NCGMPVariant::LineSearch,
-                  bool normalize = true,
-                  bool intercept = true,
-                  bool verbose = false,
-                  ScalingMode scaling_mode = ScalingMode::L2);
+                  const SolverOptions& options = SolverOptions{});
 
     /** @brief Default constructor for serialization. */
     TNCGMP_Solver();

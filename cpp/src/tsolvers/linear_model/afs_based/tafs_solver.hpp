@@ -60,19 +60,14 @@ public:
      * @param X Map to the predictor matrix.
      * @param D Map to the dummy predictor matrix.
      * @param y Map to the response vector.
-     * @param rho Shrinkage parameter in (0, 1]. rho=1 yields Forward Stepwise.
-     * @param normalize Whether to internally standardize predictors.
-     * @param intercept Whether to include an intercept in the model.
-     * @param verbose Whether to print verbose output during execution.
+     * @param options Every other input (SolverOptions); this solver reads
+     *        rho_afs, the shrinkage parameter in (0, 1] (1 yields forward
+     *        stepwise).
      */
     TAFS_Solver(Eigen::Map<Eigen::MatrixXd>& X,
                 Eigen::Map<Eigen::MatrixXd>& D,
                 Eigen::Map<Eigen::VectorXd>& y,
-                double rho = 1.0,
-                bool normalize = true,
-                bool intercept = true,
-                bool verbose = false,
-                ScalingMode scaling_mode = ScalingMode::L2);
+                const SolverOptions& options = SolverOptions{});
 
     /** @brief Default constructor for serialization. */
     TAFS_Solver();

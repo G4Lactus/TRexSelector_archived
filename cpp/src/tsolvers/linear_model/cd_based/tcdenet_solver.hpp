@@ -74,17 +74,11 @@ protected:
     TCDENET_Solver(Eigen::Map<Eigen::MatrixXd>& X,
                   Eigen::Map<Eigen::MatrixXd>& D,
                   Eigen::Map<Eigen::VectorXd>& y,
-                  double lambda2,
-                  bool normalize,
-                  bool intercept,
-                  bool verbose,
-                  ScalingMode scaling_mode,
-                  double kappa_dummy,
+                  const SolverOptions& options,
                   SolverTypeCdBased solver_type)
-        : TCDLASSO_Solver(X, D, y, normalize, intercept, verbose,
-                      solver_type, scaling_mode) {
-        lambda2_ = lambda2;
-        kappa_dummy_ = kappa_dummy;
+        : TCDLASSO_Solver(X, D, y, options, solver_type) {
+        lambda2_ = options.lambda2;
+        kappa_dummy_ = options.kappa_dummy;
         penalty_kind_ = PenaltyKind::DIAGONAL;
         penalty_dvec_ = Eigen::VectorXd::Ones(
             static_cast<Eigen::Index>(p_original_));
@@ -111,15 +105,8 @@ public:
     TCDENET_Solver(Eigen::Map<Eigen::MatrixXd>& X,
                   Eigen::Map<Eigen::MatrixXd>& D,
                   Eigen::Map<Eigen::VectorXd>& y,
-                  double lambda2,
-                  bool normalize = true,
-                  bool intercept = true,
-                  bool verbose = false,
-                  ScalingMode scaling_mode = ScalingMode::L2,
-                  double kappa_dummy = 1.0)
-        : TCDENET_Solver(X, D, y, lambda2, normalize, intercept, verbose,
-                        scaling_mode, kappa_dummy,
-                        SolverTypeCdBased::TCDENET) {}
+                  const SolverOptions& options = SolverOptions{})
+        : TCDENET_Solver(X, D, y, options, SolverTypeCdBased::TCDENET) {}
 
     /**
      * @brief Default constructor for serialization or deferred initialization.

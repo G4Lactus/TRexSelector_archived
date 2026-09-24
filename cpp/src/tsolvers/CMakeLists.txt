@@ -143,6 +143,7 @@ target_sources(trex_tsolvers PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/lm_tsolvers.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/vd_tsolvers.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/solver_utils/solver_preprocessing.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/solver_options.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/cd_based.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/cd_based/tcdlasso_solver.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/linear_model/cd_based/tcdenet_solver.hpp

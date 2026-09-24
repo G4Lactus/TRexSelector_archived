@@ -126,12 +126,8 @@ public:
     TIKOMP_Solver(Eigen::Map<Eigen::MatrixXd>& X,
                   Eigen::Map<Eigen::MatrixXd>& D,
                   Eigen::Map<Eigen::VectorXd>& y,
-                  double lambda2,
                   const Eigen::SparseMatrix<double>& tikhonov_matrix,
-                  bool normalize = true,
-                  bool intercept = true,
-                  bool verbose = false,
-                  ScalingMode scaling_mode = ScalingMode::L2);
+                  const SolverOptions& options = SolverOptions{});
 
     /** @brief Default constructor for serialization. */
     TIKOMP_Solver() : TOMP_Solver(SolverTypeOMPBased::TIKOMP) {}

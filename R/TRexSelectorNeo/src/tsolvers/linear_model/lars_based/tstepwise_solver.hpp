@@ -80,12 +80,8 @@ public:
     TSTEPWISE_Solver(Eigen::Map<Eigen::MatrixXd>& X,
                      Eigen::Map<Eigen::MatrixXd>& D,
                      Eigen::Map<Eigen::VectorXd>& y,
-                     bool normalize = true,
-                     bool intercept = true,
-                     bool verbose = false,
-                     ScalingMode scaling_mode = ScalingMode::L2)
-        : TLARS_Solver(X, D, y, normalize, intercept, verbose,
-                       SolverTypeLarsBased::TSTEPWISE, scaling_mode) {}
+                     const SolverOptions& options = SolverOptions{})
+        : TLARS_Solver(X, D, y, options, SolverTypeLarsBased::TSTEPWISE) {}
 
     /** @brief Default constructor for serialization or deferred initialization. */
     TSTEPWISE_Solver() : TLARS_Solver(SolverTypeLarsBased::TSTEPWISE) {}

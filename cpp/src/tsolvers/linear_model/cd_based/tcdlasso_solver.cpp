@@ -51,14 +51,28 @@ TCDLASSO_Solver::TCDLASSO_Solver(
     Eigen::Map<Eigen::MatrixXd>& X,
     Eigen::Map<Eigen::MatrixXd>& D,
     Eigen::Map<Eigen::VectorXd>& y,
-    bool normalize,
-    bool intercept,
-    bool verbose,
-    SolverTypeCdBased algorithm_type,
-    ScalingMode scaling_mode
+    const SolverOptions& options
     )
-    : TSolver_Base(X, D, y, normalize, intercept, verbose, scaling_mode),
+    : TCDLASSO_Solver(X, D, y, options, SolverTypeCdBased::TCDLASSO) {}
+
+
+TCDLASSO_Solver::TCDLASSO_Solver(
+    Eigen::Map<Eigen::MatrixXd>& X,
+    Eigen::Map<Eigen::MatrixXd>& D,
+    Eigen::Map<Eigen::VectorXd>& y,
+    const SolverOptions& options,
+    SolverTypeCdBased algorithm_type
+    )
+    : TSolver_Base(X, D, y, options),
       algo_type_(algorithm_type) {
+
+    // 0. CD knobs (PLAN WP9: construction-time options; the setters keep
+    //    their validation and warn on an out-of-range value).
+    setLambdaRelTol(options.cd_lambda_rel_tol);
+    setCdTolerances(options.cd_tol_certify, options.cd_tol_probe);
+    setGramCap(options.cd_gram_cap);
+    setMaxSweepsPerSolve(options.cd_max_sweeps);
+    setCertifiedLocalization(options.cd_certified_localization);
 
     // 1. Inherited preprocessing handles X, D, y centering and normalization
     dropped_indices_.clear();
@@ -86,7 +100,7 @@ TCDLASSO_Solver::TCDLASSO_Solver(
     double rss = y_.dot(y_);
     RSS_.emplace_back(rss);
     R2_.emplace_back(0.0);
-    DoF_.emplace_back(intercept ? 1 : 0);
+    DoF_.emplace_back(intercept_ ? 1 : 0);
     dummies_at_step_.reserve(maxSteps_ + 1);
     dummies_at_step_.push_back(0);
 

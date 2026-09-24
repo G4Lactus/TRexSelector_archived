@@ -27,12 +27,8 @@ TAFS_Solver::TAFS_Solver(
     Eigen::Map<Eigen::MatrixXd>& X,
     Eigen::Map<Eigen::MatrixXd>& D,
     Eigen::Map<Eigen::VectorXd>& y,
-    double rho,
-    bool normalize,
-    bool intercept,
-    bool verbose,
-    ScalingMode scaling_mode)
-    : TSolver_Base(X, D, y, normalize, intercept, verbose, scaling_mode), rho_(rho) {
+    const SolverOptions& options)
+    : TSolver_Base(X, D, y, options), rho_(options.rho_afs) {
 
     if (rho_ <= 0.0 || rho_ > 1.0) {
         throw std::invalid_argument("TAFS_Solver: rho must be in the range (0, 1].");

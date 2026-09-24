@@ -27,13 +27,9 @@ TSTAGEWISE_Solver::TSTAGEWISE_Solver(
     Eigen::Map<Eigen::MatrixXd>& X,
     Eigen::Map<Eigen::MatrixXd>& D,
     Eigen::Map<Eigen::VectorXd>& y,
-    bool normalize,
-    bool intercept,
-    bool verbose,
-    ScalingMode scaling_mode
+    const SolverOptions& options
 )
-    : TLARS_Solver(X, D, y, normalize, intercept, verbose,
-                    SolverTypeLarsBased::TSTAGEWISE, scaling_mode) {
+    : TLARS_Solver(X, D, y, options, SolverTypeLarsBased::TSTAGEWISE) {
 }
 
 // ============================================================================

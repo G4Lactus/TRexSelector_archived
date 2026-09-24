@@ -35,16 +35,11 @@ TIENET_Solver::TIENET_Solver(
     Eigen::Map<Eigen::MatrixXd>& X,
     Eigen::Map<Eigen::MatrixXd>& D,
     Eigen::Map<Eigen::VectorXd>& y,
-    double lambda2,
     const Eigen::VectorXi& groups,
-    bool normalize,
-    bool intercept,
-    bool verbose,
-    ScalingMode scaling_mode
+    const SolverOptions& options
 )
-    : TLARS_Solver(X, D, y, normalize, intercept, verbose,
-                   SolverTypeLarsBased::TIENET, scaling_mode),
-      lambda2_(lambda2),
+    : TLARS_Solver(X, D, y, options, SolverTypeLarsBased::TIENET),
+      lambda2_(options.lambda2),
       groups_(groups) {
 
     if (lambda2_ < 0.0) {

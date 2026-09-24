@@ -91,11 +91,7 @@ public:
     TENET_Solver(Eigen::Map<Eigen::MatrixXd>& X,
                  Eigen::Map<Eigen::MatrixXd>& D,
                  Eigen::Map<Eigen::VectorXd>& y,
-                 double lambda2,
-                 bool normalize = true,
-                 bool intercept = true,
-                 bool verbose = false,
-                 ScalingMode scaling_mode = ScalingMode::L2);
+                 const SolverOptions& options = SolverOptions{});
 
     /**
      * @brief Default constructor for Cereal deserialization.

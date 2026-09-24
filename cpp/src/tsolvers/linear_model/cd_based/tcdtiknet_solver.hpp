@@ -123,35 +123,24 @@ public:
      *        sparse) applied to the real block on the standardized scale.
      *        Dense K should be split (diagonal + low-rank) before passing;
      *        per-column nnz drives the update cost.
-     * @param normalize If true, columns are scaled to unit L2-norm. Default true.
-     * @param intercept If true, variables are centered. Default true.
-     * @param verbose If true, print detailed status and diagnostics. Default false.
-     * @param scaling_mode Column-scaling convention (L2 or z-score). Default L2.
-     * @param kappa_dummy Ridge weight of the dummy block under
-     *        INDEPENDENT_RIDGE coupling. Default 1.0. Ignored when
-     *        fold_dummies is true.
-     * @param fold_dummies Dummy-coupling mode (see the file header).
-     *        false (default): INDEPENDENT_RIDGE — dummies get a decoupled
-     *        kappa_dummy * I ridge (preserves K = I ≡ TCDENET with dummies).
-     *        true: FOLDED — dummy copy t joins variable (t - p) mod p in
-     *        the K-coupling (GVS layered convention; restores dummy/null
-     *        exchangeability for arbitrary K). Requires D.cols() to be a
-     *        multiple of X.cols().
+     * @param options Every other input (SolverOptions); this solver reads
+     *        lambda2, kappa_dummy (ridge weight of the dummy block under
+     *        INDEPENDENT_RIDGE coupling; ignored when fold_dummies is true)
+     *        and fold_dummies — the dummy-coupling mode (see the file
+     *        header): false (default) INDEPENDENT_RIDGE, dummies get a
+     *        decoupled kappa_dummy * I ridge (preserves K = I ≡ TCDENET with
+     *        dummies); true FOLDED, dummy copy t joins variable (t - p) mod p
+     *        in the K-coupling (GVS layered convention; restores dummy/null
+     *        exchangeability for arbitrary K; requires D.cols() to be a
+     *        multiple of X.cols()) — plus the cd_* knobs.
      */
     TCDTIKNET_Solver(Eigen::Map<Eigen::MatrixXd>& X,
                      Eigen::Map<Eigen::MatrixXd>& D,
                      Eigen::Map<Eigen::VectorXd>& y,
-                     double lambda2,
                      const Eigen::SparseMatrix<double>& tikhonov_matrix,
-                     bool normalize = true,
-                     bool intercept = true,
-                     bool verbose = false,
-                     ScalingMode scaling_mode = ScalingMode::L2,
-                     double kappa_dummy = 1.0,
-                     bool fold_dummies = false)
-        : TCDENET_Solver(X, D, y, lambda2, normalize, intercept, verbose,
-                        scaling_mode, kappa_dummy,
-                        SolverTypeCdBased::TCDTIKNET) {
+                     const SolverOptions& options = SolverOptions{})
+        : TCDENET_Solver(X, D, y, options, SolverTypeCdBased::TCDTIKNET) {
+        const bool fold_dummies = options.fold_dummies;
         if (static_cast<std::size_t>(tikhonov_matrix.rows()) != p_original_ ||
             static_cast<std::size_t>(tikhonov_matrix.cols()) != p_original_) {
             throw std::invalid_argument(concatMsg(

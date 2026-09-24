@@ -34,15 +34,10 @@ TIKOMP_Solver::TIKOMP_Solver(
     Eigen::Map<Eigen::MatrixXd>& X,
     Eigen::Map<Eigen::MatrixXd>& D,
     Eigen::Map<Eigen::VectorXd>& y,
-    double lambda2,
     const Eigen::SparseMatrix<double>& tikhonov_matrix,
-    bool normalize,
-    bool intercept,
-    bool verbose,
-    ScalingMode scaling_mode)
-    : TOMP_Solver(X, D, y, normalize, intercept, verbose,
-                  SolverTypeOMPBased::TIKOMP, scaling_mode),
-      lambda2_(lambda2) {
+    const SolverOptions& options)
+    : TOMP_Solver(X, D, y, options, SolverTypeOMPBased::TIKOMP),
+      lambda2_(options.lambda2) {
 
     if (lambda2_ < 0.0) {
         throw std::invalid_argument(

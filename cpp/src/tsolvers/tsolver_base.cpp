@@ -46,13 +46,18 @@ TSolver_Base::TSolver_Base(
     Eigen::Map<Eigen::MatrixXd>& X,
     Eigen::Map<Eigen::MatrixXd>& D,
     Eigen::Map<Eigen::VectorXd>& y,
-    bool normalize,
-    bool intercept,
-    bool verbose,
-    ScalingMode scaling_mode
+    const SolverOptions& options
     )
-    : X_(X), D_(D), y_(y), normalize_(normalize), scaling_mode_(scaling_mode),
-      intercept_(intercept), verbose_(verbose), is_connected_(true) {
+    : X_(X), D_(D), y_(y), normalize_(options.normalize),
+      scaling_mode_(options.scaling_mode), intercept_(options.intercept),
+      verbose_(options.verbose), is_connected_(true) {
+
+    // Numerics and tie-breaking (PLAN WP9: construction-time options).
+    eps_ = options.tol;
+    setExchangeableTie(options.exch_tie_alpha, options.exch_tie_floor);
+    if (options.tie_seed >= 0) {
+        rng_.seed(static_cast<std::uint32_t>(options.tie_seed));
+    }
 
     p_original_ = static_cast<std::size_t>(X.cols());
     num_dummies_ = static_cast<std::size_t>(D.cols());

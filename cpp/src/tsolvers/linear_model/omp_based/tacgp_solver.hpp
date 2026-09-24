@@ -119,11 +119,8 @@ public:
     TACGP_Solver(Eigen::Map<Eigen::MatrixXd>& X,
                  Eigen::Map<Eigen::MatrixXd>& D,
                  Eigen::Map<Eigen::VectorXd>& y,
-                 bool normalize = true,
-                 bool intercept = true,
-                 bool verbose = false,
-                 ScalingMode scaling_mode = ScalingMode::L2)
-        : TGP_Solver(X, D, y, normalize, intercept, verbose, scaling_mode) {
+                 const SolverOptions& options = SolverOptions{})
+        : TGP_Solver(X, D, y, options) {
             algo_type_ = SolverTypeOMPBased::TACGP;
           }
 

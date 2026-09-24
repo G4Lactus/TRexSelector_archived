@@ -30,12 +30,17 @@ TOMP_Solver::TOMP_Solver(
     Eigen::Map<Eigen::MatrixXd>& X,
     Eigen::Map<Eigen::MatrixXd>& D,
     Eigen::Map<Eigen::VectorXd>& y,
-    bool normalize,
-    bool intercept,
-    bool verbose,
-    SolverTypeOMPBased algorithm_type,
-    ScalingMode scaling_mode)
-    : TSolver_Base(X, D, y, normalize, intercept, verbose, scaling_mode),
+    const SolverOptions& options)
+    : TOMP_Solver(X, D, y, options, SolverTypeOMPBased::TOMP) {}
+
+
+TOMP_Solver::TOMP_Solver(
+    Eigen::Map<Eigen::MatrixXd>& X,
+    Eigen::Map<Eigen::MatrixXd>& D,
+    Eigen::Map<Eigen::VectorXd>& y,
+    const SolverOptions& options,
+    SolverTypeOMPBased algorithm_type)
+    : TSolver_Base(X, D, y, options),
       algo_type_(algorithm_type) {
 
     // 1. Inherited Preprocessing

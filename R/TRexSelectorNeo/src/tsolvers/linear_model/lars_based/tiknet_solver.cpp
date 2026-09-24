@@ -36,16 +36,11 @@ TIKNET_Solver::TIKNET_Solver(
     Eigen::Map<Eigen::MatrixXd>& X,
     Eigen::Map<Eigen::MatrixXd>& D,
     Eigen::Map<Eigen::VectorXd>& y,
-    double lambda2,
     const Eigen::SparseMatrix<double>& tikhonov_matrix,
-    bool normalize,
-    bool intercept,
-    bool verbose,
-    ScalingMode scaling_mode
+    const SolverOptions& options
 )
-    : TLARS_Solver(X, D, y, normalize, intercept, verbose,
-                   SolverTypeLarsBased::TIKNET, scaling_mode),
-      lambda2_(lambda2) {
+    : TLARS_Solver(X, D, y, options, SolverTypeLarsBased::TIKNET),
+      lambda2_(options.lambda2) {
 
     if (lambda2_ < 0.0) {
         throw std::invalid_argument(

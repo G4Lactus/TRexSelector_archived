@@ -39,6 +39,7 @@
 
 // tsolvers includes
 #include <tsolvers/solver_utils/solver_preprocessing.hpp>
+#include <tsolvers/solver_options.hpp>
 
 // ===================================================================================
 
@@ -279,14 +280,16 @@ protected:
     TSolver_Base() = default;
 
     /**
-     * @brief Constructor of a TSolver_Base object using data and configuration parameters.
+     * @brief Constructor of a TSolver_Base object using data and options.
      *
      * @param X Design matrix (n x p).
      * @param D Dummy design matrix (n x num_dummies).
      * @param y Response vector (n).
-     * @param normalize If true, each column of X (and D if provided) is scaled to unit L2-norm.
-     * @param intercept If true, X and y are centered (intercept fitted).
-     * @param verbose If true, print status and diagnostics during execution.
+     * @param options Every other input (SolverOptions): the base applies the
+     *        preprocessing flags (normalize, intercept, scaling_mode,
+     *        verbose), the tolerance, the tie-break seed and the
+     *        exchangeable-tie configuration; the family hyperparameters are
+     *        read by the derived constructors.
      *
      * @note X and D are not copied nor owned, so changes to them alter the underlying data.
      *
@@ -297,10 +300,7 @@ protected:
     TSolver_Base(Eigen::Map<Eigen::MatrixXd>& X,
                  Eigen::Map<Eigen::MatrixXd>& D,
                  Eigen::Map<Eigen::VectorXd>& y,
-                 bool normalize,
-                 bool intercept,
-                 bool verbose,
-                 ScalingMode scaling_mode = ScalingMode::L2);
+                 const SolverOptions& options);
 
 public:
     /** @brief Virtual default destructor. (X_, D_ are non-owning views). */

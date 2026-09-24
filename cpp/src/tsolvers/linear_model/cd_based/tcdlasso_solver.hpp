@@ -392,6 +392,16 @@ protected:
     /** @brief Protected constructor for inheritance. */
     explicit TCDLASSO_Solver(SolverTypeCdBased type);
 
+    /** @brief Protected data constructor for inheritance: the public
+     *  constructor with the algorithm variant passed through. Applies the
+     *  CD knobs of the options (lambda tolerance, sweep tolerances, Gram
+     *  cap, sweep cap, localization mode). */
+    TCDLASSO_Solver(Eigen::Map<Eigen::MatrixXd>& X,
+                    Eigen::Map<Eigen::MatrixXd>& D,
+                    Eigen::Map<Eigen::VectorXd>& y,
+                    const SolverOptions& options,
+                    SolverTypeCdBased algorithm_type);
+
 public:
 
     // ============================================================================
@@ -404,11 +414,8 @@ public:
      * @param X Original design matrix (n x p).
      * @param D Dummy design matrix (n x num_dummies).
      * @param y Response vector (n).
-     * @param normalize If true, each column of X and D is scaled to unit L2-norm.
-     * @param intercept If true, X, D, and y are centered (intercept fitted).
-     * @param verbose If true, print status and diagnostics during execution.
-     * @param algorithm_type SolverTypeCdBased variant.
-     * @param scaling_mode Column-scaling convention (L2 or z-score). Default L2.
+     * @param options Every other input (SolverOptions): preprocessing flags,
+     *        tolerance, tie-breaking and the cd_* knobs.
      *
      * @note X and D are not copied nor owned, so changes to X or D alter the
      *       underlying data.
@@ -421,12 +428,7 @@ public:
     TCDLASSO_Solver(Eigen::Map<Eigen::MatrixXd>& X,
                 Eigen::Map<Eigen::MatrixXd>& D,
                 Eigen::Map<Eigen::VectorXd>& y,
-                bool normalize = true,
-                bool intercept = true,
-                bool verbose = false,
-                SolverTypeCdBased algorithm_type = SolverTypeCdBased::TCDLASSO,
-                ScalingMode scaling_mode = ScalingMode::L2
-               );
+                const SolverOptions& options = SolverOptions{});
 
     /**
      * @brief Default constructor for serialization or deferred initialization.

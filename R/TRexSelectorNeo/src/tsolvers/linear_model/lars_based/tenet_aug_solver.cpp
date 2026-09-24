@@ -115,17 +115,20 @@ void TENETAug_Solver::buildMaps() {
 
 void TENETAug_Solver::buildInnerSolver(bool normalize, bool intercept, bool verbose,
                                        ScalingMode scaling_mode) {
+    SolverOptions inner;
+    inner.normalize    = normalize;
+    inner.intercept    = intercept;
+    inner.verbose      = verbose;
+    inner.scaling_mode = scaling_mode;
+    inner.tol          = eps_;
     if (use_lars_inner_) {
         // Pure-LARS inner solver: never drops variables (matches R type="lar").
         inner_ = std::make_unique<TLARS_Solver>(
-            *X_aug_map_, *D_aug_map_, *y_aug_map_,
-            normalize, intercept, verbose,
-            SolverTypeLarsBased::TLARS, scaling_mode);
+            *X_aug_map_, *D_aug_map_, *y_aug_map_, inner);
     } else {
         // Default LARS-LASSO inner solver: can drop variables on sign change.
         inner_ = std::make_unique<TLASSO_Solver>(
-            *X_aug_map_, *D_aug_map_, *y_aug_map_,
-            normalize, intercept, verbose, scaling_mode);
+            *X_aug_map_, *D_aug_map_, *y_aug_map_, inner);
     }
 }
 
@@ -137,13 +140,16 @@ TENETAug_Solver::TENETAug_Solver(
     MapMatXd& X,
     MapMatXd& D,
     MapVecXd& y,
-    double lambda2,
-    bool normalize,
-    bool intercept,
-    bool verbose,
-    ScalingMode scaling_mode,
-    bool use_lars_inner
+    const SolverOptions& options
 ) {
+    // SolverOptions fields consumed here (PLAN WP9).
+    const double      lambda2        = options.lambda2;
+    const bool        normalize      = options.normalize;
+    const bool        intercept      = options.intercept;
+    const bool        verbose        = options.verbose;
+    const ScalingMode scaling_mode   = options.scaling_mode;
+    const bool        use_lars_inner = options.tenet_aug_use_lars;
+    eps_ = options.tol;
     if (lambda2 < 0.0) {
         throw std::invalid_argument("TENETAug_Solver: lambda2 must be non-negative.");
     }

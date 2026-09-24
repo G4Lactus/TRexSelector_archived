@@ -23,14 +23,10 @@ TNCGMP_Solver::TNCGMP_Solver(
     Eigen::Map<Eigen::MatrixXd>& X,
     Eigen::Map<Eigen::MatrixXd>& D,
     Eigen::Map<Eigen::VectorXd>& y,
-    NCGMPVariant variant,
-    bool normalize,
-    bool intercept,
-    bool verbose,
-    ScalingMode scaling_mode)
+    const SolverOptions& options)
 
-    : TSolver_Base(X, D, y, normalize, intercept, verbose, scaling_mode),
-      variant_(variant) {
+    : TSolver_Base(X, D, y, options),
+      variant_(options.ncgmp_variant) {
 
     dropped_indices_.clear();
     if (normalize_ || intercept_) { preprocess(); }

@@ -44,13 +44,19 @@ TLARS_Solver::TLARS_Solver(
     Eigen::Map<Eigen::MatrixXd>& X,
     Eigen::Map<Eigen::MatrixXd>& D,
     Eigen::Map<Eigen::VectorXd>& y,
-    bool normalize,
-    bool intercept,
-    bool verbose,
-    SolverTypeLarsBased algorithm_type,
-    ScalingMode scaling_mode
+    const SolverOptions& options
     )
-    : TSolver_Base(X, D, y, normalize, intercept, verbose, scaling_mode),
+    : TLARS_Solver(X, D, y, options, SolverTypeLarsBased::TLARS) {}
+
+
+TLARS_Solver::TLARS_Solver(
+    Eigen::Map<Eigen::MatrixXd>& X,
+    Eigen::Map<Eigen::MatrixXd>& D,
+    Eigen::Map<Eigen::VectorXd>& y,
+    const SolverOptions& options,
+    SolverTypeLarsBased algorithm_type
+    )
+    : TSolver_Base(X, D, y, options),
       algo_type_(algorithm_type) {
 
     // 1. Inherited proprocessing handles X, D, y centering and normalization
@@ -79,7 +85,7 @@ TLARS_Solver::TLARS_Solver(
     double rss = y_.dot(y_);
     RSS_.emplace_back(rss);
     R2_.emplace_back(0.0);
-    DoF_.emplace_back(intercept ? 1 : 0);
+    DoF_.emplace_back(intercept_ ? 1 : 0);
     dummies_at_step_.reserve(maxSteps_ + 1);
     dummies_at_step_.push_back(0);
 

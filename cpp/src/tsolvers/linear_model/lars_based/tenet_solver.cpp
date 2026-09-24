@@ -34,17 +34,12 @@ TENET_Solver::TENET_Solver(
     Eigen::Map<Eigen::MatrixXd>& X,
     Eigen::Map<Eigen::MatrixXd>& D,
     Eigen::Map<Eigen::VectorXd>& y,
-    double lambda2,
-    bool normalize,
-    bool intercept,
-    bool verbose,
-    ScalingMode scaling_mode
+    const SolverOptions& options
 )
-    : TLARS_Solver(X, D, y, normalize, intercept, verbose,
-                   SolverTypeLarsBased::TENET, scaling_mode),
-      lambda2_(validateLambda2(lambda2)),
-      d1_(std::sqrt(lambda2)),
-      d2_(1.0 / std::sqrt(1.0 + lambda2)),
+    : TLARS_Solver(X, D, y, options, SolverTypeLarsBased::TENET),
+      lambda2_(validateLambda2(options.lambda2)),
+      d1_(std::sqrt(options.lambda2)),
+      d2_(1.0 / std::sqrt(1.0 + options.lambda2)),
       l1norm_(0.0) {
 
     std::size_t p_total = p_original_ + num_dummies_;

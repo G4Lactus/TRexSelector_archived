@@ -43,7 +43,9 @@ namespace trex::tsolvers::linear_model::cd_based {
  *                Mathematically identical to the TCDTIKNET FOLDED path with
  *                K_GC, at O(1) instead of O(p_m) per coordinate update.
  */
-enum class GroupPenaltyVariant { MEAN, CENTERING };
+// Defined with the other option enums in tsolvers/solver_options.hpp
+// (PLAN WP9); visible here under its historical name.
+using trex::tsolvers::GroupPenaltyVariant;
 
 // =============================================================================
 
@@ -153,29 +155,21 @@ public:
      * @param y Response vector (size n).
      * @param lambda2 Group-mean (L2) penalty weight (>= 0).
      * @param groups 0-based contiguous group ids in [0, M-1], length p.
-     * @param normalize If true, columns are scaled to unit L2-norm. Default true.
-     * @param intercept If true, variables are centered. Default true.
-     * @param verbose If true, print detailed status and diagnostics. Default false.
-     * @param scaling_mode Column-scaling convention (L2 or z-score). Default L2.
-     * @param variant Structured penalty variant. Default MEAN (canonical
-     *        IEN group-sum penalty). CENTERING selects the within-group
-     *        centering penalty K = blockdiag(I - J/p_m) with the same O(1)
-     *        hook cost (see GroupPenaltyVariant).
+     * @param options Every other input (SolverOptions); this solver reads
+     *        lambda2 and group_penalty — MEAN (default, the canonical IEN
+     *        group-sum penalty) or CENTERING, the within-group centering
+     *        penalty K = blockdiag(I - J/p_m) with the same O(1) hook cost
+     *        (see GroupPenaltyVariant) — plus the cd_* knobs. kappa_dummy
+     *        is not read (the group penalty couples the dummies).
      */
     TCDIENET_Solver(Eigen::Map<Eigen::MatrixXd>& X,
                    Eigen::Map<Eigen::MatrixXd>& D,
                    Eigen::Map<Eigen::VectorXd>& y,
-                   double lambda2,
                    const Eigen::VectorXi& groups,
-                   bool normalize = true,
-                   bool intercept = true,
-                   bool verbose = false,
-                   ScalingMode scaling_mode = ScalingMode::L2,
-                   GroupPenaltyVariant variant = GroupPenaltyVariant::MEAN)
-        : TCDENET_Solver(X, D, y, lambda2, normalize, intercept, verbose,
-                        scaling_mode, 1.0,
+                   const SolverOptions& options = SolverOptions{})
+        : TCDENET_Solver(X, D, y, withUnitKappa(options),
                         SolverTypeCdBased::TCDIENET) {
-        penalty_kind_ = (variant == GroupPenaltyVariant::CENTERING)
+        penalty_kind_ = (options.group_penalty == GroupPenaltyVariant::CENTERING)
                             ? PenaltyKind::GROUP_CENTERING
                             : PenaltyKind::GROUP;
         penalty_dvec_.resize(0);            // unused by the GROUP-family hooks
@@ -186,6 +180,16 @@ public:
      * @brief Default constructor for serialization or deferred initialization.
      */
     TCDIENET_Solver() : TCDENET_Solver(SolverTypeCdBased::TCDIENET) {}
+
+private:
+    /** @brief The options with kappa_dummy pinned to 1 (unused by the group
+     *  hooks; keeps the TCDENET base construction canonical). */
+    static SolverOptions withUnitKappa(SolverOptions options) {
+        options.kappa_dummy = 1.0;
+        return options;
+    }
+
+public:
 
     /** @brief Deleted copy constructor. */
     TCDIENET_Solver(const TCDIENET_Solver&) = delete;

@@ -67,10 +67,7 @@ public:
     TSTAGEWISE_Solver(Eigen::Map<Eigen::MatrixXd>& X,
                       Eigen::Map<Eigen::MatrixXd>& D,
                       Eigen::Map<Eigen::VectorXd>& y,
-                      bool normalize = true,
-                      bool intercept = true,
-                      bool verbose = false,
-                      ScalingMode scaling_mode = ScalingMode::L2);
+                      const SolverOptions& options = SolverOptions{});
 
     /** @brief Default constructor for serialization or deferred initialization. */
     TSTAGEWISE_Solver() : TLARS_Solver(SolverTypeLarsBased::TSTAGEWISE) {}

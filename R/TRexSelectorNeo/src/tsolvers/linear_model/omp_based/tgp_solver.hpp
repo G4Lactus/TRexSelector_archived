@@ -131,12 +131,8 @@ public:
     TGP_Solver(Eigen::Map<Eigen::MatrixXd>& X,
                Eigen::Map<Eigen::MatrixXd>& D,
                Eigen::Map<Eigen::VectorXd>& y,
-               bool normalize = true,
-               bool intercept = true,
-               bool verbose = false,
-               ScalingMode scaling_mode = ScalingMode::L2)
-        : TOMP_Solver(X, D, y, normalize, intercept, verbose,
-            SolverTypeOMPBased::TGP, scaling_mode) {}
+               const SolverOptions& options = SolverOptions{})
+        : TOMP_Solver(X, D, y, options, SolverTypeOMPBased::TGP) {}
 
     /**
      * @brief Default constructor for serialization or deferred initialization.

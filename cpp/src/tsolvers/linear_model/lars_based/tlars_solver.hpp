@@ -121,6 +121,16 @@ protected:
     /** @brief Protected constructor for inheritance. */
     explicit TLARS_Solver(SolverTypeLarsBased type);
 
+    /**
+     * @brief Protected data constructor for inheritance: the public
+     *        constructor with the algorithm variant passed through.
+     */
+    TLARS_Solver(Eigen::Map<Eigen::MatrixXd>& X,
+                 Eigen::Map<Eigen::MatrixXd>& D,
+                 Eigen::Map<Eigen::VectorXd>& y,
+                 const SolverOptions& options,
+                 SolverTypeLarsBased algorithm_type);
+
 public:
 
     // ============================================================================
@@ -128,34 +138,27 @@ public:
     // ============================================================================
 
     /**
-     * @brief Construct a TLARS_Solver object using data and configuration.
+     * @brief Construct a TLARS_Solver object using data and options.
      *
      * @param X Original design matrix (n x p).
      * @param D Dummy design matrix (n x num_dummies).
      * @param y Response vector (n).
-     * @param normalize If true, each column of X and D is scaled to unit L2-norm.
-     * @param intercept If true, X, D, and y are centered (intercept fitted).
-     * @param verbose If true, print status and diagnostics during execution.
-     * @param algorithm_type SolverTypeLarsBased variant.
-     * @param scaling_mode Column-scaling convention (L2 or z-score). Default L2.
+     * @param options Every other input (SolverOptions): preprocessing flags,
+     *        tolerance and tie-breaking. Plain T-LARS reads no family
+     *        hyperparameter.
      *
      * @note X and D are not copied nor owned, so changes to X or D alter the underlying
      *       data.
      *
      * @note Has an internal column-dropping logic for unit L2-norm columns
-     *       which is active if normalize is true. Otherwise ensure that you
-     *       exclude collinear columns a priori before passing X to the
-     *       algorithm.
+     *       which is active if options.normalize is true. Otherwise ensure
+     *       that you exclude collinear columns a priori before passing X to
+     *       the algorithm.
      */
     TLARS_Solver(Eigen::Map<Eigen::MatrixXd>& X,
                  Eigen::Map<Eigen::MatrixXd>& D,
                  Eigen::Map<Eigen::VectorXd>& y,
-                 bool normalize = true,
-                 bool intercept = true,
-                 bool verbose = false,
-                 SolverTypeLarsBased algorithm_type = SolverTypeLarsBased::TLARS,
-                 ScalingMode scaling_mode = ScalingMode::L2
-                );
+                 const SolverOptions& options = SolverOptions{});
 
     /**
      * @brief Default constructor for serialization or deferred initialization.

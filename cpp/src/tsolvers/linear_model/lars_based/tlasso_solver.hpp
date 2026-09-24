@@ -112,12 +112,8 @@ public:
     TLASSO_Solver(Eigen::Map<Eigen::MatrixXd>& X,
                   Eigen::Map<Eigen::MatrixXd>& D,
                   Eigen::Map<Eigen::VectorXd>& y,
-                  bool normalize = true,
-                  bool intercept = true,
-                  bool verbose = false,
-                  ScalingMode scaling_mode = ScalingMode::L2)
-        : TLARS_Solver(X, D, y, normalize, intercept, verbose,
-                       SolverTypeLarsBased::TLASSO, scaling_mode) {}
+                  const SolverOptions& options = SolverOptions{})
+        : TLARS_Solver(X, D, y, options, SolverTypeLarsBased::TLASSO) {}
 
     /**
      * @brief Default constructor for serialization or deferred initialization.
