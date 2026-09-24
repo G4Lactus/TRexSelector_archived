@@ -64,6 +64,39 @@ namespace wsm = trex::trex_selector_methods::utils::warm_start_manager;
 namespace mm = trex::trex_selector_methods::utils::memmap_manager;
 
 // ===================================================================================
+
+/**
+ * @brief Scoped Eigen thread budget (PLAN WP4 4.5, Arnau).
+ *
+ * @details Eigen's thread count is ONE process-global integer. Writing it from
+ *  inside an OpenMP team is a data race, and pointless there: Eigen never
+ *  parallelizes a product when it is called from a team of more than one
+ *  thread (Parallelizer.h tests the team size). The runner therefore sets the
+ *  budget ONCE, from the calling thread, before a parallel region or a
+ *  sequential experiment loop, and restores the previous value on exit so
+ *  nothing leaks into the host process (an R or Python session, a caller's
+ *  own Monte-Carlo loop). `threads <= 0` leaves the value untouched (the
+ *  scope still restores). Host contract: Eigen's global is the host's to set,
+ *  outside any parallel region; two selectors running at the same time in
+ *  different host threads still share that one global — inherent to Eigen —
+ *  so a host doing that pins the value itself and does not rely on the
+ *  library's restore.
+ */
+class EigenThreadScope {
+public:
+    explicit EigenThreadScope(int threads) : previous_(Eigen::nbThreads()) {
+        if (threads > 0) { Eigen::setNbThreads(threads); }
+    }
+    ~EigenThreadScope() { Eigen::setNbThreads(previous_); }
+
+    EigenThreadScope(const EigenThreadScope&) = delete;
+    EigenThreadScope& operator=(const EigenThreadScope&) = delete;
+
+private:
+    int previous_;
+};
+
+// ===================================================================================
 // ExperimentStrategy: handles how dummies are provided per experiment
 // ===================================================================================
 
@@ -348,6 +381,10 @@ private:
 
         const bool do_parallel = (cfg.max_outer_threads > 1);
 
+        // Eigen budget for the workers' (nested) regions, set ONCE from this
+        // thread and restored on exit; never written inside the team.
+        EigenThreadScope eigen_scope(do_parallel ? cfg.max_inner_threads : 0);
+
         // --- OpenMP setup ---
         // Nesting is enabled ONLY for the parallel-experiments mode (as in
         // runMemmap() and TRexGVSSelector). Unconditionally raising the
@@ -370,10 +407,11 @@ private:
 
         #pragma omp parallel if(do_parallel)
         {
+            // Per-thread ICV for the nested solver regions; Eigen's global
+            // is NOT touched here (see EigenThreadScope).
             #ifdef _OPENMP
             if (do_parallel) omp_set_num_threads(cfg.max_inner_threads);
             #endif
-            if (do_parallel) Eigen::setNbThreads(cfg.max_inner_threads);
 
             #pragma omp for schedule(dynamic)
             for (std::size_t k = 0; k < cfg.K; ++k) {
@@ -416,9 +454,9 @@ private:
 
         // Sequential by design; getPermuted() returns a fresh permuted
         // copy per k (base + one working copy alive at a time)
-        #ifdef _OPENMP
-        Eigen::setNbThreads(omp_get_max_threads());
-        #endif
+        // Sequential experiments: the solvers may use every core for Eigen
+        // products — scoped, so the host's setting is restored on return.
+        EigenThreadScope eigen_scope(omp_get_max_threads());
 
         for (std::size_t k = 0; k < cfg.K; ++k) {
             summaries[k] = runWithTemporaryDummies(
@@ -441,9 +479,9 @@ private:
 
         std::vector<ExperimentSummary> summaries(cfg.K);
 
-        #ifdef _OPENMP
-        Eigen::setNbThreads(omp_get_max_threads());
-        #endif
+        // Sequential experiments: the solvers may use every core for Eigen
+        // products — scoped, so the host's setting is restored on return.
+        EigenThreadScope eigen_scope(omp_get_max_threads());
 
         for (std::size_t k = 0; k < cfg.K; ++k) {
             summaries[k] = runWithTemporaryDummies(
@@ -475,9 +513,9 @@ private:
 
         std::vector<ExperimentSummary> summaries(cfg.K);
 
-        #ifdef _OPENMP
-        Eigen::setNbThreads(omp_get_max_threads());
-        #endif
+        // Sequential experiments: the solvers may use every core for Eigen
+        // products — scoped, so the host's setting is restored on return.
+        EigenThreadScope eigen_scope(omp_get_max_threads());
 
         // Transient base for this step only — dropped on return.
         const Eigen::MatrixXd base = dummy_gen_.generate(
@@ -573,6 +611,9 @@ private:
         const bool shared = (memmap_mgr_->numFiles() == 1);
         const bool do_parallel = !shared && (cfg.max_outer_threads > 1);
 
+        // Eigen budget set ONCE from this thread, restored on exit.
+        EigenThreadScope eigen_scope(do_parallel ? cfg.max_inner_threads : 0);
+
         #ifdef _OPENMP
         int old_max_levels = omp_get_max_active_levels();
         if (do_parallel) omp_set_max_active_levels(2);
@@ -585,10 +626,11 @@ private:
 
         #pragma omp parallel if(do_parallel)
         {
+            // Per-thread ICV for the nested solver regions; Eigen's global
+            // is NOT touched here (see EigenThreadScope).
             #ifdef _OPENMP
             if (do_parallel) omp_set_num_threads(cfg.max_inner_threads);
             #endif
-            if (do_parallel) Eigen::setNbThreads(cfg.max_inner_threads);
 
             #pragma omp for schedule(dynamic)
             for (std::size_t k = 0; k < cfg.K; ++k) {

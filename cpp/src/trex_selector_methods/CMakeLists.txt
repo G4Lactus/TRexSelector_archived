@@ -37,7 +37,7 @@ target_include_directories(trex_selector_methods PUBLIC
 
     # Install-tree
     # ------------
-    $<INSTALL_INTERFACE:include>
+    $<INSTALL_INTERFACE:${TREX_INSTALL_INCLUDE_ROOT}>
 )
 # ==================================================================================
 
@@ -78,7 +78,7 @@ target_sources(trex_selector_methods PUBLIC
     FILE_SET HEADERS
     BASE_DIRS
         $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}/src>
-        $<INSTALL_INTERFACE:include>
+        $<INSTALL_INTERFACE:${TREX_INSTALL_INCLUDE_ROOT}>
     FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/trex_core/trex.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/trex_da/trex_da.hpp
@@ -90,6 +90,8 @@ target_sources(trex_selector_methods PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/trex_tikhonov/tik_lambda2_pick.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/trex_tikhonov/tik_lambda2_power_rule.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/trex_vd/trex_vd.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/trex_utils/trex_cluster_dummies.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/trex_utils/trex_cluster_hac.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/trex_utils/trex_data_normalizer.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/trex_utils/trex_dummy_generator.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/trex_utils/trex_experiment_runner.hpp
@@ -119,11 +121,13 @@ add_subdirectory(trex_sd)
 # ==================================================================================
 # 6. Installation
 # ==================================================================================
+if(TREX_INSTALL_CPP_SDK)
 install(TARGETS trex_selector_methods
     EXPORT   TRexSelectorTargets
     ARCHIVE  DESTINATION ${CMAKE_INSTALL_LIBDIR}
     LIBRARY  DESTINATION ${CMAKE_INSTALL_LIBDIR}
     RUNTIME  DESTINATION ${CMAKE_INSTALL_BINDIR}
-    FILE_SET HEADERS DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILE_SET HEADERS DESTINATION ${TREX_INSTALL_INCLUDE_ROOT}
 )
+endif()
 # ==================================================================================

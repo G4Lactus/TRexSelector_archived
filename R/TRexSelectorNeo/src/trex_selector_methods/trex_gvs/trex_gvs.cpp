@@ -793,6 +793,10 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
     // ---- OpenMP setup (mirror base ExperimentRunner pattern) ------------
     const bool do_parallel =
         trex_ctrl_.parallel_rnd_experiments && (trex_ctrl_.max_outer_threads > 1);
+    // Eigen budget set ONCE from this thread and restored on exit; never
+    // written inside the team (PLAN WP4 4.5, see EigenThreadScope).
+    trex::trex_selector_methods::utils::experiment_runner::EigenThreadScope
+        eigen_scope(do_parallel ? trex_ctrl_.max_inner_threads : 0);
     #ifdef _OPENMP
     int old_max_levels = omp_get_max_active_levels();
     if (do_parallel) omp_set_max_active_levels(2);
@@ -811,7 +815,6 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
         #ifdef _OPENMP
         if (do_parallel) omp_set_num_threads(trex_ctrl_.max_inner_threads);
         #endif
-        Eigen::setNbThreads(trex_ctrl_.max_inner_threads);
 
         #pragma omp for schedule(dynamic)
         for (std::size_t k = 0; k < K; ++k) {
