@@ -1,7 +1,7 @@
 Package: TRexSelectorNeo
 Type: Package
 Title: T-Rex Selector: High-Dimensional Variable Selection & FDR Control
-Version: 0.2.0
+Version: 2.0.0
 Description: FDR-controlled variable selection for regression and classification in
  high-dimensional settings while controlling the false discovery rate (FDR) at a user-specified
  target level. The R package comes as R bindings to the TRexSelector C++ library and
@@ -29,7 +29,8 @@ Depends:
     R (>= 4.3)
 Imports:
     Rcpp,
-    R6
+    R6,
+    methods
 Suggests:
     Matrix,
     testthat (>= 3.0.0),
