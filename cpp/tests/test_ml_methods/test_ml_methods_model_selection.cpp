@@ -716,6 +716,104 @@ TEST(IenetCvCcdTest, StructureAndDeterminism) {
 }
 
 
+/** @brief The boundary-pick guard fields (PLAN WP6) describe the pick the
+ *  caller uses: grid position, grid-edge flag, the chosen lambda2's own
+ *  profile-at-edge flag, and their OR; the per-lambda2 flags sum to the
+ *  edge counter; the message is empty exactly when the pick is healthy. */
+TEST(IenetCvCcdTest, DiagnosticsDescribeTheChosenPick) {
+    const Eigen::Index n = 60, p = 24;
+    Eigen::MatrixXd X = random_matrix(n, p, 51);
+    Eigen::VectorXd y = 2.0 * X.col(0) + X.col(1) - X.col(6)
+                        + 0.5 * random_vector(n, 52);
+    Eigen::VectorXi groups(p);
+    for (Eigen::Index j = 0; j < p; ++j) groups(j) = static_cast<int>(j / 3);
+
+    ienet_cv_ccd cv;
+    cv.fit(X, y, groups, 5, 10, 1e3, 30, -1.0, 9);
+    const Eigen::Index K = cv.lambdas().size();
+
+    for (const bool one_se : {false, true}) {
+        const auto d = cv.diagnostics(one_se);
+        const Eigen::Index idx = one_se ? cv.index_1se() : cv.index_min();
+        EXPECT_TRUE(d.ran);
+        EXPECT_EQ(d.grid_index, idx);
+        EXPECT_EQ(d.grid_size, K);
+        EXPECT_EQ(d.at_grid_edge, idx == 0 || idx == K - 1);
+        EXPECT_EQ(d.profile_at_edge, cv.profile_at_edge(idx));
+        EXPECT_EQ(d.boundary_pick, d.at_grid_edge || d.profile_at_edge);
+        EXPECT_EQ(d.n_profile_at_edge, cv.n_profile_at_edge());
+        const std::string msg = boundary_pick_message(d, "Tag", "M", 1.0);
+        EXPECT_EQ(msg.empty(), !d.boundary_pick) << msg;
+    }
+
+    Eigen::Index count = 0;
+    for (Eigen::Index k = 0; k < K; ++k) { count += cv.profile_at_edge(k) ? 1 : 0; }
+    EXPECT_EQ(count, cv.n_profile_at_edge());
+    EXPECT_EQ(cv.selection_at_grid_edge(),
+              cv.diagnostics(false).at_grid_edge || cv.diagnostics(true).at_grid_edge);
+
+    ienet_cv_ccd unfitted;
+    EXPECT_THROW(unfitted.diagnostics(false), std::runtime_error);
+}
+
+
+/** @brief record_grid_pick / boundary_pick_message contract: lower edge,
+ *  upper edge, the benign truncated upper edge (EN CCD), interior, and the
+ *  profile-only mode; the message names the mode and the remedies. */
+TEST(Lambda2CvDiagnosticsTest, GridPickRecordAndMessage) {
+    lambda2_cv_diagnostics d;
+    record_grid_pick(d, 0, 10);
+    EXPECT_TRUE(d.at_grid_edge); EXPECT_TRUE(d.boundary_pick);
+    EXPECT_NE(boundary_pick_message(d, "S", "CV_1SE_CCD", 2.0).find("first point"),
+              std::string::npos);
+
+    record_grid_pick(d, 9, 10);
+    EXPECT_TRUE(d.at_grid_edge);
+    const std::string upper = boundary_pick_message(d, "S", "CV_1SE_CCD", 2.0);
+    EXPECT_NE(upper.find("last point"), std::string::npos);
+    EXPECT_NE(upper.find("S::computeLambda2: CV_1SE_CCD"), std::string::npos);
+    EXPECT_NE(upper.find("returned unchanged"), std::string::npos);
+    EXPECT_EQ(upper.find("cv_n_lambda1"), std::string::npos);  // no profile mode
+
+    record_grid_pick(d, 9, 10, /*upper_edge_benign=*/true);
+    EXPECT_FALSE(d.at_grid_edge); EXPECT_FALSE(d.boundary_pick);
+    EXPECT_TRUE(boundary_pick_message(d, "S", "M", 2.0).empty());
+
+    record_grid_pick(d, 4, 10);
+    EXPECT_FALSE(d.boundary_pick);
+
+    d.profile_at_edge = true;
+    record_grid_pick(d, 4, 10);
+    EXPECT_FALSE(d.at_grid_edge); EXPECT_TRUE(d.boundary_pick);
+    const std::string prof = boundary_pick_message(d, "S", "CV_MIN_IEN_CCD", 2.0);
+    EXPECT_NE(prof.find("truncation edge"), std::string::npos);
+    EXPECT_NE(prof.find("cv_n_lambda1"), std::string::npos);
+    EXPECT_EQ(prof.find("last point"), std::string::npos);
+}
+
+
+/** @brief A pure-noise response (flat CV curve) pins the IEN tuner's 1SE
+ *  pick to the lambda2 grid ceiling while the truncation-edge counter can
+ *  stay at zero — the second failure mode of TODO 4.12, which the guard
+ *  must see through at_grid_edge, not n_profile_at_edge. */
+TEST(IenetCvCcdTest, PureNoisePinsThePickToTheGridCeiling) {
+    const Eigen::Index n = 60, p = 24;
+    Eigen::MatrixXd X = random_matrix(n, p, 61);
+    Eigen::VectorXd y = random_vector(n, 62);
+    Eigen::VectorXi groups(p);
+    for (Eigen::Index j = 0; j < p; ++j) groups(j) = static_cast<int>(j / 3);
+
+    ienet_cv_ccd cv;
+    cv.fit(X, y, groups, 5, 10, 1e3, 30, -1.0, 9);
+    const auto d = cv.diagnostics(/*one_se=*/true);
+    EXPECT_EQ(d.grid_index, d.grid_size - 1) << "1SE pick not at the ceiling";
+    EXPECT_TRUE(d.at_grid_edge);
+    EXPECT_TRUE(d.boundary_pick);
+    EXPECT_NE(boundary_pick_message(d, "S", "CV_1SE_IEN_CCD", cv.cv_1se()).find("last point"),
+              std::string::npos);
+}
+
+
 /** @brief The sparse-K overload with the group-mean matrix W must reproduce
  *  the O(1) group-sum specialization: identical grids, CV surface, profiled
  *  curve, and picks (same folds via the same seed). Also pins the lambda1

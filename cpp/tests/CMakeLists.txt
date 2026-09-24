@@ -82,6 +82,7 @@ add_trex_test(test_utils_checked_arith test_utils/test_utils_checked_arith.cpp)
 add_trex_test(test_trex_thread_hygiene test_trex_selector_methods/test_trex_thread_hygiene.cpp)
 add_trex_test(test_trex_vd test_trex_selector_methods/test_trex_vd.cpp)
 add_trex_test(test_trex_scaling_none test_trex_selector_methods/test_trex_scaling_none.cpp)
+add_trex_test(test_trex_lambda2_guard test_trex_selector_methods/test_trex_lambda2_guard.cpp)
 
 # 6. Opt-in cross-language validations. NOT registered with CTest and excluded
 #    from the default build; run on demand via the `run_validations` target
