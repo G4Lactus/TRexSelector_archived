@@ -39,6 +39,7 @@
 
 // tsolvers includes
 #include <tsolvers/ad/solver_utils/solver_preprocessing.hpp>
+#include <tsolvers/ad/solver_utils/buffer_registry.hpp>
 #include <tsolvers/ad/solver_options.hpp>
 
 // ===================================================================================
@@ -255,6 +256,38 @@ protected:
     /** @brief Flag indicating if the solver is connected to the data. Default is false. */
     bool is_connected_{false};
 
+    /** @brief Claims on the caller's X and D while this solver holds them
+     *  preprocessed in place (writer: normalize or intercept on). Taken in
+     *  preprocess(), released by restore() or destruction; readers and
+     *  solvers resumed from a checkpoint never claim. Mutable because
+     *  restore() is const. See solver_utils/buffer_registry.hpp. */
+    mutable solver_utils::buffer_registry::BufferClaim claim_x_{};
+    mutable solver_utils::buffer_registry::BufferClaim claim_d_{};
+
+    /** @brief A bool whose move leaves the moved-from object false, so the
+     *  write-back responsibility travels with a moved solver (like the
+     *  buffer claims) and the moved-from destructor does not restore. */
+    struct MoveResetFlag {
+        bool value{false};
+        MoveResetFlag() = default;
+        MoveResetFlag(MoveResetFlag&& o) noexcept : value(o.value) { o.value = false; }
+        MoveResetFlag& operator=(MoveResetFlag&& o) noexcept {
+            if (this != &o) { value = o.value; o.value = false; }
+            return *this;
+        }
+        MoveResetFlag(const MoveResetFlag&) = delete;
+        MoveResetFlag& operator=(const MoveResetFlag&) = delete;
+    };
+
+    /** @brief True while THIS object's in-place preprocessing of X and D is
+     *  in effect (set by preprocess(), cleared by restore() and by the
+     *  destructor's write-back). Makes restore() idempotent and a no-op for
+     *  readers; deliberately not serialized, so a solver resumed from a
+     *  checkpoint in C++ is a reader, while an object that preprocessed and
+     *  is then deserialized INTO (the R binding's load) keeps the
+     *  responsibility to write back. */
+    mutable MoveResetFlag holds_preprocessed_{};
+
     // ==========================================================================
     // Dummy Tracking for FDR
     // ==========================================================================
@@ -304,7 +337,12 @@ protected:
 
 public:
     /** @brief Virtual default destructor. (X_, D_ are non-owning views). */
-    virtual ~TSolver_Base() = default;
+    /** @brief Writes X and D back if this object's in-place preprocessing
+     *  is still in effect (a writer that was never restore()d, including a
+     *  derived constructor that threw after the base preprocessed), then
+     *  releases the claims. The caller's buffers must still be alive: the
+     *  bindings pin them (keep_alive / the XPtr protection slot). */
+    virtual ~TSolver_Base();
 
     /** @brief Deleted copy constructor. */
     TSolver_Base(const TSolver_Base&) = delete;
@@ -403,7 +441,28 @@ public:
 
     /**
      * @brief Reverse the in-place preprocessing (centering/scaling) applied to
-     * the design matrices at construction.
+     * the design matrices at construction, and release the buffer claims.
+     *
+     * @details The in-place contract (2026-09-25). A solver constructed with
+     *          normalize = true or intercept = true is a WRITER: it transforms
+     *          the caller's X and D in place through the maps, keeps the
+     *          statistics (means, norms) itself, carries them in its
+     *          checkpoint archive, and holds a claim on both buffers until
+     *          restore() or destruction, both of which write X and D back
+     *          (restore() is idempotent and must be given the buffers the solver
+     *          was constructed on); a second writer on a claimed buffer throws,
+     *          because a second in-place transformation is not idempotent (it
+     *          moves the data by rounding). A solver
+     *          constructed with normalize = false and intercept = false is a
+     *          READER: it runs as constructed and never touches the buffers,
+     *          which is how the T-Rex selectors run their solvers and how a
+     *          pipeline with several solvers on one buffer should be built
+     *          (pre-scale once in front, keep the statistics in the scaler,
+     *          restore there). A solver resumed from a checkpoint is a
+     *          reader that expects the buffers in the state they were saved
+     *          in (keep the writer that saved it alive, or pre-scale once in
+     *          front and run readers). y is never written: the constructor centers an internal
+     *          copy.
      *
      * @param X Reference to the design matrix (n x p), un-preprocessed in place.
      * @param D Reference to the dummy matrix (n x num_dummies), un-preprocessed in place.
@@ -468,6 +527,11 @@ public:
     /** @brief Return whether the solver is currently connected to data. */
     bool isConnected() const noexcept { return is_connected_; }
 
+    /** @brief Whether this object's in-place preprocessing of X and D is
+     *  currently in effect, i.e. restore() would write back (a writer that
+     *  has not been restored). False for readers and resumed solvers. */
+    bool holdsPreprocessed() const noexcept { return holds_preprocessed_.value; }
+
     /** @brief Return the indices of active predictor variables at the current step. */
     std::vector<std::size_t> getActivePredictorIndices() const;
 
@@ -521,6 +585,11 @@ protected:
 
     /** @brief Preprocess the data as part of class constructor. */
     void preprocess();
+
+    /** @brief Write X and D back through the stored maps if this object's
+     *  preprocessing is in effect, and release the claims; the shared core of
+     *  restore() and of the destructor. */
+    void writeBackOwnedBuffers() const noexcept;
 
     /** @brief Validate that the solver is connected to data. */
     void validateConnected() const;
@@ -777,6 +846,17 @@ protected:
     * @param msg The warning message to log.
     */
     void logWarning(const std::string& msg) const;
+
+    /** @brief The message a second writer receives for a claimed X or D. */
+    std::string writerClaimMessage(const char* which) const;
+
+    /** @brief After preprocessMatStatistics(): warn when the statistics say
+     *  the columns were already centered and unit-norm, i.e. the buffer was
+     *  transformed before (pre-scaled: run as constructed; an unrestored
+     *  solver: restore() it). No extra pass over the data. */
+    void warnIfAlreadyPreprocessed(const char* which,
+                                   const Eigen::VectorXd& means,
+                                   const Eigen::VectorXd& norms) const;
 
     /** @brief Recorded warnings (mutable: recording happens in const contexts). */
     mutable std::vector<std::string> warnings_{};

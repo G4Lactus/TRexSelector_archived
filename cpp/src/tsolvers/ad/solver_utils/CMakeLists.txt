@@ -9,6 +9,7 @@
 # ==================================================================================
 target_sources(trex_tsolvers PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/solver_preprocessing.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/buffer_registry.cpp
 )
 # ==================================================================================
 
@@ -22,6 +23,7 @@ target_sources(trex_tsolvers PUBLIC
     BASE_DIRS ${PROJECT_SOURCE_DIR}/src      # project root src/
     FILES
         ${CMAKE_CURRENT_LIST_DIR}/solver_preprocessing.hpp
+        ${CMAKE_CURRENT_LIST_DIR}/buffer_registry.hpp
         ${CMAKE_CURRENT_LIST_DIR}/tikhonov_validation.hpp
 )
 # ==================================================================================
