@@ -10,10 +10,13 @@ MODULES_TO_CHECK = [
     "trex_selector_neo.ml_methods",
     "trex_selector_neo.ml_methods.clustering",
     "trex_selector_neo.tsolvers",
-    "trex_selector_neo.tsolvers.lars_based",
-    "trex_selector_neo.tsolvers.omp_based",
-    "trex_selector_neo.tsolvers.afs_based",
-    "trex_selector_neo.tsolvers.cd_based",
+    "trex_selector_neo.tsolvers.ad",
+    "trex_selector_neo.tsolvers.ad.lars_based",
+    "trex_selector_neo.tsolvers.ad.omp_based",
+    "trex_selector_neo.tsolvers.ad.afs_based",
+    "trex_selector_neo.tsolvers.ad.cd_based",
+    "trex_selector_neo.trex_selector_methods",
+    "trex_selector_neo.trex_selector_methods.ad",
     "trex_selector_neo.utils",
 ]
 
@@ -125,8 +128,8 @@ def test_utils_symbols_importable():
 
 
 def test_tsolver_symbols_importable():
-    from trex_selector_neo.tsolvers import ScalingMode
-    from trex_selector_neo.tsolvers.lars_based import (
+    from trex_selector_neo.tsolvers.ad import ScalingMode
+    from trex_selector_neo.tsolvers.ad.lars_based import (
         TLARS_Solver,
         TLASSO_Solver,
         TSTEPWISE_Solver,
@@ -135,7 +138,7 @@ def test_tsolver_symbols_importable():
         TENETAug_Solver,
         TIENETAug_Solver,
     )
-    from trex_selector_neo.tsolvers.omp_based import (
+    from trex_selector_neo.tsolvers.ad.omp_based import (
         TOMP_Solver,
         TGP_Solver,
         TACGP_Solver,
@@ -144,7 +147,7 @@ def test_tsolver_symbols_importable():
         TNCGMP_Solver,
         NCGMPVariant,
     )
-    from trex_selector_neo.tsolvers.afs_based import TAFS_Solver
+    from trex_selector_neo.tsolvers.ad.afs_based import TAFS_Solver
 
     for cls in (TLARS_Solver, TLASSO_Solver, TSTEPWISE_Solver, TSTAGEWISE_Solver,
                 TENET_Solver, TENETAug_Solver, TIENETAug_Solver, TOMP_Solver,
@@ -153,11 +156,11 @@ def test_tsolver_symbols_importable():
         assert callable(cls)
     assert ScalingMode.L2 is not None
     assert ScalingMode.ZSCORE is not None
-    from trex_selector_neo.tsolvers import SolverOptions, GroupPenaltyVariant
-    from trex_selector_neo.tsolvers.cd_based import (
+    from trex_selector_neo.tsolvers.ad import SolverOptions, GroupPenaltyVariant
+    from trex_selector_neo.tsolvers.ad.cd_based import (
         TCDLASSO_Solver, TCDENET_Solver, TCDIENET_Solver, TCDTIKNET_Solver)
-    from trex_selector_neo.tsolvers.lars_based import TIENET_Solver, TIKNET_Solver
-    from trex_selector_neo.tsolvers.omp_based import TIKOMP_Solver
+    from trex_selector_neo.tsolvers.ad.lars_based import TIENET_Solver, TIKNET_Solver
+    from trex_selector_neo.tsolvers.ad.omp_based import TIKOMP_Solver
     for cls in (TCDLASSO_Solver, TCDENET_Solver, TCDIENET_Solver, TCDTIKNET_Solver,
                 TIENET_Solver, TIKNET_Solver, TIKOMP_Solver):
         assert callable(cls)
@@ -189,3 +192,42 @@ def test_clustering_symbols_importable():
     assert callable(cut_tree)
     assert LinkageMethod.Ward is not None
     assert DistanceMetric.Euclidean is not None
+
+
+def test_dummy_mechanism_levels():
+    """One subpackage per dummy mechanism, mirroring cpp/src/{tsolvers,trex_selector_methods}/ad."""
+    import trex_selector_neo
+    from trex_selector_neo.tsolvers import ad as tsolvers_ad
+    from trex_selector_neo.trex_selector_methods import ad as selectors_ad
+    assert trex_selector_neo.tsolvers.__all__ == ["ad"]
+    assert trex_selector_neo.trex_selector_methods.__all__ == ["ad"]
+    assert tsolvers_ad.lars_based.TLARS_Solver is not None
+    assert tsolvers_ad.SolverOptions is not None
+    # the root re-exports the AD selectors as the everyday spelling
+    assert trex_selector_neo.TRexControlParameter is selectors_ad.TRexControlParameter
+    assert trex_selector_neo.SolverTypeForTRex is selectors_ad.SolverTypeForTRex
+    # the compiled extension carries the same level
+    from trex_selector_neo._core.tsolvers.ad.cd_based import TCDTIKNET_Solver
+    from trex_selector_neo._core.trex_selector_methods.ad import TRexTikhonovSelector
+    assert callable(TCDTIKNET_Solver) and callable(TRexTikhonovSelector)
+
+
+def test_tikhonov_symbols_importable():
+    from trex_selector_neo import (
+        TRexTikhonovSelector,
+        TRexTikhonovControlParameter,
+        TikLambda2Method,
+        PilotStatistic,
+        TikPenaltyStructure,
+        Lambda2PickInfo,
+        Lambda2PilotResult,
+        Lambda2CVDiagnostics,
+        gamma_to_k,
+        build_group_centering_k,
+    )
+    for obj in (TRexTikhonovSelector, TRexTikhonovControlParameter, TikLambda2Method,
+                PilotStatistic, TikPenaltyStructure, Lambda2PickInfo, Lambda2PilotResult,
+                Lambda2CVDiagnostics, gamma_to_k, build_group_centering_k):
+        assert callable(obj)
+    assert TikLambda2Method.CV_1SE_IEN_CCD is not None
+    assert TikPenaltyStructure.GROUP_CENTERING is not None

@@ -1,4 +1,4 @@
-from ..._core.tsolvers.afs_based import (
+from ...._core.tsolvers.ad.afs_based import (
     TAFS_Solver
 )
 

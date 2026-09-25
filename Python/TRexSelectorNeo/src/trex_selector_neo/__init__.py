@@ -18,8 +18,11 @@ from . import ml_methods
 from . import tsolvers
 from . import utils
 
-# Import the compiled C++ extension inside the nested modules
-from .trex_selector_methods import (
+# Import the compiled C++ extension inside the nested modules. The root
+# re-exports the augmented-dummy (ad) selectors as the everyday spelling;
+# the vd / sd families, once bound, stay under trex_selector_methods.vd / .sd.
+from . import trex_selector_methods
+from .trex_selector_methods.ad import (
     LLoopStrategy, ScalingMode, TRexControlParameter, SelectionResult, TRexSelector as PyTRexSelector,
     TRexDASelector as PyTRexDASelector, TRexDAControlParameter, DAMethod, BTSelectionMode, DASelectionResult,
     TRexGVSSelector as PyTRexGVSSelector, TRexGVSControlParameter, GVSType, ENSolverType,
@@ -31,6 +34,11 @@ from .trex_selector_methods import (
     SolverTypeForTRex, SolverHyperparameters, DummyDistribution,
     SPCAMode, TRexSPCAControlParameter, TRexSPCAResult,
     TRexSPCASelector as PyTRexSPCASelector,
+    Lambda2CVDiagnostics,
+    TikLambda2Method, PilotStatistic, TikPenaltyStructure,
+    Lambda2PickInfo, Lambda2PilotResult, TRexTikhonovControlParameter,
+    TRexTikhonovSelector as PyTRexTikhonovSelector,
+    gamma_to_k, build_group_centering_k,
     normalize_design,
 )
 
@@ -60,8 +68,8 @@ def _validate_core_solver_type(trex_control: "TRexControlParameter") -> None:
     if st in (SolverTypeForTRex.TCDTIKNET, SolverTypeForTRex.TIKNET,
               SolverTypeForTRex.TIKOMP):
         raise ValueError(
-            f'solver_type = {st.name} needs a Tikhonov penalty matrix '
-            '(TRexTikhonovSelector, which is not yet bound in Python).')
+            f'solver_type = {st.name} needs a Tikhonov penalty matrix; use '
+            'TRexTikhonovSelector.')
 
 
 class TRexSelector:
@@ -308,6 +316,66 @@ class TRexGVSSelector(TRexSelector):
         return self._selector.getLambda2CVDiagnostics()
 
 
+class TRexTikhonovSelector(TRexSelector):
+    """
+    Python wrapper for the C++ TRexTikhonovSelector (general-Tikhonov T-Rex).
+
+    The penalty comes from ``tik_control``: a dense p x p PSD matrix
+    ``tikhonov_K`` (``penalty_structure = SPARSE_GENERAL``, converted to sparse
+    internally) or ``GROUP_CENTERING`` built from the groups. lambda_2 < 0
+    resolves by ``tik_control.lambda2_method`` (CV tuners or the pilot power
+    rules); the dummies are cluster-aware by default. Solver: TCDTIKNET
+    (default), TIKNET or TIKOMP, chosen through ``trex_control.solver_type``.
+    """
+    def __init__(self, X: np.ndarray, y: np.ndarray, tFDR: float = 0.1,
+                 tik_control: TRexTikhonovControlParameter | None = None,
+                 trex_control: TRexControlParameter | None = None,
+                 seed: int = -1, verbose: bool = True):
+
+        self.X = np.asfortranarray(X, dtype=np.float64)
+        self.y = np.asfortranarray(y, dtype=np.float64)
+
+        if tik_control is None:
+            raise ValueError(
+                "tik_control is required (a TRexTikhonovControlParameter; it "
+                "carries the penalty matrix tikhonov_K or the penalty structure).")
+        if trex_control is None:
+            trex_control = TRexControlParameter()
+
+        # Only the Tikhonov family has a general-K mode. TLARS is the
+        # TRexControlParameter default and cannot be distinguished from an
+        # explicit choice, so it never warns; the C++ glue maps it to
+        # TCDTIKNET. Mirrors the R surface.
+        _tik_family = (SolverTypeForTRex.TCDTIKNET, SolverTypeForTRex.TIKNET,
+                       SolverTypeForTRex.TIKOMP)
+        if trex_control.solver_type not in (SolverTypeForTRex.TLARS,) + _tik_family:
+            warnings.warn(
+                f"trex_control.solver_type = {trex_control.solver_type.name} "
+                f"is not a Tikhonov-family solver; TRexTikhonovSelector accepts "
+                f"TCDTIKNET, TIKNET, or TIKOMP. Using TCDTIKNET.",
+                UserWarning,
+                stacklevel=2,
+            )
+
+        self._selector: PyTRexTikhonovSelector = PyTRexTikhonovSelector(
+            self.X, self.y, tFDR, tik_control, trex_control, seed, verbose)
+
+    @property
+    def lambda2_used(self) -> float:
+        """lambda_2 used by the last select() (solver scale); -1 before select()."""
+        return self._selector.getLambda2Used()
+
+    @property
+    def lambda2_cv_diagnostics(self) -> Lambda2CVDiagnostics:
+        """Health record of the lambda_2 tuner of the last select() (Lambda2CVDiagnostics)."""
+        return self._selector.getLambda2CVDiagnostics()
+
+    @property
+    def lambda2_pilot(self) -> Lambda2PilotResult:
+        """Record of the lambda_2 pilot of the last select() (Lambda2PilotResult; ``ran`` is False unless a PILOT_* rule resolved lambda_2)."""
+        return self._selector.getLambda2PilotResult()
+
+
 class TRexScreeningSelector(TRexSelector):
     """
     Python wrapper for the C++ TRexScreeningSelector.
@@ -539,8 +607,19 @@ __all__ = [
     "TRexSPCAControlParameter",
     "TRexSPCAResult",
     "TRexSPCASelector",
+    "Lambda2CVDiagnostics",
+    "TikLambda2Method",
+    "PilotStatistic",
+    "TikPenaltyStructure",
+    "Lambda2PickInfo",
+    "Lambda2PilotResult",
+    "TRexTikhonovControlParameter",
+    "TRexTikhonovSelector",
+    "gamma_to_k",
+    "build_group_centering_k",
     # Submodules
     "ml_methods",
     "tsolvers",
+    "trex_selector_methods",
     "utils",
 ]

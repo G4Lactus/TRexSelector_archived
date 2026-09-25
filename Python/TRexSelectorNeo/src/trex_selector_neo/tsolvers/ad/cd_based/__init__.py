@@ -1,4 +1,4 @@
-from ..._core.tsolvers.cd_based import (
+from ...._core.tsolvers.ad.cd_based import (
     TCDLASSO_Solver,
     TCDENET_Solver,
     TCDIENET_Solver,

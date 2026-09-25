@@ -10,8 +10,8 @@ import os
 import numpy as np
 import pytest
 
-from trex_selector_neo.tsolvers import ScalingMode, SolverOptions
-from trex_selector_neo.tsolvers.lars_based import (
+from trex_selector_neo.tsolvers.ad import ScalingMode, SolverOptions
+from trex_selector_neo.tsolvers.ad.lars_based import (
     TLARS_Solver,
     TENET_Solver,
     TENETAug_Solver,
@@ -158,8 +158,8 @@ def _clustered_data(seed=3):
 
 
 @pytest.mark.parametrize("make_solver", [
-    lambda X, D, y: __import__("trex_selector_neo").tsolvers.omp_based.TOMP_Solver(X, D, y),
-    lambda X, D, y: __import__("trex_selector_neo").tsolvers.afs_based.TAFS_Solver(X, D, y),
+    lambda X, D, y: __import__("trex_selector_neo").tsolvers.ad.omp_based.TOMP_Solver(X, D, y),
+    lambda X, D, y: __import__("trex_selector_neo").tsolvers.ad.afs_based.TAFS_Solver(X, D, y),
 ])
 def test_set_exchangeable_tie_reproducible(make_solver):
     X, D, y = _clustered_data()

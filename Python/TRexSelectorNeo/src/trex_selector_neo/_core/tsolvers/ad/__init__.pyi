@@ -1,5 +1,5 @@
 """
-Terminating Solvers
+Augmented-dummy (AD) T-solvers: the classical family running on [X, D]
 """
 from __future__ import annotations
 import typing

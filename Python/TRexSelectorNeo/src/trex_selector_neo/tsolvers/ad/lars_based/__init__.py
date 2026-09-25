@@ -1,4 +1,4 @@
-from ..._core.tsolvers.lars_based import (
+from ...._core.tsolvers.ad.lars_based import (
     TLARS_Solver,
     TLASSO_Solver,
     TSTEPWISE_Solver,

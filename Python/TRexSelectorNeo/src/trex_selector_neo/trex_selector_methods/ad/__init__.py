@@ -1,5 +1,5 @@
 # Core TRex Selector Methods classes
-from .._core.trex_selector_methods import (
+from ..._core.trex_selector_methods.ad import (
     LLoopStrategy,
     ScalingMode,
     normalize_design,
@@ -36,6 +36,18 @@ from .._core.trex_selector_methods import (
     TRexSPCAControlParameter,
     TRexSPCAResult,
     TRexSPCASelector,
+    # lambda_2 tuner health record (GVS and Tikhonov)
+    Lambda2CVDiagnostics,
+    # Tikhonov-TRex
+    TikLambda2Method,
+    PilotStatistic,
+    TikPenaltyStructure,
+    Lambda2PickInfo,
+    Lambda2PilotResult,
+    TRexTikhonovControlParameter,
+    TRexTikhonovSelector,
+    gamma_to_k,
+    build_group_centering_k,
 )
 
 __all__ = [
@@ -70,4 +82,14 @@ __all__ = [
     "TRexSPCAControlParameter",
     "TRexSPCAResult",
     "TRexSPCASelector",
+    "Lambda2CVDiagnostics",
+    "TikLambda2Method",
+    "PilotStatistic",
+    "TikPenaltyStructure",
+    "Lambda2PickInfo",
+    "Lambda2PilotResult",
+    "TRexTikhonovControlParameter",
+    "TRexTikhonovSelector",
+    "gamma_to_k",
+    "build_group_centering_k",
 ]

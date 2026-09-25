@@ -1,12 +1,12 @@
 """
-T-Rex Selector variants and core algorithms
+Augmented-dummy (AD) T-Rex selectors: classical, DA, GVS, screening, SPCA, Tikhonov
 """
 from __future__ import annotations
 import collections.abc
 import numpy
 import numpy.typing
 import typing
-__all__: list[str] = ['AR1', 'ActiveSet', 'BT', 'BTSelectionMode', 'BiobankScreenTRexControl', 'BiobankScreenTRexResult', 'CV_1SE_CCD', 'CV_1SE_IEN_CCD', 'CV_1SE_SVD', 'CV_1SE_TIK_SVD', 'CV_MIN_CCD', 'CV_MIN_IEN_CCD', 'CV_MIN_SVD', 'CV_MIN_TIK_SVD', 'DAMethod', 'DASelectionResult', 'DummyDistribution', 'EN', 'ENSolverType', 'EQUI', 'FeasibleOnly', 'GVSSelectionResult', 'GVSType', 'HCONCAT', 'IEN', 'L2', 'LLoopStrategy', 'Lambda2CVDiagnostics', 'LambdaSelectionMethod', 'NN', 'NONE', 'PERMUTATION', 'PERMUTATION_SEEDED', 'PRIOR_GROUPS', 'RFaithful', 'SEEDED', 'SKIPL', 'SPCAMode', 'STANDARD', 'ScalingMode', 'ScreenTRexControlParameter', 'ScreenTRexMethod', 'ScreenTRexSelectionResult', 'SelectionResult', 'SolverHyperparameters', 'SolverTypeForTRex', 'TACGP', 'TAFS', 'TCDENET', 'TCDIENET', 'TCDLASSO', 'TCDTIKNET', 'TENET', 'TENET_AUG', 'TGP', 'TIENET', 'TIENET_AUG', 'TIKNET', 'TIKOMP', 'TLARS', 'TLASSO', 'TMP', 'TNCGMP', 'TOMP', 'TOOLS', 'TREX', 'TREX_DA_AR1', 'TREX_DA_BLOCK_EQUI', 'TREX_DA_EQUI', 'TRexBiobankScreeningSelector', 'TRexControlParameter', 'TRexDAControlParameter', 'TRexDASelector', 'TRexGVSControlParameter', 'TRexGVSSelector', 'TRexSPCAControlParameter', 'TRexSPCAResult', 'TRexSPCASelector', 'TRexScreeningSelector', 'TRexSelector', 'TSTAGEWISE', 'TSTEPWISE', 'Thresholded', 'ZSCORE', 'normalize_design']
+__all__: list[str] = ['AR1', 'ActiveSet', 'BT', 'BTSelectionMode', 'BiobankScreenTRexControl', 'BiobankScreenTRexResult', 'CALIBRATED', 'CV_1SE_CCD', 'CV_1SE_IEN_CCD', 'CV_1SE_SVD', 'CV_1SE_TIK_SVD', 'CV_MIN_CCD', 'CV_MIN_IEN_CCD', 'CV_MIN_SVD', 'CV_MIN_TIK_SVD', 'DAMethod', 'DASelectionResult', 'DummyDistribution', 'EN', 'ENSolverType', 'EQUI', 'FeasibleOnly', 'GROUP_CENTERING', 'GROUP_MAJORITY', 'GVSSelectionResult', 'GVSType', 'HCONCAT', 'IEN', 'L2', 'LLoopStrategy', 'Lambda2CVDiagnostics', 'Lambda2PickInfo', 'Lambda2PilotResult', 'LambdaSelectionMethod', 'MAJORITY', 'NN', 'NONE', 'PERMUTATION', 'PERMUTATION_SEEDED', 'PILOT_KNEE', 'PILOT_MAX', 'PRIOR_GROUPS', 'PilotStatistic', 'RFaithful', 'SEEDED', 'SKIPL', 'SPARSE_GENERAL', 'SPCAMode', 'STANDARD', 'ScalingMode', 'ScreenTRexControlParameter', 'ScreenTRexMethod', 'ScreenTRexSelectionResult', 'SelectionResult', 'SolverHyperparameters', 'SolverTypeForTRex', 'TACGP', 'TAFS', 'TCDENET', 'TCDIENET', 'TCDLASSO', 'TCDTIKNET', 'TENET', 'TENET_AUG', 'TGP', 'TIENET', 'TIENET_AUG', 'TIKNET', 'TIKOMP', 'TLARS', 'TLASSO', 'TMP', 'TNCGMP', 'TOMP', 'TOOLS', 'TREX', 'TREX_DA_AR1', 'TREX_DA_BLOCK_EQUI', 'TREX_DA_EQUI', 'TRexBiobankScreeningSelector', 'TRexControlParameter', 'TRexDAControlParameter', 'TRexDASelector', 'TRexGVSControlParameter', 'TRexGVSSelector', 'TRexSPCAControlParameter', 'TRexSPCAResult', 'TRexSPCASelector', 'TRexScreeningSelector', 'TRexSelector', 'TRexTikhonovControlParameter', 'TRexTikhonovSelector', 'TSTAGEWISE', 'TSTEPWISE', 'Thresholded', 'TikLambda2Method', 'TikPenaltyStructure', 'ZSCORE', 'build_group_centering_k', 'gamma_to_k', 'normalize_design']
 class BTSelectionMode:
     """
     Cell-selection policy for the BT (binary-tree) DA method.
@@ -729,6 +729,128 @@ class Lambda2CVDiagnostics:
         """
         Support cap (glmnet dfmax) applied, or -1 when disabled.
         """
+class Lambda2PickInfo:
+    """
+    How the pilot rule picked its grid value.
+    """
+    def __init__(self) -> None:
+        ...
+    @property
+    def index(self) -> int:
+        """
+        0-based index of the pick on the pilot grid.
+        """
+    @property
+    def max_selected(self) -> int:
+        """
+        Largest selection count on the grid.
+        """
+    @property
+    def n_ties(self) -> int:
+        """
+        Grid values tied at the maximum.
+        """
+class Lambda2PilotResult:
+    """
+    Record of a lambda_2 pilot run (PILOT_MAX / PILOT_KNEE): the grid, the per-value counts and curves, the pick, and the pilot's size.
+    """
+    def __init__(self) -> None:
+        ...
+    @property
+    def K_pilot(self) -> int:
+        """
+        Pilot experiments per grid value.
+        """
+    @property
+    def L_0(self) -> int:
+        """
+        Pilot dummy multiplier.
+        """
+    @property
+    def T_pilot(self) -> int:
+        """
+        Pilot T-steps.
+        """
+    @property
+    def at_lower_end(self) -> bool:
+        """
+        The pick is the first grid value.
+        """
+    @property
+    def at_upper_end(self) -> bool:
+        """
+        The pick is the last grid value.
+        """
+    @property
+    def calibrated(self) -> list[int]:
+        """
+        Calibrated count per grid value.
+        """
+    @property
+    def counts(self) -> list[int]:
+        """
+        Selection count per grid value under pilot_statistic.
+        """
+    @property
+    def curve_majority(self) -> list[list[int]]:
+        """
+        Per grid value: majority count per pilot T-step.
+        """
+    @property
+    def curve_soft(self) -> list[list[float]]:
+        """
+        Per grid value: calibrated (soft) count per pilot T-step.
+        """
+    @property
+    def dummy_tag(self) -> int:
+        """
+        Dummy stream tag the pilot drew under.
+        """
+    @property
+    def grid(self) -> list[float]:
+        """
+        The lambda_2 grid probed.
+        """
+    @property
+    def group_majority(self) -> list[int]:
+        """
+        Group-majority count per grid value.
+        """
+    @property
+    def groups_qualifying(self) -> list[int]:
+        """
+        Groups qualifying per grid value.
+        """
+    @property
+    def index(self) -> int:
+        """
+        0-based index of the picked grid value.
+        """
+    @property
+    def lambda2(self) -> float:
+        """
+        The picked lambda_2.
+        """
+    @property
+    def pick(self) -> Lambda2PickInfo:
+        """
+        Lambda2PickInfo of the pick.
+        """
+    @property
+    def probe_seconds(self) -> list[float]:
+        """
+        Wall-clock seconds per grid value.
+        """
+    @property
+    def ran(self) -> bool:
+        """
+        A pilot ran (False: lambda_2 came from the caller or a CV tuner).
+        """
+    @property
+    def seconds(self) -> float:
+        """
+        Wall-clock seconds of the whole pilot.
+        """
 class LambdaSelectionMethod:
     """
     Rule for auto-selecting the ridge parameter lambda_2 when lambda_2 < 0.
@@ -778,6 +900,56 @@ class LambdaSelectionMethod:
         ...
     @typing.overload
     def __ne__(self, other: LambdaSelectionMethod) -> bool:
+        ...
+    @typing.overload
+    def __ne__(self, other: typing.Any) -> bool:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    def __str__(self) -> str:
+        ...
+    @property
+    def name(self) -> str:
+        ...
+    @property
+    def value(self) -> int:
+        ...
+class PilotStatistic:
+    """
+    Selection count the PILOT_* rules read per grid value.
+    
+    Members:
+    
+      MAJORITY : Variables selected in more than half of the pilot experiments.
+    
+      CALIBRATED : Calibrated count (soft curve).
+    
+      GROUP_MAJORITY : Groups whose selected fraction exceeds pilot_group_fraction.
+    """
+    CALIBRATED: typing.ClassVar[PilotStatistic]  # value = <PilotStatistic.CALIBRATED: 1>
+    GROUP_MAJORITY: typing.ClassVar[PilotStatistic]  # value = <PilotStatistic.GROUP_MAJORITY: 2>
+    MAJORITY: typing.ClassVar[PilotStatistic]  # value = <PilotStatistic.MAJORITY: 0>
+    __members__: typing.ClassVar[dict[str, PilotStatistic]]  # value = {'MAJORITY': <PilotStatistic.MAJORITY: 0>, 'CALIBRATED': <PilotStatistic.CALIBRATED: 1>, 'GROUP_MAJORITY': <PilotStatistic.GROUP_MAJORITY: 2>}
+    @typing.overload
+    def __eq__(self, other: PilotStatistic) -> bool:
+        ...
+    @typing.overload
+    def __eq__(self, other: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> int:
+        ...
+    def __hash__(self) -> int:
+        ...
+    def __index__(self) -> int:
+        ...
+    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    def __int__(self) -> int:
+        ...
+    @typing.overload
+    def __ne__(self, other: PilotStatistic) -> bool:
         ...
     @typing.overload
     def __ne__(self, other: typing.Any) -> bool:
@@ -1886,6 +2058,330 @@ class TRexSelector:
         """
         Run the T-Rex algorithm and return a SelectionResult.
         """
+class TRexTikhonovControlParameter:
+    """
+    Control parameters for TRexTikhonovSelector: the penalty (a dense p x p PSD matrix tikhonov_K, or GROUP_CENTERING built from groups), the lambda_2 rule, and the cluster-aware dummies.
+    """
+    def __init__(self) -> None:
+        ...
+    @property
+    def cluster_dummies(self) -> bool:
+        """
+        Cluster-aware MVN dummies (default True); False = i.i.d. dummies (the K = I anchor).
+        """
+    @cluster_dummies.setter
+    def cluster_dummies(self, arg0: bool) -> None:
+        ...
+    @property
+    def corr_max(self) -> float:
+        """
+        HAC cut: maximum within-cluster correlation when prior_groups is empty.
+        """
+    @corr_max.setter
+    def corr_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def cv_n_folds(self) -> int:
+        """
+        Folds of the CV tuners.
+        """
+    @cv_n_folds.setter
+    def cv_n_folds(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def cv_n_lambda(self) -> int:
+        """
+        SVD tuners: points on the lambda_2 grid.
+        """
+    @cv_n_lambda.setter
+    def cv_n_lambda(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def cv_n_lambda1(self) -> int:
+        """
+        IEN-geometry CD tuners: points on the profiled lambda_1 path per lambda_2 value.
+        """
+    @cv_n_lambda1.setter
+    def cv_n_lambda1(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def cv_n_lambda2(self) -> int:
+        """
+        IEN-geometry CD tuners: points on the lambda_2 grid.
+        """
+    @cv_n_lambda2.setter
+    def cv_n_lambda2(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def cv_seed(self) -> int:
+        """
+        Seed for the CV fold permutation (-1 = derive from the T-Rex seed).
+        """
+    @cv_seed.setter
+    def cv_seed(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def fold_dummy_coupling(self) -> bool:
+        """
+        FOLDED dummy coupling: dummies take the K block of their real counterpart (default True).
+        """
+    @fold_dummy_coupling.setter
+    def fold_dummy_coupling(self, arg0: bool) -> None:
+        ...
+    @property
+    def hc_linkage(self) -> ...:
+        """
+        HAC linkage (ml_methods.clustering.LinkageMethod).
+        """
+    @hc_linkage.setter
+    def hc_linkage(self, arg0: ...) -> None:
+        ...
+    @property
+    def lambda2_method(self) -> TikLambda2Method:
+        """
+        Rule for resolving lambda_2 when lambda_2 < 0 (default CV_1SE_IEN_CCD).
+        """
+    @lambda2_method.setter
+    def lambda2_method(self, arg0: TikLambda2Method) -> None:
+        ...
+    @property
+    def lambda_2(self) -> float:
+        """
+        Tikhonov penalty (solver scale): < 0 = resolve by lambda2_method, 0 = no ridge, > 0 = fixed.
+        """
+    @lambda_2.setter
+    def lambda_2(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def penalty_structure(self) -> TikPenaltyStructure:
+        """
+        SPARSE_GENERAL (tikhonov_K given) or GROUP_CENTERING (K from the groups).
+        """
+    @penalty_structure.setter
+    def penalty_structure(self, arg0: TikPenaltyStructure) -> None:
+        ...
+    @property
+    def pilot_K(self) -> int:
+        """
+        Pilot experiments per grid value.
+        """
+    @pilot_K.setter
+    def pilot_K(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def pilot_L_multiplier(self) -> int:
+        """
+        Pilot dummy multiplier (in [1, trex_control.max_dummy_multiplier]).
+        """
+    @pilot_L_multiplier.setter
+    def pilot_L_multiplier(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def pilot_T(self) -> int:
+        """
+        Pilot T-steps.
+        """
+    @pilot_T.setter
+    def pilot_T(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def pilot_grid(self) -> list[float]:
+        """
+        lambda_2 grid of the PILOT_* rules.
+        """
+    @pilot_grid.setter
+    def pilot_grid(self, arg0: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex]) -> None:
+        ...
+    @property
+    def pilot_group_fraction(self) -> float:
+        """
+        GROUP_MAJORITY: fraction of a group that must be selected.
+        """
+    @pilot_group_fraction.setter
+    def pilot_group_fraction(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def pilot_knee_tolerance(self) -> float:
+        """
+        PILOT_KNEE: count tolerance below the maximum.
+        """
+    @pilot_knee_tolerance.setter
+    def pilot_knee_tolerance(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def pilot_shared_dummies(self) -> bool:
+        """
+        Pilot draws its dummies under the main run's first block tag.
+        """
+    @pilot_shared_dummies.setter
+    def pilot_shared_dummies(self, arg0: bool) -> None:
+        ...
+    @property
+    def pilot_statistic(self) -> PilotStatistic:
+        """
+        Selection count the pilot reads (MAJORITY, CALIBRATED, GROUP_MAJORITY).
+        """
+    @pilot_statistic.setter
+    def pilot_statistic(self, arg0: PilotStatistic) -> None:
+        ...
+    @property
+    def prior_groups(self) -> list[int]:
+        """
+        Group assignment (0-based, length p; empty = HAC clusters from corr_max / hc_linkage).
+        """
+    @prior_groups.setter
+    def prior_groups(self, arg0: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex]) -> None:
+        ...
+    @property
+    def tikhonov_K(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]:
+        """
+        The p x p PSD penalty matrix K as a dense array (converted to sparse internally; read back dense). Required under SPARSE_GENERAL.
+        """
+    @tikhonov_K.setter
+    def tikhonov_K(self, arg1: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"]) -> None:
+        ...
+    @property
+    def trex_ctrl(self) -> TRexControlParameter:
+        """
+        Nested base T-Rex control (overridden by the separate trex_control argument of TRexTikhonovSelector).
+        """
+    @trex_ctrl.setter
+    def trex_ctrl(self, arg0: TRexControlParameter) -> None:
+        ...
+class TRexTikhonovSelector(TRexSelector):
+    """
+    T-Rex selector with a general Tikhonov penalty (TCDTIKNET / TIKNET / TIKOMP) and cluster-aware dummies.
+    """
+    def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], tFDR: typing.SupportsFloat | typing.SupportsIndex = 0.1, tik_control: TRexTikhonovControlParameter = ..., trex_control: TRexControlParameter = ..., seed: typing.SupportsInt | typing.SupportsIndex = -1, verbose: bool = True) -> None:
+        """
+        Construct the Tikhonov selector. X and y are accessed zero-copy via Eigen::Map.
+        """
+    def getLambda2CVDiagnostics(self) -> Lambda2CVDiagnostics:
+        """
+        Return the lambda_2 tuner health record of the last select().
+        """
+    def getLambda2PilotResult(self) -> Lambda2PilotResult:
+        """
+        Return the lambda_2 pilot record of the last select().
+        """
+    def getLambda2Used(self) -> float:
+        """
+        lambda_2 used by the last select() (solver scale); -1 before select().
+        """
+class TikLambda2Method:
+    """
+    Rule for resolving lambda_2 when tik_control.lambda_2 < 0.
+    
+    Members:
+    
+      CV_1SE_IEN_CCD : IEN-geometry coordinate-descent CV (lambda_1 profiled), 1-SE rule (default).
+    
+      CV_MIN_IEN_CCD : IEN-geometry coordinate-descent CV, minimum rule.
+    
+      CV_1SE_TIK_SVD : Generalized-Tikhonov SVD ridge CV, 1-SE rule.
+    
+      CV_MIN_TIK_SVD : Generalized-Tikhonov SVD ridge CV, minimum rule.
+    
+      PILOT_MAX : Power rule read off a few random experiments: the grid value with the largest selection count.
+    
+      PILOT_KNEE : Power rule: the smallest grid value within pilot_knee_tolerance of the maximum count.
+    """
+    CV_1SE_IEN_CCD: typing.ClassVar[TikLambda2Method]  # value = <TikLambda2Method.CV_1SE_IEN_CCD: 0>
+    CV_1SE_TIK_SVD: typing.ClassVar[TikLambda2Method]  # value = <TikLambda2Method.CV_1SE_TIK_SVD: 2>
+    CV_MIN_IEN_CCD: typing.ClassVar[TikLambda2Method]  # value = <TikLambda2Method.CV_MIN_IEN_CCD: 1>
+    CV_MIN_TIK_SVD: typing.ClassVar[TikLambda2Method]  # value = <TikLambda2Method.CV_MIN_TIK_SVD: 3>
+    PILOT_KNEE: typing.ClassVar[TikLambda2Method]  # value = <TikLambda2Method.PILOT_KNEE: 5>
+    PILOT_MAX: typing.ClassVar[TikLambda2Method]  # value = <TikLambda2Method.PILOT_MAX: 4>
+    __members__: typing.ClassVar[dict[str, TikLambda2Method]]  # value = {'CV_1SE_IEN_CCD': <TikLambda2Method.CV_1SE_IEN_CCD: 0>, 'CV_MIN_IEN_CCD': <TikLambda2Method.CV_MIN_IEN_CCD: 1>, 'CV_1SE_TIK_SVD': <TikLambda2Method.CV_1SE_TIK_SVD: 2>, 'CV_MIN_TIK_SVD': <TikLambda2Method.CV_MIN_TIK_SVD: 3>, 'PILOT_MAX': <TikLambda2Method.PILOT_MAX: 4>, 'PILOT_KNEE': <TikLambda2Method.PILOT_KNEE: 5>}
+    @typing.overload
+    def __eq__(self, other: TikLambda2Method) -> bool:
+        ...
+    @typing.overload
+    def __eq__(self, other: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> int:
+        ...
+    def __hash__(self) -> int:
+        ...
+    def __index__(self) -> int:
+        ...
+    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    def __int__(self) -> int:
+        ...
+    @typing.overload
+    def __ne__(self, other: TikLambda2Method) -> bool:
+        ...
+    @typing.overload
+    def __ne__(self, other: typing.Any) -> bool:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    def __str__(self) -> str:
+        ...
+    @property
+    def name(self) -> str:
+        ...
+    @property
+    def value(self) -> int:
+        ...
+class TikPenaltyStructure:
+    """
+    Where the penalty matrix comes from.
+    
+    Members:
+    
+      SPARSE_GENERAL : tik_control.tikhonov_K is the p x p PSD penalty matrix (dense array, converted to sparse).
+    
+      GROUP_CENTERING : K = I - J/p_m per group, built from prior_groups (or the HAC clusters).
+    """
+    GROUP_CENTERING: typing.ClassVar[TikPenaltyStructure]  # value = <TikPenaltyStructure.GROUP_CENTERING: 1>
+    SPARSE_GENERAL: typing.ClassVar[TikPenaltyStructure]  # value = <TikPenaltyStructure.SPARSE_GENERAL: 0>
+    __members__: typing.ClassVar[dict[str, TikPenaltyStructure]]  # value = {'SPARSE_GENERAL': <TikPenaltyStructure.SPARSE_GENERAL: 0>, 'GROUP_CENTERING': <TikPenaltyStructure.GROUP_CENTERING: 1>}
+    @typing.overload
+    def __eq__(self, other: TikPenaltyStructure) -> bool:
+        ...
+    @typing.overload
+    def __eq__(self, other: typing.Any) -> bool:
+        ...
+    def __getstate__(self) -> int:
+        ...
+    def __hash__(self) -> int:
+        ...
+    def __index__(self) -> int:
+        ...
+    def __init__(self, value: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    def __int__(self) -> int:
+        ...
+    @typing.overload
+    def __ne__(self, other: TikPenaltyStructure) -> bool:
+        ...
+    @typing.overload
+    def __ne__(self, other: typing.Any) -> bool:
+        ...
+    def __repr__(self) -> str:
+        ...
+    def __setstate__(self, state: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    def __str__(self) -> str:
+        ...
+    @property
+    def name(self) -> str:
+        ...
+    @property
+    def value(self) -> int:
+        ...
+def build_group_centering_k(prior_groups: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]:
+    """
+    Build the GROUP_CENTERING penalty K = blockdiag(I - J/p_m) from a 0-based group assignment (dense out).
+    """
+def gamma_to_k(gamma: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]:
+    """
+    Build the penalty matrix K = Gamma^T Gamma from a (q x p) Tikhonov operator Gamma (dense in, dense out).
+    """
 def normalize_design(X: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"], y: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"], scaling_mode: ScalingMode = ..., eps: typing.SupportsFloat | typing.SupportsIndex = 1e-06) -> dict:
     """
     Apply the selectors' data normalization to copies of X and y and return a dict with keys 'X', 'y' (the normalized copies), 'X_means', 'X_scales' (the per-column divisors: L2 norms for L2, sample SDs for ZSCORE, ones for NONE) and 'y_mean'. Under ScalingMode.NONE the copies equal the inputs and the parameters are the identity. eps is the dead-column threshold on the working L2 norm (the selectors use the solver tolerance, default 1e-6). Raises ValueError on a non-finite entry or a dead column (constant under L2 / ZSCORE, all-zero under NONE), naming the column (0-based).
@@ -1893,28 +2389,35 @@ def normalize_design(X: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, 
 AR1: DAMethod  # value = <DAMethod.AR1: 0>
 ActiveSet: SPCAMode  # value = <SPCAMode.ActiveSet: 0>
 BT: DAMethod  # value = <DAMethod.BT: 2>
+CALIBRATED: PilotStatistic  # value = <PilotStatistic.CALIBRATED: 1>
 CV_1SE_CCD: LambdaSelectionMethod  # value = <LambdaSelectionMethod.CV_1SE_CCD: 2>
-CV_1SE_IEN_CCD: LambdaSelectionMethod  # value = <LambdaSelectionMethod.CV_1SE_IEN_CCD: 4>
+CV_1SE_IEN_CCD: TikLambda2Method  # value = <TikLambda2Method.CV_1SE_IEN_CCD: 0>
 CV_1SE_SVD: LambdaSelectionMethod  # value = <LambdaSelectionMethod.CV_1SE_SVD: 0>
-CV_1SE_TIK_SVD: LambdaSelectionMethod  # value = <LambdaSelectionMethod.CV_1SE_TIK_SVD: 6>
+CV_1SE_TIK_SVD: TikLambda2Method  # value = <TikLambda2Method.CV_1SE_TIK_SVD: 2>
 CV_MIN_CCD: LambdaSelectionMethod  # value = <LambdaSelectionMethod.CV_MIN_CCD: 3>
-CV_MIN_IEN_CCD: LambdaSelectionMethod  # value = <LambdaSelectionMethod.CV_MIN_IEN_CCD: 5>
+CV_MIN_IEN_CCD: TikLambda2Method  # value = <TikLambda2Method.CV_MIN_IEN_CCD: 1>
 CV_MIN_SVD: LambdaSelectionMethod  # value = <LambdaSelectionMethod.CV_MIN_SVD: 1>
-CV_MIN_TIK_SVD: LambdaSelectionMethod  # value = <LambdaSelectionMethod.CV_MIN_TIK_SVD: 7>
+CV_MIN_TIK_SVD: TikLambda2Method  # value = <TikLambda2Method.CV_MIN_TIK_SVD: 3>
 EN: GVSType  # value = <GVSType.EN: 0>
 EQUI: DAMethod  # value = <DAMethod.EQUI: 1>
 FeasibleOnly: BTSelectionMode  # value = <BTSelectionMode.FeasibleOnly: 0>
+GROUP_CENTERING: TikPenaltyStructure  # value = <TikPenaltyStructure.GROUP_CENTERING: 1>
+GROUP_MAJORITY: PilotStatistic  # value = <PilotStatistic.GROUP_MAJORITY: 2>
 HCONCAT: LLoopStrategy  # value = <LLoopStrategy.HCONCAT: 2>
 IEN: GVSType  # value = <GVSType.IEN: 1>
 L2: ScalingMode  # value = <ScalingMode.L2: 0>
+MAJORITY: PilotStatistic  # value = <PilotStatistic.MAJORITY: 0>
 NN: DAMethod  # value = <DAMethod.NN: 3>
 NONE: ScalingMode  # value = <ScalingMode.NONE: 2>
 PERMUTATION: LLoopStrategy  # value = <LLoopStrategy.PERMUTATION: 3>
 PERMUTATION_SEEDED: LLoopStrategy  # value = <LLoopStrategy.PERMUTATION_SEEDED: 4>
+PILOT_KNEE: TikLambda2Method  # value = <TikLambda2Method.PILOT_KNEE: 5>
+PILOT_MAX: TikLambda2Method  # value = <TikLambda2Method.PILOT_MAX: 4>
 PRIOR_GROUPS: DAMethod  # value = <DAMethod.PRIOR_GROUPS: 4>
 RFaithful: BTSelectionMode  # value = <BTSelectionMode.RFaithful: 1>
 SEEDED: LLoopStrategy  # value = <LLoopStrategy.SEEDED: 5>
 SKIPL: LLoopStrategy  # value = <LLoopStrategy.SKIPL: 0>
+SPARSE_GENERAL: TikPenaltyStructure  # value = <TikPenaltyStructure.SPARSE_GENERAL: 0>
 STANDARD: LLoopStrategy  # value = <LLoopStrategy.STANDARD: 1>
 TACGP: SolverTypeForTRex  # value = <SolverTypeForTRex.TACGP: 16>
 TAFS: SolverTypeForTRex  # value = <SolverTypeForTRex.TAFS: 20>

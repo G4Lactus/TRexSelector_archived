@@ -1,16 +1,11 @@
-from .._core.tsolvers import ScalingMode, SolverOptions, GroupPenaltyVariant
+"""Terminating solvers, one subpackage per dummy mechanism.
 
-from . import lars_based
-from . import omp_based
-from . import afs_based
-from . import cd_based
+Mirrors ``cpp/src/tsolvers/{ad, vd, sd}``: ``ad`` holds the augmented-dummy
+(classical) family that runs on the augmented design ``[X, D]``. The
+virtual-dummy (``vd``) and sparse-dummy (``sd``) families join once they are
+validated and bound. The families share no code and no class serves more than
+one mechanism.
+"""
+from . import ad
 
-__all__ = [
-    "ScalingMode",
-    "SolverOptions",
-    "GroupPenaltyVariant",
-    "lars_based",
-    "omp_based",
-    "afs_based",
-    "cd_based",
-]
+__all__ = ["ad"]
