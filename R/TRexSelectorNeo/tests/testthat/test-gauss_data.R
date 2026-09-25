@@ -64,9 +64,7 @@ test_that("TRexSelector runs on Gauss_data and returns valid selection", {
 
   expect_type(idx, "integer")
   expect_length(sv, p_g)
-  if (length(idx) > 0) {
-    expect_true(all(idx >= 1L & idx <= p_g))
-  }
+  expect_true(all(idx >= 1L & idx <= p_g))
   expect_equal(sort(idx), which(sv))
 })
 
@@ -83,9 +81,7 @@ test_that("TRexGVSSelector (EN and IEN) runs on Gauss_data and returns valid sel
 
     expect_type(idx, "integer")
     expect_length(sv, p_g)
-    if (length(idx) > 0) {
-      expect_true(all(idx >= 1L & idx <= p_g))
-    }
+    expect_true(all(idx >= 1L & idx <= p_g))
     expect_equal(sort(idx), which(sv))
   }
 })
@@ -100,9 +96,7 @@ test_that("TRexScreeningSelector runs on Gauss_data and returns valid selection"
 
   expect_type(idx, "integer")
   expect_length(sv, p_g)
-  if (length(idx) > 0) {
-    expect_true(all(idx >= 1L & idx <= p_g))
-  }
+  expect_true(all(idx >= 1L & idx <= p_g))
   expect_equal(sort(idx), which(sv))
 })
 
@@ -116,9 +110,7 @@ test_that("TRexDASelector runs on Gauss_data and returns valid selection", {
 
   expect_type(idx, "integer")
   expect_length(sv, p_g)
-  if (length(idx) > 0) {
-    expect_true(all(idx >= 1L & idx <= p_g))
-  }
+  expect_true(all(idx >= 1L & idx <= p_g))
   expect_equal(sort(idx), which(sv))
 })
 
@@ -130,7 +122,5 @@ test_that("TRexBiobankScreeningSelector runs on Gauss_data and returns valid sel
 
   idx <- res$selected_indices
   expect_type(idx, "integer")
-  if (length(idx) > 0) {
-    expect_true(all(idx >= 1L & idx <= p_g))
-  }
+  expect_true(all(idx >= 1L & idx <= p_g))
 })

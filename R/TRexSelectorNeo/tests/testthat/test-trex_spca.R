@@ -159,10 +159,8 @@ test_that("TRexSPCASelector: active set indices are within [1, p]", {
   for (as_m in sel$active_sets) {
     # An empty active set is a valid FDR-conservative outcome.
     expect_true(length(as_m) >= 0)
-    if (length(as_m) > 0) {
-      expect_true(all(as_m >= 1L))
-      expect_true(all(as_m <= d$p))
-    }
+    expect_true(all(as_m >= 1L))
+    expect_true(all(as_m <= d$p))
   }
 })
 

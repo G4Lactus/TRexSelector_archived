@@ -78,9 +78,7 @@ test_that("TRexSelector selected_indices are 1-based and in [1, p]", {
 
   idx <- selector$selected_indices
   expect_type(idx, "integer")
-  if (length(idx) > 0) {
-    expect_true(all(idx >= 1L & idx <= p))
-  }
+  expect_true(all(idx >= 1L & idx <= p))
 })
 
 
@@ -157,9 +155,7 @@ test_that("TRexSelector multiple solver methods return 1-based indices consisten
     expect_type(idx, "integer")
     expect_length(sv, p)
 
-    if (length(idx) > 0) {
-      expect_true(all(idx >= 1L & idx <= p), label = paste(method, "1-based in [1,p]"))
-    }
+    expect_true(all(idx >= 1L & idx <= p), label = paste(method, "1-based in [1,p]"))
     expect_equal(sort(idx), which(sv), label = paste(method, "consistency"))
   }
 })
@@ -180,17 +176,18 @@ test_that("exchangeable tie-breaking is plumbed through for greedy solvers", {
   for (j in 1:4) X[, j] <- base + 0.3 * rnorm(n)
   y <- base * 3.0 + rnorm(n)
 
+  # Seeded selector (dummies and tie-breaks) and an unconditional
+  # expectation, so the expectation count of the suite does not depend on
+  # whether this run happened to select anything.
   for (method in c("TOMP", "TAFS")) {
     sel <- TRexSelector$new(
-      X, y, tFDR = 0.2, verbose = FALSE,
+      X, y, tFDR = 0.2, seed = 1, verbose = FALSE,
       control = trex_control(K = 5, solver = method,
                              exch_tie_alpha = 0.25, exch_tie_floor = 0.5)
     )
     sel$select()
     idx <- sel$selected_indices
-    if (length(idx) > 0) {
-      expect_true(all(idx >= 1L & idx <= p),
-                  label = paste(method, "tie-broken run in [1,p]"))
-    }
+    expect_true(all(idx >= 1L & idx <= p),
+                label = paste(method, "tie-broken run in [1,p]"))
   }
 })

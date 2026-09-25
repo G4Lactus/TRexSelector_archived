@@ -49,9 +49,7 @@ test_that("TRexDASelector executes correctly with valid data", {
   expect_type(res_num_dummies, "integer")
 
   # Bounds check on output selected indices (1 <= index <= p)
-  if (length(res_indices) > 0) {
-    expect_true(all(res_indices >= 1 & res_indices <= p))
-  }
+  expect_true(all(res_indices >= 1 & res_indices <= p))
 })
 
 
@@ -73,10 +71,8 @@ test_that("TRexDASelector supports da_method = 'NN' (nearest-neighbour sweep)", 
   expect_no_error(selector$select())
   expect_identical(selector$da_method_used, "NN")
   expect_type(selector$selected_indices, "integer")
-  if (length(selector$selected_indices) > 0) {
-    expect_true(all(selector$selected_indices >= 1 &
-                    selector$selected_indices <= p))
-  }
+  expect_true(all(selector$selected_indices >= 1 &
+                  selector$selected_indices <= p))
   # NN runs a BT-style rho grid
   expect_gt(length(selector$rho_grid), 0L)
 })
@@ -106,10 +102,8 @@ test_that("TRexDASelector supports the prior-groups DA path", {
   )
   expect_no_error(selector$select())
   expect_type(selector$selected_indices, "integer")
-  if (length(selector$selected_indices) > 0) {
-    expect_true(all(selector$selected_indices >= 1 &
-                    selector$selected_indices <= p))
-  }
+  expect_true(all(selector$selected_indices >= 1 &
+                  selector$selected_indices <= p))
   # Data-driven rho grid: hc_grid_length points (default min(20, p) = 8),
   # ascending and terminated by the conservative rho = 1 singleton anchor.
   expect_equal(length(selector$rho_grid), p)
@@ -336,9 +330,7 @@ test_that("TRexDASelector selected_var and selected_indices are consistent (1-ba
 
   expect_type(idx, "integer")
   expect_length(sv, p)
-  if (length(idx) > 0) {
-    expect_true(all(idx >= 1L & idx <= p))
-  }
+  expect_true(all(idx >= 1L & idx <= p))
   expect_equal(sort(idx), which(sv))
 })
 

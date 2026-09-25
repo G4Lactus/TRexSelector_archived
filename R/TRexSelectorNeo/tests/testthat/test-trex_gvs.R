@@ -67,9 +67,7 @@ test_that("TRexGVSSelector executes correctly with valid data", {
   expect_type(res_T_stop, "integer")
 
   # Bounds check on output selected indices (1 <= index <= p)
-  if (length(res_indices) > 0) {
-    expect_true(all(res_indices >= 1 & res_indices <= p))
-  }
+  expect_true(all(res_indices >= 1 & res_indices <= p))
 })
 
 
@@ -282,9 +280,7 @@ test_that("TRexGVSSelector selected_var and selected_indices are consistent (1-b
     expect_type(idx, "integer")
     expect_length(sv, p)
 
-    if (length(idx) > 0) {
-      expect_true(all(idx >= 1L & idx <= p), label = paste(gvs, "1-based in [1,p]"))
-    }
+    expect_true(all(idx >= 1L & idx <= p), label = paste(gvs, "1-based in [1,p]"))
     expect_equal(sort(idx), which(sv), label = paste(gvs, "consistency"))
   }
 })

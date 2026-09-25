@@ -175,9 +175,7 @@ test_that("TRexBiobankScreeningSelector 1D result has 1-based indices in [1, p]"
   # selected_indices are 1-based integers in [1, p]
   idx <- res$selected_indices
   expect_type(idx, "integer")
-  if (length(idx) > 0) {
-    expect_true(all(idx >= 1L & idx <= p))
-  }
+  expect_true(all(idx >= 1L & idx <= p))
 
   # sub-method index fields are present and also 1-based in [1, p]
   expect_true("selected_indices_screen_ordinary" %in% names(res))
@@ -186,9 +184,7 @@ test_that("TRexBiobankScreeningSelector 1D result has 1-based indices in [1, p]"
   for (field in c("selected_indices_screen_ordinary", "selected_indices_screen_bootstrap")) {
     sub_idx <- res[[field]]
     expect_type(sub_idx, "integer")
-    if (length(sub_idx) > 0) {
-      expect_true(all(sub_idx >= 1L & sub_idx <= p), label = paste(field, "1-based in [1,p]"))
-    }
+    expect_true(all(sub_idx >= 1L & sub_idx <= p), label = paste(field, "1-based in [1,p]"))
   }
 
   # estimated_FDR is a non-negative double
@@ -226,10 +222,8 @@ test_that("TRexBiobankScreeningSelector 2D result has 1-based phenotype_index an
     for (field in index_fields) {
       idx <- rec[[field]]
       expect_type(idx, "integer")
-      if (length(idx) > 0) {
-        expect_true(all(idx >= 1L & idx <= p),
-                    label = paste(field, "phenotype", i, "1-based in [1,p]"))
-      }
+      expect_true(all(idx >= 1L & idx <= p),
+                  label = paste(field, "phenotype", i, "1-based in [1,p]"))
     }
   }
 })
