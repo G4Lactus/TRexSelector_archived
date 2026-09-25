@@ -46,6 +46,29 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
 
 ### 2026-09-25
 
+#### Linux verification (OrbStack): two platform-bound tests, broken Rd pages
+
+- The three Ubuntu CI jobs were reproduced in an `ubuntu:24.04` container
+  (GCC 13, Eigen 3.4, R 4.3.3, Python 3.12) on the committed tree, plus the
+  install smoke, `R CMD check` and the cibuildwheel manylinux_2_28 x86_64
+  wheels with their in-container test run. Everything passed except:
+- Two C++ tests calibrated on macOS data: `std::normal_distribution` and
+  `std::rand` (behind `Eigen::Random`) are implementation-defined, so the
+  same seed draws different data under libc++ / macOS libc and libstdc++ /
+  glibc. `EnetCvCcdTest.KeepsGlmnetLambdaRuleAndDetectsGridFloorPin` now
+  asserts the wide-versus-pinned ratio with a margin both platforms clear
+  (1.2; observed 1.9 on macOS, 1.32 on Linux), and
+  `TSolverTikTest.SerializeLoadContinueAcrossDropRecovery_TIKNET` probes a
+  small seed range until a design yields a checkpoint mid-recovery instead
+  of relying on seed 12. Both pass on both platforms.
+- Three R help pages were unparseable: an apostrophe in
+  `\code{lambda2 * beta' K beta}` opens an R string literal in Rd (the
+  TIKNET, TIKOMP and TCDTIKNET pages; now `t(beta) K beta`), a bare
+  `[0.25, 4]` became a broken link and `\ldots` sat inside a `\code{}` on
+  the `trex_control` page. CI never saw this because the R job installs
+  with `--no-docs` and does not run `R CMD check`; the check step is added
+  to the workflow.
+
 #### Python: one subpackage per dummy mechanism, and the Tikhonov selector
 
 - `trex_selector_neo.tsolvers.ad.{lars_based, omp_based, afs_based, cd_based}`
