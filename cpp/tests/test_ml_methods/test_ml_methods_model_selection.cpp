@@ -972,13 +972,17 @@ TEST(EnetCvCcdTest, KeepsGlmnetLambdaRuleAndDetectsGridFloorPin) {
     EXPECT_NE(cv.index_min(), 0);
 
     // Widening the range moves the pick interior and materially changes it —
-    // i.e. the flag above is a true positive, not a formality.
+    // i.e. the flag above is a true positive, not a formality. The size of
+    // the move depends on the drawn data, and std::normal_distribution is
+    // implementation-defined: the same mt19937 seed gives different deviates
+    // under libc++ (macOS: ratio 1.9) and libstdc++ (Linux: 1.32). The
+    // margin below holds on both.
     enet_cv_ccd wide;
     wide.fit(X, y, 0.0, 4, 100, 1e-6);
     EXPECT_FALSE(wide.selection_at_grid_edge());
     EXPECT_LT(wide.cv_min(), cv.cv_min());
     EXPECT_LT(wide.cv_1se(), cv.cv_1se());
-    EXPECT_GT(cv.cv_1se() / wide.cv_1se(), 1.5);
+    EXPECT_GT(cv.cv_1se() / wide.cv_1se(), 1.2);
 }
 
 

@@ -168,6 +168,37 @@ struct DropDesign {
 };
 
 
+/** @brief Portable twin of DropDesign: the same construction drawn from
+ *  mt19937 + uniform_real_distribution, whose generate_canonical the
+ *  standard specifies exactly, instead of std::rand behind Eigen::Random,
+ *  which differs between glibc and the macOS libc. The design is therefore
+ *  bit-identical on every platform, and a seed that produces a given path
+ *  event (here: a checkpoint mid-recovery) on one platform produces it on
+ *  all. Filled with explicit loops so the draw order is fixed. */
+struct PortableDropDesign {
+    Eigen::MatrixXd X, D;
+    Eigen::VectorXd y;
+    PortableDropDesign(Eigen::Index p, unsigned seed,
+                       double c1 = 0.95, double c2 = 0.90, double noise = 0.1) {
+        std::mt19937 gen(seed);
+        std::uniform_real_distribution<double> u(-1.0, 1.0);
+        auto draw = [&](Eigen::Index rows, Eigen::Index cols) {
+            Eigen::MatrixXd M(rows, cols);
+            for (Eigen::Index c = 0; c < cols; ++c)
+                for (Eigen::Index r = 0; r < rows; ++r)
+                    M(r, c) = u(gen);
+            return M;
+        };
+        X = draw(200, p);
+        X.col(1) = c1 * X.col(0) + (1.0 - c1) * X.col(1);
+        X.col(2) = c2 * X.col(0) + (1.0 - c2) * X.col(2);
+        D = draw(200, p);
+        y = 5.0 * X.col(0) - 4.0 * X.col(1) + 2.0 * X.col(2) +
+            noise * draw(200, 1).col(0);
+    }
+};
+
+
 /** @brief Small saturating design: n = 12 << p + L = 30 columns, kept
  *  UNCENTERED with unit-norm columns so that (normalize = false,
  *  intercept = false) leaves the data untouched, effective_n = n, and the
@@ -697,8 +728,14 @@ TEST_F(TSolverTikTest, TiknetMultiDropPathStaysAligned) {
  *  checkpoints land mid-recovery (its final action holds a drop) and the
  *  sweep must hit at least one. */
 TEST_F(TSolverTikTest, SerializeLoadContinueAcrossDropRecovery_TIKNET) {
-    DropDesign dd(20, 12);
-    dd.y += 2.0 * dd.D.col(5);  // dummy signal pulls a dummy admission
+    // Whether a probe stopped by its dummy count ends on a drop step depends
+    // on the drawn data, so the design is the PortableDropDesign (identical
+    // on every platform; DropDesign's std::rand data differ between glibc
+    // and the macOS libc, and its seed 12 hit only on the latter). The
+    // configuration below was found by a search over seeds, signal columns
+    // and amplitudes (2026-09-25): the T = 2 probe ends on a drop step.
+    PortableDropDesign dd(20, 75);
+    dd.y += 5.0 * dd.D.col(5);  // dummy signal pulls a dummy admission
                                 // onto a drop step (pending checkpoint)
     X = dd.X;   // the round-trip helper reads the fixture members
     D = dd.D;
