@@ -24,6 +24,7 @@
 
 // std includes
 #include <algorithm>
+#include <utility>
 #include <cmath>
 #include <functional>
 #include <limits>
@@ -56,8 +57,29 @@ class enet_gaussian {
 
 public:
 
-    /** @brief Default constructor. */
+    /** @brief Default constructor: the copying engine. */
     enet_gaussian() = default;
+
+    /**
+     * @brief Choose the engine (2026-09-25, Tier C1 of notes/ZERO_COPY_PLAN.md).
+     *
+     * @param low_memory false (default): the coordinate descent runs on a
+     *        centred and standardised working copy of X (one n x p matrix
+     *        while fitting; bit-identical to every earlier release). true:
+     *        the descent runs on the raw X through the caller's view — a
+     *        memory-mapped file included — with the centring carried as a
+     *        scalar residual offset and the standardisation as a per-column
+     *        scale; no allocation of the size of X. Same estimator, same
+     *        grid; the two engines agree to rounding (about 1e-12 in the
+     *        coefficients), so a CV pick can differ only on a flat curve.
+     */
+    explicit enet_gaussian(bool low_memory) : low_memory_(low_memory) {}
+
+    /** @brief Switch the engine (see the constructor); takes effect at the next fit(). */
+    void set_low_memory(bool low_memory) noexcept { low_memory_ = low_memory; }
+
+    /** @brief Whether the raw-X (no working copy) engine is selected. */
+    bool low_memory() const noexcept { return low_memory_; }
 
     /**
      * @brief Fit the elastic-net path over an auto-generated glmnet-style grid.
@@ -91,6 +113,12 @@ public:
              double       tol              = 1e-7)
     {
         validate_inputs(X, y, alpha);
+        if (low_memory_) {
+            fit_raw_(X, y, /*mask=*/nullptr, /*lambda_grid=*/nullptr, alpha, n_lambda,
+                     lambda_min_ratio, standardize, intercept, use_strong_rule,
+                     max_iter, tol, /*allow_early_stop=*/true);
+            return;
+        }
         preprocess(X, y, standardize, intercept);
 
         const double alpha_eff = (alpha > 1e-3) ? alpha : 1e-3;
@@ -114,6 +142,7 @@ public:
 
         lambdas_ = make_log_grid(lambda_max, lambda_max * lmr, n_lambda);
         solve(alpha, use_strong_rule, max_iter, tol, /*allow_early_stop=*/true);
+        release_working_set();
     }
 
     /**
@@ -148,12 +177,96 @@ public:
             throw std::invalid_argument(
                 "enet_gaussian::fit: lambda_grid is empty");
         }
+        if (low_memory_) {
+            const Eigen::VectorXd grid = lambda_grid;
+            fit_raw_(X, y, /*mask=*/nullptr, &grid, alpha, 0, -1.0,
+                     standardize, intercept, use_strong_rule, max_iter, tol,
+                     /*allow_early_stop=*/false);
+            return;
+        }
         preprocess(X, y, standardize, intercept);
 
         lambdas_ = lambda_grid;
         std::sort(lambdas_.data(), lambdas_.data() + lambdas_.size(),
                   std::greater<double>());
         solve(alpha, use_strong_rule, max_iter, tol, /*allow_early_stop=*/false);
+        release_working_set();
+    }
+
+    /**
+     * @brief Fit at a caller-supplied grid on an OWNED predictor matrix,
+     *        which becomes the working copy Xs_ (centred and standardised in
+     *        place): one n x p matrix instead of two. Used by the CV folds
+     *        (2026-09-25, Tier B). Results are bit-identical to fit() on the
+     *        same matrix.
+     */
+    void fit_owned(Eigen::MatrixXd&& X_owned,
+                   Eigen::Ref<const Eigen::VectorXd> y,
+                   Eigen::Ref<const Eigen::VectorXd> lambda_grid,
+                   double alpha           = 1.0,
+                   bool   standardize     = true,
+                   bool   intercept       = true,
+                   bool   use_strong_rule = false,
+                   int    max_iter        = 100000,
+                   double tol             = 1e-7)
+    {
+        validate_inputs(X_owned, y, alpha);
+        if (lambda_grid.size() == 0) {
+            throw std::invalid_argument(
+                "enet_gaussian::fit_owned: lambda_grid is empty");
+        }
+        preprocess_owned(std::move(X_owned), y, standardize, intercept);
+        lambdas_ = lambda_grid;
+        std::sort(lambdas_.data(), lambdas_.data() + lambdas_.size(),
+                  std::greater<double>());
+        solve(alpha, use_strong_rule, max_iter, tol, /*allow_early_stop=*/false);
+        release_working_set();
+    }
+
+    /**
+     * @brief Fit at a caller-supplied grid on the rows selected by a 0/1 mask,
+     *        with the raw-X engine: the training fold is never gathered
+     *        (2026-09-25, Tier C1; used by enet_cv_ccd in low-memory mode).
+     *
+     * @param mask  Length n, 1 for a training row, 0 for a held-out row. The
+     *              column statistics, the response scaling and every dot
+     *              product are taken over the training rows only.
+     */
+    void fit_masked(Eigen::Ref<const Eigen::MatrixXd>  X,
+                    Eigen::Ref<const Eigen::VectorXd>  y,
+                    const Eigen::VectorXd&             mask,
+                    Eigen::Ref<const Eigen::VectorXd>  lambda_grid,
+                    double alpha           = 1.0,
+                    bool   standardize     = true,
+                    bool   intercept       = true,
+                    bool   use_strong_rule = false,
+                    int    max_iter        = 100000,
+                    double tol             = 1e-7)
+    {
+        validate_inputs(X, y, alpha);
+        if (lambda_grid.size() == 0) {
+            throw std::invalid_argument(
+                "enet_gaussian::fit_masked: lambda_grid is empty");
+        }
+        const Eigen::VectorXd grid = lambda_grid;
+        fit_raw_(X, y, &mask, &grid, alpha, 0, -1.0, standardize, intercept,
+                 use_strong_rule, max_iter, tol, /*allow_early_stop=*/false);
+    }
+
+    /**
+     * @brief Predictions per lambda for a subset of rows of X, read row by
+     *        row (no gathered copy of the rows); companion of fit_masked().
+     */
+    Eigen::MatrixXd predict_rows(Eigen::Ref<const Eigen::MatrixXd> X,
+                                 const std::vector<Eigen::Index>& rows) const
+    {
+        const Eigen::Index K = beta_.cols();
+        Eigen::MatrixXd out(static_cast<Eigen::Index>(rows.size()), K);
+        for (std::size_t t = 0; t < rows.size(); ++t) {
+            out.row(static_cast<Eigen::Index>(t)) =
+                (X.row(rows[t]) * beta_) + a0_.transpose();
+        }
+        return out;
     }
 
     // public member accessors ------------------------------------------------
@@ -300,14 +413,21 @@ private:
             rsq_prev = rsq;
         }
 
-        // truncate the path to the lambdas actually fitted (early-stop case).
+        finish_path_(Bs, n_fit);
+    }
+
+    /** @brief Truncate the path to the lambdas actually fitted and back-scale
+     *  the standardised coefficients to the original predictor space with
+     *  the intercepts (shared by both engines). */
+    void finish_path_(const Eigen::MatrixXd& Bs, Eigen::Index n_fit)
+    {
+        const Eigen::Index K = lambdas_.size();
         if (n_fit != K) {
             lambdas_.conservativeResize(n_fit);
             dev_ratio_.conservativeResize(n_fit);
         }
         const Eigen::Index Kfit = n_fit;
 
-        // --- back-scale to original predictor space + intercepts ------------
         // Bs is in (standardised-x, standardised-y) units; restore both scales.
         beta_.resize(p_, Kfit);
         for (Eigen::Index j = 0; j < p_; ++j) {
@@ -317,6 +437,221 @@ private:
         for (Eigen::Index l = 0; l < Kfit; ++l) {
             a0_(l) = y_mean_ - x_mean_.dot(beta_.col(l));
         }
+    }
+
+    // ---- low-memory engine: coordinate descent on the raw X ------------------
+    //
+    // (2026-09-25, Tier C1 of notes/ZERO_COPY_PLAN.md.) The copying engine
+    // works on Xs = (X - m) / s. Here the descent reads X itself:
+    //   * the column means m_j, the centred sums of squares and the scales s_j
+    //     are computed in two read-only passes over the (masked) rows;
+    //   * the residual r_true = r + c is kept as a vector r plus a scalar
+    //     offset c, because subtracting a standardised column changes every
+    //     row by the same amount m_j * diff / s_j; the vector update touches
+    //     X's column only;
+    //   * a correlation with a standardised column is
+    //       ((w o x_j) . r + c * sum_w(x_j) - m_j * sum_w(r_true)) / s_j,
+    //     where w is the 0/1 training mask (dropped when there is none);
+    //   * the offset is folded into r once per sweep, which keeps the
+    //     training residual mean-zero and the dot products free of the
+    //     cancellation a large column mean would otherwise cause.
+    // Same estimator and grid as the copying engine; they agree to rounding.
+
+    void fit_raw_(Eigen::Ref<const Eigen::MatrixXd> X,
+                  Eigen::Ref<const Eigen::VectorXd> y,
+                  const Eigen::VectorXd* mask,
+                  const Eigen::VectorXd* lambda_grid,
+                  double alpha, Eigen::Index n_lambda, double lambda_min_ratio,
+                  bool standardize, bool intercept, bool use_strong_rule,
+                  int max_iter, double tol, bool allow_early_stop)
+    {
+        n_ = X.rows();
+        p_ = X.cols();
+        const bool masked = (mask != nullptr);
+        if (masked && mask->size() != n_) {
+            throw std::invalid_argument("enet_gaussian::fit_masked: mask length != n");
+        }
+        const double n_w = masked ? mask->sum() : static_cast<double>(n_);
+        if (n_w < 2.0) {
+            throw std::invalid_argument("enet_gaussian: fewer than 2 training rows");
+        }
+        const double inv_nw = 1.0 / n_w;
+
+        // column statistics over the training rows: two read-only passes
+        x_mean_.resize(p_);
+        col_sum_.resize(p_);
+        d_.resize(p_);
+        x_scale_ = Eigen::VectorXd::Ones(p_);
+        for (Eigen::Index j = 0; j < p_; ++j) {
+            const auto   xj  = X.col(j);
+            const double sum = masked ? mask->dot(xj) : xj.sum();
+            col_sum_(j) = sum;
+            const double m = intercept ? sum * inv_nw : 0.0;
+            x_mean_(j) = m;
+            const double css = masked
+                ? (mask->array() * (xj.array() - m).square()).sum()
+                : (xj.array() - m).square().sum();
+            if (standardize) {
+                const double sd = std::sqrt(css * inv_nw);
+                if (sd > 1e-12) { x_scale_(j) = sd; }
+            }
+            d_(j) = css * inv_nw / (x_scale_(j) * x_scale_(j));
+        }
+
+        // response: centred over the training rows, held-out rows carry zero
+        y_mean_ = intercept ? (masked ? mask->dot(y) * inv_nw : y.mean()) : 0.0;
+        yc_ = y.array() - y_mean_;
+        if (masked) { yc_.array() *= mask->array(); }
+        y_scale_ = std::sqrt(yc_.squaredNorm() * inv_nw);
+        if (y_scale_ > 1e-12) { yc_ /= y_scale_; } else { y_scale_ = 1.0; }
+
+        // lambda grid
+        if (lambda_grid == nullptr) {
+            const double alpha_eff = (alpha > 1e-3) ? alpha : 1e-3;
+            const double sum_yc = yc_.sum();
+            double cmax = 0.0;
+            for (Eigen::Index j = 0; j < p_; ++j) {
+                const double xr = masked ? mask->cwiseProduct(X.col(j)).dot(yc_)
+                                         : X.col(j).dot(yc_);
+                const double corr = (xr - x_mean_(j) * sum_yc) / x_scale_(j);
+                cmax = std::max(cmax, std::abs(corr));
+            }
+            const double lambda_max = cmax / (n_w * alpha_eff) * y_scale_;
+            if (!(lambda_max > 1e-12) || !std::isfinite(lambda_max)) {
+                throw std::runtime_error(
+                    "enet_gaussian::fit: lambda grid anchor is degenerate "
+                    "(y is constant or (nearly) orthogonal to X).");
+            }
+            const double lmr = (lambda_min_ratio > 0.0)
+                             ? lambda_min_ratio
+                             : (n_ < p_ ? 1e-2 : 1e-4);
+            lambdas_ = make_log_grid(lambda_max, lambda_max * lmr, n_lambda);
+        } else {
+            lambdas_ = *lambda_grid;
+            std::sort(lambdas_.data(), lambdas_.data() + lambdas_.size(),
+                      std::greater<double>());
+        }
+
+        solve_raw_(X, mask, n_w, alpha, use_strong_rule, max_iter, tol, allow_early_stop);
+        release_working_set();
+    }
+
+    void solve_raw_(Eigen::Ref<const Eigen::MatrixXd> X,
+                    const Eigen::VectorXd* mask, double n_w,
+                    double alpha, bool use_strong_rule, int max_iter, double tol,
+                    bool allow_early_stop)
+    {
+        constexpr double kFdev   = 1.0e-5;
+        constexpr double kDevMax = 0.999;
+
+        const Eigen::Index K = lambdas_.size();
+        const double inv_nw   = 1.0 / n_w;
+        const bool   is_ridge = (alpha == 0.0);
+        const bool   masked   = (mask != nullptr);
+
+        Eigen::MatrixXd Bs   = Eigen::MatrixXd::Zero(p_, K);
+        Eigen::VectorXd beta = Eigen::VectorXd::Zero(p_);
+        Eigen::VectorXd r    = yc_;     // r_true = r + c
+        double c     = 0.0;             // scalar residual offset
+        double sum_r = masked ? mask->dot(r) : r.sum();   // sum of r over the training rows
+        std::vector<char> active(static_cast<std::size_t>(p_), 0);
+        n_nonconverged_ = 0;
+
+        dev_ratio_ = Eigen::VectorXd::Zero(K);
+        double   rsq_prev = 0.0;
+        Eigen::Index n_fit = K;
+        const double inv_yscale = 1.0 / y_scale_;
+
+        // fold the offset into r: keeps the training residual mean-zero and
+        // recomputes its sum exactly (the incremental sum only bridges a sweep)
+        auto fold_offset = [&]() {
+            if (c != 0.0) { r.array() += c; c = 0.0; }
+            sum_r = masked ? mask->dot(r) : r.sum();
+        };
+        // correlation of standardised column j with r_true over the training rows
+        auto corr = [&](Eigen::Index j) -> double {
+            const double xr = masked ? mask->cwiseProduct(X.col(j)).dot(r)
+                                     : X.col(j).dot(r);
+            return (xr + c * col_sum_(j) - x_mean_(j) * (sum_r + c * n_w)) / x_scale_(j);
+        };
+
+        for (Eigen::Index l = 0; l < K; ++l) {
+            const double lambda = lambdas_(l) * inv_yscale;
+            const double l1     = lambda * alpha;
+            const double l2     = lambda * (1.0 - alpha);
+            const double lambda_prev =
+                (l == 0) ? lambda : lambdas_(l - 1) * inv_yscale;
+
+            std::fill(active.begin(), active.end(), 0);
+            if (use_strong_rule && !is_ridge) {
+                fold_offset();
+                const double thr = alpha * (2.0 * lambda - lambda_prev);
+                for (Eigen::Index j = 0; j < p_; ++j) {
+                    if (d_(j) <= 1e-12) continue;
+                    if (std::abs(beta(j)) > 0.0) { active[static_cast<std::size_t>(j)] = 1; continue; }
+                    if (std::abs(corr(j) * inv_nw) >= thr)
+                        active[static_cast<std::size_t>(j)] = 1;
+                }
+            } else {
+                for (Eigen::Index j = 0; j < p_; ++j)
+                    if (d_(j) > 1e-12) active[static_cast<std::size_t>(j)] = 1;
+            }
+
+            bool kkt_ok = false;
+            while (!kkt_ok) {
+                bool converged = false;
+                for (int iter = 0; iter < max_iter; ++iter) {
+                    double max_change = 0.0;
+                    for (Eigen::Index j = 0; j < p_; ++j) {
+                        if (!active[static_cast<std::size_t>(j)]) continue;
+                        const double old_b = beta(j);
+                        const double z_j   = corr(j) * inv_nw + d_(j) * old_b;
+                        const double new_b = is_ridge
+                            ? z_j / (d_(j) + l2)
+                            : soft_threshold(z_j, l1) / (d_(j) + l2);
+                        const double diff  = new_b - old_b;
+                        if (diff != 0.0) {
+                            const double step = diff / x_scale_(j);
+                            r.noalias() -= X.col(j) * step;     // held-out rows are never read
+                            c     += x_mean_(j) * step;
+                            sum_r -= step * col_sum_(j);
+                            beta(j)     = new_b;
+                            max_change  = std::max(max_change, std::abs(diff) * std::sqrt(d_(j)));
+                        }
+                    }
+                    fold_offset();
+                    if (max_change < tol) { converged = true; break; }
+                }
+                if (!converged) ++n_nonconverged_;
+
+                if (!use_strong_rule || is_ridge) { kkt_ok = true; break; }
+
+                kkt_ok = true;
+                for (Eigen::Index j = 0; j < p_; ++j) {
+                    if (active[static_cast<std::size_t>(j)] || d_(j) <= 1e-12) continue;
+                    if (std::abs(corr(j) * inv_nw) > l1 + 1e-9) {
+                        active[static_cast<std::size_t>(j)] = 1;
+                        kkt_ok = false;
+                    }
+                }
+            }
+
+            Bs.col(l) = beta;
+
+            fold_offset();
+            const double rss = masked ? mask->cwiseProduct(r).dot(r) : r.squaredNorm();
+            const double rsq = 1.0 - rss * inv_nw;
+            dev_ratio_(l) = rsq;
+            if (allow_early_stop && l > 0) {
+                if (rsq > kDevMax || (rsq - rsq_prev) < kFdev * rsq) {
+                    n_fit = l + 1;
+                    break;
+                }
+            }
+            rsq_prev = rsq;
+        }
+
+        finish_path_(Bs, n_fit);
     }
 
     // ---- preprocessing: center (if intercept) + standardise (if requested) --
@@ -329,9 +664,39 @@ private:
 
         x_mean_ = intercept ? X.colwise().mean().transpose().eval()
                             : Eigen::VectorXd::Zero(p_);
-        y_mean_ = intercept ? y.mean() : 0.0;
 
         Xs_ = X.rowwise() - x_mean_.transpose();
+        finish_preprocess(y, standardize, intercept);
+    }
+
+    /**
+     * @brief Preprocess an OWNED predictor matrix: it becomes Xs_ and is
+     *        centred in place, so no second n x p copy is made (2026-09-25,
+     *        Tier B of notes/ZERO_COPY_PLAN.md; the CV folds use it).
+     *        Bit-identical to preprocess(): the same column means over the
+     *        same contiguous columns, the same per-element subtraction.
+     */
+    void preprocess_owned(Eigen::MatrixXd&& X_owned,
+                          Eigen::Ref<const Eigen::VectorXd> y,
+                          bool standardize, bool intercept)
+    {
+        n_ = X_owned.rows();
+        p_ = X_owned.cols();
+
+        x_mean_ = intercept ? X_owned.colwise().mean().transpose().eval()
+                            : Eigen::VectorXd::Zero(p_);
+
+        Xs_ = std::move(X_owned);
+        Xs_.rowwise() -= x_mean_.transpose();
+        finish_preprocess(y, standardize, intercept);
+    }
+
+    /** @brief The response scaling and the column standardisation of Xs_,
+     *  shared by preprocess() and preprocess_owned(). */
+    void finish_preprocess(Eigen::Ref<const Eigen::VectorXd> y,
+                           bool standardize, bool intercept)
+    {
+        y_mean_ = intercept ? y.mean() : 0.0;
         yc_ = y.array() - y_mean_;
 
         // glmnet standardises the gaussian response to unit population SD
@@ -348,6 +713,16 @@ private:
                 if (sd > 1e-12) { x_scale_(j) = sd; Xs_.col(j) /= sd; }
             }
         }
+    }
+
+    /** @brief Free the centred working copy of X (and the centred y) once the
+     *  path is solved: predict() and every accessor read beta_, a0_ and the
+     *  scaling vectors only, so a fitted object holds p x K, not n x p
+     *  (2026-09-25, Tier B). */
+    void release_working_set() noexcept
+    {
+        Eigen::MatrixXd().swap(Xs_);
+        Eigen::VectorXd().swap(yc_);
     }
 
     static void validate_inputs(Eigen::Ref<const Eigen::MatrixXd> X,
@@ -398,6 +773,11 @@ private:
     Eigen::VectorXd a0_;        ///< intercepts (n_lambda)
     Eigen::VectorXd dev_ratio_; ///< fraction of null deviance explained per lambda
     int             n_nonconverged_ = 0;
+
+    // raw-X engine (Tier C1)
+    bool            low_memory_ = false;
+    Eigen::VectorXd col_sum_;   ///< masked column sums of X
+    Eigen::VectorXd d_;         ///< ||x_{s,j}||^2 / n over the training rows
 };
 
 // ===================================================================================
@@ -421,6 +801,17 @@ public:
 
     /** @brief Default constructor. */
     enet_cv_ccd() = default;
+
+    /** @brief Choose the engine of the full-data and the fold fits (see
+     *  enet_gaussian(bool)): true runs every fit on the raw X with a 0/1
+     *  training mask, so the CV makes no allocation of the size of X. */
+    explicit enet_cv_ccd(bool low_memory) : low_memory_(low_memory) {}
+
+    /** @brief Switch the engine; takes effect at the next fit(). */
+    void set_low_memory(bool low_memory) noexcept { low_memory_ = low_memory; }
+
+    /** @brief Whether the raw-X engine is selected. */
+    bool low_memory() const noexcept { return low_memory_; }
 
     /**
      * @brief Fit K-fold CV over a glmnet-style grid using CD per fold.
@@ -461,7 +852,7 @@ public:
         // ---- full-data grid (descending), reused across folds --------------
         n_lambda_requested_ = n_lambda;
         {
-            enet_gaussian full;
+            enet_gaussian full(low_memory_);
             full.fit(X, y, alpha, n_lambda, lambda_min_ratio,
                      standardize, intercept, /*use_strong_rule=*/false, max_iter, tol);
             lambdas_ = full.lambdas();
@@ -487,6 +878,24 @@ public:
             const Eigen::Index n_test = static_cast<Eigen::Index>(test_idx.size());
             const Eigen::Index n_tr   = n - n_test;
 
+            if (low_memory_) {
+                // Raw-X engine: the training fold is a 0/1 mask, the held-out
+                // rows are predicted row by row; nothing of the size of X.
+                Eigen::VectorXd w = Eigen::VectorXd::Ones(n);
+                Eigen::VectorXd y_te(n_test);
+                for (Eigen::Index t = 0; t < n_test; ++t) {
+                    w(test_idx[static_cast<std::size_t>(t)]) = 0.0;
+                    y_te(t) = y(test_idx[static_cast<std::size_t>(t)]);
+                }
+                enet_gaussian en(true);
+                en.fit_masked(X, y, w, lambdas_, alpha,
+                              standardize, intercept, /*use_strong_rule=*/false, max_iter, tol);
+                const Eigen::MatrixXd preds = en.predict_rows(X, test_idx);
+                fold_mse.col(f) =
+                    (preds.colwise() - y_te).colwise().squaredNorm().transpose()
+                    / static_cast<double>(n_test);
+                continue;
+            }
             std::vector<bool> in_test(static_cast<std::size_t>(n), false);
             for (Eigen::Index t : test_idx) in_test[static_cast<std::size_t>(t)] = true;
 
@@ -498,9 +907,11 @@ public:
             }
 
             // Fit CD path on the training fold at the SHARED full-data grid.
+            // The gathered fold becomes the fit's working copy (centred and
+            // standardised in place): one n_tr x p matrix per fold, not two.
             enet_gaussian en;
-            en.fit(X_tr, y_tr, lambdas_, alpha,
-                   standardize, intercept, /*use_strong_rule=*/false, max_iter, tol);
+            en.fit_owned(std::move(X_tr), y_tr, lambdas_, alpha,
+                         standardize, intercept, /*use_strong_rule=*/false, max_iter, tol);
 
             // Predict held-out fold; per-lambda MSE.
             const Eigen::MatrixXd preds = en.predict(X_te);  // n_test x K
@@ -605,6 +1016,7 @@ private:
     }
 
     bool            fitted_  = false;
+    bool            low_memory_ = false;
     Eigen::VectorXd lambdas_;
     Eigen::VectorXd cv_mse_;
     Eigen::VectorXd cv_sem_;

@@ -26,8 +26,10 @@ namespace scaler_methods {
 
 // ===================================================================================
 
-DataTransformer& DataTransformer::fit(Eigen::Map<Eigen::MatrixXd>& X,
+DataTransformer& DataTransformer::fit(const Eigen::Ref<const Eigen::MatrixXd>& X,
                                       double threshold) {
+    // Read-only: a const Ref binds to a mutable or a const map (a read-only
+    // memory-mapped file included) without a copy (2026-09-25, Tier B).
 
     const Eigen::Index ncols = X.cols();
     const Eigen::Index nrows = X.rows();
