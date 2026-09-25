@@ -69,3 +69,20 @@ jobs:
                       df <- as.data.frame(res)
                       cat(sprintf("TOTAL: %d passed, %d failed, %d skipped\n",
                           sum(df$passed), sum(df$failed), sum(df$skipped)))'
+
+      # R CMD check on the built tarball. The --no-docs install above never
+      # parses the Rd pages, so three unparseable pages went unnoticed until
+      # a container run of the check (2026-09-25). Vignettes are skipped (the
+      # usage-and-simulations vignette is a long run) and the manual needs
+      # no LaTeX. A WARNING in the check status fails the job; NOTEs do not.
+      - name: R CMD check
+        env:
+          _R_CHECK_CRAN_INCOMING_: "false"
+          _R_CHECK_FORCE_SUGGESTS_: "false"
+        run: |
+          R CMD build --no-build-vignettes --no-manual R/TRexSelectorNeo
+          R CMD check --no-manual --ignore-vignettes --no-build-vignettes TRexSelectorNeo_*.tar.gz
+          if grep -Eq '^Status: .*(WARNING|ERROR)' TRexSelectorNeo.Rcheck/00check.log; then
+            echo "::error::R CMD check reported warnings or errors (see 00check.log above)"
+            exit 1
+          fi
