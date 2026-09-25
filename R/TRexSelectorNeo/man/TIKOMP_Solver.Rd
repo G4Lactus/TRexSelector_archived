@@ -5,7 +5,7 @@
 \title{T-TIKOMP Solver}
 \description{
 Terminating Tikhonov-K Orthogonal Matching Pursuit: greedy generalized-ridge
-selection with the quadratic penalty \code{lambda2 * beta' K beta} on the
+selection with the quadratic penalty \code{lambda2 * t(beta) K beta} on the
 folded sums. FOLDED dummy coupling only. The solver used internally by
 \code{TRexTikhonovSelector} for \code{solver = "TIKOMP"}. Inherits all
 common methods from \code{\link{TSolver_Base}}.

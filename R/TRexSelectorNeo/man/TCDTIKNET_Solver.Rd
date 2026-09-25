@@ -6,7 +6,7 @@
 \description{
 Terminating coordinate-descent Tikhonov Net: exact fixed-lambda1
 minimizers per dummy crossing under the general quadratic penalty
-\code{lambda2 * beta' K beta} with a sparse PSD \code{K}. Dummy coupling
+\code{lambda2 * t(beta) K beta} with a sparse PSD \code{K}. Dummy coupling
 per \code{fold_dummies} in the options (\code{FALSE}: independent
 \code{kappa_dummy} ridge; \code{TRUE}: FOLDED layered convention). The
 solver used internally by \code{TRexTikhonovSelector} for

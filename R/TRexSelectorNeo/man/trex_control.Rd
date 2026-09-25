@@ -152,7 +152,7 @@ intercept-free dictionary (steering vectors, Vandermonde, Fourier
 atoms) whose columns must not be centered. The dummies keep the
 unit-L2 standard, so a \code{"NONE"} design should be
 unit-L2-commensurate (a warning names columns whose L2 norm leaves
-\link{0.25, 4}). Non-finite entries and dead columns (constant under
+[0.25, 4]). Non-finite entries and dead columns (constant under
 \code{"L2"} / \code{"ZSCORE"}, all-zero under \code{"NONE"}) are
 rejected in every mode with the column named.}
 }
@@ -167,7 +167,7 @@ Build a control list for TRex selector algorithms.
 \code{seed = -1} (the default) to \code{TRexSelector$new()} or any other
 selector constructor when running repeated trials. A fixed integer seed
 causes every trial to draw K per-experiment dummy seeds as
-\code{mix_seed(fixed, 0), mix_seed(fixed, 1), \ldots} — deterministic but
+\code{mix_seed(fixed, 0)}, \code{mix_seed(fixed, 1)}, \ldots — deterministic but
 structurally correlated across trials — which can inflate the empirical FDR
 in a sweep. With \code{seed = -1} each of the K experiments independently
 draws hardware entropy via \code{std::random_device}, matching the

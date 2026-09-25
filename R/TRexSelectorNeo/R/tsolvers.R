@@ -1035,8 +1035,8 @@ TIENET_Solver <- R6::R6Class(
 #'
 #' @description
 #' Terminating Tikhonov Net solver: native LARS homotopy with a general
-#' quadratic penalty \code{lambda2 * beta' K beta} on the folded sums (a
-#' sparse PSD \code{K = Gamma' Gamma}, see \code{\link{trex_gamma_to_k}}).
+#' quadratic penalty \code{lambda2 * t(beta) K beta} on the folded sums (a
+#' sparse PSD \code{K = t(Gamma) Gamma}, see \code{\link{trex_gamma_to_k}}).
 #' FOLDED dummy coupling only. The solver used internally by
 #' \code{TRexTikhonovSelector} for \code{solver = "TIKNET"}. Inherits all
 #' common methods from \code{\link{TSolver_Base}}.
@@ -1093,7 +1093,7 @@ TIKNET_Solver <- R6::R6Class(
 #'
 #' @description
 #' Terminating Tikhonov-K Orthogonal Matching Pursuit: greedy generalized-ridge
-#' selection with the quadratic penalty \code{lambda2 * beta' K beta} on the
+#' selection with the quadratic penalty \code{lambda2 * t(beta) K beta} on the
 #' folded sums. FOLDED dummy coupling only. The solver used internally by
 #' \code{TRexTikhonovSelector} for \code{solver = "TIKOMP"}. Inherits all
 #' common methods from \code{\link{TSolver_Base}}.
@@ -1352,7 +1352,7 @@ TCDIENET_Solver <- R6::R6Class(
 #' @description
 #' Terminating coordinate-descent Tikhonov Net: exact fixed-lambda1
 #' minimizers per dummy crossing under the general quadratic penalty
-#' \code{lambda2 * beta' K beta} with a sparse PSD \code{K}. Dummy coupling
+#' \code{lambda2 * t(beta) K beta} with a sparse PSD \code{K}. Dummy coupling
 #' per \code{fold_dummies} in the options (\code{FALSE}: independent
 #' \code{kappa_dummy} ridge; \code{TRUE}: FOLDED layered convention). The
 #' solver used internally by \code{TRexTikhonovSelector} for

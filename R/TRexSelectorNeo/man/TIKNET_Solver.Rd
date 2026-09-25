@@ -5,8 +5,8 @@
 \title{T-TIKNET Solver}
 \description{
 Terminating Tikhonov Net solver: native LARS homotopy with a general
-quadratic penalty \code{lambda2 * beta' K beta} on the folded sums (a
-sparse PSD \code{K = Gamma' Gamma}, see \code{\link{trex_gamma_to_k}}).
+quadratic penalty \code{lambda2 * t(beta) K beta} on the folded sums (a
+sparse PSD \code{K = t(Gamma) Gamma}, see \code{\link{trex_gamma_to_k}}).
 FOLDED dummy coupling only. The solver used internally by
 \code{TRexTikhonovSelector} for \code{solver = "TIKNET"}. Inherits all
 common methods from \code{\link{TSolver_Base}}.
