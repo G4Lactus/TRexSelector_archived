@@ -46,6 +46,240 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
 
 ### 2026-09-25
 
+#### ML methods: zero-copy harness and the read-only binding boundary (Tier A)
+
+- Ground rule (Fabian): no binding copies X, D or a memory-mapped matrix;
+  full copies of the design are avoided wherever they are not needed, and
+  functionality is preserved at 100 %. Plan and tiers:
+  notes/ZERO_COPY_PLAN.md; inventory: notes/R_PACKAGE_ASSESSMENT.md.
+- Harness. `test_ml_methods_reference.cpp` runs every ML core on three
+  fixed shapes and compares every output byte for byte against a reference
+  recorded outside the repository (`TREX_ML_REF_DIR`; skipped when unset,
+  recorded on first use); `tools/zero_copy_reference.{R,py}` do the same
+  for the R and Python surfaces (`record` / `compare`). `test_ml_methods_memory.cpp`
+  measures the peak-memory growth of each core in units of X on a wide
+  500 x 8000 design and pins the current budgets: ridge CV 4.55 X, elastic
+  net 1.09 X, elastic net CV 2.17 X, SVD 0.35 X, ridge 0.33 X, PCA 0.35 X,
+  scalers 0.03 X (one process per test; ctest does that).
+- R binding (Tier A, bit-identical): the eight ML entry points that took
+  `const Eigen::MatrixXd&` — and therefore copied X in full on every call
+  (RcppEigen converts only to a mutable map) — take the R matrix and build a
+  read-only `Eigen::Map<const>` that binds to the cores' `Ref<const>`:
+  `ridge_cv_fit`, `enet_fit`, `enet_fit_grid`, `enet_predict`, `enet_cv_fit`,
+  `svd_compute`, `pca_transform`, `ridge_solve`. New memory-mapped entry
+  points through the const map (read-only files accepted): `enet_fit_mmap`,
+  `enet_fit_grid_mmap`, `enet_predict_mmap`, `enet_cv_fit_mmap`,
+  `svd_compute_mmap`, `ridge_solve_mmap`, `pca_transform_mmap`, and
+  `pca_create_mmap` / `pca_restore_mmap` (readwrite: the file is centered in
+  place). The R6 classes route `mmap_matrix` inputs to them instead of
+  reading the whole file through `as.matrix()`; `pca_create` pins X in the
+  XPtr protection slot. R and Python references identical; new R tests
+  compare every mmap path with the in-memory path bit for bit.
+- Python (Tier A): `agglomerative_cluster` takes `Ref<const MatrixXd>`
+  instead of `const MatrixXd&` (no copy of a Fortran-ordered array).
+
+#### ML cores: copy fusion (Tier B, bit-identical)
+
+- Ridge CV: the gathered training fold is standardized in place instead
+  of into a second matrix (the two passes round exactly like the former
+  fused expression): peak 4.55 X -> 3.64 X on the wide design; the Jacobi
+  SVD's own copies remain.
+- Elastic net: the gathered CV fold becomes the fit's working copy
+  (`fit_owned` / `preprocess_owned`, centred and standardized in place)
+  instead of being copied a second time: elastic-net CV 2.17 X -> 1.37 X.
+  A fitted `enet_gaussian` releases its centred working copy after the
+  path is solved (`predict` and the accessors read the p x K path only),
+  so a fitted object holds p x K, not n x p.
+- Ridge: the Cholesky factorization runs in place in the Gram / kernel
+  matrix (`LLT<Ref<MatrixXd>>`): one p x p (or n x n) instead of two; the
+  rare LDLT fallback rebuilds the matrix from X (a second pass, no copy).
+- PCA: `PCA::readOnly(X, M)` fits a const matrix or a read-only
+  memory-mapped file without writing (a named factory, so `PCA(X, M)` keeps
+  centering and normalizing in place); `restore()` may be called before
+  `fit()` (the preprocessing happens at construction; it used to throw),
+  is idempotent, and checks that it is given the constructor's matrix; the
+  destructor writes X back when `restore()` was never called, and the duty
+  travels with a move (the T-solver rule; the Python docstring that
+  claimed this is true now). X stays pinned in the R XPtr protection slot
+  and by Python's keep_alive.
+- Scalers: `fit()` takes a read-only reference, so the statistics can be
+  fitted on a read-only memory-mapped file in R and Python (the in-place
+  transforms still need a writable mapping).
+- Clustering (R): the transpose copy on the in-memory path stays, on
+  purpose — the engine clusters columns and the R surface clusters rows,
+  and a lazy transpose would make every object a strided row; the comment
+  that blamed undefined behaviour on the lazy transpose described an
+  NN-chain bug the core fixed in June. The memory-mapped path reads the
+  file through the const map (read-only mappings accepted).
+- Verified: the 21 C++ reference cases, the R and Python references and
+  all three suites are identical / green after every item.
+
+#### ML cores: low-memory engines (Tier C, opt-in; the defaults stay bit-identical)
+
+- Elastic net and its CV (`enet_gaussian(bool low_memory)`,
+  `enet_cv_ccd(bool low_memory)`; R `MLElasticNet$new(low_memory = TRUE)`,
+  `MLElasticNetCV$new(low_memory = TRUE)`; Python
+  `ElasticNet(low_memory=True)`, `ElasticNetCV(low_memory=True)`): the
+  coordinate descent runs on the raw X through the caller's view — a
+  read-only memory-mapped file included — with the centring carried as a
+  scalar residual offset (folded into the residual once per sweep, which
+  keeps the training residual mean-zero and the dot products free of the
+  cancellation a large column mean would cause) and the standardisation as
+  a per-column scale; the CV folds are 0/1 masks and the held-out rows are
+  predicted row by row. No allocation of the size of X: 1.09 X -> 0.09 X
+  (path) and 1.37 X -> 0.15 X (CV) on the wide design. Same estimator,
+  same grid, same deviance rules; the two engines agree to rounding (about
+  1e-12 in the coefficients; the tests pin 1e-7), so a CV pick can differ
+  only on a flat curve. The default engine is unchanged and bit-identical.
+- Ridge CV (`ridge_cv_svd(bool low_memory)`; R `MLRidgeCV$new(low_memory
+  = TRUE)`; Python `RidgeCV(low_memory=True)`): the dual (kernel) fold
+  engine. The n_tr x n_tr kernel of the standardised training fold and the
+  n_test x n_tr cross kernel are accumulated from column blocks of X
+  standardised on the fly (read in place), eigen-decomposed, and the ridge
+  path is evaluated on the held-out rows as K_te U diag(1/(s^2+lambda)) U^T y
+  — no gathered fold, no p-dimensional coefficients, the SVD route's rank
+  rule. 3.64 X -> 0.19 X on the wide design; memory O(n^2) instead of
+  O(n p), the route for p >> n. Agreement with the SVD route to 1e-7 on
+  the CV curve and identical picks in the tests; the kernel carries the
+  squared condition number, so on ill-conditioned tall designs the default
+  SVD route is the more accurate one.
+- SVD dispatch thresholds exposed (`SVDSolver(min_dim_thresh, block_size)`
+  in Python, `MLSVD$new(min_dim_thresh, block_size)` in R; defaults
+  unchanged): lowering `min_dim_thresh` selects the randomized, block-wise
+  path — two passes over X, no copy — for smaller designs; it is the route
+  for a large memory-mapped X and is accurate for a decaying spectrum (the
+  tests pin 1e-4 on the retained singular values), not for a flat one.
+- Ridge `solve` on a memory-mapped X needs no new engine: the Gram or
+  kernel matrix is accumulated from the map (Tier A's `ridge_solve_mmap`).
+- Peak-memory budgets (`test_ml_methods_memory.cpp`), wide 500 x 8000:
+  ridge CV 3.64 X (kernel engine 0.19 X), elastic net 1.09 X (raw engine
+  0.09 X), elastic-net CV 1.37 X (raw engine 0.15 X), SVD 0.35 X, ridge
+  0.31 X, PCA 0.35 X, scalers 0.03 X.
+
+#### R surface catch-up and small utilities (5.4, 5.5)
+
+- T-solvers (R6 base): `get_residuals()`, `get_beta_path()` (step 0
+  included, Python's layout), `get_cp_with_sigma()`, `solver_type_to_string()`,
+  `get_dropped_indices()`, `get_active_predictor_indices()`,
+  `get_active_dummy_indices()`, `get_num_actives()`, `get_dummy_start_index()`,
+  `is_connected()`, `set_tolerance()`, `set_tie_seed()`,
+  `set_exchangeable_tie()`, `get_warnings()` (the already-preprocessed
+  warning is readable now), `clear_warnings()`. Family getters:
+  `TLARS_Solver$get/set_kahan_refresh_interval()`, `TENET_Solver$get_alpha()`,
+  `TIKNET_Solver` / `TIKOMP_Solver$get_tikhonov_k()` (a `dgCMatrix`),
+  `TCDSolver_Base$get_kkt_violation()`. `reconnect` is not bound in R: an
+  R6 solver is bound to its matrices at construction.
+- Selectors: active bindings `tFDR`, `K`, `max_num_dummies`, `max_T_stop`,
+  `stagnation_check`, `num_selected`, `num_dummies` (new C++ getter
+  `TRexSelector::getNumDummies()`, also bound in Python as
+  `TRexSelector.num_dummies`); DA `cor_coef`; GVS `hc_method_used`.
+- ML: `MLElasticNet$n_nonconverged()`; Python `RidgeCV.interpolates()`,
+  `RidgeCV.selection_at_grid_edge()`, `ElasticNetCV.selection_at_grid_edge()`,
+  `ElasticNetCV.grid_truncated()`.
+- Utils: `trex_get_max_threads()` / `trex_set_num_threads()` (the OpenMP
+  thread count of the backend); `mmap_matrix_size` returns a double (an
+  int overflowed above 2^31 - 1 elements); `mem_matrix_from()` coerces an
+  integer matrix explicitly instead of through a hidden binding copy.
+
+#### Selectors: memory-mapped Biobank and SPCA, restore(), results wrapped once
+
+- Biobank screening and sparse PCA on a memory-mapped X: the R6 classes
+  used to read the whole file into RAM through `as.matrix()`. New entry
+  points `trex_biobank_screening_{1d,2d}_mmap_create` and
+  `trex_spca_select_mmap` map the file directly (readwrite: the inner
+  selectors normalize / center it in place and restore it); the R6 classes
+  route `mmap_matrix` inputs to them. New R tests compare the mmap and
+  in-memory selections exactly.
+- `TRexSelector::restore()` (C++, R `$restore()`, Python `restore()`):
+  gives X back before `select()` — the constructor normalizes X in place,
+  and until now an unselected selector handed it back only from its
+  destructor (in R and Python: the garbage collector). Idempotent, a no-op
+  after `select()`; a restored selector refuses to run (`select()` throws),
+  including the screening selector's own `select()`. Inherited by every R6
+  selector class.
+- Results wrapped once: the selector's `phi_mat`, `fdp_hat_mat` and `r_mat`
+  (T_stop x p) were copied twice per access; the DA `*_array_BT` results
+  (rho x T_stop x p) three times (a vector of matrices by value, the wrap,
+  `simplify2array`). They are now wrapped once from the const reference,
+  the DA arrays built directly as R arrays of the same shape.
+  `TRexSPCA::select()` returns a const reference to the stored result, so
+  the bindings wrap Z and V once (`auto res = spca.select()` still copies).
+- `trex_da_to_base_ptr` (unused from R) pins the owning pointer in its
+  protection slot instead of returning an unprotected non-owning view.
+
+#### T-solvers: shared-buffer claim and the in-place writer/reader contract
+
+- Finding (Examples repo, `demo_ts_05_tstagewise` in C++): the checkpoint
+  round trip reported "Paths differ" from step 21 on. Not a solver bug: the
+  demo constructed the reference solver, the checkpoint solver and the
+  resumed solver with `normalize = true, intercept = true` on the SAME
+  Eigen maps, so X and D were centered and scaled in place three times. A
+  second in-place transformation is not idempotent (it moves the data by
+  rounding, RSS difference 9e-13), and the stagewise near-ties downstream
+  resolve differently. Pre-scaling once in front and running the solvers
+  as readers gives bit-identical paths.
+- The contract, now written on `TSolver_Base::restore()` (C++), on every
+  Python constructor and on `tsolver_options()` / `TSolver_Base` (R): a
+  solver constructed with `normalize = true` or `intercept = true` is a
+  WRITER that transforms X and D in place, keeps the statistics, and holds
+  a claim on both buffers until `restore()` or destruction, both of which
+  write X and D back; a solver constructed with both false is a READER that
+  runs as constructed and never touches the buffers; a solver resumed from
+  a checkpoint is a reader that expects the buffers in the saved state (so
+  the writer that saved it stays alive, or the pipeline pre-scales once in
+  front and runs readers); y is never written (the solver centers an
+  internal copy).
+- The claim is executable: `tsolvers/ad/solver_utils/buffer_registry` (a
+  mutex-guarded set of buffer pointers, RAII `BufferClaim`) is shared by the
+  T-solvers and the T-Rex selector, which moved its private registry there.
+  A second writer on a claimed buffer, T-solver or selector, throws
+  `std::runtime_error` (Python `RuntimeError`, R error) with the remedy:
+  pre-scale once and construct readers, `restore()` the holder, or let it
+  go out of scope. A writer that finds its input already centered and
+  unit-norm (every column within 1e-10) records a warning (`getWarnings()`)
+  and continues.
+- `restore()` is idempotent and a no-op for readers and resumed solvers
+  (`holdsPreprocessed()`); the former unconditional inverse scaled and
+  shifted the data a second time on a second call. It now also checks that
+  the passed X and D are the buffers the solver was constructed on. The
+  destructor writes back a writer that was never restored, which also
+  covers a derived constructor that throws after the base preprocessed
+  (`TENET` with a negative `lambda2` used to leave X normalized). The
+  write-back duty travels with a moved solver.
+- R binding rewritten zero-copy: the R6 T-solvers used to copy X and D into a
+  private holder (`TSolverRcpp`, also for a memory-mapped X, which was read
+  into RAM). They now map the R matrix (double storage) or the mmap file
+  directly, pin the R objects in the XPtr protection slot, and follow the
+  contract: a writer preprocesses the caller's matrix or file in place, the
+  new `$restore()` writes it back and releases the claim, the GC finalizer
+  writes back a writer that was never restored, `$load()` into a writer
+  keeps its write-back duty (the archived statistics are the same). The
+  stale copying holder in `TRexSelectorNeo_types.h` (a second definition of
+  the same struct, included by `RcppExports.cpp`) is the single definition
+  now.
+- R `get_actions()` fixed: the C++ solver already records the 1-based
+  signed lars codes, and the R6 method shifted them by one more, so
+  `r_index = TRUE` returned 2-based codes and `r_index = FALSE` the 1-based
+  ones it documented as 0-based. `r_index = TRUE` (default) now returns the
+  codes as recorded; `r_index = FALSE` returns the 0-based magnitudes
+  (`abs(a) - 1`, sign dropped: a 0-based signed code cannot distinguish the
+  addition from the removal of the first variable).
+- Tests: `test_tsolvers_buffer_guard.cpp` (registry primitives; second
+  writer throws across families; intercept-only and normalize-only claim;
+  `restore()` idempotent, readers and resumed solvers never write back;
+  destruction writes back, also after a throwing derived constructor; moves
+  transfer claim and duty; readers and loaded solvers never claim; the
+  already-preprocessed warning; the selector/solver shared registry; the
+  pre-scaled shared-buffer checkpoint round trip is bit-identical). The CD
+  and Tikhonov checkpoint tests keep the writer alive across the resumed
+  run. R: `test-tsolvers-inplace.R` (in-place change visible on the R matrix
+  and in the mmap file, second writer errors, readers coexist, `$restore()`
+  idempotent and path kept, GC write-back, `$load()` into a writer restores,
+  pre-scaled readers bit-identical); `test-tsolvers.R` restores each writer
+  and runs the 22-solver checkpoint round trip on pre-scaled readers with
+  exact equality. Three Python tests that rebound a writer in a loop now
+  release it first.
+
 #### Linux verification (OrbStack): two platform-bound tests, broken Rd pages
 
 - The three Ubuntu CI jobs were reproduced in an `ubuntu:24.04` container
