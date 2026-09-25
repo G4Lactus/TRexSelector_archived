@@ -893,6 +893,17 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
                 opts.scaling_mode       = solver_scaling;
                 opts.tenet_aug_use_lars = trex_gvs_ctrl_.tenet_aug_use_lars;
                 disp::applyCdKnobs(opts, trex_ctrl_.solver_params);
+                // Per-experiment deterministic tie-break seed, derived from
+                // the selector seed exactly as the base ExperimentRunner does
+                // (dispatchForExperiment); -1 keeps the solver's
+                // random_device default for unseeded runs. Only consulted
+                // when the exchangeable-tie band is on (exch_tie_alpha > 0).
+                opts.tie_seed = (seed_ >= 0)
+                    ? static_cast<long long>(
+                          trex::utils::datageneration::dummygen::mix_seed64(
+                              static_cast<std::uint64_t>(seed_), k)
+                          & 0x7FFFFFFFULL)
+                    : -1LL;
                 if (ien_native) {
                     // IEN native: pathwise LARS-IEN (no augmented copies).
                     // X is the shared base-normalized map, D_k was CENTERED
