@@ -95,7 +95,7 @@ TRexSPCA::~TRexSPCA() {
 // TRexSPCA::select
 // ==============================================================================
 
-TRexSPCAResult TRexSPCA::select() {
+const TRexSPCAResult& TRexSPCA::select() {
 
     const Eigen::Index n = X_->rows();
     const Eigen::Index p = X_->cols();

@@ -111,6 +111,8 @@ void ScreenTRexSelector::validateScreenTRexStrategy() const {
 
 tc::TRexSelector::SelectionResult ScreenTRexSelector::select() {
 
+    ensureNotReleased();
+
     // 1. Enforce Screen-TRex fixed parameters: T = 1, L = p
     T_stop_             = 1;
     num_dummies_        = p_;

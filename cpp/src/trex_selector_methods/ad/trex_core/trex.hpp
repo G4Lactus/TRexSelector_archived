@@ -343,6 +343,14 @@ protected:
      */
     bool X_is_normalized_{false};
 
+    /** @brief True after restore() gave X back before select(): the
+     *  selector's normalized view is gone and select() must refuse. */
+    bool released_{false};
+
+    /** @brief Throws if restore() was called before select(); every select()
+     *  implementation (base and overrides) calls it first. */
+    void ensureNotReleased() const;
+
     /** @brief Restore X to its original scale and release the shared-buffer
      *  claim. Idempotent (no-op if X is already denormalized). Subclasses that
      *  restore X at the end of their own select() override must call this
@@ -516,6 +524,21 @@ public:
      */
     virtual SelectionResult select();
 
+    /**
+     * @brief Give X back before select(): undo the in-place normalization
+     *        applied at construction and release the buffer claim.
+     *
+     * @details The constructor normalizes X in place; select() restores it
+     *          on return and the destructor restores it as a safety net. A
+     *          caller who constructs a selector and decides not to run it can
+     *          hand X back right away with restore() instead of waiting for
+     *          the destructor (in R and Python: the garbage collector).
+     *          Idempotent; a no-op after select(). A restored selector cannot
+     *          run: select() throws, construct a new one (2026-09-25,
+     *          notes/ZERO_COPY_PLAN.md 5.2).
+     */
+    void restore();
+
 
     // ============================================================
     // Public Getters — Configuration
@@ -565,6 +588,9 @@ public:
 
     /** @brief Get number of selected variables. */
     std::size_t getNumSelected() const noexcept { return selected_indices_.size(); }
+
+    /** @brief Number of dummies used by the last select() (the L-loop's calibration). */
+    std::size_t getNumDummies() const noexcept { return num_dummies_; }
 
     /** @brief Get stopping time T_stop. */
     std::size_t getTStop() const noexcept { return T_stop_; }
