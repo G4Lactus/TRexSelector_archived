@@ -44,6 +44,39 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   `-ffast-math`: results are IEEE 754 conformant; runs from fast-math builds are
   not bit-reproducible against these.
 
+### 2026-09-25
+
+#### Python: one subpackage per dummy mechanism, and the Tikhonov selector
+
+- `trex_selector_neo.tsolvers.ad.{lars_based, omp_based, afs_based, cd_based}`
+  with `SolverOptions`, `ScalingMode` and `GroupPenaltyVariant` under
+  `tsolvers.ad`, and `trex_selector_neo.trex_selector_methods.ad` with every
+  selector, mirroring `cpp/src/{tsolvers, trex_selector_methods}/ad`; the
+  compiled extension carries the same level (`_core.tsolvers.ad`,
+  `_core.trex_selector_methods.ad`). The package root keeps re-exporting the
+  AD selectors as the everyday spelling; the `vd` / `sd` families will be
+  reachable only through their subpackage. Breaking for
+  `from trex_selector_neo.tsolvers.lars_based import ...` and
+  `from trex_selector_neo.tsolvers import SolverOptions` (insert `.ad`); R
+  needs nothing (flat namespace, group words).
+- `TRexTikhonovSelector` is bound: `TRexTikhonovControlParameter` (the p x p
+  penalty as a dense `tikhonov_K` array converted to sparse internally, or
+  `GROUP_CENTERING`; the lambda_2 rule; the pilot knobs; cluster-aware
+  dummies), the enums `TikLambda2Method`, `PilotStatistic`,
+  `TikPenaltyStructure`, the records `Lambda2PilotResult` / `Lambda2PickInfo`,
+  the builders `gamma_to_k` and `build_group_centering_k`, and the wrapper
+  with `lambda2_used`, `lambda2_cv_diagnostics` and `lambda2_pilot`. The base
+  control merges as in R (a non-Tikhonov `solver_type` warns and becomes
+  TCDTIKNET). Every selector R has is now in Python.
+
+#### GVS K-loop: per-experiment tie-break seed
+
+- The in-memory GVS K-loop now derives a deterministic `tie_seed` per
+  experiment from the selector seed, as the base ExperimentRunner does.
+  Inert unless the exchangeable-tie band is on (`exch_tie_alpha > 0`); with
+  it on, a seeded GVS run is reproducible instead of drawing tie-breaks from
+  `random_device`.
+
 ### 2026-09-24
 
 #### Voting ties: exact vote counts and a single-division voting grid
