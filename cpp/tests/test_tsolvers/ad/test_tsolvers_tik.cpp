@@ -317,11 +317,12 @@ protected:
         Mapped mp(X, D, y);
         const std::string file =
             ::testing::TempDir() + "tik_ckpt_" + tag + ".bin";
-        {
-            SolverT part = make(mp);
-            part.executeStep(T_partial, true);
-            part.save(file);
-        }
+        // The writer `part` stays alive across the resumed run: the resumed
+        // reader expects the buffers in the saved (preprocessed) state, and
+        // a writer writes X and D back when it is destroyed (2026-09-25).
+        SolverT part = make(mp);
+        part.executeStep(T_partial, true);
+        part.save(file);
         ASSERT_TRUE(std::filesystem::exists(file));
 
         SolverT res = SolverT::load(file, mp.Xm, mp.Dm);

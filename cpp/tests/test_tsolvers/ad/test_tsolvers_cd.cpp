@@ -157,11 +157,12 @@ protected:
         Mapped mp(X, D, y);
         const std::string file =
             ::testing::TempDir() + "cd_ckpt_" + tag + ".bin";
-        {
-            SolverT part = make(mp);
-            part.executeStep(T_partial, true);
-            part.save(file);
-        }
+        // The writer `part` stays alive across the resumed run: the resumed
+        // reader expects the buffers in the saved (preprocessed) state, and
+        // a writer writes X and D back when it is destroyed (2026-09-25).
+        SolverT part = make(mp);
+        part.executeStep(T_partial, true);
+        part.save(file);
         ASSERT_TRUE(std::filesystem::exists(file));
 
         SolverT res = SolverT::load(file, mp.Xm, mp.Dm);
@@ -529,12 +530,11 @@ TEST_F(TSolverCdTest, SerializeLoadGramCapFallbackMatchesDefault) {
     Mapped mp(X, D, y);
     const std::string file =
         ::testing::TempDir() + "cd_ckpt_gramcap.bin";
-    {
-        TCDLASSO_Solver part(mp.Xm, mp.Dm, mp.ym);
-        part.setGramCap(2);   // forces naive sweeps almost immediately
-        part.executeStep(3, true);
-        part.save(file);
-    }
+    // `part` stays alive: the resumed reader expects the saved buffer state
+    TCDLASSO_Solver part(mp.Xm, mp.Dm, mp.ym);
+    part.setGramCap(2);   // forces naive sweeps almost immediately
+    part.executeStep(3, true);
+    part.save(file);
 
     TCDLASSO_Solver res = TCDLASSO_Solver::load(file, mp.Xm, mp.Dm);
     res.setGramCap(2);        // runtime knob: re-applied after load
@@ -700,11 +700,10 @@ TEST_F(TSolverCdTest, CertifiedResumeReproducesKnots) {
 
     Mapped mp(X, D, y);
     const std::string file = ::testing::TempDir() + "cd_ckpt_certified.bin";
-    {
-        TCDLASSO_Solver part(mp.Xm, mp.Dm, mp.ym);
-        part.executeStep(3, true);
-        part.save(file);
-    }
+    // `part` stays alive: the resumed reader expects the saved buffer state
+    TCDLASSO_Solver part(mp.Xm, mp.Dm, mp.ym);
+    part.executeStep(3, true);
+    part.save(file);
     TCDLASSO_Solver res = TCDLASSO_Solver::load(file, mp.Xm, mp.Dm);
     res.executeStep(6, true);
 

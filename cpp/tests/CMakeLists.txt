@@ -55,6 +55,12 @@ add_trex_test(test_ml_methods_agglomerative_dispatcher test_ml_methods/test_ml_m
 add_trex_test(test_ml_methods_svd test_ml_methods/test_ml_methods_svd.cpp)
 add_trex_test(test_ml_methods_pca test_ml_methods/test_ml_methods_pca.cpp)
 add_trex_test(test_ml_methods_ridge test_ml_methods/test_ml_methods_ridge.cpp)
+# Zero-copy harness (notes/ZERO_COPY_PLAN.md, section 0): bit-identity against
+# a recorded reference (skipped unless TREX_ML_REF_DIR is set) and the peak-
+# memory budgets of the cores in units of X.
+add_trex_test(test_ml_methods_reference test_ml_methods/test_ml_methods_reference.cpp)
+add_trex_test(test_ml_methods_memory test_ml_methods/test_ml_methods_memory.cpp)
+add_trex_test(test_ml_methods_low_memory test_ml_methods/test_ml_methods_low_memory.cpp)
 
 # 4. Add tests for TSolvers
 add_trex_test(test_tsolvers_initialization test_tsolvers/ad/test_tsolvers_initialization.cpp)
@@ -65,6 +71,8 @@ add_trex_test(test_tsolvers_mmap test_tsolvers/ad/test_tsolvers_mmap.cpp)
 add_trex_test(test_tsolvers_polymorphic test_tsolvers/ad/test_tsolvers_polymorphic.cpp)
 add_trex_test(test_tsolvers_cd test_tsolvers/ad/test_tsolvers_cd.cpp)
 add_trex_test(test_tsolvers_tik test_tsolvers/ad/test_tsolvers_tik.cpp)
+add_trex_test(test_tsolvers_buffer_guard test_tsolvers/ad/test_tsolvers_buffer_guard.cpp)
+add_trex_test(test_trex_restore test_trex_selector_methods/ad/test_trex_restore.cpp)
 add_trex_test(test_sd_tsolvers test_tsolvers/sd/test_sd_tsolvers.cpp)
 
 # 5. Add tests for TRex Selector Methods

@@ -400,10 +400,82 @@ TEST(PCATest, Exceptions_TransformBeforeFit) {
 
 
 /** @brief Test restore() before fit() throws std::runtime_error. */
-TEST(PCATest, Exceptions_RestoreBeforeFit) {
+TEST(PCATest, RestoreBeforeFitGivesXBack) {
+    // The preprocessing happens at construction, so a caller who does not
+    // fit still gets X back (2026-09-25; it used to throw before fit()).
     Eigen::MatrixXd X = Eigen::MatrixXd::Random(20, 10);
+    const Eigen::MatrixXd X0 = X;
     PCA pca(X, 3);
-    EXPECT_THROW(pca.restore(X), std::runtime_error);
+    EXPECT_FALSE(X.isApprox(X0, 1e-12));
+    EXPECT_NO_THROW(pca.restore(X));
+    EXPECT_TRUE(X.isApprox(X0, 1e-12));
+    EXPECT_NO_THROW(pca.restore(X));   // idempotent
+    EXPECT_TRUE(X.isApprox(X0, 1e-12));
+}
+
+
+/** @brief The destructor writes X back when restore() was never called
+ *         (the T-solver rule); a restored object writes nothing twice. */
+TEST(PCATest, DestructorWritesBack) {
+    Eigen::MatrixXd X = Eigen::MatrixXd::Random(30, 8);
+    const Eigen::MatrixXd X0 = X;
+    {
+        PCA pca(X, 3);
+        pca.fit();
+        EXPECT_FALSE(X.isApprox(X0, 1e-12));
+    }
+    EXPECT_TRUE(X.isApprox(X0, 1e-12));
+    {
+        PCA pca(X, 3);
+        pca.restore(X);
+        const Eigen::MatrixXd X_after_restore = X;
+    }
+    EXPECT_TRUE(X.isApprox(X0, 1e-12));   // exactly one write-back
+}
+
+
+/** @brief readOnly(): no preprocessing, X never written, restore a no-op;
+ *         the fit equals the mutable object's fit with both flags off. */
+TEST(PCATest, ReadOnlyNeverWrites) {
+    Eigen::MatrixXd X = Eigen::MatrixXd::Random(30, 8);
+    const Eigen::MatrixXd X0 = X;
+    const Eigen::MatrixXd& Xc = X0;   // a const matrix is accepted
+    {
+        PCA ro = PCA::readOnly(Xc, 3);
+        const PCAResult r = ro.fit();
+        EXPECT_EQ((X0 - Xc).cwiseAbs().maxCoeff(), 0.0);
+        EXPECT_NO_THROW(ro.restore(X));   // nothing to undo: a no-op
+        PCA plain(X, 3, /*center=*/false, /*normalize=*/false);
+        const PCAResult r2 = plain.fit();
+        EXPECT_EQ((r.V - r2.V).cwiseAbs().maxCoeff(), 0.0);
+        EXPECT_EQ((r.explained_variance - r2.explained_variance).cwiseAbs().maxCoeff(), 0.0);
+    }
+    EXPECT_EQ((X - X0).cwiseAbs().maxCoeff(), 0.0);
+}
+
+
+/** @brief A moved-from PCA hands over the write-back duty: X is written
+ *         back exactly once, by the moved-to object. */
+TEST(PCATest, MoveTransfersWriteBack) {
+    Eigen::MatrixXd X = Eigen::MatrixXd::Random(30, 8);
+    const Eigen::MatrixXd X0 = X;
+    {
+        PCA src(X, 3);
+        PCA dst(std::move(src));
+        // src is destroyed after dst (reverse order) and must not restore
+        // again: X is still preprocessed when dst writes it back.
+    }
+    EXPECT_TRUE(X.isApprox(X0, 1e-12));
+}
+
+
+/** @brief restore() with a different buffer of the right shape throws. */
+TEST(PCATest, Exceptions_RestoreOtherBuffer) {
+    Eigen::MatrixXd X = Eigen::MatrixXd::Random(20, 10);
+    Eigen::MatrixXd Y = Eigen::MatrixXd::Random(20, 10);
+    PCA pca(X, 3);
+    EXPECT_THROW(pca.restore(Y), std::invalid_argument);
+    pca.restore(X);
 }
 
 
