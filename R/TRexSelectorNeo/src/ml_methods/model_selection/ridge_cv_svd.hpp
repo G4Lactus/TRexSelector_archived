@@ -25,6 +25,7 @@
 // Eigen includes
 #include <Eigen/Core>
 #include <Eigen/SVD>
+#include <Eigen/Eigenvalues>
 
 // ===================================================================================
 
@@ -63,6 +64,31 @@ public:
 
     /** @brief Default constructor */
     ridge_cv_svd() = default;
+
+    /**
+     * @brief Choose the fold engine (2026-09-25, Tier C2 of notes/ZERO_COPY_PLAN.md).
+     *
+     * @param low_memory false (default): each fold gathers and standardises
+     *        its training rows and takes a thin Jacobi SVD (about 3-4 copies of
+     *        X in flight; bit-identical to every earlier release). true: the
+     *        dual (kernel) form — the n_tr x n_tr kernel of the standardised
+     *        training fold and the n_test x n_tr cross kernel are accumulated
+     *        from column blocks of X read in place (a memory-mapped file
+     *        included), eigen-decomposed, and the ridge path is evaluated on
+     *        the held-out rows without ever forming p-dimensional
+     *        coefficients. Same estimator, same grid, same rank rule; the two
+     *        routes agree to numerical precision (the kernel carries the
+     *        squared condition number, so on ill-conditioned tall designs the
+     *        SVD route is the more accurate one). Memory O(n^2) instead of
+     *        O(n p): the route for p >> n.
+     */
+    explicit ridge_cv_svd(bool low_memory) : low_memory_(low_memory) {}
+
+    /** @brief Switch the fold engine; takes effect at the next fit(). */
+    void set_low_memory(bool low_memory) noexcept { low_memory_ = low_memory; }
+
+    /** @brief Whether the kernel (no gathered fold) engine is selected. */
+    bool low_memory() const noexcept { return low_memory_; }
 
     /**
      * @brief Fit K-fold cross-validated ridge over a default lambda grid.
@@ -221,6 +247,11 @@ public:
                 in_test[static_cast<std::size_t>(t)] = true;
             }
 
+            if (low_memory_) {
+                fold_mse.col(f) = fold_mse_kernel_(X, y, in_test, n_train, n_test, f);
+                continue;
+            }
+
             // Split X, y into training and test halves
             Eigen::MatrixXd X_train(n_train, p);
             Eigen::VectorXd y_train(n_train);
@@ -270,9 +301,15 @@ public:
                 }
             }
 
-            const Eigen::MatrixXd X_s_tr =
-                (X_train.rowwise() - x_mean_tr.transpose()).array()
-                .rowwise() / x_scale_tr.transpose().array();
+            // Standardise the gathered training fold IN PLACE: X_train becomes
+            // X_s_tr = (X_train - x_mean_tr) / x_scale_tr. The two passes
+            // round exactly like the former fused expression into a second
+            // matrix (a subtraction, then a division; no fusion possible), so
+            // the fold is bit-identical and one n_train x p copy is gone
+            // (2026-09-25, Tier B of notes/ZERO_COPY_PLAN.md).
+            X_train.rowwise() -= x_mean_tr.transpose();
+            X_train.array().rowwise() /= x_scale_tr.transpose().array();
+            const Eigen::MatrixXd& X_s_tr = X_train;
 
             const Eigen::VectorXd y_c_tr = y_train.array() - y_mean_tr;
 
@@ -449,6 +486,114 @@ public:
 
 private:
 
+    // ---- kernel (dual) fold engine (Tier C2) ---------------------------------
+    //
+    // With X_s = U S V^T the standardised training fold, the SVD route forms
+    // B_s = V_r diag(s / (s^2 + lambda)) U_r^T y_c and predicts X_s,te B_s.
+    // Since X_s,te V_r = K_te U_r S_r^{-1} with K_te = X_s,te X_s,tr^T, the
+    // same predictions are K_te U_r diag(1 / (s^2 + lambda)) U_r^T y_c, and
+    // s^2 are the eigenvalues of K_tr = X_s,tr X_s,tr^T. Both kernels are
+    // accumulated from column blocks standardised on the fly, so nothing of
+    // the size of X is allocated; the rank rule is the SVD route's.
+    Eigen::VectorXd fold_mse_kernel_(Eigen::Ref<const Eigen::MatrixXd> X,
+                                     Eigen::Ref<const Eigen::VectorXd> y,
+                                     const std::vector<bool>& in_test,
+                                     Eigen::Index n_train, Eigen::Index n_test,
+                                     int f) const
+    {
+        const Eigen::Index n = X.rows();
+        const Eigen::Index p = X.cols();
+        const Eigen::Index K = lambdas_.size();
+
+        // Ascending row lists and the 0/1 training mask
+        std::vector<Eigen::Index> tr, te;
+        tr.reserve(static_cast<std::size_t>(n_train)); te.reserve(static_cast<std::size_t>(n_test));
+        Eigen::VectorXd w = Eigen::VectorXd::Zero(n);
+        for (Eigen::Index i = 0; i < n; ++i) {
+            if (in_test[static_cast<std::size_t>(i)]) { te.push_back(i); } else { tr.push_back(i); w(i) = 1.0; }
+        }
+        Eigen::VectorXd y_train(n_train), y_test(n_test);
+        for (Eigen::Index t = 0; t < n_train; ++t) y_train(t) = y(tr[static_cast<std::size_t>(t)]);
+        for (Eigen::Index t = 0; t < n_test;  ++t) y_test(t)  = y(te[static_cast<std::size_t>(t)]);
+        const double y_mean_tr = y_train.mean();
+        const Eigen::VectorXd y_c_tr = y_train.array() - y_mean_tr;
+        const double inv_ntr = 1.0 / static_cast<double>(n_train);
+
+        // Training-fold column statistics: two masked read-only passes
+        Eigen::VectorXd x_mean_tr(p), x_scale_tr(p);
+        for (Eigen::Index j = 0; j < p; ++j) {
+            const auto xj = X.col(j);
+            const double m = w.dot(xj) * inv_ntr;
+            x_mean_tr(j)  = m;
+            x_scale_tr(j) = std::sqrt((w.array() * (xj.array() - m).square()).sum());
+        }
+        {
+            const double max_scale = x_scale_tr.maxCoeff();
+            if (max_scale <= 0.0) {
+                x_scale_tr.setOnes();
+            } else {
+                const double scale_tol = 1e-10 * max_scale;
+                for (Eigen::Index j = 0; j < p; ++j) {
+                    if (x_scale_tr(j) < scale_tol) x_scale_tr(j) = 1.0;
+                }
+            }
+        }
+
+        // Kernels from standardised column blocks (block buffer <= ~32 MB)
+        const Eigen::Index bs = std::max<Eigen::Index>(
+            16, std::min<Eigen::Index>(512, std::max<Eigen::Index>(1, 4'000'000 / std::max<Eigen::Index>(n, 1))));
+        Eigen::MatrixXd K_tr = Eigen::MatrixXd::Zero(n_train, n_train);
+        Eigen::MatrixXd K_te = Eigen::MatrixXd::Zero(n_test, n_train);
+        Eigen::MatrixXd Btr(n_train, bs), Bte(n_test, bs);
+        for (Eigen::Index j0 = 0; j0 < p; j0 += bs) {
+            const Eigen::Index nb = std::min(bs, p - j0);
+            for (Eigen::Index jj = 0; jj < nb; ++jj) {
+                const Eigen::Index j = j0 + jj;
+                const double m = x_mean_tr(j), inv_s = 1.0 / x_scale_tr(j);
+                for (Eigen::Index t = 0; t < n_train; ++t) Btr(t, jj) = (X(tr[static_cast<std::size_t>(t)], j) - m) * inv_s;
+                for (Eigen::Index t = 0; t < n_test;  ++t) Bte(t, jj) = (X(te[static_cast<std::size_t>(t)], j) - m) * inv_s;
+            }
+            K_tr.selfadjointView<Eigen::Lower>().rankUpdate(Btr.leftCols(nb));
+            K_te.noalias() += Bte.leftCols(nb) * Btr.leftCols(nb).transpose();
+        }
+
+        // Eigen-decomposition of the training kernel; s^2 = eigenvalues
+        Eigen::SelfAdjointEigenSolver<Eigen::MatrixXd> es(K_tr);
+        if (es.info() != Eigen::Success) {
+            throw std::runtime_error(
+                "ridge_cv_svd::fit: eigen-decomposition of the training kernel failed in fold " +
+                std::to_string(f));
+        }
+        const Eigen::VectorXd& ev = es.eigenvalues();      // ascending
+        const double s_max = std::sqrt(std::max(0.0, ev(ev.size() - 1)));
+        const double rank_tol = std::numeric_limits<double>::epsilon()
+                              * s_max * std::sqrt(static_cast<double>(n_train));
+        Eigen::Index r = 0;
+        for (Eigen::Index i = ev.size() - 1; i >= 0; --i) {
+            if (std::sqrt(std::max(0.0, ev(i))) > rank_tol) ++r; else break;
+        }
+        if (r == 0) {
+            throw std::runtime_error(
+                "ridge_cv_svd::fit: SVD rank is zero in training fold " + std::to_string(f));
+        }
+        const auto U_r  = es.eigenvectors().rightCols(r);   // the r largest
+        const auto ev_r = ev.tail(r);
+
+        // A = U_r diag(Uty / (s^2 + lambda_k)) -> n_train x K, then held-out predictions
+        const Eigen::VectorXd Uty = U_r.transpose() * y_c_tr;
+        Eigen::MatrixXd D(r, K);
+        for (Eigen::Index k = 0; k < K; ++k) {
+            D.col(k) = 1.0 / (ev_r.array() + lambdas_(k));
+        }
+        const Eigen::MatrixXd A = U_r * (Uty.asDiagonal() * D);
+        Eigen::MatrixXd preds = K_te * A;
+        preds.array() += y_mean_tr;
+
+        return (preds.colwise() - y_test).colwise().squaredNorm().transpose()
+               / static_cast<double>(n_test);
+    }
+
+
     // private member functions
     // ------------------------------------------------------------
 
@@ -481,6 +626,7 @@ private:
     /** @brief Index of the largest lambda within one SE of the minimum. */
     Eigen::Index idx_1se_ = 0;
     bool         interpolates_ = false;
+    bool         low_memory_   = false;   ///< kernel fold engine (Tier C2)
 };
 
 // ===================================================================================

@@ -52,24 +52,42 @@ Other T-solvers:
   \itemize{
     \item \href{#method-TLARS_Solver-initialize}{\code{TLARS_Solver$new()}}
     \item \href{#method-TLARS_Solver-get_lambda}{\code{TLARS_Solver$get_lambda()}}
+    \item \href{#method-TLARS_Solver-get_kahan_refresh_interval}{\code{TLARS_Solver$get_kahan_refresh_interval()}}
+    \item \href{#method-TLARS_Solver-set_kahan_refresh_interval}{\code{TLARS_Solver$set_kahan_refresh_interval()}}
     \item \href{#method-TLARS_Solver-clone}{\code{TLARS_Solver$clone()}}
   }
 }
 \if{html}{\out{<details><summary>Inherited methods</summary>
 <ul>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="clear_warnings"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-clear_warnings'><code>TSolver_Base$clear_warnings()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="execute_step"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-execute_step'><code>TSolver_Base$execute_step()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="get_actions"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-get_actions'><code>TSolver_Base$get_actions()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="get_active_dummy_indices"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-get_active_dummy_indices'><code>TSolver_Base$get_active_dummy_indices()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="get_active_predictor_indices"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-get_active_predictor_indices'><code>TSolver_Base$get_active_predictor_indices()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="get_actives"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-get_actives'><code>TSolver_Base$get_actives()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="get_beta"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-get_beta'><code>TSolver_Base$get_beta()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="get_beta_path"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-get_beta_path'><code>TSolver_Base$get_beta_path()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="get_cp"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-get_cp'><code>TSolver_Base$get_cp()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="get_cp_with_sigma"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-get_cp_with_sigma'><code>TSolver_Base$get_cp_with_sigma()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="get_dof"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-get_dof'><code>TSolver_Base$get_dof()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="get_dropped_indices"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-get_dropped_indices'><code>TSolver_Base$get_dropped_indices()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="get_dummy_start_index"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-get_dummy_start_index'><code>TSolver_Base$get_dummy_start_index()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="get_inactives"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-get_inactives'><code>TSolver_Base$get_inactives()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="get_intercept"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-get_intercept'><code>TSolver_Base$get_intercept()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="get_num_actives"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-get_num_actives'><code>TSolver_Base$get_num_actives()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="get_num_steps"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-get_num_steps'><code>TSolver_Base$get_num_steps()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="get_r2"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-get_r2'><code>TSolver_Base$get_r2()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="get_residuals"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-get_residuals'><code>TSolver_Base$get_residuals()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="get_rss"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-get_rss'><code>TSolver_Base$get_rss()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="get_warnings"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-get_warnings'><code>TSolver_Base$get_warnings()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="is_connected"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-is_connected'><code>TSolver_Base$is_connected()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="load"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-load'><code>TSolver_Base$load()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="restore"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-restore'><code>TSolver_Base$restore()</code></a></span></li>
   <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="save"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-save'><code>TSolver_Base$save()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="set_exchangeable_tie"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-set_exchangeable_tie'><code>TSolver_Base$set_exchangeable_tie()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="set_tie_seed"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-set_tie_seed'><code>TSolver_Base$set_tie_seed()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="set_tolerance"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-set_tolerance'><code>TSolver_Base$set_tolerance()</code></a></span></li>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TSolver_Base" data-id="solver_type_to_string"><a href='../../TRexSelectorNeo/html/TSolver_Base.html#method-TSolver_Base-solver_type_to_string'><code>TSolver_Base$solver_type_to_string()</code></a></span></li>
 </ul>
 </details>}}
 \if{html}{\out{<hr>}}
@@ -107,6 +125,44 @@ Other T-solvers:
   }
   \subsection{Returns}{
     Numeric vector of lambda values, one per step.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-TLARS_Solver-get_kahan_refresh_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-TLARS_Solver-get_kahan_refresh_interval}{}}}
+\subsection{\code{TLARS_Solver$get_kahan_refresh_interval()}}{
+  Kahan refresh interval of the LARS-family solver (steps
+between exact refreshes of the compensated sums).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{TLARS_Solver$get_kahan_refresh_interval()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Integer.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-TLARS_Solver-set_kahan_refresh_interval"></a>}}
+\if{latex}{\out{\hypertarget{method-TLARS_Solver-set_kahan_refresh_interval}{}}}
+\subsection{\code{TLARS_Solver$set_kahan_refresh_interval()}}{
+  Set the Kahan refresh interval.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{TLARS_Solver$set_kahan_refresh_interval(interval)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{interval}}{Positive integer.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Invisibly returns \code{self}.
   }
 }
 

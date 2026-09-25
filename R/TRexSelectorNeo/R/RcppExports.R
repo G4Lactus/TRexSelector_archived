@@ -380,8 +380,8 @@ lpnorm_scaler_inverse_transform_inplace_mmap <- function(ptr, mmap_ptr) {
 #'
 #' @return XPtr to ridge_cv
 #' @noRd
-ridge_cv_create <- function() {
-    .Call(`_TRexSelectorNeo_ridge_cv_create`)
+ridge_cv_create <- function(low_memory = FALSE) {
+    .Call(`_TRexSelectorNeo_ridge_cv_create`, low_memory)
 }
 
 #' @title Fit Ridge CV
@@ -482,8 +482,8 @@ ridge_cv_get_cv_std <- function(ptr) {
 #' @title Create Elastic Net path
 #' @return XPtr to enet_path
 #' @noRd
-enet_create <- function() {
-    .Call(`_TRexSelectorNeo_enet_create`)
+enet_create <- function(low_memory = FALSE) {
+    .Call(`_TRexSelectorNeo_enet_create`, low_memory)
 }
 
 #' @title Fit Elastic Net over an auto-generated glmnet-style grid
@@ -492,10 +492,22 @@ enet_fit <- function(ptr, X, y, alpha, n_lambda, lambda_min_ratio, standardize, 
     invisible(.Call(`_TRexSelectorNeo_enet_fit`, ptr, X, y, alpha, n_lambda, lambda_min_ratio, standardize, intercept, use_strong_rule, max_iter, tol))
 }
 
+#' @title Fit Elastic Net on a MemoryMappedMatrix (zero-copy, readonly suffices)
+#' @noRd
+enet_fit_mmap <- function(ptr, mmap_ptr, y, alpha, n_lambda, lambda_min_ratio, standardize, intercept, use_strong_rule, max_iter, tol) {
+    invisible(.Call(`_TRexSelectorNeo_enet_fit_mmap`, ptr, mmap_ptr, y, alpha, n_lambda, lambda_min_ratio, standardize, intercept, use_strong_rule, max_iter, tol))
+}
+
 #' @title Fit Elastic Net at an explicit lambda grid
 #' @noRd
 enet_fit_grid <- function(ptr, X, y, lambda_grid, alpha, standardize, intercept, use_strong_rule, max_iter, tol) {
     invisible(.Call(`_TRexSelectorNeo_enet_fit_grid`, ptr, X, y, lambda_grid, alpha, standardize, intercept, use_strong_rule, max_iter, tol))
+}
+
+#' @title Fit Elastic Net at an explicit grid on a MemoryMappedMatrix (zero-copy)
+#' @noRd
+enet_fit_grid_mmap <- function(ptr, mmap_ptr, y, lambda_grid, alpha, standardize, intercept, use_strong_rule, max_iter, tol) {
+    invisible(.Call(`_TRexSelectorNeo_enet_fit_grid_mmap`, ptr, mmap_ptr, y, lambda_grid, alpha, standardize, intercept, use_strong_rule, max_iter, tol))
 }
 
 #' @title Elastic Net coefficient path (p x n_lambda, original scale)
@@ -528,23 +540,41 @@ enet_converged <- function(ptr) {
     .Call(`_TRexSelectorNeo_enet_converged`, ptr)
 }
 
+#' @title Number of lambdas whose coordinate descent did not converge
+#' @noRd
+enet_n_nonconverged <- function(ptr) {
+    .Call(`_TRexSelectorNeo_enet_n_nonconverged`, ptr)
+}
+
 #' @title Predictions per lambda for new data
 #' @noRd
 enet_predict <- function(ptr, X_new) {
     .Call(`_TRexSelectorNeo_enet_predict`, ptr, X_new)
 }
 
+#' @title Predictions per lambda for new data in a MemoryMappedMatrix (zero-copy)
+#' @noRd
+enet_predict_mmap <- function(ptr, mmap_ptr) {
+    .Call(`_TRexSelectorNeo_enet_predict_mmap`, ptr, mmap_ptr)
+}
+
 #' @title Create Elastic Net CV
 #' @return XPtr to enet_cv
 #' @noRd
-enet_cv_create <- function() {
-    .Call(`_TRexSelectorNeo_enet_cv_create`)
+enet_cv_create <- function(low_memory = FALSE) {
+    .Call(`_TRexSelectorNeo_enet_cv_create`, low_memory)
 }
 
 #' @title Fit Elastic Net CV over a glmnet-style grid
 #' @noRd
 enet_cv_fit <- function(ptr, X, y, alpha, n_folds, n_lambda, lambda_min_ratio, seed, standardize, intercept, max_iter, tol) {
     invisible(.Call(`_TRexSelectorNeo_enet_cv_fit`, ptr, X, y, alpha, n_folds, n_lambda, lambda_min_ratio, seed, standardize, intercept, max_iter, tol))
+}
+
+#' @title Fit Elastic Net CV on a MemoryMappedMatrix (zero-copy, readonly suffices)
+#' @noRd
+enet_cv_fit_mmap <- function(ptr, mmap_ptr, y, alpha, n_folds, n_lambda, lambda_min_ratio, seed, standardize, intercept, max_iter, tol) {
+    invisible(.Call(`_TRexSelectorNeo_enet_cv_fit_mmap`, ptr, mmap_ptr, y, alpha, n_folds, n_lambda, lambda_min_ratio, seed, standardize, intercept, max_iter, tol))
 }
 
 #' @title Elastic Net CV lambda.min
@@ -600,8 +630,14 @@ enet_cv_get_cv_std <- function(ptr) {
 #' @return Named list with elements \code{U} (n x M), \code{S} (M),
 #'   and \code{V} (p x M).
 #' @noRd
-svd_compute <- function(X, M) {
-    .Call(`_TRexSelectorNeo_svd_compute`, X, M)
+svd_compute <- function(X, M, min_dim_thresh = 10000, block_size = 1024) {
+    .Call(`_TRexSelectorNeo_svd_compute`, X, M, min_dim_thresh, block_size)
+}
+
+#' @title Compute SVD of a MemoryMappedMatrix (zero-copy, readonly suffices)
+#' @noRd
+svd_compute_mmap <- function(mmap_ptr, M, min_dim_thresh = 10000, block_size = 1024) {
+    .Call(`_TRexSelectorNeo_svd_compute_mmap`, mmap_ptr, M, min_dim_thresh, block_size)
 }
 
 #' @title Create PCA object
@@ -619,6 +655,16 @@ svd_compute <- function(X, M) {
 #' @noRd
 pca_create <- function(X, M, center = TRUE, normalize = TRUE) {
     .Call(`_TRexSelectorNeo_pca_create`, X, M, center, normalize)
+}
+
+#' @title Create PCA object on a MemoryMappedMatrix (zero-copy)
+#'
+#' @description The centering / normalization is applied IN THE FILE
+#'   (readwrite mapping required when center or normalize is TRUE);
+#'   \code{pca_restore_mmap()} undoes it.
+#' @noRd
+pca_create_mmap <- function(mmap_ptr, M, center = TRUE, normalize = TRUE) {
+    .Call(`_TRexSelectorNeo_pca_create_mmap`, mmap_ptr, M, center, normalize)
 }
 
 #' @title Fit PCA
@@ -643,6 +689,12 @@ pca_restore <- function(ptr, X) {
     invisible(.Call(`_TRexSelectorNeo_pca_restore`, ptr, X))
 }
 
+#' @title Restore a MemoryMappedMatrix after PCA centering/normalization
+#' @noRd
+pca_restore_mmap <- function(ptr, mmap_ptr) {
+    invisible(.Call(`_TRexSelectorNeo_pca_restore_mmap`, ptr, mmap_ptr))
+}
+
 #' @title Transform new data with fitted PCA
 #'
 #' @param ptr XPtr to PCA.
@@ -652,6 +704,12 @@ pca_restore <- function(ptr, X) {
 #' @noRd
 pca_transform <- function(ptr, X_new) {
     .Call(`_TRexSelectorNeo_pca_transform`, ptr, X_new)
+}
+
+#' @title Transform new data in a MemoryMappedMatrix with a fitted PCA (zero-copy)
+#' @noRd
+pca_transform_mmap <- function(ptr, mmap_ptr) {
+    .Call(`_TRexSelectorNeo_pca_transform_mmap`, ptr, mmap_ptr)
 }
 
 #' @title Get PCA column means
@@ -706,6 +764,12 @@ ridge_solve <- function(X, y, lambda) {
     .Call(`_TRexSelectorNeo_ridge_solve`, X, y, lambda)
 }
 
+#' @title Solve Ridge Regression on a MemoryMappedMatrix (zero-copy, readonly suffices)
+#' @noRd
+ridge_solve_mmap <- function(mmap_ptr, y, lambda) {
+    .Call(`_TRexSelectorNeo_ridge_solve_mmap`, mmap_ptr, y, lambda)
+}
+
 #' @title Create RTRexBiobankScreeningSelector 1D
 #' @noRd
 trex_biobank_screening_1d_create <- function(X, y, biobank_control_list, screen_control_list, trex_control_list, seed, verbose) {
@@ -716,6 +780,16 @@ trex_biobank_screening_1d_create <- function(X, y, biobank_control_list, screen_
 #' @noRd
 trex_biobank_screening_2d_create <- function(X, Y, biobank_control_list, screen_control_list, trex_control_list, seed, verbose) {
     .Call(`_TRexSelectorNeo_trex_biobank_screening_2d_create`, X, Y, biobank_control_list, screen_control_list, trex_control_list, seed, verbose)
+}
+
+#' @noRd
+trex_biobank_screening_1d_mmap_create <- function(X_ptr, y, biobank_control_list, screen_control_list, trex_control_list, seed, verbose) {
+    .Call(`_TRexSelectorNeo_trex_biobank_screening_1d_mmap_create`, X_ptr, y, biobank_control_list, screen_control_list, trex_control_list, seed, verbose)
+}
+
+#' @noRd
+trex_biobank_screening_2d_mmap_create <- function(X_ptr, Y, biobank_control_list, screen_control_list, trex_control_list, seed, verbose) {
+    .Call(`_TRexSelectorNeo_trex_biobank_screening_2d_mmap_create`, X_ptr, Y, biobank_control_list, screen_control_list, trex_control_list, seed, verbose)
 }
 
 #' @title Screen Single Phenotype
@@ -729,6 +803,10 @@ trex_biobank_screening_screen_phenotype <- function(r_ptr) {
 trex_biobank_screening_screen_phenotypes <- function(r_ptr) {
     .Call(`_TRexSelectorNeo_trex_biobank_screening_screen_phenotypes`, r_ptr)
 }
+
+#' @title Cast DA pointer to Base pointer
+#' @noRd
+NULL
 
 #' @title Create TRexDASelector
 #' @noRd
@@ -748,8 +826,6 @@ trex_da_select <- function(r_ptr) {
     invisible(.Call(`_TRexSelectorNeo_trex_da_select`, r_ptr))
 }
 
-#' @title Cast DA pointer to Base pointer
-#' @noRd
 trex_da_to_base_ptr <- function(r_ptr) {
     .Call(`_TRexSelectorNeo_trex_da_to_base_ptr`, r_ptr)
 }
@@ -854,6 +930,11 @@ trex_gvs_get_groups <- function(r_ptr) {
 #' @noRd
 trex_gvs_get_group_labels <- function(r_ptr) {
     .Call(`_TRexSelectorNeo_trex_gvs_get_group_labels`, r_ptr)
+}
+
+#' @noRd
+trex_gvs_get_hc_method_used <- function(r_ptr) {
+    .Call(`_TRexSelectorNeo_trex_gvs_get_hc_method_used`, r_ptr)
 }
 
 #' @title Create RTRexScreeningSelector
@@ -991,6 +1072,16 @@ trex_selector_select <- function(r_ptr) {
     invisible(.Call(`_TRexSelectorNeo_trex_selector_select`, r_ptr))
 }
 
+#' @title Give X back before select()
+#'
+#' @details Undoes the in-place normalization applied at construction and
+#'   releases the buffer claim (idempotent; a no-op after select()). A
+#'   restored selector cannot run: select() then errors (2026-09-25).
+#' @noRd
+trex_selector_restore <- function(r_ptr) {
+    invisible(.Call(`_TRexSelectorNeo_trex_selector_restore`, r_ptr))
+}
+
 #' @title Get Selected Variables
 #'
 #' @param r_ptr Pointer to RTRexSelector instance.
@@ -1075,6 +1166,41 @@ trex_selector_get_y_mean <- function(r_ptr) {
     .Call(`_TRexSelectorNeo_trex_selector_get_y_mean`, r_ptr)
 }
 
+#' @noRd
+trex_selector_get_tfdr <- function(r_ptr) {
+    .Call(`_TRexSelectorNeo_trex_selector_get_tfdr`, r_ptr)
+}
+
+#' @noRd
+trex_selector_get_k <- function(r_ptr) {
+    .Call(`_TRexSelectorNeo_trex_selector_get_k`, r_ptr)
+}
+
+#' @noRd
+trex_selector_get_max_num_dummies <- function(r_ptr) {
+    .Call(`_TRexSelectorNeo_trex_selector_get_max_num_dummies`, r_ptr)
+}
+
+#' @noRd
+trex_selector_get_max_t_stop <- function(r_ptr) {
+    .Call(`_TRexSelectorNeo_trex_selector_get_max_t_stop`, r_ptr)
+}
+
+#' @noRd
+trex_selector_get_stagnation_check <- function(r_ptr) {
+    .Call(`_TRexSelectorNeo_trex_selector_get_stagnation_check`, r_ptr)
+}
+
+#' @noRd
+trex_selector_get_num_selected <- function(r_ptr) {
+    .Call(`_TRexSelectorNeo_trex_selector_get_num_selected`, r_ptr)
+}
+
+#' @noRd
+trex_selector_get_num_dummies <- function(r_ptr) {
+    .Call(`_TRexSelectorNeo_trex_selector_get_num_dummies`, r_ptr)
+}
+
 #' @title Run T-Rex Sparse PCA selection
 #'
 #' @description Orchestrates M rounds of ordinary PCA, T-Rex GVS FDR-controlled
@@ -1100,6 +1226,16 @@ trex_selector_get_y_mean <- function(r_ptr) {
 #' @noRd
 trex_spca_select <- function(X, M, tFDR, spca_ctrl_list, seed, verbose) {
     .Call(`_TRexSelectorNeo_trex_spca_select`, X, M, tFDR, spca_ctrl_list, seed, verbose)
+}
+
+#' @title Sparse PCA selection on a MemoryMappedMatrix (zero-copy)
+#'
+#' @description The file is centered in place during the selection and
+#'   restored on return ("readwrite" mapping required). Before, the R6 class
+#'   read the whole file into RAM through as.matrix().
+#' @noRd
+trex_spca_select_mmap <- function(X_ptr, M, tFDR, spca_ctrl_list, seed, verbose) {
+    .Call(`_TRexSelectorNeo_trex_spca_select_mmap`, X_ptr, M, tFDR, spca_ctrl_list, seed, verbose)
 }
 
 #' @title Create TRexTikhonovSelector
@@ -1836,6 +1972,19 @@ tsolver_save <- function(ptr, filename) {
     invisible(.Call(`_TRexSelectorNeo_tsolver_save`, ptr, filename))
 }
 
+#' @title Restore the caller's X and D and release the solver's claim
+#'
+#' @param ptr XPtr to TSolverRcpp
+#'
+#' @details Undoes the in-place centering/scaling a writer solver
+#'   (normalize or intercept TRUE) applied to X and D at construction and
+#'   releases its claim on the buffers, so that another writer may take
+#'   them; y is never modified. No-op for a reader.
+#' @noRd
+tsolver_restore <- function(ptr) {
+    invisible(.Call(`_TRexSelectorNeo_tsolver_restore`, ptr))
+}
+
 #' @title Load TSolver from File
 #'
 #' @param ptr TSolverRcpp holder pointer
@@ -1921,6 +2070,106 @@ tsolver_tik_get_lambda2 <- function(ptr) {
 #' @noRd
 tsolver_tcdtiknet_is_folded <- function(ptr) {
     .Call(`_TRexSelectorNeo_tsolver_tcdtiknet_is_folded`, ptr)
+}
+
+#' @noRd
+tsolver_get_residuals <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_get_residuals`, ptr)
+}
+
+#' @noRd
+tsolver_get_beta_path <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_get_beta_path`, ptr)
+}
+
+#' @noRd
+tsolver_get_cp_with_sigma <- function(ptr, sigma_hat_sq) {
+    .Call(`_TRexSelectorNeo_tsolver_get_cp_with_sigma`, ptr, sigma_hat_sq)
+}
+
+#' @noRd
+tsolver_solver_type_to_string <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_solver_type_to_string`, ptr)
+}
+
+#' @noRd
+tsolver_get_dropped_indices <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_get_dropped_indices`, ptr)
+}
+
+#' @noRd
+tsolver_get_active_predictor_indices <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_get_active_predictor_indices`, ptr)
+}
+
+#' @noRd
+tsolver_get_active_dummy_indices <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_get_active_dummy_indices`, ptr)
+}
+
+#' @noRd
+tsolver_get_num_actives <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_get_num_actives`, ptr)
+}
+
+#' @noRd
+tsolver_get_dummy_start_index <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_get_dummy_start_index`, ptr)
+}
+
+#' @noRd
+tsolver_is_connected <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_is_connected`, ptr)
+}
+
+#' @noRd
+tsolver_set_tolerance <- function(ptr, tol) {
+    invisible(.Call(`_TRexSelectorNeo_tsolver_set_tolerance`, ptr, tol))
+}
+
+#' @noRd
+tsolver_set_tie_seed <- function(ptr, seed) {
+    invisible(.Call(`_TRexSelectorNeo_tsolver_set_tie_seed`, ptr, seed))
+}
+
+#' @noRd
+tsolver_set_exchangeable_tie <- function(ptr, alpha, floor) {
+    invisible(.Call(`_TRexSelectorNeo_tsolver_set_exchangeable_tie`, ptr, alpha, floor))
+}
+
+#' @noRd
+tsolver_get_warnings <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_get_warnings`, ptr)
+}
+
+#' @noRd
+tsolver_clear_warnings <- function(ptr) {
+    invisible(.Call(`_TRexSelectorNeo_tsolver_clear_warnings`, ptr))
+}
+
+#' @noRd
+tsolver_lars_get_kahan_refresh_interval <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_lars_get_kahan_refresh_interval`, ptr)
+}
+
+#' @noRd
+tsolver_lars_set_kahan_refresh_interval <- function(ptr, interval) {
+    invisible(.Call(`_TRexSelectorNeo_tsolver_lars_set_kahan_refresh_interval`, ptr, interval))
+}
+
+#' @noRd
+tsolver_tenet_get_alpha <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_tenet_get_alpha`, ptr)
+}
+
+#' @noRd
+tsolver_tik_get_tikhonov_k <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_tik_get_tikhonov_k`, ptr)
+}
+
+#' @noRd
+tsolver_cd_get_kkt_violation <- function(ptr, lambda1) {
+    .Call(`_TRexSelectorNeo_tsolver_cd_get_kkt_violation`, ptr, lambda1)
 }
 
 #' @title Set custom temp directory for the C++ backend
@@ -2141,5 +2390,15 @@ rcpp_compute_tpp_dense <- function(beta_hat, beta, eps = 1e-15) {
 #' @noRd
 rcpp_normalize_design <- function(X, y, scaling_mode, eps) {
     .Call(`_TRexSelectorNeo_rcpp_normalize_design`, X, y, scaling_mode, eps)
+}
+
+#' @noRd
+rcpp_get_max_threads <- function() {
+    .Call(`_TRexSelectorNeo_rcpp_get_max_threads`)
+}
+
+#' @noRd
+rcpp_set_num_threads <- function(n) {
+    invisible(.Call(`_TRexSelectorNeo_rcpp_set_num_threads`, n))
 }
 

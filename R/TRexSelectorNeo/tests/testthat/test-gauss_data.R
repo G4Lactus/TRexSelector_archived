@@ -47,6 +47,7 @@ test_that("All TSolver variants execute on Gauss_data with T_stop = 3", {
     rss <- s$get_rss()
     expect_gte(length(rss), 1L)
     expect_true(all(is.finite(rss)))
+    s$restore()   # writers map Gauss_data in place; hand it back (in-place contract)
   }
 })
 

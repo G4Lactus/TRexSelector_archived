@@ -47,6 +47,7 @@ Other ML methods:
     \item \href{#method-MLElasticNet-get_lambdas}{\code{MLElasticNet$get_lambdas()}}
     \item \href{#method-MLElasticNet-get_dev_ratio}{\code{MLElasticNet$get_dev_ratio()}}
     \item \href{#method-MLElasticNet-converged}{\code{MLElasticNet$converged()}}
+    \item \href{#method-MLElasticNet-n_nonconverged}{\code{MLElasticNet$n_nonconverged()}}
     \item \href{#method-MLElasticNet-predict}{\code{MLElasticNet$predict()}}
     \item \href{#method-MLElasticNet-clone}{\code{MLElasticNet$clone()}}
   }
@@ -58,7 +59,19 @@ Other ML methods:
   Initialize the MLElasticNet object.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{MLElasticNet$new()}
+    \preformatted{MLElasticNet$new(low_memory = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{low_memory}}{Logical (default \code{FALSE}). \code{FALSE}: the
+coordinate descent runs on a centered and standardized working copy of
+X (one n x p matrix while fitting). \code{TRUE}: it runs on X itself
+(an \code{mmap_matrix} is read in place, \code{"readonly"} suffices)
+with no allocation of the size of X; same estimator and grid, the two
+engines agree to rounding (about 1e-12 in the coefficients).}
+    }
     \if{html}{\out{</div>}}
   }
 }
@@ -87,7 +100,8 @@ Other ML methods:
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{X}}{Predictor matrix (n x p).}
+      \item{\code{X}}{Predictor matrix (n x p), or an \code{mmap_matrix} (bound
+zero-copy; \code{"readonly"} suffices, the fit does not modify X).}
       \item{\code{y}}{Response vector (n).}
       \item{\code{alpha}}{Mixing in \code{[0, 1]}: 1 = lasso, 0 = ridge (default 1).}
       \item{\code{n_lambda}}{Grid size (default 100).}
@@ -130,7 +144,7 @@ descending internally); use to evaluate at exactly glmnet's sequence.
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{X}}{Predictor matrix (n x p).}
+      \item{\code{X}}{Predictor matrix (n x p), or an \code{mmap_matrix} (zero-copy).}
       \item{\code{y}}{Response vector (n).}
       \item{\code{lambda_grid}}{Explicit lambda values (any order, > 0).}
       \item{\code{alpha}}{Mixing in \code{[0, 1]} (default 1).}
@@ -223,6 +237,21 @@ descending internally); use to evaluate at exactly glmnet's sequence.
 }
 
 \if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-MLElasticNet-n_nonconverged"></a>}}
+\if{latex}{\out{\hypertarget{method-MLElasticNet-n_nonconverged}{}}}
+\subsection{\code{MLElasticNet$n_nonconverged()}}{
+  Number of lambdas whose coordinate descent hit \code{max_iter}.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{MLElasticNet$n_nonconverged()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Integer.
+  }
+}
+
+\if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-MLElasticNet-predict"></a>}}
 \if{latex}{\out{\hypertarget{method-MLElasticNet-predict}{}}}
 \subsection{\code{MLElasticNet$predict()}}{
@@ -235,7 +264,8 @@ descending internally); use to evaluate at exactly glmnet's sequence.
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{X_new}}{Predictor matrix with the same number of columns as the fit.}
+      \item{\code{X_new}}{Predictor matrix with the same number of columns as the
+fit, or an \code{mmap_matrix} (zero-copy).}
     }
     \if{html}{\out{</div>}}
   }

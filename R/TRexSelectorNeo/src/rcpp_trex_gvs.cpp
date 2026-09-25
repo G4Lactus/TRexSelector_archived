@@ -247,3 +247,9 @@ CharacterVector trex_gvs_get_group_labels(XPtr<RTRexGVSSelector> r_ptr) {
         r_ptr->get()->getGVSResult().group_labels;
     return CharacterVector(labels.begin(), labels.end());
 }
+
+//' @noRd
+// [[Rcpp::export]]
+std::string trex_gvs_get_hc_method_used(XPtr<RTRexGVSSelector> r_ptr) { // NOLINT(performance-unnecessary-value-param)
+    return r_ptr->get()->getGVSResult().hc_method_used;
+}

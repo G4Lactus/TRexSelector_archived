@@ -29,6 +29,12 @@ y <- X[, 5] * 4.0 + X[, 15] * (-2.5) + X[, 25] * 3.1 + rnorm(n)
 
 # ---------------------------------------------------------------------------
 # Solver factory (22 entries: 21 solver types, TNCGMP counted for both variants)
+#
+# In-place contract (2026-09-25): the R6 solvers map X and D without copying.
+# A factory call with the defaults builds a WRITER that preprocesses X and D in
+# place and claims them until $restore() (or GC); a test that builds several
+# writers on the fixture restores each before the next. With (FALSE, FALSE)
+# it builds a READER on pre-scaled data (see the serialization group).
 # ---------------------------------------------------------------------------
 
 # 1-based contiguous group ids for the IEN solvers (10 groups of 3 predictors)
@@ -46,35 +52,35 @@ y <- X[, 5] * 4.0 + X[, 15] * (-2.5) + X[, 25] * 3.1 + rnorm(n)
 })
 
 .factories <- list(
-  TLARS      = function() TLARS_Solver$new(X, D, y),
-  TLASSO     = function() TLASSO_Solver$new(X, D, y),
-  TSTEPWISE  = function() TSTEPWISE_Solver$new(X, D, y),
-  TENET      = function() TENET_Solver$new(X, D, y, options = tsolver_options(lambda2 = 0.5)),
-  TENET_AUG  = function() TENETAug_Solver$new(X, D, y, options = tsolver_options(lambda2 = 0.5)),
-  TIENET_AUG = function() TIENETAug_Solver$new(X, D, y, groups = .tienet_groups,
-                                              options = tsolver_options(lambda2 = 0.5)),
-  TSTAGEWISE = function() TSTAGEWISE_Solver$new(X, D, y),
-  TOMP       = function() TOMP_Solver$new(X, D, y),
-  TGP        = function() TGP_Solver$new(X, D, y),
-  TACGP      = function() TACGP_Solver$new(X, D, y),
-  TMP        = function() TMP_Solver$new(X, D, y),
-  TOOLS      = function() TOOLS_Solver$new(X, D, y),
-  TNCGMP_ls  = function() TNCGMP_Solver$new(X, D, y, options = tsolver_options(ncgmp_variant = "line_search")),
-  TNCGMP_fc  = function() TNCGMP_Solver$new(X, D, y, options = tsolver_options(ncgmp_variant = "fully_corrective")),
-  TAFS       = function() TAFS_Solver$new(X, D, y, options = tsolver_options(rho_afs = 1.0)),
+  TLARS      = function(nrm = TRUE, ic = TRUE) TLARS_Solver$new(X, D, y, options = tsolver_options(normalize = nrm, intercept = ic)),
+  TLASSO     = function(nrm = TRUE, ic = TRUE) TLASSO_Solver$new(X, D, y, options = tsolver_options(normalize = nrm, intercept = ic)),
+  TSTEPWISE  = function(nrm = TRUE, ic = TRUE) TSTEPWISE_Solver$new(X, D, y, options = tsolver_options(normalize = nrm, intercept = ic)),
+  TENET      = function(nrm = TRUE, ic = TRUE) TENET_Solver$new(X, D, y, options = tsolver_options(normalize = nrm, intercept = ic, lambda2 = 0.5)),
+  TENET_AUG  = function(nrm = TRUE, ic = TRUE) TENETAug_Solver$new(X, D, y, options = tsolver_options(normalize = nrm, intercept = ic, lambda2 = 0.5)),
+  TIENET_AUG = function(nrm = TRUE, ic = TRUE) TIENETAug_Solver$new(X, D, y, groups = .tienet_groups,
+                                              options = tsolver_options(normalize = nrm, intercept = ic, lambda2 = 0.5)),
+  TSTAGEWISE = function(nrm = TRUE, ic = TRUE) TSTAGEWISE_Solver$new(X, D, y, options = tsolver_options(normalize = nrm, intercept = ic)),
+  TOMP       = function(nrm = TRUE, ic = TRUE) TOMP_Solver$new(X, D, y, options = tsolver_options(normalize = nrm, intercept = ic)),
+  TGP        = function(nrm = TRUE, ic = TRUE) TGP_Solver$new(X, D, y, options = tsolver_options(normalize = nrm, intercept = ic)),
+  TACGP      = function(nrm = TRUE, ic = TRUE) TACGP_Solver$new(X, D, y, options = tsolver_options(normalize = nrm, intercept = ic)),
+  TMP        = function(nrm = TRUE, ic = TRUE) TMP_Solver$new(X, D, y, options = tsolver_options(normalize = nrm, intercept = ic)),
+  TOOLS      = function(nrm = TRUE, ic = TRUE) TOOLS_Solver$new(X, D, y, options = tsolver_options(normalize = nrm, intercept = ic)),
+  TNCGMP_ls  = function(nrm = TRUE, ic = TRUE) TNCGMP_Solver$new(X, D, y, options = tsolver_options(normalize = nrm, intercept = ic, ncgmp_variant = "line_search")),
+  TNCGMP_fc  = function(nrm = TRUE, ic = TRUE) TNCGMP_Solver$new(X, D, y, options = tsolver_options(normalize = nrm, intercept = ic, ncgmp_variant = "fully_corrective")),
+  TAFS       = function(nrm = TRUE, ic = TRUE) TAFS_Solver$new(X, D, y, options = tsolver_options(normalize = nrm, intercept = ic, rho_afs = 1.0)),
   # Bound with TODO 5.4: native IEN, the sparse-K solvers, the CD family.
-  TIENET     = function() TIENET_Solver$new(X, D, y, groups = .tienet_groups,
-                                            options = tsolver_options(lambda2 = 0.5)),
-  TIKNET     = function() TIKNET_Solver$new(X, D, y, tikhonov_K = .group_mean_k_30,
-                                            options = tsolver_options(lambda2 = 0.5)),
-  TIKOMP     = function() TIKOMP_Solver$new(X, D, y, tikhonov_K = .group_mean_k_30,
-                                            options = tsolver_options(lambda2 = 0.5)),
-  TCDLASSO   = function() TCDLASSO_Solver$new(X, D, y),
-  TCDENET    = function() TCDENET_Solver$new(X, D, y, options = tsolver_options(lambda2 = 0.5)),
-  TCDIENET   = function() TCDIENET_Solver$new(X, D, y, groups = .tienet_groups,
-                                              options = tsolver_options(lambda2 = 0.5)),
-  TCDTIKNET  = function() TCDTIKNET_Solver$new(X, D, y, tikhonov_K = .group_mean_k_30,
-                                               options = tsolver_options(lambda2 = 0.5,
+  TIENET     = function(nrm = TRUE, ic = TRUE) TIENET_Solver$new(X, D, y, groups = .tienet_groups,
+                                            options = tsolver_options(normalize = nrm, intercept = ic, lambda2 = 0.5)),
+  TIKNET     = function(nrm = TRUE, ic = TRUE) TIKNET_Solver$new(X, D, y, tikhonov_K = .group_mean_k_30,
+                                            options = tsolver_options(normalize = nrm, intercept = ic, lambda2 = 0.5)),
+  TIKOMP     = function(nrm = TRUE, ic = TRUE) TIKOMP_Solver$new(X, D, y, tikhonov_K = .group_mean_k_30,
+                                            options = tsolver_options(normalize = nrm, intercept = ic, lambda2 = 0.5)),
+  TCDLASSO   = function(nrm = TRUE, ic = TRUE) TCDLASSO_Solver$new(X, D, y, options = tsolver_options(normalize = nrm, intercept = ic)),
+  TCDENET    = function(nrm = TRUE, ic = TRUE) TCDENET_Solver$new(X, D, y, options = tsolver_options(normalize = nrm, intercept = ic, lambda2 = 0.5)),
+  TCDIENET   = function(nrm = TRUE, ic = TRUE) TCDIENET_Solver$new(X, D, y, groups = .tienet_groups,
+                                              options = tsolver_options(normalize = nrm, intercept = ic, lambda2 = 0.5)),
+  TCDTIKNET  = function(nrm = TRUE, ic = TRUE) TCDTIKNET_Solver$new(X, D, y, tikhonov_K = .group_mean_k_30,
+                                               options = tsolver_options(normalize = nrm, intercept = ic, lambda2 = 0.5,
                                                                          fold_dummies = TRUE))
 )
 
@@ -123,6 +129,8 @@ test_that("All solver types execute without error and produce a valid RSS path",
 
     # RSS must decrease from first to last step
     expect_gt(rss[[1]], rss[[nsteps]], label = nm)
+
+    s$restore()   # hand X and D back before the next writer
   }
 })
 
@@ -233,6 +241,18 @@ local({
       expect_true(all(abs(step_acts) >= 0L), label = "all action |index| >= 0")
     }
   })
+
+  test_that("get_actions(r_index=TRUE) is the recorded lars code, r_index=FALSE its 0-based magnitude", {
+    a1 <- s$get_actions(r_index = TRUE)
+    a0 <- s$get_actions(r_index = FALSE)
+    expect_identical(lapply(a1, function(a) abs(a) - 1L), a0)
+    # The first action of T-LARS is the addition of one variable with a
+    # 1-based code in [1, p + d]
+    expect_length(a1[[1]], 1L)
+    expect_true(a1[[1]] >= 1L && a1[[1]] <= p + d)
+  })
+
+  s$restore()
 })
 
 
@@ -247,6 +267,7 @@ test_that("TLARS_Solver: get_lambda returns a non-increasing numeric vector of l
   expect_type(lam, "double")
   expect_length(lam, s$get_num_steps())
   expect_true(all(diff(lam) <= 1e-12), label = "lambda non-increasing")
+  s$restore()
 })
 
 test_that("TLASSO_Solver: get_lambda, get_num_removals, get_cycling_ratio all correct", {
@@ -260,12 +281,14 @@ test_that("TLASSO_Solver: get_lambda, get_num_removals, get_cycling_ratio all co
   expect_type(cr, "double")
   expect_gte(cr, 0.0)
   expect_lte(cr, 1.0)
+  s$restore()
 })
 
 test_that("TSTEPWISE_Solver: get_lambda returns a numeric vector", {
   s <- TSTEPWISE_Solver$new(X, D, y)
   s$execute_step(T_stop = 8)
   expect_type(s$get_lambda(), "double")
+  s$restore()
 })
 
 test_that("TENET_Solver: get_lambda, get_num_removals, get_cycling_ratio all correct", {
@@ -279,6 +302,7 @@ test_that("TENET_Solver: get_lambda, get_num_removals, get_cycling_ratio all cor
   expect_type(cr, "double")
   expect_gte(cr, 0.0)
   expect_lte(cr, 1.0)
+  s$restore()
 })
 
 test_that("TSTAGEWISE_Solver: get_num_removals non-negative, get_cycling_ratio in [0,1]", {
@@ -291,6 +315,7 @@ test_that("TSTAGEWISE_Solver: get_num_removals non-negative, get_cycling_ratio i
   expect_type(cr, "double")
   expect_gte(cr, 0.0)
   expect_lte(cr, 1.0)
+  s$restore()
 })
 
 test_that("TIENETAug_Solver: get_lambda2, get_groups (1-based), get_num_groups", {
@@ -300,37 +325,46 @@ test_that("TIENETAug_Solver: get_lambda2, get_groups (1-based), get_num_groups",
   expect_equal(s$get_lambda2(), 0.5)
   expect_identical(s$get_groups(), as.integer(.tienet_groups))
   expect_identical(s$get_num_groups(), 10L)
+  s$restore()
 })
 
 
 # =============================================================================
 # Group 5: Warm-start / serialization — all 22 factory entries
-# Mirrors test_tsolvers_polymorphic.cpp :: SerializationEquivalence
-#
-# Note: No data-copy issue in R — Rcpp copies matrices by value on every
-# $new() call, unlike C++ Eigen::Map which would mutate in-place.
+# Mirrors test_tsolvers_polymorphic.cpp :: SerializationEquivalence and the
+# C++ buffer-guard round trip: X and D are pre-scaled ONCE (the statistics
+# live in the scalers), and the reference, checkpoint and resumed solvers are
+# READERS on the same matrices, so the three paths see bit-identical data.
+# The former per-solver writers would each re-normalize the already
+# normalized X (the T-Stagewise "Paths differ" finding).
 # =============================================================================
 
 test_that("All solver types resume from checkpoint identically to a continuous run", {
   T_partial <- 4L
   T_final   <- 8L
 
+  sx <- MLLpNormScaler$new(); sx$fit_transform_inplace(X)
+  sd <- MLLpNormScaler$new(); sd$fit_transform_inplace(D)
+  on.exit({ sx$inverse_transform_inplace(X); sd$inverse_transform_inplace(D) }, add = TRUE)
+
   for (nm in names(.factories)) {
     # --- Reference: uninterrupted run to T_final ---
-    s_ref <- .factories[[nm]]()
+    s_ref <- .factories[[nm]](FALSE, FALSE)
     s_ref$execute_step(T_stop = T_final)
 
-    # --- Partial run, save, reload, continue ---
+    # --- Partial run, save, reload into a reader, continue ---
     ck <- tempfile(fileext = ".bin")
     on.exit(unlink(ck), add = TRUE)
 
-    s1 <- .factories[[nm]]()
+    s1 <- .factories[[nm]](FALSE, FALSE)
     s1$execute_step(T_stop = T_partial)
     s1$save(ck)
     expect_true(file.exists(ck), label = paste(nm, "checkpoint created"))
 
-    s2 <- .factories[[nm]]()
+    s2 <- .factories[[nm]](FALSE, FALSE)
     s2$load(ck)
+    expect_equal(s2$get_num_steps(), s1$get_num_steps(),
+                 label = paste(nm, "num_steps after load"))
     s2$execute_step(T_stop = T_final)
 
     # Number of steps must match
@@ -340,12 +374,14 @@ test_that("All solver types resume from checkpoint identically to a continuous r
     )
 
     # Action path must match
-    expect_equal(
+    expect_identical(
       s_ref$get_actions(), s2$get_actions(),
       label = paste(nm, "action path after resume")
     )
 
-    # Final beta must match to floating-point precision
+    # Final beta: the LARS / OMP / AFS families are bit-identical; the CD
+    # family re-enters its gram state after load and matches to rounding
+    # (the C++ test uses the same tolerance)
     expect_equal(
       s_ref$get_beta(), s2$get_beta(),
       tolerance = 1e-9,
@@ -368,6 +404,7 @@ test_that("TIENET_Solver / TCDIENET_Solver: lambda2, groups (1-based), num_group
     expect_identical(s$get_groups(), as.integer(.tienet_groups))
     expect_identical(s$get_num_groups(), 10L)
     expect_gt(s$get_num_steps(), 0L)
+    s$restore()
   }
 })
 
@@ -380,28 +417,90 @@ test_that("CD family: certified localization getters and record vectors", {
   expect_length(s$get_lambda(), s$get_num_steps())   # one lambda_1 per recorded step
   expect_true(all(s$get_record_gaps() >= 0))
   expect_true(all(s$get_record_kkt_violations() >= 0))
+  s$restore()
 
   legacy <- TCDLASSO_Solver$new(X, D, y,
                                 options = tsolver_options(cd_certified_localization = FALSE))
   expect_false(legacy$is_certified_localization())
   expect_equal(legacy$get_lambda2(), 0)
+  legacy$restore()
 })
 
 test_that("Sparse-K solvers accept a dense K or a dgCMatrix and report lambda2", {
   skip_if_not_installed("Matrix")
   K_sparse <- Matrix::Matrix(.group_mean_k_30, sparse = TRUE)
+  # Readers on pre-scaled data: dense and sparse K then see identical X, D
+  sx <- MLLpNormScaler$new(); sx$fit_transform_inplace(X)
+  sd <- MLLpNormScaler$new(); sd$fit_transform_inplace(D)
+  on.exit({ sx$inverse_transform_inplace(X); sd$inverse_transform_inplace(D) }, add = TRUE)
+  reader <- tsolver_options(lambda2 = 0.5, fold_dummies = TRUE,
+                            normalize = FALSE, intercept = FALSE)
   for (cls in list(TIKNET_Solver, TIKOMP_Solver, TCDTIKNET_Solver)) {
-    dense  <- cls$new(X, D, y, tikhonov_K = .group_mean_k_30,
-                      options = tsolver_options(lambda2 = 0.5, fold_dummies = TRUE))
-    sparse <- cls$new(X, D, y, tikhonov_K = K_sparse,
-                      options = tsolver_options(lambda2 = 0.5, fold_dummies = TRUE))
+    dense  <- cls$new(X, D, y, tikhonov_K = .group_mean_k_30, options = reader)
+    sparse <- cls$new(X, D, y, tikhonov_K = K_sparse, options = reader)
     dense$execute_step(T_stop = 6)
     sparse$execute_step(T_stop = 6)
     expect_equal(dense$get_lambda2(), 0.5)
     expect_identical(dense$get_beta(), sparse$get_beta())
   }
-  tik <- TCDTIKNET_Solver$new(X, D, y, tikhonov_K = .group_mean_k_30,
-                              options = tsolver_options(lambda2 = 0.5, fold_dummies = TRUE))
+  tik <- TCDTIKNET_Solver$new(X, D, y, tikhonov_K = .group_mean_k_30, options = reader)
   expect_true(tik$is_folded_dummy_coupling())
-  expect_error(TIKNET_Solver$new(X, D, y, tikhonov_K = -diag(30)), "PSD|positive")
+  expect_error(TIKNET_Solver$new(X, D, y, tikhonov_K = -diag(30), options = reader), "PSD|positive")
+})
+
+
+# =============================================================================
+# Surface catch-up (2026-09-25, ZERO_COPY_PLAN 5.4): the base methods the
+# Python binding has had, and the family getters.
+# =============================================================================
+
+test_that("the T-solver base methods added in the surface catch-up work", {
+  s <- TLARS_Solver$new(X, D, y, options = tsolver_options(tie_seed = 3))
+  on.exit(s$restore(), add = TRUE)
+  expect_true(s$is_connected())
+  expect_identical(s$solver_type_to_string(), "TLARS")
+  expect_identical(s$get_dummy_start_index(), p + 1L)
+  s$set_tolerance(1e-12)$set_tie_seed(5)$set_exchangeable_tie(0)   # chainable, no-ops for LARS
+  s$execute_step(T_stop = 6)
+  nsteps <- s$get_num_steps()
+  expect_length(s$get_residuals(), n)
+  bp <- s$get_beta_path()                     # step 0 (all zero) included, as in Python
+  expect_equal(dim(bp), c(p + d, nsteps + 1L))
+  expect_true(all(bp[, 1] == 0))
+  expect_equal(bp[seq_len(p), nsteps + 1L], s$get_beta(), tolerance = 1e-12)
+  expect_length(s$get_cp_with_sigma(1.0), nsteps)
+  expect_identical(s$get_num_actives(),
+                   length(s$get_active_predictor_indices()) + length(s$get_active_dummy_indices()))
+  expect_setequal(s$get_active_predictor_indices(), s$get_actives())
+  expect_true(all(s$get_active_dummy_indices() >= 1L & s$get_active_dummy_indices() <= d))
+  expect_type(s$get_dropped_indices(), "integer")
+  expect_type(s$get_warnings(), "character")
+  s$clear_warnings()
+  expect_length(s$get_warnings(), 0L)
+})
+
+test_that("the family getters: Kahan interval, alpha, Tikhonov K, KKT violation", {
+  s <- TLARS_Solver$new(X, D, y)
+  k0 <- s$get_kahan_refresh_interval()
+  expect_type(k0, "integer")
+  s$set_kahan_refresh_interval(7L)
+  expect_identical(s$get_kahan_refresh_interval(), 7L)
+  s$restore()
+
+  e <- TENET_Solver$new(X, D, y, options = tsolver_options(lambda2 = 0.5))
+  expect_true(is.numeric(e$get_alpha()) && e$get_alpha() > 0 && e$get_alpha() <= 1)
+  e$restore()
+
+  skip_if_not_installed("Matrix")
+  t <- TIKNET_Solver$new(X, D, y, tikhonov_K = .group_mean_k_30,
+                         options = tsolver_options(lambda2 = 0.5))
+  K <- t$get_tikhonov_k()
+  expect_s4_class(K, "dgCMatrix")
+  expect_equal(as.matrix(K), .group_mean_k_30, tolerance = 1e-12)
+  t$restore()
+
+  cd <- TCDLASSO_Solver$new(X, D, y)
+  cd$execute_step(T_stop = 4)
+  expect_true(is.numeric(cd$get_kkt_violation()) && cd$get_kkt_violation() >= 0)
+  cd$restore()
 })

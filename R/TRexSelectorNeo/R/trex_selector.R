@@ -53,6 +53,19 @@ TRexSelector <- R6::R6Class("TRexSelector",
       }
     },
 
+    #' @description Give \code{X} back before \code{select()}: undo the
+    #'   in-place normalization applied at construction and release the
+    #'   buffer claim (idempotent; a no-op after \code{select()}, which
+    #'   restores \code{X} itself). A restored selector cannot run:
+    #'   \code{select()} then errors, construct a new one. Without it, an
+    #'   unselected selector gives \code{X} back only when it is
+    #'   garbage-collected.
+    #' @return Invisibly returns \code{self}.
+    restore = function() {
+      trex_selector_restore(private$ptr)
+      invisible(self)
+    },
+
     #' @description Run the TRexSelector algorithm.
     #' @return invisible(self)
     select = function() {
@@ -149,6 +162,49 @@ TRexSelector <- R6::R6Class("TRexSelector",
     y_mean = function(value) {
       if (!missing(value)) stop("y_mean is read-only")
       trex_selector_get_y_mean(private$ptr)
+    },
+
+    #' @field tFDR The target FDR level.
+    tFDR = function(value) {
+      if (!missing(value)) stop("Field is read-only.")
+      trex_selector_get_tfdr(private$ptr)
+    },
+
+    #' @field K The number of random experiments.
+    K = function(value) {
+      if (!missing(value)) stop("Field is read-only.")
+      trex_selector_get_k(private$ptr)
+    },
+
+    #' @field max_num_dummies The maximum dummy multiplier of the L-loop.
+    max_num_dummies = function(value) {
+      if (!missing(value)) stop("Field is read-only.")
+      trex_selector_get_max_num_dummies(private$ptr)
+    },
+
+    #' @field max_T_stop Whether the maximum T_stop rule is active.
+    max_T_stop = function(value) {
+      if (!missing(value)) stop("Field is read-only.")
+      trex_selector_get_max_t_stop(private$ptr)
+    },
+
+    #' @field stagnation_check Whether the stagnation check is active.
+    stagnation_check = function(value) {
+      if (!missing(value)) stop("Field is read-only.")
+      trex_selector_get_stagnation_check(private$ptr)
+    },
+
+    #' @field num_selected The number of selected variables.
+    num_selected = function(value) {
+      if (!missing(value)) stop("Field is read-only.")
+      trex_selector_get_num_selected(private$ptr)
+    },
+
+    #' @field num_dummies The number of dummies used by the last select()
+    #'   (the L-loop's calibration).
+    num_dummies = function(value) {
+      if (!missing(value)) stop("Field is read-only.")
+      trex_selector_get_num_dummies(private$ptr)
     }
   ),
   private = list(

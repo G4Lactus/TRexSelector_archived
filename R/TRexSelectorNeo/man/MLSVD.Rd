@@ -37,10 +37,37 @@ Other ML methods:
 \section{Methods}{
 \subsection{Public methods}{
   \itemize{
+    \item \href{#method-MLSVD-initialize}{\code{MLSVD$new()}}
     \item \href{#method-MLSVD-compute}{\code{MLSVD$compute()}}
     \item \href{#method-MLSVD-clone}{\code{MLSVD$clone()}}
   }
 }
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-MLSVD-initialize"></a>}}
+\if{latex}{\out{\hypertarget{method-MLSVD-initialize}{}}}
+\subsection{\code{MLSVD$new()}}{
+  Initialize the solver with its dispatch thresholds.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{MLSVD$new(min_dim_thresh = 10000, block_size = 1024)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{min_dim_thresh}}{Integer (default 10000). The direct path (a
+Jacobi SVD that copies X and computes every singular triplet) is
+taken while \code{min(n, p)} is below it; above it, and when
+\code{M < min(n, p) / 10}, the randomized path runs two block-wise
+passes over X without a copy (the route for a large
+\code{mmap_matrix}). \code{p > 2 n} always takes the Gram path.}
+      \item{\code{block_size}}{Integer (default 1024): the column block of the
+block-wise passes.}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
+
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-MLSVD-compute"></a>}}
 \if{latex}{\out{\hypertarget{method-MLSVD-compute}{}}}
@@ -54,7 +81,8 @@ Other ML methods:
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{X}}{A numeric matrix (n x p).}
+      \item{\code{X}}{A numeric matrix (n x p), or an \code{mmap_matrix} (bound
+zero-copy; \code{"readonly"} suffices).}
       \item{\code{M}}{Integer, number of singular components to retain.}
     }
     \if{html}{\out{</div>}}

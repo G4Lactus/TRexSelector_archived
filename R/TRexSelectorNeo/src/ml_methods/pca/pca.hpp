@@ -14,7 +14,9 @@
 // ===================================================================================
 
 // std includes
+#include <algorithm>
 #include <stdexcept>
+#include <utility>
 
 // Eigen includes
 #include <Eigen/Dense>
@@ -110,6 +112,7 @@ public:
                  bool center    = true,
                  bool normalize = true)
         : data_ptr_(X.data()),
+          writable_ptr_(X.data()),
           outer_stride_(X.outerStride()),
           n_(X.rows()),
           p_(X.cols()),
@@ -120,30 +123,82 @@ public:
           is_normalized_(false),
           fitted_(false)
     {
-        if (M_ > std::min(n_, p_)) {
-            throw std::invalid_argument("PCA: M must not exceed min(n, p).");
-        }
-        if (n_ <= 1) {
-            throw std::invalid_argument("PCA: requires at least 2 samples to compute variance.");
-        }
+        validate_();
         preprocess_(X);
     }
 
-    /** @brief Destructor — no RAII restoration. Call restore(X) explicitly. */
-    ~PCA() = default;
+    /**
+     * @brief Read-only PCA: no centering, no normalisation, X is never
+     *        written (2026-09-25, Tier B of notes/ZERO_COPY_PLAN.md).
+     *
+     * @details Accepts a const matrix or a read-only memory-mapped file;
+     *          fit() reads it through a const map. restore() is a no-op and
+     *          the destructor writes nothing back. Use it when the data is
+     *          already centered / scaled (a scaler in front keeps the
+     *          statistics), or for the raw SVD-based decomposition. A named
+     *          factory rather than a constructor overload, so that
+     *          `PCA(X, M)` keeps its meaning (center and normalize in place).
+     *
+     * @param X Input data matrix (n x p), read only; must outlive fit().
+     * @param M Number of principal components to retain, M <= min(n, p).
+     */
+    static PCA readOnly(Eigen::Ref<const Eigen::MatrixXd> X, Eigen::Index M) {
+        return PCA(ReadOnlyTag{}, X, M);
+    }
 
-    // Non-copyable, move-only.
+    /**
+     * @brief Destructor: writes X back if the in-place preprocessing is still
+     *        in effect (the object was never restore()d), then releases.
+     *
+     * @details The same rule as the T-solvers and the T-Rex selector
+     *          (2026-09-25): the caller's buffer never stays preprocessed
+     *          without an owner. The buffer must still be alive; the bindings
+     *          pin it (R: the XPtr protection slot; Python: keep_alive).
+     *          A restore()d or read-only object writes nothing.
+     */
+    ~PCA() { write_back_(); }
+
+    // Non-copyable, move-only. The write-back duty travels with a move: the
+    // moved-from object must not restore X when it is destroyed.
     /** @brief Copy constructor (deleted) */
     PCA(const PCA&)            = delete;
 
     /** @brief Copy assignment operator (deleted) */
     PCA& operator=(const PCA&) = delete;
 
-    /** @brief Move constructor (defaulted) */
-    PCA(PCA&&)                 = default;
+    /** @brief Move constructor: takes over the buffer and the write-back duty. */
+    PCA(PCA&& other) noexcept
+        : data_ptr_(other.data_ptr_),
+          writable_ptr_(other.writable_ptr_),
+          outer_stride_(other.outer_stride_),
+          n_(other.n_), p_(other.p_), M_(other.M_),
+          center_(other.center_), normalize_(other.normalize_),
+          is_centered_(other.is_centered_), is_normalized_(other.is_normalized_),
+          fitted_(other.fitted_),
+          means_(std::move(other.means_)), norms_(std::move(other.norms_)),
+          loadings_(std::move(other.loadings_)),
+          explained_variance_(std::move(other.explained_variance_))
+    {
+        other.disarm_();
+    }
 
-    /** @brief Move assignment operator (defaulted) */
-    PCA& operator=(PCA&&)      = default;
+    /** @brief Move assignment: writes this object's X back first, then takes over. */
+    PCA& operator=(PCA&& other) noexcept {
+        if (this != &other) {
+            write_back_();
+            data_ptr_ = other.data_ptr_; writable_ptr_ = other.writable_ptr_;
+            outer_stride_ = other.outer_stride_;
+            n_ = other.n_; p_ = other.p_; M_ = other.M_;
+            center_ = other.center_; normalize_ = other.normalize_;
+            is_centered_ = other.is_centered_; is_normalized_ = other.is_normalized_;
+            fitted_ = other.fitted_;
+            means_ = std::move(other.means_); norms_ = std::move(other.norms_);
+            loadings_ = std::move(other.loadings_);
+            explained_variance_ = std::move(other.explained_variance_);
+            other.disarm_();
+        }
+        return *this;
+    }
 
 
     /**
@@ -197,32 +252,21 @@ public:
      *          multiple times is safe: each flag is cleared after its step is applied,
      *          making the second call a no-op.
      *
-     * @param X Matrix to restore. Must have the same dimensions (n x p) as the
-     *          matrix passed to the constructor.
+     * @param X The matrix passed to the constructor (the same buffer; the
+     *          preprocessing was applied there and is undone there). May be
+     *          called before fit(): the preprocessing happened at
+     *          construction, so a caller who does not fit still gets X back
+     *          (2026-09-25).
      *
-     * @throws std::runtime_error    if called before fit().
-     * @throws std::invalid_argument if X dimensions do not match.
+     * @throws std::invalid_argument if X is not the constructor's matrix.
      */
     void restore(Eigen::Ref<Eigen::MatrixXd> X) {
-        if (!fitted_) {
-            throw std::runtime_error("PCA::restore() called before fit().");
-        }
-        if (X.rows() != n_ || X.cols() != p_) {
+        if (!is_centered_ && !is_normalized_) { return; }   // nothing to undo
+        if (X.rows() != n_ || X.cols() != p_ || X.data() != writable_ptr_) {
             throw std::invalid_argument(
-                "PCA::restore(): X dimensions do not match the matrix used in fit().");
+                "PCA::restore(): X is not the matrix this PCA was constructed on.");
         }
-        if (!is_centered_ && !is_normalized_) { return; }
-
-        // Reverse order: undo normalisation first, then centering.
-        // Each flag is cleared immediately after its step so the call is idempotent.
-        if (is_normalized_) {
-            X.array().rowwise() *= norms_.array();
-            is_normalized_ = false;
-        }
-        if (is_centered_) {
-            X.rowwise() += means_;
-            is_centered_ = false;
-        }
+        write_back_();
     }
 
 
@@ -287,8 +331,15 @@ public:
 
 private:
 
-    /** @brief Raw pointer into X's data buffer; valid until fit() completes, then null. */
-    double* data_ptr_;
+    /** @brief Read pointer into X's data buffer for fit(); null after fit(). */
+    const double* data_ptr_;
+
+    /** @brief Write pointer into X's buffer for the write-back (restore() and
+     *  the destructor); null for the read-only constructor and after the
+     *  write-back duty has been handed over by a move. Stays valid after
+     *  fit(): the caller's buffer outlives the object (pinned by the
+     *  bindings). */
+    double* writable_ptr_;
 
     /** @brief Outer stride of X's buffer (== n_ for contiguous storage, larger for views). */
     Eigen::Index outer_stride_;
@@ -327,6 +378,66 @@ private:
     // ===================================================================================
     // Private helpers
     // ===================================================================================
+
+    /** @brief Tag of the read-only constructor (see readOnly()). */
+    struct ReadOnlyTag {};
+
+    /** @brief Read-only construction: no preprocessing, no write pointer. */
+    PCA(ReadOnlyTag, Eigen::Ref<const Eigen::MatrixXd> X, Eigen::Index M)
+        : data_ptr_(X.data()),
+          writable_ptr_(nullptr),
+          outer_stride_(X.outerStride()),
+          n_(X.rows()),
+          p_(X.cols()),
+          M_(M),
+          center_(false),
+          normalize_(false),
+          is_centered_(false),
+          is_normalized_(false),
+          fitted_(false)
+    {
+        validate_();
+        means_ = Eigen::RowVectorXd::Zero(p_);
+        norms_ = Eigen::RowVectorXd::Ones(p_);
+    }
+
+    /** @brief Shape checks shared by both constructors. */
+    void validate_() const {
+        if (M_ > std::min(n_, p_)) {
+            throw std::invalid_argument("PCA: M must not exceed min(n, p).");
+        }
+        if (n_ <= 1) {
+            throw std::invalid_argument("PCA: requires at least 2 samples to compute variance.");
+        }
+    }
+
+    /**
+     * @brief Undo the in-place preprocessing through the stored write pointer
+     *        (reverse order: normalisation first, then centering); idempotent,
+     *        a no-op for a read-only, restored or disarmed object. The core of
+     *        restore() and of the destructor.
+     */
+    void write_back_() noexcept {
+        if (writable_ptr_ == nullptr || (!is_centered_ && !is_normalized_)) { return; }
+        Eigen::Map<Eigen::MatrixXd, 0, Eigen::OuterStride<>> X(
+            writable_ptr_, n_, p_, Eigen::OuterStride<>(outer_stride_));
+        if (is_normalized_) {
+            X.array().rowwise() *= norms_.array();
+            is_normalized_ = false;
+        }
+        if (is_centered_) {
+            X.rowwise() += means_;
+            is_centered_ = false;
+        }
+    }
+
+    /** @brief Drop the buffer and the write-back duty (moved-from state). */
+    void disarm_() noexcept {
+        data_ptr_ = nullptr;
+        writable_ptr_ = nullptr;
+        is_centered_ = false;
+        is_normalized_ = false;
+    }
 
     /**
      * @brief Apply centering and L2-norm normalisation to X in-place.

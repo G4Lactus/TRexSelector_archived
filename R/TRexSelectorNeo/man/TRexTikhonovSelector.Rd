@@ -98,6 +98,11 @@ trusting a boundary pick), the budget actually used (\code{K_pilot},
     \item \href{#method-TRexTikhonovSelector-clone}{\code{TRexTikhonovSelector$clone()}}
   }
 }
+\if{html}{\out{<details open><summary>Inherited methods</summary>
+<ul>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TRexSelector" data-id="restore"><a href='../../TRexSelectorNeo/html/TRexSelector.html#method-TRexSelector-restore'><code>TRexSelector$restore()</code></a></span></li>
+</ul>
+</details>}}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-TRexTikhonovSelector-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-TRexTikhonovSelector-initialize}{}}}

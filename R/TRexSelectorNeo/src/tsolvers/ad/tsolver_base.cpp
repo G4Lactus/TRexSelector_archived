@@ -34,6 +34,7 @@ namespace trex::tsolvers::ad {
 
 // Alias namespaces
 namespace su_preproc = trex::tsolvers::ad::solver_utils::preprocessing;
+namespace bufreg     = trex::tsolvers::ad::solver_utils::buffer_registry;
 namespace fpc = trex::utils::fp_classify;
 
 // ===================================================================================
@@ -93,6 +94,18 @@ TSolver_Base::TSolver_Base(
 // ============================================================================
 
 void TSolver_Base::preprocess() {
+    // 0. Single-owner invariant for in-place preprocessing (2026-09-25): this
+    //    solver is about to transform the caller's X and D through the maps,
+    //    so it claims both buffers for its lifetime (or until restore()). A
+    //    second writer on a claimed buffer throws: a second in-place
+    //    transformation is not idempotent, it moves the data by rounding and
+    //    downstream near-ties resolve differently. Readers (normalize = false,
+    //    intercept = false) never reach this function and never claim.
+    claim_x_ = bufreg::BufferClaim(X_->data(), writerClaimMessage("X"));
+    if (D_.has_value() && num_dummies_ > 0) {
+        claim_d_ = bufreg::BufferClaim(D_->data(), writerClaimMessage("D"));
+    }
+
     // 1. Preprocess original predictors X
     su_preproc::preprocessMatStatistics(*X_, intercept_, normalize_,
         eps_, meansx_, normsx_, dropped_indices_, scaling_mode_);
@@ -119,12 +132,67 @@ void TSolver_Base::preprocess() {
             logWarning(concatMsg("Column ", j, " has variance < eps_; dropped"));
         }
     }
+
+    // 5. The statistics just computed say whether the buffers were already
+    //    centered and unit-norm before this solver touched them (a
+    //    pre-scaled pipeline that should run as constructed, or a previous
+    //    writer that was destroyed without restore()). A warning, not an
+    //    error: standardized raw data are legitimate. No extra pass.
+    warnIfAlreadyPreprocessed("X", meansx_, normsx_);
+    if (D_.has_value() && num_dummies_ > 0) {
+        warnIfAlreadyPreprocessed("D", meansd_, normsd_);
+    }
+
+    // From here on this object is responsible for writing back.
+    holds_preprocessed_.value = true;
+}
+
+
+TSolver_Base::~TSolver_Base() {
+    // A writer that was never restore()d — including a derived constructor
+    // that threw after this base had preprocessed — writes X and D back
+    // here, so the caller's buffers never stay preprocessed without an
+    // owner (the T-Rex selector does the same). No-op for readers.
+    writeBackOwnedBuffers();
+}
+
+
+void TSolver_Base::writeBackOwnedBuffers() const noexcept {
+    if (!holds_preprocessed_.value) { return; }
+    try {
+        // The stored maps view the caller's writable buffers (the constructor
+        // received them as non-const maps); the const_cast only undoes the
+        // constness of this method, which restore() has always been.
+        if (X_.has_value()) {
+            Eigen::Map<Eigen::MatrixXd> xm(const_cast<double*>(X_->data()),
+                                           X_->rows(), X_->cols());
+            su_preproc::restoreMatStatistics(
+                xm, intercept_, meansx_, normalize_, normsx_);
+        }
+        if (D_.has_value() && num_dummies_ > 0) {
+            Eigen::Map<Eigen::MatrixXd> dm(const_cast<double*>(D_->data()),
+                                           D_->rows(), D_->cols());
+            su_preproc::restoreMatStatistics(
+                dm, intercept_, meansd_, normalize_, normsd_);
+        }
+    } catch (...) {
+        // never throw from the destructor path; the claims are released below
+    }
+    // The buffers are back in the caller's state: hand them over (a later
+    // writer may claim them).
+    claim_x_.release();
+    claim_d_.release();
+    holds_preprocessed_.value = false;
 }
 
 
 void TSolver_Base::restore(Eigen::Map<Eigen::MatrixXd>& X,
                            Eigen::Map<Eigen::MatrixXd>& D,
                            Eigen::Map<Eigen::VectorXd>& y) const {
+
+    // Idempotent, and a no-op for readers and resumed solvers: only the
+    // object whose preprocessing is in effect writes back (2026-09-25).
+    if (!holds_preprocessed_.value) { return; }
 
     // Safety assertions
     if (static_cast<std::size_t>(X.cols()) != p_original_) {
@@ -143,17 +211,59 @@ void TSolver_Base::restore(Eigen::Map<Eigen::MatrixXd>& X,
         );
     }
 
-    su_preproc::restoreMatStatistics(
-        X, intercept_, meansx_, normalize_, normsx_);
-
-    if (num_dummies_ > 0) {
-        su_preproc::restoreMatStatistics(
-            D, intercept_, meansd_, normalize_, normsd_);
+    // The passed maps must be the buffers this solver was constructed on;
+    // the write-back goes through the stored maps (same memory).
+    if (X.data() != X_->data()) {
+        throw std::invalid_argument(
+            concatMsg(solverTypeToString(),
+                      "::restore: X is not the matrix this solver was constructed on.")
+        );
+    }
+    if (num_dummies_ > 0 && D_.has_value() && D.data() != D_->data()) {
+        throw std::invalid_argument(
+            concatMsg(solverTypeToString(),
+                      "::restore: D is not the matrix this solver was constructed on.")
+        );
     }
 
     // NOTE: y is NOT modified. The constructor copies the response into y_
     // and centers only the internal copy, so the caller's y buffer was never
     // preprocessed in place — adding mu_y_ back would corrupt it.
+    writeBackOwnedBuffers();
+}
+
+
+std::string TSolver_Base::writerClaimMessage(const char* which) const {
+    return concatMsg(
+        solverTypeToString(), ": the input matrix ", which,
+        " is already held by another live T-solver or T-Rex selector that "
+        "preprocessed it in place. A second in-place preprocessing is not "
+        "idempotent (it moves the data by rounding) and would corrupt both. "
+        "Pre-scale once in front and construct the solvers with normalize = "
+        "false and intercept = false (readers never claim a buffer), or "
+        "restore() the previous solver, or let it go out of scope first.");
+}
+
+
+void TSolver_Base::warnIfAlreadyPreprocessed(const char* which,
+                                             const Eigen::VectorXd& means,
+                                             const Eigen::VectorXd& norms) const {
+    constexpr double tol = 1e-10;
+    if (intercept_) {
+        if (means.size() == 0 || (means.array().abs() > tol).any()) { return; }
+    }
+    if (normalize_) {
+        if (norms.size() == 0 || ((norms.array() - 1.0).abs() > tol).any()) { return; }
+    }
+    logWarning(concatMsg(
+        "the input matrix ", which, " was already ",
+        (intercept_ && normalize_) ? "centered and unit-norm"
+                                   : (intercept_ ? "centered" : "unit-norm"),
+        " (every column within 1e-10) before this solver preprocessed it in "
+        "place; the second transformation moves the data by rounding. If ",
+        which, " was pre-scaled, construct the solver with normalize = false "
+        "and intercept = false (run as constructed); if a previous solver "
+        "preprocessed it, call restore() on that solver first."));
 }
 
 

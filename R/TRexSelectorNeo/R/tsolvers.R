@@ -20,9 +20,24 @@ NULL
 #' needs and ignores the rest; the defaults are the solver-level defaults.
 #'
 #' @param normalize Logical; scale each column of X and D to unit L2 norm (or
-#'   unit SD, see \code{scaling_mode}). Default \code{TRUE}.
+#'   unit SD, see \code{scaling_mode}). \code{FALSE} when the caller
+#'   pre-scaled (see the in-place note below). Default \code{TRUE}.
 #' @param intercept Logical; center X, D and y (an intercept is fitted).
-#'   Default \code{TRUE}.
+#'   \code{FALSE} when the caller pre-centered. Default \code{TRUE}.
+#'
+#' @section In-place preprocessing (the writer/reader contract):
+#' The T-solvers work on the caller's matrices without copying, in R as in
+#' C++ and Python. With \code{normalize = TRUE} or \code{intercept = TRUE} a
+#' solver is a \emph{writer}: it centers / scales the columns of X and D in
+#' place (visible on the caller's matrix or memory-mapped file), keeps the
+#' statistics itself, and holds a claim on both until \code{$restore()} or
+#' garbage collection, both of which write X and D back; a second writer
+#' (T-solver or T-Rex selector) on a claimed matrix is an error, because a
+#' second in-place transformation moves the data by rounding. With
+#' \code{normalize = FALSE} and \code{intercept = FALSE} a solver is a
+#' \emph{reader} that runs as constructed and never writes; a pipeline with
+#' several solvers on one matrix pre-scales once in front ([MLLpNormScaler])
+#' and constructs readers. y is never written. See [TSolver_Base].
 #' @param scaling_mode \code{"L2"} (default) or \code{"ZSCORE"}: the column
 #'   scaling applied when \code{normalize} is \code{TRUE}.
 #' @param verbose Logical; print status and diagnostics. Default \code{FALSE}.
@@ -122,6 +137,27 @@ tsolver_options <- function(normalize = TRUE,
 #' of the concrete subclasses (\code{TLARS_Solver}, \code{TLASSO_Solver}, etc.)
 #' rather than this class directly.
 #'
+#' @section In-place preprocessing (the writer/reader contract):
+#' The solver works on the caller's memory without copying: the R matrices
+#' \code{X} and \code{D} (double storage; an integer matrix is coerced first,
+#' which is a copy) or the memory-mapped file behind an \code{mmap_matrix}.
+#' With \code{normalize = TRUE} or \code{intercept = TRUE} in
+#' \code{\link{tsolver_options}} the solver is a \emph{writer}: it centers /
+#' scales the columns of \code{X} and \code{D} in place (the change is
+#' visible on the caller's matrix), keeps the statistics itself, and holds a
+#' claim on both until \code{$restore()} or garbage collection, both of which
+#' write \code{X} and \code{D} back (\code{$restore()} is idempotent and the
+#' fitted path stays available); constructing a second writer (T-solver or
+#' T-Rex selector) on a claimed matrix is an error, because a second
+#' in-place transformation moves the data by rounding. With both
+#' \code{FALSE} the solver is a \emph{reader}: it runs as constructed and
+#' never writes. A pipeline with several solvers on one matrix pre-scales
+#' once in front ([MLLpNormScaler]) and constructs readers. \code{$load()}
+#' expects \code{X} and \code{D} in the state they were saved in: load into
+#' a reader on pre-scaled data, or into a writer constructed with the same
+#' options on the same data (it keeps the duty to write back). \code{y} is
+#' never written (the solver centers an internal copy).
+#'
 #' @field X Numeric matrix of predictors, or an \code{mmap_matrix}.
 #' @field D Numeric matrix of dummies.
 #' @field y Numeric response vector.
@@ -140,7 +176,8 @@ TSolver_Base <- R6::R6Class(
 
     #' @description
     #' Validate and store data fields. Called by every subclass \code{initialize}.
-    #' Not intended for direct instantiation.
+    #' Not intended for direct instantiation. The stored \code{X} and \code{D}
+    #' are the matrices the C++ solver maps (no copy for double storage).
     #' @param X Numeric matrix of predictors, or \code{mmap_matrix}.
     #' @param D Numeric matrix of dummies.
     #' @param y Numeric response vector.
@@ -152,9 +189,9 @@ TSolver_Base <- R6::R6Class(
       if (!is.matrix(D) || !is.numeric(y)) {
         stop("Inputs D must be a matrix, and y must be numeric.")
       }
-      self$X <- X
-      self$D <- D
-      self$y <- as.vector(y)
+      self$X <- if (is_mmap) X else .as_double_matrix(X)
+      self$D <- .as_double_matrix(D, arg = "D")
+      self$y <- .as_double_vector(as.vector(y))
     },
 
     #' @description Execute solver step.
@@ -173,18 +210,22 @@ TSolver_Base <- R6::R6Class(
       tsolver_get_num_steps(self$ptr)
     },
 
-    #' @description Get the action path (variable additions and removals per step).
-    #' @param r_index Logical; if \code{TRUE} (default) indices inside each
-    #'   action vector are 1-based (R convention); if \code{FALSE} they are
-    #'   0-based (Cpp convention).
-    #' @return A list of integer vectors, one per step. Positive indices denote
-    #'   variable additions; negative indices denote removals.
+    #' @description Get the action path (variable additions and removals per
+    #'   step). The C++ solver already records the R \code{lars} convention:
+    #'   1-based signed codes, \code{+j} for the addition and \code{-j} for the
+    #'   removal of variable \code{j} (dummies continue after the predictors).
+    #' @param r_index Logical; if \code{TRUE} (default) the 1-based signed
+    #'   codes are returned as recorded. If \code{FALSE} the 0-based indices
+    #'   of the variables acted on are returned (\code{abs(a) - 1}); the sign
+    #'   is dropped there because a 0-based signed code cannot distinguish
+    #'   the addition from the removal of the first variable.
+    #' @return A list of integer vectors, one per step.
     get_actions = function(r_index = TRUE) {
       acts <- tsolver_get_actions(self$ptr)
       if (r_index) {
-        lapply(acts, function(a) ifelse(a >= 0L, a + 1L, a - 1L))
-      } else {
         acts
+      } else {
+        lapply(acts, function(a) abs(a) - 1L)
       }
     },
 
@@ -260,11 +301,129 @@ TSolver_Base <- R6::R6Class(
     },
 
     #' @description Restore the solver state from a binary file created by
-    #'   \code{$save()}.
+    #'   \code{$save()}. The loaded solver expects \code{X} and \code{D} in
+    #'   the state they were saved in and is a reader (it never writes).
     #' @param filename Character; path to the input file.
     #' @return Invisibly returns \code{self}.
     load = function(filename) {
       tsolver_load(self$ptr, filename)
+      invisible(self)
+    },
+
+    #' @description Residual vector at the current step.
+    #' @return Numeric vector of length n.
+    get_residuals = function() {
+      tsolver_get_residuals(self$ptr)
+    },
+
+    #' @description Coefficient path: one column per step including the
+    #'   all-zero start (column 1), predictors first, dummies from
+    #'   \code{get_dummy_start_index()} on; the same layout as Python's
+    #'   \code{getBetaPath()}.
+    #' @return Numeric matrix ((p + num_dummies) x (steps + 1)).
+    get_beta_path = function() {
+      tsolver_get_beta_path(self$ptr)
+    },
+
+    #' @description Mallows' Cp along the path with a supplied noise variance.
+    #' @param sigma_hat_sq Positive numeric, the noise variance estimate.
+    #' @return Numeric vector, one per step.
+    get_cp_with_sigma = function(sigma_hat_sq) {
+      tsolver_get_cp_with_sigma(self$ptr, as.numeric(sigma_hat_sq))[-1]
+    },
+
+    #' @description Name of the underlying solver type (e.g. \code{"TLARS"}).
+    #' @return Character scalar.
+    solver_type_to_string = function() {
+      tsolver_solver_type_to_string(self$ptr)
+    },
+
+    #' @description Variables dropped during the path (1-based, predictors and
+    #'   dummies alike).
+    #' @return Integer vector.
+    get_dropped_indices = function() {
+      as.integer(tsolver_get_dropped_indices(self$ptr)) + 1L
+    },
+
+    #' @description Active predictor indices (1-based, dummies excluded).
+    #' @return Integer vector.
+    get_active_predictor_indices = function() {
+      as.integer(tsolver_get_active_predictor_indices(self$ptr)) + 1L
+    },
+
+    #' @description Active dummy indices (1-based within the dummy block).
+    #' @return Integer vector.
+    get_active_dummy_indices = function() {
+      as.integer(tsolver_get_active_dummy_indices(self$ptr)) - self$get_dummy_start_index() + 2L
+    },
+
+    #' @description Number of active variables (predictors and dummies).
+    #' @return Integer.
+    get_num_actives = function() {
+      tsolver_get_num_actives(self$ptr)
+    },
+
+    #' @description 1-based column at which the dummies start in the merged
+    #'   (predictors, dummies) index space, i.e. \code{p + 1}.
+    #' @return Integer.
+    get_dummy_start_index = function() {
+      tsolver_get_dummy_start_index(self$ptr) + 1L
+    },
+
+    #' @description Whether the solver is connected to its data views.
+    #' @return Logical.
+    is_connected = function() {
+      tsolver_is_connected(self$ptr)
+    },
+
+    #' @description Set the numerical tolerance of the internal comparisons.
+    #' @param tol Positive numeric.
+    #' @return Invisibly returns \code{self}.
+    set_tolerance = function(tol) {
+      tsolver_set_tolerance(self$ptr, as.numeric(tol))
+      invisible(self)
+    },
+
+    #' @description Seed the tie-break engine.
+    #' @param seed Non-negative integer.
+    #' @return Invisibly returns \code{self}.
+    set_tie_seed = function(seed) {
+      tsolver_set_tie_seed(self$ptr, as.numeric(seed))
+      invisible(self)
+    },
+
+    #' @description Exchangeable-tie band for the greedy solvers (TOMP / TAFS
+    #'   families); \code{alpha <= 0} turns it off.
+    #' @param alpha Band width in units of the ranking-noise sd.
+    #' @param floor Minimum |correlation| of a tie candidate (default 0.5).
+    #' @return Invisibly returns \code{self}.
+    set_exchangeable_tie = function(alpha, floor = 0.5) {
+      tsolver_set_exchangeable_tie(self$ptr, as.numeric(alpha), as.numeric(floor))
+      invisible(self)
+    },
+
+    #' @description Warnings recorded by the solver (dropped columns, the
+    #'   already-preprocessed input, collinear rejections, ...).
+    #' @return Character vector.
+    get_warnings = function() {
+      tsolver_get_warnings(self$ptr)
+    },
+
+    #' @description Clear the recorded warnings.
+    #' @return Invisibly returns \code{self}.
+    clear_warnings = function() {
+      tsolver_clear_warnings(self$ptr)
+      invisible(self)
+    },
+
+    #' @description Undo the in-place centering / scaling a writer solver
+    #'   applied to \code{X} and \code{D} at construction and release its
+    #'   claim on them, so that another writer may take the matrices. The
+    #'   solver's fitted path stays available. \code{y} is not modified. No-op
+    #'   for a reader (\code{normalize = FALSE, intercept = FALSE}).
+    #' @return Invisibly returns \code{self}.
+    restore = function() {
+      tsolver_restore(self$ptr)
       invisible(self)
     }
   )
@@ -317,6 +476,21 @@ TLARS_Solver <- R6::R6Class(
     #' @return Numeric vector of lambda values, one per step.
     get_lambda = function() {
       tsolver_get_lambda(self$ptr)
+    },
+
+    #' @description Kahan refresh interval of the LARS-family solver (steps
+    #'   between exact refreshes of the compensated sums).
+    #' @return Integer.
+    get_kahan_refresh_interval = function() {
+      tsolver_lars_get_kahan_refresh_interval(self$ptr)
+    },
+
+    #' @description Set the Kahan refresh interval.
+    #' @param interval Positive integer.
+    #' @return Invisibly returns \code{self}.
+    set_kahan_refresh_interval = function(interval) {
+      tsolver_lars_set_kahan_refresh_interval(self$ptr, as.integer(interval))
+      invisible(self)
     }
   )
 )
@@ -484,6 +658,12 @@ TENET_Solver <- R6::R6Class(
     #' @return Numeric vector of lambda values, one per step.
     get_lambda = function() {
       tsolver_get_lambda(self$ptr)
+    },
+
+    #' @description The elastic-net mixing alpha implied by lambda2.
+    #' @return Numeric scalar.
+    get_alpha = function() {
+      tsolver_tenet_get_alpha(self$ptr)
     }
   )
 )
@@ -1084,7 +1264,13 @@ TIKNET_Solver <- R6::R6Class(
 
     #' @description Get the quadratic penalty weight lambda2 used.
     #' @return Scalar numeric lambda2.
-    get_lambda2 = function() tsolver_tik_get_lambda2(self$ptr)
+    get_lambda2 = function() tsolver_tik_get_lambda2(self$ptr),
+
+    #' @description The Tikhonov matrix K used (sparse \code{dgCMatrix}).
+    #' @return A \code{Matrix::dgCMatrix} (p x p).
+    get_tikhonov_k = function() {
+      tsolver_tik_get_tikhonov_k(self$ptr)
+    }
   )
 )
 
@@ -1136,7 +1322,13 @@ TIKOMP_Solver <- R6::R6Class(
 
     #' @description Get the quadratic penalty weight lambda2 used.
     #' @return Scalar numeric lambda2.
-    get_lambda2 = function() tsolver_tik_get_lambda2(self$ptr)
+    get_lambda2 = function() tsolver_tik_get_lambda2(self$ptr),
+
+    #' @description The Tikhonov matrix K used (sparse \code{dgCMatrix}).
+    #' @return A \code{Matrix::dgCMatrix} (p x p).
+    get_tikhonov_k = function() {
+      tsolver_tik_get_tikhonov_k(self$ptr)
+    }
   )
 )
 
@@ -1178,7 +1370,16 @@ TCDSolver_Base <- R6::R6Class(
 
     #' @description Get the KKT violation at every recorded step.
     #' @return Numeric vector, one per step.
-    get_record_kkt_violations = function() tsolver_cd_get_record_kkt_violations(self$ptr)
+    get_record_kkt_violations = function() tsolver_cd_get_record_kkt_violations(self$ptr),
+
+    #' @description KKT violation of the current state (a certificate of the
+    #'   coordinate-descent minimizer).
+    #' @param lambda1 The lambda_1 to certify at; negative (default) uses the
+    #'   solver's current one.
+    #' @return Numeric scalar.
+    get_kkt_violation = function(lambda1 = -1) {
+      tsolver_cd_get_kkt_violation(self$ptr, as.numeric(lambda1))
+    }
   )
 )
 

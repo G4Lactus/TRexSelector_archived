@@ -259,3 +259,28 @@ test_that("TRexSPCASelector accepts tenet_aug_use_lars (LARS vs LASSO inner path
   expect_equal(dim(r1$V), c(d$p, M))
   expect_equal(dim(r2$V), c(d$p, M))
 })
+
+
+# =============================================================================
+# Memory-mapped X (2026-09-25, ZERO_COPY_PLAN 5.1): the file is centered in
+# place during select() and restored; results equal the in-memory path.
+# =============================================================================
+
+test_that("TRexSPCASelector on a readwrite mmap_matrix equals the in-memory selection", {
+  set.seed(61)
+  n <- 60; p <- 25
+  X <- matrix(rnorm(n * p), n, p)
+  X[, 1:3] <- X[, 1:3] + matrix(rnorm(n), n, 3) * 3
+  f <- tempfile(fileext = ".bin")
+  on.exit(unlink(f), add = TRUE)
+  rw <- mem_matrix_from(X, f)
+  X0 <- X + 0
+
+  a <- TRexSPCASelector$new(X, M = 2, tFDR = 0.2, seed = 5, verbose = FALSE); a$select()
+  b <- TRexSPCASelector$new(rw, M = 2, tFDR = 0.2, seed = 5, verbose = FALSE); b$select()
+  expect_identical(b$active_sets, a$active_sets)
+  expect_identical(b$adjusted_ev, a$adjusted_ev)
+  expect_identical(b$V, a$V)
+  expect_equal(as.matrix(rw), X0, tolerance = 1e-12)   # restored in the file
+  expect_equal(X, X0, tolerance = 1e-12)               # and in memory
+})

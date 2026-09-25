@@ -392,8 +392,16 @@ MLRidgeCV <- R6::R6Class("MLRidgeCV",
   ),
   public = list(
     #' @description Initialize the MLRidgeCV object.
-    initialize = function() {
-      private$cpp_ptr <- ridge_cv_create()
+    #' @param low_memory Logical (default \code{FALSE}). \code{FALSE}: each
+    #'   fold gathers and standardizes its training rows and takes a thin SVD
+    #'   (about three to four copies of X in flight). \code{TRUE}: the dual
+    #'   (kernel) form — n x n kernels accumulated from column blocks of X read
+    #'   in place (an \code{mmap_matrix} included, \code{"readonly"}
+    #'   suffices), no p-dimensional coefficients; same estimator, grid and
+    #'   rank rule, agreement to numerical precision; memory O(n^2) instead of
+    #'   O(n p), the route for p >> n.
+    initialize = function(low_memory = FALSE) {
+      private$cpp_ptr <- ridge_cv_create(as.logical(low_memory))
     },
 
     #' @description Fit the CV model.
@@ -416,7 +424,7 @@ MLRidgeCV <- R6::R6Class("MLRidgeCV",
                           as.integer(n_lambda), as.numeric(lambda_ratio), as.integer(seed))
         return(invisible(self))
       }
-      if (!is.matrix(X)) X <- as.matrix(X)
+      X <- .as_double_matrix(X)
       stopifnot(is.numeric(y), nrow(X) == length(y))
       ridge_cv_fit(private$cpp_ptr, X, as.numeric(y), as.integer(num_folds), as.integer(n_lambda),
                    as.numeric(lambda_ratio), as.integer(seed))
@@ -508,13 +516,20 @@ MLElasticNet <- R6::R6Class("MLElasticNet",
   ),
   public = list(
     #' @description Initialize the MLElasticNet object.
-    initialize = function() {
-      private$cpp_ptr <- enet_create()
+    #' @param low_memory Logical (default \code{FALSE}). \code{FALSE}: the
+    #'   coordinate descent runs on a centered and standardized working copy of
+    #'   X (one n x p matrix while fitting). \code{TRUE}: it runs on X itself
+    #'   (an \code{mmap_matrix} is read in place, \code{"readonly"} suffices)
+    #'   with no allocation of the size of X; same estimator and grid, the two
+    #'   engines agree to rounding (about 1e-12 in the coefficients).
+    initialize = function(low_memory = FALSE) {
+      private$cpp_ptr <- enet_create(as.logical(low_memory))
     },
 
     #' @description Fit the EN path over an auto-generated glmnet-style grid.
     #'
-    #' @param X Predictor matrix (n x p).
+    #' @param X Predictor matrix (n x p), or an \code{mmap_matrix} (bound
+    #'   zero-copy; \code{"readonly"} suffices, the fit does not modify X).
     #' @param y Response vector (n).
     #' @param alpha Mixing in \code{[0, 1]}: 1 = lasso, 0 = ridge (default 1).
     #' @param n_lambda Grid size (default 100).
@@ -529,7 +544,15 @@ MLElasticNet <- R6::R6Class("MLElasticNet",
     fit = function(X, y, alpha = 1.0, n_lambda = 100, lambda_min_ratio = -1.0,
                    standardize = TRUE, intercept = TRUE, use_strong_rule = FALSE,
                    max_iter = 100000, tol = 1e-7) {
-      if (!is.matrix(X)) X <- as.matrix(X)
+      if (inherits(X, "mmap_matrix")) {
+        stopifnot(is.numeric(y), dim(X)[1] == length(y))
+        enet_fit_mmap(private$cpp_ptr, X, as.numeric(y), as.numeric(alpha),
+                      as.integer(n_lambda), as.numeric(lambda_min_ratio),
+                      as.logical(standardize), as.logical(intercept),
+                      as.logical(use_strong_rule), as.integer(max_iter), as.numeric(tol))
+        return(invisible(self))
+      }
+      X <- .as_double_matrix(X)
       stopifnot(is.numeric(y), nrow(X) == length(y))
       enet_fit(private$cpp_ptr, X, as.numeric(y), as.numeric(alpha),
                as.integer(n_lambda), as.numeric(lambda_min_ratio),
@@ -541,7 +564,7 @@ MLElasticNet <- R6::R6Class("MLElasticNet",
     #' @description Fit the EN path at an explicit lambda grid (sorted
     #'   descending internally); use to evaluate at exactly glmnet's sequence.
     #'
-    #' @param X Predictor matrix (n x p).
+    #' @param X Predictor matrix (n x p), or an \code{mmap_matrix} (zero-copy).
     #' @param y Response vector (n).
     #' @param lambda_grid Explicit lambda values (any order, > 0).
     #' @param alpha Mixing in \code{[0, 1]} (default 1).
@@ -554,7 +577,15 @@ MLElasticNet <- R6::R6Class("MLElasticNet",
     fit_grid = function(X, y, lambda_grid, alpha = 1.0, standardize = TRUE,
                         intercept = TRUE, use_strong_rule = FALSE,
                         max_iter = 100000, tol = 1e-7) {
-      if (!is.matrix(X)) X <- as.matrix(X)
+      if (inherits(X, "mmap_matrix")) {
+        stopifnot(is.numeric(y), dim(X)[1] == length(y), is.numeric(lambda_grid))
+        enet_fit_grid_mmap(private$cpp_ptr, X, as.numeric(y), as.numeric(lambda_grid),
+                           as.numeric(alpha), as.logical(standardize),
+                           as.logical(intercept), as.logical(use_strong_rule),
+                           as.integer(max_iter), as.numeric(tol))
+        return(invisible(self))
+      }
+      X <- .as_double_matrix(X)
       stopifnot(is.numeric(y), nrow(X) == length(y), is.numeric(lambda_grid))
       enet_fit_grid(private$cpp_ptr, X, as.numeric(y), as.numeric(lambda_grid),
                     as.numeric(alpha), as.logical(standardize),
@@ -593,12 +624,19 @@ MLElasticNet <- R6::R6Class("MLElasticNet",
       enet_converged(private$cpp_ptr)
     },
 
+    #' @description Number of lambdas whose coordinate descent hit \code{max_iter}.
+    #' @return Integer.
+    n_nonconverged = function() {
+      enet_n_nonconverged(private$cpp_ptr)
+    },
+
     #' @description Predictions per lambda for new data.
-    #' @param X_new Predictor matrix with the same number of columns as the fit.
+    #' @param X_new Predictor matrix with the same number of columns as the
+    #'   fit, or an \code{mmap_matrix} (zero-copy).
     #' @return Numeric matrix (nrow(X_new) x n_lambda).
     predict = function(X_new) {
-      if (!is.matrix(X_new)) X_new <- as.matrix(X_new)
-      enet_predict(private$cpp_ptr, X_new)
+      if (inherits(X_new, "mmap_matrix")) return(enet_predict_mmap(private$cpp_ptr, X_new))
+      enet_predict(private$cpp_ptr, .as_double_matrix(X_new, arg = "X_new"))
     }
   )
 )
@@ -632,13 +670,18 @@ MLElasticNetCV <- R6::R6Class("MLElasticNetCV",
   ),
   public = list(
     #' @description Initialize the MLElasticNetCV object.
-    initialize = function() {
-      private$cpp_ptr <- enet_cv_create()
+    #' @param low_memory Logical (default \code{FALSE}); \code{TRUE} runs the
+    #'   full-data fit and every fold on X itself with a 0/1 training mask
+    #'   (no allocation of the size of X; an \code{mmap_matrix} is read in
+    #'   place). See \code{\link{MLElasticNet}}.
+    initialize = function(low_memory = FALSE) {
+      private$cpp_ptr <- enet_cv_create(as.logical(low_memory))
     },
 
     #' @description Fit K-fold CV over a glmnet-style grid.
     #'
-    #' @param X Predictor matrix (n x p).
+    #' @param X Predictor matrix (n x p), or an \code{mmap_matrix} (bound
+    #'   zero-copy; \code{"readonly"} suffices, the fit does not modify X).
     #' @param y Response vector (n).
     #' @param alpha Mixing in \code{[0, 1]}: 1 = lasso, 0 = ridge (default 0).
     #' @param n_folds Number of folds (default 10).
@@ -654,7 +697,16 @@ MLElasticNetCV <- R6::R6Class("MLElasticNetCV",
     fit = function(X, y, alpha = 0.0, n_folds = 10, n_lambda = 100,
                    lambda_min_ratio = -1.0, seed = 0, standardize = TRUE,
                    intercept = TRUE, max_iter = 100000, tol = 1e-7) {
-      if (!is.matrix(X)) X <- as.matrix(X)
+      if (inherits(X, "mmap_matrix")) {
+        stopifnot(is.numeric(y), dim(X)[1] == length(y))
+        enet_cv_fit_mmap(private$cpp_ptr, X, as.numeric(y), as.numeric(alpha),
+                         as.integer(n_folds), as.integer(n_lambda),
+                         as.numeric(lambda_min_ratio), as.integer(seed),
+                         as.logical(standardize), as.logical(intercept),
+                         as.integer(max_iter), as.numeric(tol))
+        return(invisible(self))
+      }
+      X <- .as_double_matrix(X)
       stopifnot(is.numeric(y), nrow(X) == length(y))
       enet_cv_fit(private$cpp_ptr, X, as.numeric(y), as.numeric(alpha),
                   as.integer(n_folds), as.integer(n_lambda),
@@ -731,11 +783,32 @@ MLElasticNetCV <- R6::R6Class("MLElasticNetCV",
 #' @family ML methods
 #' @export
 MLSVD <- R6::R6Class("MLSVD",
+  private = list(
+    min_dim_thresh_ = 10000,
+    block_size_     = 1024
+  ),
   public = list(
+
+    #' @description Initialize the solver with its dispatch thresholds.
+    #' @param min_dim_thresh Integer (default 10000). The direct path (a
+    #'   Jacobi SVD that copies X and computes every singular triplet) is
+    #'   taken while \code{min(n, p)} is below it; above it, and when
+    #'   \code{M < min(n, p) / 10}, the randomized path runs two block-wise
+    #'   passes over X without a copy (the route for a large
+    #'   \code{mmap_matrix}). \code{p > 2 n} always takes the Gram path.
+    #' @param block_size Integer (default 1024): the column block of the
+    #'   block-wise passes.
+    initialize = function(min_dim_thresh = 10000, block_size = 1024) {
+      stopifnot(is.numeric(min_dim_thresh), min_dim_thresh >= 1,
+                is.numeric(block_size), block_size >= 1)
+      private$min_dim_thresh_ <- as.numeric(min_dim_thresh)
+      private$block_size_     <- as.numeric(block_size)
+    },
 
     #' @description Compute top-M singular value decomposition of \code{X}.
     #'
-    #' @param X A numeric matrix (n x p).
+    #' @param X A numeric matrix (n x p), or an \code{mmap_matrix} (bound
+    #'   zero-copy; \code{"readonly"} suffices).
     #' @param M Integer, number of singular components to retain.
     #'
     #' @return Named list with:
@@ -745,9 +818,13 @@ MLSVD <- R6::R6Class("MLSVD",
     #'     \item \code{V} Right singular vectors (p x M).
     #'   }
     compute = function(X, M) {
-      if (!is.matrix(X)) X <- as.matrix(X)
-      stopifnot(is.numeric(X), is.numeric(M), M >= 1L, M <= min(nrow(X), ncol(X)))
-      svd_compute(X, as.integer(M))
+      if (inherits(X, "mmap_matrix")) {
+        stopifnot(is.numeric(M), M >= 1L, M <= min(dim(X)))
+        return(svd_compute_mmap(X, as.integer(M), private$min_dim_thresh_, private$block_size_))
+      }
+      X <- .as_double_matrix(X)
+      stopifnot(is.numeric(M), M >= 1L, M <= min(nrow(X), ncol(X)))
+      svd_compute(X, as.integer(M), private$min_dim_thresh_, private$block_size_)
     }
   )
 )
@@ -761,7 +838,11 @@ MLSVD <- R6::R6Class("MLSVD",
 #'
 #' @description Fits PCA to a data matrix, retaining the top-M principal
 #'   components. Centering/normalization is applied to \code{X} in-place at
-#'   construction time and undone by \code{restore()}.
+#'   construction time (the R matrix or the memory-mapped file itself, no
+#'   copy) and undone by \code{restore()}, which may be called before or
+#'   after \code{fit()} and is idempotent; an object that is garbage-collected
+#'   without \code{restore()} writes \code{X} back in its finalizer (the
+#'   same rule as the T-solvers).
 #'
 #' @details Wraps the C++ \code{PCA} class. The instance is bound to \code{X}
 #'   at creation (mirroring the C++ constructor); \code{fit()} is single-use.
@@ -791,7 +872,8 @@ MLPCA <- R6::R6Class("MLPCA",
     #' @description Initialize PCA bound to \code{X}. Centering/normalization
     #'   is applied to \code{X} in-place immediately.
     #'
-    #' @param X A numeric matrix (n x p). Modified in-place when
+    #' @param X A numeric matrix (n x p), or an \code{mmap_matrix}
+    #'   (\code{"readwrite"}: the file is modified). Modified in place when
     #'   centering/normalizing; call \code{restore()} to undo.
     #' @param M Integer, number of principal components.
     #' @param center Logical, whether to center \code{X} in-place
@@ -799,11 +881,17 @@ MLPCA <- R6::R6Class("MLPCA",
     #' @param normalize Logical, whether to scale the columns of \code{X}
     #'   in-place (default: \code{TRUE}).
     initialize = function(X, M, center = TRUE, normalize = TRUE) {
-      if (!is.matrix(X)) X <- as.matrix(X)
-      stopifnot(is.numeric(X), is.numeric(M), M >= 1L, M <= min(nrow(X), ncol(X)))
+      if (inherits(X, "mmap_matrix")) {
+        stopifnot(is.numeric(M), M >= 1L, M <= min(dim(X)))
+        private$X_ <- X
+        private$cpp_ptr <- pca_create_mmap(X, as.integer(M),
+                                           as.logical(center), as.logical(normalize))
+        return(invisible(self))
+      }
       # Double storage so pca_create's zero-copy view aliases this buffer; the
       # same buffer is centered in place here and un-centered by restore().
       private$X_ <- .as_double_matrix(X)
+      stopifnot(is.numeric(M), M >= 1L, M <= min(nrow(private$X_), ncol(private$X_)))
       private$cpp_ptr <- pca_create(private$X_, as.integer(M),
                                     as.logical(center), as.logical(normalize))
     },
@@ -818,21 +906,26 @@ MLPCA <- R6::R6Class("MLPCA",
 
     #' @description Project new data onto the fitted principal subspace.
     #'
-    #' @param X_new A numeric matrix (n_new x p). The stored training
-    #'   means/norms are applied before projection.
+    #' @param X_new A numeric matrix (n_new x p), or an \code{mmap_matrix}
+    #'   (zero-copy). The stored training means/norms are applied before
+    #'   projection.
     #'
     #' @return Score matrix (n_new x M).
     transform = function(X_new) {
-      if (!is.matrix(X_new)) X_new <- as.matrix(X_new)
-      stopifnot(!is.null(private$result_), is.numeric(X_new))
-      pca_transform(private$cpp_ptr, X_new)
+      stopifnot(!is.null(private$result_))
+      if (inherits(X_new, "mmap_matrix")) return(pca_transform_mmap(private$cpp_ptr, X_new))
+      pca_transform(private$cpp_ptr, .as_double_matrix(X_new, arg = "X_new"))
     },
 
     #' @description Restore \code{X} to its original values (un-center/un-scale).
     #'
     #' @return Invisible \code{self}.
     restore = function() {
-      pca_restore(private$cpp_ptr, private$X_)
+      if (inherits(private$X_, "mmap_matrix")) {
+        pca_restore_mmap(private$cpp_ptr, private$X_)
+      } else {
+        pca_restore(private$cpp_ptr, private$X_)
+      }
       invisible(self)
     },
 
@@ -903,15 +996,20 @@ MLRidge <- R6::R6Class("MLRidge",
 
     #' @description Solve ridge regression for a single \code{lambda}.
     #'
-    #' @param X A numeric matrix (n x p).
+    #' @param X A numeric matrix (n x p), or an \code{mmap_matrix} (bound
+    #'   zero-copy; \code{"readonly"} suffices).
     #' @param y Numeric response vector of length n.
     #' @param lambda Non-negative regularization parameter.
     #'
     #' @return Coefficient vector of length p.
     solve = function(X, y, lambda) {
-      if (!is.matrix(X)) X <- as.matrix(X)
-      stopifnot(is.numeric(X), is.numeric(y), nrow(X) == length(y),
-                is.numeric(lambda), lambda >= 0)
+      stopifnot(is.numeric(y), is.numeric(lambda), lambda >= 0)
+      if (inherits(X, "mmap_matrix")) {
+        stopifnot(dim(X)[1] == length(y))
+        return(ridge_solve_mmap(X, as.numeric(y), as.numeric(lambda)))
+      }
+      X <- .as_double_matrix(X)
+      stopifnot(nrow(X) == length(y))
       ridge_solve(X, as.numeric(y), as.numeric(lambda))
     }
   )

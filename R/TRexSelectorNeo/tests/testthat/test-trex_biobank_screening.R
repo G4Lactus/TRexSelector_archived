@@ -227,3 +227,25 @@ test_that("TRexBiobankScreeningSelector 2D result has 1-based phenotype_index an
     }
   }
 })
+
+
+# =============================================================================
+# Memory-mapped X (2026-09-25, ZERO_COPY_PLAN 5.1): mapped directly instead of
+# being read whole; results equal the in-memory path.
+# =============================================================================
+
+test_that("TRexBiobankScreeningSelector on a readwrite mmap_matrix equals the in-memory run", {
+  set.seed(71)
+  n <- 60; p <- 40
+  X <- matrix(rnorm(n * p), n, p)
+  y <- X[, 1] * 3 - X[, 5] * 2 + rnorm(n)
+  f <- tempfile(fileext = ".bin")
+  on.exit(unlink(f), add = TRUE)
+  rw <- mem_matrix_from(X, f)
+  X0 <- X + 0
+
+  a <- TRexBiobankScreeningSelector$new(X, y, tFDR = 0.2, seed = 9, verbose = FALSE); a$select()
+  b <- TRexBiobankScreeningSelector$new(rw, y, tFDR = 0.2, seed = 9, verbose = FALSE); b$select()
+  expect_identical(b$selected_indices, a$selected_indices)
+  expect_equal(as.matrix(rw), X0, tolerance = 1e-12)
+})

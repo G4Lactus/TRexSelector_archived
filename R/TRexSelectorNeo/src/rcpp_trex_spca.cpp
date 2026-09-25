@@ -6,6 +6,7 @@
 // [[Rcpp::depends(RcppEigen)]]
 #include <RcppEigen.h>
 #include "rcpp_trex_spca.h"
+#include <utils/memmap/memory_mapped_matrix.hpp>
 
 using namespace Rcpp;
 using namespace trex::trex_selector_methods::ad::trex_spca;
@@ -115,6 +116,45 @@ TRexSPCAControlParameter parse_spca_control(const Rcpp::List& spca_ctrl_list) {
 }
 
 
+// ==============================================================================
+// Shared body of the in-memory and the memory-mapped entry points (2026-09-25,
+// notes/ZERO_COPY_PLAN.md 5.1): the selector centers X in place through the
+// map during select() and restores it on return.
+// ==============================================================================
+static Rcpp::List spca_select_on_map(
+    Eigen::Map<Eigen::MatrixXd>& X_map,
+    int M,
+    double tFDR,
+    const Rcpp::List& spca_ctrl_list,
+    int seed,
+    bool verbose
+) {
+    TRexSPCAControlParameter ctrl = parse_spca_control(spca_ctrl_list);
+
+    TRexSPCA spca(X_map, static_cast<Eigen::Index>(M), tFDR, ctrl, seed, verbose);
+    const TRexSPCAResult& res = spca.select();   // wrapped once below, not copied here
+
+    // Convert active sets to R-friendly 1-based integer vectors
+    Rcpp::List active_sets_r(static_cast<R_xlen_t>(M));
+    for (int m = 0; m < M; ++m) {
+        const auto& as_cpp = res.active_sets[static_cast<std::size_t>(m)];
+        Rcpp::IntegerVector as_r(static_cast<R_xlen_t>(as_cpp.size()));
+        for (std::size_t i = 0; i < as_cpp.size(); ++i) {
+            as_r[static_cast<R_xlen_t>(i)] =
+                static_cast<int>(as_cpp[i]) + 1; // 0-based → 1-based
+        }
+        active_sets_r[m] = as_r;
+    }
+
+    return Rcpp::List::create(
+        Rcpp::Named("Z")            = res.Z,
+        Rcpp::Named("V")            = res.V,
+        Rcpp::Named("active_sets")  = active_sets_r,
+        Rcpp::Named("adjusted_ev")  = res.adjusted_ev,
+        Rcpp::Named("cumulative_ev")= res.cumulative_ev
+    );
+}
+
 //' @title Run T-Rex Sparse PCA selection
 //'
 //' @description Orchestrates M rounds of ordinary PCA, T-Rex GVS FDR-controlled
@@ -152,28 +192,24 @@ Rcpp::List trex_spca_select(
     // No prot slot needed: the TRexSPCA object lives and dies within this call,
     // so its map never outlives X.
     Eigen::Map<Eigen::MatrixXd> X_map(X.begin(), X.nrow(), X.ncol());
-    TRexSPCAControlParameter ctrl = parse_spca_control(spca_ctrl_list);
+    return spca_select_on_map(X_map, M, tFDR, spca_ctrl_list, seed, verbose);
+}
 
-    TRexSPCA spca(X_map, static_cast<Eigen::Index>(M), tFDR, ctrl, seed, verbose);
-    TRexSPCAResult res = spca.select();
-
-    // Convert active sets to R-friendly 1-based integer vectors
-    Rcpp::List active_sets_r(static_cast<R_xlen_t>(M));
-    for (int m = 0; m < M; ++m) {
-        const auto& as_cpp = res.active_sets[static_cast<std::size_t>(m)];
-        Rcpp::IntegerVector as_r(static_cast<R_xlen_t>(as_cpp.size()));
-        for (std::size_t i = 0; i < as_cpp.size(); ++i) {
-            as_r[static_cast<R_xlen_t>(i)] =
-                static_cast<int>(as_cpp[i]) + 1; // 0-based → 1-based
-        }
-        active_sets_r[m] = as_r;
-    }
-
-    return Rcpp::List::create(
-        Rcpp::Named("Z")            = res.Z,
-        Rcpp::Named("V")            = res.V,
-        Rcpp::Named("active_sets")  = active_sets_r,
-        Rcpp::Named("adjusted_ev")  = res.adjusted_ev,
-        Rcpp::Named("cumulative_ev")= res.cumulative_ev
-    );
+//' @title Sparse PCA selection on a MemoryMappedMatrix (zero-copy)
+//'
+//' @description The file is centered in place during the selection and
+//'   restored on return ("readwrite" mapping required). Before, the R6 class
+//'   read the whole file into RAM through as.matrix().
+//' @noRd
+// [[Rcpp::export]]
+Rcpp::List trex_spca_select_mmap(
+    Rcpp::XPtr<trex::utils::memmap::MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
+    int M,
+    double tFDR,
+    Rcpp::List spca_ctrl_list,
+    int seed,
+    bool verbose
+) {
+    auto X_map = X_ptr->getMap();
+    return spca_select_on_map(X_map, M, tFDR, spca_ctrl_list, seed, verbose);
 }

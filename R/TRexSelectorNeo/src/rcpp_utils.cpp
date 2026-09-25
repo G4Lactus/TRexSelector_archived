@@ -12,6 +12,7 @@
 
 // [[Rcpp::depends(RcppEigen)]]
 #include <RcppEigen.h>
+#include <utils/openmp/utils_openmp.hpp>
 #include <string>
 
 // Include the memmap utility
@@ -166,10 +167,11 @@ int mmap_matrix_cols(
 //'
 //' @noRd
 // [[Rcpp::export]]
-int mmap_matrix_size(
+double mmap_matrix_size(
     XPtr<MemoryMappedMatrix<double>> ptr  // NOLINT(performance-unnecessary-value-param)
 ) {
-    return static_cast<int>(ptr->size());
+    // double: an int overflows above 2^31 - 1 elements (2026-09-25, 5.5)
+    return static_cast<double>(ptr->size());
 }
 
 
@@ -436,4 +438,21 @@ Rcpp::List rcpp_normalize_design(
         Rcpp::Named("X_scales") = params.X_l2norms,
         Rcpp::Named("y_mean")   = params.y_mean
     );
+}
+
+// ==============================================================================
+// Thread controls (2026-09-25, 5.4): the OpenMP thread count the library uses.
+// ==============================================================================
+
+//' @noRd
+// [[Rcpp::export]]
+int rcpp_get_max_threads() {
+    return trex::utils::openmp::get_max_threads();
+}
+
+//' @noRd
+// [[Rcpp::export]]
+void rcpp_set_num_threads(int n) {
+    if (n < 1) Rcpp::stop("set_num_threads: n must be >= 1");
+    trex::utils::openmp::set_num_threads(n);
 }

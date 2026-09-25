@@ -102,6 +102,9 @@ mem_matrix_from <- function(mat, filename) {
   if (!is.matrix(mat) || !is.numeric(mat)) {
     stop("Input must be a numeric matrix.")
   }
+  # An integer matrix is written as double: coerce explicitly (one copy in R)
+  # rather than letting the binding make a hidden one.
+  if (storage.mode(mat) != "double") storage.mode(mat) <- "double"
   if (!is.character(filename) || length(filename) != 1) {
     stop("Filename must be a single string path.")
   }
@@ -517,4 +520,34 @@ trex_fdp_dense <- function(beta_hat, beta, eps = 1e-15) {
 #' @export
 trex_tpp_dense <- function(beta_hat, beta, eps = 1e-15) {
   rcpp_compute_tpp_dense(as.numeric(beta_hat), as.numeric(beta), eps)
+}
+
+
+#' OpenMP threads used by the library
+#'
+#' @description The number of threads the C++ backend uses for its parallel
+#'   regions (the K experiments of a selector, the column loops of the
+#'   scalers, ...). \code{trex_get_max_threads()} reads it,
+#'   \code{trex_set_num_threads()} sets it for this session; both are
+#'   no-ops in a build without OpenMP (one thread).
+#'
+#' @param n Positive integer, the number of threads.
+#' @return \code{trex_get_max_threads()}: an integer.
+#'   \code{trex_set_num_threads()}: invisibly, the previous value.
+#' @examples
+#' old <- trex_set_num_threads(2)
+#' trex_get_max_threads()
+#' trex_set_num_threads(old)
+#' @export
+trex_get_max_threads <- function() {
+  rcpp_get_max_threads()
+}
+
+#' @rdname trex_get_max_threads
+#' @export
+trex_set_num_threads <- function(n) {
+  stopifnot(is.numeric(n), length(n) == 1L, n >= 1)
+  old <- rcpp_get_max_threads()
+  rcpp_set_num_threads(as.integer(n))
+  invisible(old)
 }

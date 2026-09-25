@@ -62,6 +62,9 @@ Other T-Rex selectors and controls:
     \item{\code{Phi_array_BT}}{A 3D array of variables selected for BT method.}
 
     \item{\code{R_array_BT}}{A 3D array mapping original to clustered features for BT method.}
+
+    \item{\code{cor_coef}}{The correlation coefficient of the dependency-aware
+dummy generation (AR1 / EQUI methods).}
   }
   \if{html}{\out{</div>}}
 }
@@ -73,6 +76,11 @@ Other T-Rex selectors and controls:
     \item \href{#method-TRexDASelector-clone}{\code{TRexDASelector$clone()}}
   }
 }
+\if{html}{\out{<details open><summary>Inherited methods</summary>
+<ul>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TRexSelector" data-id="restore"><a href='../../TRexSelectorNeo/html/TRexSelector.html#method-TRexSelector-restore'><code>TRexSelector$restore()</code></a></span></li>
+</ul>
+</details>}}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-TRexDASelector-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-TRexDASelector-initialize}{}}}

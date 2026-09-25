@@ -124,7 +124,8 @@ TRexSPCASelector <- R6::R6Class("TRexSPCASelector",
 
     #' @description Create a new TRexSPCASelector.
     #'
-    #' @param X Numeric matrix (n x p). Stored by reference; centered in-place
+    #' @param X Numeric matrix (n x p), or an \code{mmap_matrix} opened
+    #'   \code{"readwrite"}. Stored by reference (no copy); centered in place
     #'   during \code{select()} and restored on return.
     #' @param M Integer, number of sparse principal components to extract.
     #' @param tFDR Numeric, target false discovery rate in \code{(0, 1)}.
@@ -137,9 +138,13 @@ TRexSPCASelector <- R6::R6Class("TRexSPCASelector",
                           control = trex_spca_control(),
                           seed    = -1L,
                           verbose = FALSE) {
-      if (!is.matrix(X)) X <- as.matrix(X)
+      # A memory-mapped X is centered in the file during select() and
+      # restored ("readwrite"); an R matrix is bound zero-copy (2026-09-25;
+      # the whole file used to be read through as.matrix()).
+      is_mmap <- inherits(X, "mmap_matrix")
+      if (!is_mmap && !is.matrix(X)) X <- as.matrix(X)
       stopifnot(
-        is.numeric(X),
+        is_mmap || is.numeric(X),
         is.numeric(M),    M >= 1L,
         is.numeric(tFDR), tFDR > 0, tFDR < 1,
         is.numeric(control$lambda2_ridge_loadings),
@@ -155,7 +160,7 @@ TRexSPCASelector <- R6::R6Class("TRexSPCASelector",
       }
       # Double storage so the zero-copy select() view aliases this buffer
       # instead of a silent integer->double copy (see .as_double_matrix).
-      private$X_ref    <- .as_double_matrix(X)
+      private$X_ref    <- if (is_mmap) X else .as_double_matrix(X)
       private$M_       <- as.integer(M)
       private$tFDR_    <- as.numeric(tFDR)
       private$seed_    <- as.integer(seed)
@@ -169,7 +174,9 @@ TRexSPCASelector <- R6::R6Class("TRexSPCASelector",
     #'   via active fields \code{Z}, \code{V}, \code{active_sets},
     #'   \code{adjusted_ev}, \code{cumulative_ev}.
     select = function() {
-      private$result_ <- trex_spca_select(
+      selector <- if (inherits(private$X_ref, "mmap_matrix")) trex_spca_select_mmap
+                  else trex_spca_select
+      private$result_ <- selector(
         private$X_ref,
         private$M_,
         private$tFDR_,

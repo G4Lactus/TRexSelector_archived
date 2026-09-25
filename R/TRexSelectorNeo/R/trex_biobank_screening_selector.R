@@ -25,7 +25,9 @@
 TRexBiobankScreeningSelector <- R6::R6Class("TRexBiobankScreeningSelector",
   public = list(
     #' @description Create a new TRexBiobankScreeningSelector object.
-    #' @param X Feature matrix.
+    #' @param X Feature matrix (n x p), or an \code{mmap_matrix} opened
+    #'   \code{"readwrite"} (mapped directly, no copy; the screening's inner
+    #'   selectors normalize it in place per call and restore it).
     #' @param Y Response vector (1D) or matrix (2D).
     #' @param tFDR Target FDR level (default: 0.1).
     #' @param seed Random seed (default: -1).
@@ -54,24 +56,37 @@ TRexBiobankScreeningSelector <- R6::R6Class("TRexBiobankScreeningSelector",
         stop("Response evaluation Y must be either a numeric vector or a numeric matrix.")
       }
 
-      X <- .as_double_matrix(X)
+      # A memory-mapped X is mapped directly ("readwrite": the screening's
+      # inner selectors normalize it in place per call and restore it); an R
+      # matrix is bound zero-copy in double storage (2026-09-25).
+      is_mmap <- inherits(X, "mmap_matrix")
+      if (!is_mmap) X <- .as_double_matrix(X)
+      n_x <- if (is_mmap) dim(X)[1] else nrow(X)
 
       if (is.vector(Y) || (is.array(Y) && length(dim(Y)) == 1)) {
-        if (nrow(X) != length(Y)) stop("Dimension mismatch: nrow(X) != length(Y)")
+        if (n_x != length(Y)) stop("Dimension mismatch: nrow(X) != length(Y)")
         Y <- .as_double_vector(Y)
         private$refs <- list(X = X, Y = Y)
         private$is_multi <- FALSE
-        private$ptr <- trex_biobank_screening_1d_create(
-          X, Y, biobank_control_list, screen_control, control, seed, verbose
-        )
+        private$ptr <- if (is_mmap) {
+          trex_biobank_screening_1d_mmap_create(
+            X, Y, biobank_control_list, screen_control, control, seed, verbose)
+        } else {
+          trex_biobank_screening_1d_create(
+            X, Y, biobank_control_list, screen_control, control, seed, verbose)
+        }
       } else if (is.matrix(Y)) {
-        if (nrow(X) != nrow(Y)) stop("Dimension mismatch: nrow(X) != nrow(Y)")
+        if (n_x != nrow(Y)) stop("Dimension mismatch: nrow(X) != nrow(Y)")
         Y <- .as_double_matrix(Y)
         private$refs <- list(X = X, Y = Y)
         private$is_multi <- TRUE
-        private$ptr <- trex_biobank_screening_2d_create(
-          X, Y, biobank_control_list, screen_control, control, seed, verbose
-        )
+        private$ptr <- if (is_mmap) {
+          trex_biobank_screening_2d_mmap_create(
+            X, Y, biobank_control_list, screen_control, control, seed, verbose)
+        } else {
+          trex_biobank_screening_2d_create(
+            X, Y, biobank_control_list, screen_control, control, seed, verbose)
+        }
       } else {
         stop("Response evaluation Y must be either a numeric vector or a numeric matrix.")
       }

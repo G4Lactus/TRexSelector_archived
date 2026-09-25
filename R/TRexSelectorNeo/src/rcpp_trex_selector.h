@@ -83,6 +83,9 @@ public:
     /** @brief Run the selection process. */
     virtual TRexSelector::SelectionResult select() { return selector_->select(); }
 
+    /** @brief Give X back before select() (idempotent; no-op after select()). */
+    void restore() { selector_->restore(); }
+
     // ============================================================
     // Public Getters
     // ============================================================

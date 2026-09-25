@@ -73,7 +73,9 @@ Other T-Rex selectors and controls:
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{X}}{Feature matrix.}
+      \item{\code{X}}{Feature matrix (n x p), or an \code{mmap_matrix} opened
+\code{"readwrite"} (mapped directly, no copy; the screening's inner
+selectors normalize it in place per call and restore it).}
       \item{\code{Y}}{Response vector (1D) or matrix (2D).}
       \item{\code{tFDR}}{Target FDR level (default: 0.1).}
       \item{\code{seed}}{Random seed (default: -1).}

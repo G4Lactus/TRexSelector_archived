@@ -183,12 +183,17 @@ NumericMatrix rcpp_agglomerative_cluster(
     LinkageMethod method = static_cast<LinkageMethod>(method_idx);
     DistanceMetric metric = static_cast<DistanceMetric>(metric_idx);
 
-    // Engine expects columns to be objects, so transpose.
-    // Force evaluation into a concrete MatrixXd — passing a lazy
-    // Eigen::Transpose<const Eigen::Map<>> as the MatrixType template parameter
-    // causes UB for Average+LSH_Approx (ProjectedGeometricUpdatePolicy) while
-    // Ward's different merge ordering happens to avoid the faulty codepath.
-    // Using a concrete type mirrors what the C++ demo does with Eigen::Map.
+    // The engine clusters the COLUMNS of its matrix; the R surface clusters
+    // rows (observations, as hclust does), so the data are transposed into a
+    // concrete p x n matrix. This is the one full copy of the input on this
+    // path, kept on purpose: the distance computations read each object as
+    // a contiguous column, which a lazy transpose of the R matrix would turn
+    // into strided access (slow, and the reductions would round differently).
+    // Clustering the variables of a design (T-Rex's internal use) needs no
+    // transpose and no copy: the core takes the design as is. The former
+    // note about undefined behaviour with Average + LSH_Approx described an
+    // NN-chain bug the core fixed in June 2026 (Ward routing + chain guard),
+    // not the lazy transpose (2026-09-25, notes/ZERO_COPY_PLAN.md).
     Eigen::MatrixXd transposed = data.transpose();
     using TransposedType = Eigen::MatrixXd;
 
@@ -243,13 +248,17 @@ NumericMatrix rcpp_agglomerative_cluster_mmap(
     int method_idx,
     int metric_idx) {
 
-    const Eigen::Map<Eigen::MatrixXd>& data = data_ptr->getMap();
+    // Read-only view of the file: the const overload returns a const map, so
+    // a "readonly" mapping is accepted (the clustering never writes).
+    const trex::utils::memmap::MemoryMappedMatrix<double>& mmap = *data_ptr;
+    const auto data = mmap.getMap();
 
     // Cast integers back to C++ enums for dispatch
     LinkageMethod method = static_cast<LinkageMethod>(method_idx);
     DistanceMetric metric = static_cast<DistanceMetric>(metric_idx);
 
-    // Engine expects columns to be objects, so transpose
+    // Engine expects columns to be objects, so transpose (lazily: no copy of
+    // the file; each object is then a strided row of the mapping).
     auto transposed = data.transpose();
     using TransposedType = decltype(transposed);
 

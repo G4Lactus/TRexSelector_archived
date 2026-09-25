@@ -93,12 +93,9 @@ TRexDASelector <- R6::R6Class("TRexDASelector",
       if (!missing(value)) {
         stop("Field is read-only.")
       }
-      lst <- trex_da_get_fdp_hat_array_bt(private$ptr)
-      if (length(lst) > 0) {
-        simplify2array(lst)
-      } else {
-        lst
-      }
+      # A 3-d array (T_stop x p x R) built once in C++ (2026-09-25); an
+      # empty result is a length-0 numeric vector, as before.
+      trex_da_get_fdp_hat_array_bt(private$ptr)
     },
 
     #' @field Phi_array_BT A 3D array of variables selected for BT method.
@@ -106,12 +103,9 @@ TRexDASelector <- R6::R6Class("TRexDASelector",
       if (!missing(value)) {
         stop("Field is read-only.")
       }
-      lst <- trex_da_get_phi_array_bt(private$ptr)
-      if (length(lst) > 0) {
-        simplify2array(lst)
-      } else {
-        lst
-      }
+      # A 3-d array (T_stop x p x R) built once in C++ (2026-09-25); an
+      # empty result is a length-0 numeric vector, as before.
+      trex_da_get_phi_array_bt(private$ptr)
     },
 
     #' @field R_array_BT A 3D array mapping original to clustered features for BT method.
@@ -119,12 +113,16 @@ TRexDASelector <- R6::R6Class("TRexDASelector",
       if (!missing(value)) {
         stop("Field is read-only.")
       }
-      lst <- trex_da_get_r_array_bt(private$ptr)
-      if (length(lst) > 0) {
-        simplify2array(lst)
-      } else {
-        lst
-      }
+      # A 3-d array (T_stop x p x R) built once in C++ (2026-09-25); an
+      # empty result is a length-0 numeric vector, as before.
+      trex_da_get_r_array_bt(private$ptr)
+    },
+
+    #' @field cor_coef The correlation coefficient of the dependency-aware
+    #'   dummy generation (AR1 / EQUI methods).
+    cor_coef = function(value) {
+      if (!missing(value)) stop("Field is read-only.")
+      trex_da_get_cor_coef(private$ptr)
     }
   )
 )

@@ -77,6 +77,9 @@ cluster diagnostics (e.g. purity) on the R side.}
     \item{\code{group_labels}}{Optional human-readable cluster names (length
 \code{max_clusters}), or an empty character vector when none were
 supplied.}
+
+    \item{\code{hc_method_used}}{The hierarchical-clustering linkage the GVS
+augmentation actually used.}
   }
   \if{html}{\out{</div>}}
 }
@@ -88,6 +91,11 @@ supplied.}
     \item \href{#method-TRexGVSSelector-clone}{\code{TRexGVSSelector$clone()}}
   }
 }
+\if{html}{\out{<details open><summary>Inherited methods</summary>
+<ul>
+  <li><span class="pkg-link" data-pkg="TRexSelectorNeo" data-topic="TRexSelector" data-id="restore"><a href='../../TRexSelectorNeo/html/TRexSelector.html#method-TRexSelector-restore'><code>TRexSelector$restore()</code></a></span></li>
+</ul>
+</details>}}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-TRexGVSSelector-initialize"></a>}}
 \if{latex}{\out{\hypertarget{method-TRexGVSSelector-initialize}{}}}

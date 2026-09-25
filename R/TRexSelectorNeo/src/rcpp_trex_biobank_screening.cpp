@@ -1,6 +1,7 @@
 // [[Rcpp::depends(RcppEigen)]]
 #include <RcppEigen.h>
 #include "rcpp_trex_biobank_screening.h"
+#include <utils/memmap/memory_mapped_matrix.hpp>
 
 using namespace Rcpp;
 
@@ -69,6 +70,49 @@ XPtr<RTRexBiobankScreeningSelector> trex_biobank_screening_2d_create(
     // Pin X and Y until the finalizer has run (see above).
     return XPtr<RTRexBiobankScreeningSelector>(new RTRexBiobankScreeningSelector(X_map, Y_map, control, seed, verbose),
                                                true, R_NilValue, Rcpp::List::create(X, Y));
+}
+
+// ==============================================================================
+// Memory-mapped X (2026-09-25, notes/ZERO_COPY_PLAN.md 5.1): the file is
+// mapped directly; the screening's inner selectors normalize it in place per
+// screening call and restore it, so a "readwrite" mapping is required. Before,
+// the R6 class read the whole file into RAM through as.matrix().
+// ==============================================================================
+
+//' @noRd
+// [[Rcpp::export]]
+XPtr<RTRexBiobankScreeningSelector> trex_biobank_screening_1d_mmap_create(
+    XPtr<trex::utils::memmap::MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
+    Rcpp::NumericVector y,
+    Rcpp::List biobank_control_list,
+    Rcpp::List screen_control_list,
+    Rcpp::List trex_control_list,
+    int seed,
+    bool verbose
+) {
+    Eigen::Map<Eigen::VectorXd> y_map(y.begin(), y.size());
+    BiobankScreenTRexControl control = parse_biobank_screen_parameter(biobank_control_list, screen_control_list, trex_control_list);
+    // Pin the mmap holder and y until the finalizer has run.
+    return XPtr<RTRexBiobankScreeningSelector>(new RTRexBiobankScreeningSelector(X_ptr->getMap(), y_map, control, seed, verbose),
+                                               true, R_NilValue, Rcpp::List::create(X_ptr, y));
+}
+
+//' @noRd
+// [[Rcpp::export]]
+XPtr<RTRexBiobankScreeningSelector> trex_biobank_screening_2d_mmap_create(
+    XPtr<trex::utils::memmap::MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
+    Rcpp::NumericMatrix Y,
+    Rcpp::List biobank_control_list,
+    Rcpp::List screen_control_list,
+    Rcpp::List trex_control_list,
+    int seed,
+    bool verbose
+) {
+    Eigen::Map<Eigen::MatrixXd> Y_map(Y.begin(), Y.nrow(), Y.ncol());
+    BiobankScreenTRexControl control = parse_biobank_screen_parameter(biobank_control_list, screen_control_list, trex_control_list);
+    // Pin the mmap holder and Y until the finalizer has run.
+    return XPtr<RTRexBiobankScreeningSelector>(new RTRexBiobankScreeningSelector(X_ptr->getMap(), Y_map, control, seed, verbose),
+                                               true, R_NilValue, Rcpp::List::create(X_ptr, Y));
 }
 
 // ==============================================================================

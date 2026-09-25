@@ -30,10 +30,11 @@ tsolver_options(
 }
 \arguments{
 \item{normalize}{Logical; scale each column of X and D to unit L2 norm (or
-unit SD, see \code{scaling_mode}). Default \code{TRUE}.}
+unit SD, see \code{scaling_mode}). \code{FALSE} when the caller
+pre-scaled (see the in-place note below). Default \code{TRUE}.}
 
 \item{intercept}{Logical; center X, D and y (an intercept is fitted).
-Default \code{TRUE}.}
+\code{FALSE} when the caller pre-centered. Default \code{TRUE}.}
 
 \item{scaling_mode}{\code{"L2"} (default) or \code{"ZSCORE"}: the column
 scaling applied when \code{normalize} is \code{TRUE}.}
@@ -89,6 +90,22 @@ as one list (the C++ \code{SolverOptions}). Pass it to a solver's
 \code{$new(X, D, y, options = ...)}. Each solver reads the fields it
 needs and ignores the rest; the defaults are the solver-level defaults.
 }
+\section{In-place preprocessing (the writer/reader contract)}{
+
+The T-solvers work on the caller's matrices without copying, in R as in
+C++ and Python. With \code{normalize = TRUE} or \code{intercept = TRUE} a
+solver is a \emph{writer}: it centers / scales the columns of X and D in
+place (visible on the caller's matrix or memory-mapped file), keeps the
+statistics itself, and holds a claim on both until \code{$restore()} or
+garbage collection, both of which write X and D back; a second writer
+(T-solver or T-Rex selector) on a claimed matrix is an error, because a
+second in-place transformation moves the data by rounding. With
+\code{normalize = FALSE} and \code{intercept = FALSE} a solver is a
+\emph{reader} that runs as constructed and never writes; a pipeline with
+several solvers on one matrix pre-scales once in front (\link{MLLpNormScaler})
+and constructs readers. y is never written. See \link{TSolver_Base}.
+}
+
 \examples{
 tsolver_options()
 tsolver_options(lambda2 = 0.5, normalize = FALSE)

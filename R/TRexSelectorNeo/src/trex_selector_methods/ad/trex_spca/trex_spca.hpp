@@ -244,10 +244,12 @@ public:
     /**
      * @brief Run T-Rex Sparse PCA selection.
      *
-     * @return TRexSPCAResult containing sparse PCs, loadings, active sets, and
-     *         explained variance.
+     * @return Const reference to the stored TRexSPCAResult (sparse PCs,
+     *         loadings, active sets, explained variance); the bindings wrap
+     *         it once instead of copying Z and V twice (2026-09-25). A caller
+     *         that writes `auto res = spca.select();` still gets its own copy.
      */
-    TRexSPCAResult select();
+    const TRexSPCAResult& select();
 
     /**
      * @brief Retrieve the result from the last select() call.

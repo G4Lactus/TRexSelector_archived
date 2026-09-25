@@ -365,6 +365,19 @@ void trex_selector_select(
     r_ptr->select();
 }
 
+//' @title Give X back before select()
+//'
+//' @details Undoes the in-place normalization applied at construction and
+//'   releases the buffer claim (idempotent; a no-op after select()). A
+//'   restored selector cannot run: select() then errors (2026-09-25).
+//' @noRd
+// [[Rcpp::export]]
+void trex_selector_restore(
+    XPtr<RTRexSelector> r_ptr // NOLINT (performance-unnecessary-value-param)
+) {
+    r_ptr->restore();
+}
+
 
 // =========================================================================================
 // Getters
@@ -449,30 +462,36 @@ Eigen::VectorXd trex_selector_get_voting_grid(
 //' @title Get FDP Hat Matrix
 //' @noRd
 // [[Rcpp::export]]
-Eigen::MatrixXd trex_selector_get_fdp_hat_mat(
+Rcpp::NumericMatrix trex_selector_get_fdp_hat_mat(
     XPtr<RTRexSelector> r_ptr // NOLINT (performance-unnecessary-value-param)
 ) {
-    return r_ptr->getFDPHatMat();
+    // Wrapped once from the const reference (a by-value return copied
+    // the T_stop x p matrix twice; 2026-09-25, notes/ZERO_COPY_PLAN.md 5.2).
+    return Rcpp::wrap(r_ptr->getFDPHatMat());
 }
 
 
 //' @title Get Phi Matrix
 //' @noRd
 // [[Rcpp::export]]
-Eigen::MatrixXd trex_selector_get_phi_mat(
+Rcpp::NumericMatrix trex_selector_get_phi_mat(
     XPtr<RTRexSelector> r_ptr // NOLINT (performance-unnecessary-value-param)
 ) {
-    return r_ptr->getPhiMat();
+    // Wrapped once from the const reference (a by-value return copied
+    // the T_stop x p matrix twice; 2026-09-25, notes/ZERO_COPY_PLAN.md 5.2).
+    return Rcpp::wrap(r_ptr->getPhiMat());
 }
 
 
 //' @title Get R Matrix
 //' @noRd
 // [[Rcpp::export]]
-Eigen::MatrixXd trex_selector_get_r_mat(
+Rcpp::NumericMatrix trex_selector_get_r_mat(
     XPtr<RTRexSelector> r_ptr // NOLINT (performance-unnecessary-value-param)
 ) {
-    return r_ptr->getRMat();
+    // Wrapped once from the const reference (a by-value return copied
+    // the T_stop x p matrix twice; 2026-09-25, notes/ZERO_COPY_PLAN.md 5.2).
+    return Rcpp::wrap(r_ptr->getRMat());
 }
 
 
@@ -514,3 +533,37 @@ double trex_selector_get_y_mean(
 ) {
     return r_ptr->getYMean();
 }
+
+
+// ==============================================================================
+// Surface catch-up (2026-09-25, 5.4): the control getters of the wrapper, and
+// the number of dummies of the last select().
+// ==============================================================================
+
+//' @noRd
+// [[Rcpp::export]]
+double trex_selector_get_tfdr(XPtr<RTRexSelector> r_ptr) { return r_ptr->getTFDR(); } // NOLINT(performance-unnecessary-value-param)
+
+//' @noRd
+// [[Rcpp::export]]
+int trex_selector_get_k(XPtr<RTRexSelector> r_ptr) { return static_cast<int>(r_ptr->getK()); } // NOLINT(performance-unnecessary-value-param)
+
+//' @noRd
+// [[Rcpp::export]]
+int trex_selector_get_max_num_dummies(XPtr<RTRexSelector> r_ptr) { return static_cast<int>(r_ptr->getMaxNumDummies()); } // NOLINT(performance-unnecessary-value-param)
+
+//' @noRd
+// [[Rcpp::export]]
+bool trex_selector_get_max_t_stop(XPtr<RTRexSelector> r_ptr) { return r_ptr->getMaxTStop(); } // NOLINT(performance-unnecessary-value-param)
+
+//' @noRd
+// [[Rcpp::export]]
+bool trex_selector_get_stagnation_check(XPtr<RTRexSelector> r_ptr) { return r_ptr->getStagnationCheck(); } // NOLINT(performance-unnecessary-value-param)
+
+//' @noRd
+// [[Rcpp::export]]
+int trex_selector_get_num_selected(XPtr<RTRexSelector> r_ptr) { return static_cast<int>(r_ptr->getNumSelected()); } // NOLINT(performance-unnecessary-value-param)
+
+//' @noRd
+// [[Rcpp::export]]
+int trex_selector_get_num_dummies(XPtr<RTRexSelector> r_ptr) { return static_cast<int>(r_ptr->get()->getNumDummies()); } // NOLINT(performance-unnecessary-value-param)

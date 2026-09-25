@@ -177,6 +177,13 @@ TRexGVSSelector <- R6::R6Class("TRexGVSSelector",
         stop("Field is read-only.")
       }
       trex_gvs_get_group_labels(private$ptr)
+    },
+
+    #' @field hc_method_used The hierarchical-clustering linkage the GVS
+    #'   augmentation actually used.
+    hc_method_used = function(value) {
+      if (!missing(value)) stop("Field is read-only.")
+      trex_gvs_get_hc_method_used(private$ptr)
     }
   )
 )

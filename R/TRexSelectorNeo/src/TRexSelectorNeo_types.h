@@ -43,27 +43,43 @@
 #include <utils/memmap/memory_mapped_matrix.hpp>
 
 // ===============================================================================
-// TSolverRcpp — stable data holder so Eigen::Map pointers never dangle
+// TSolverRcpp — zero-copy holder of the T-solver and its views (2026-09-25)
 // ===============================================================================
+//
+// The single definition, shared by rcpp_tsolvers.cpp and RcppExports.cpp (which
+// instantiates the XPtr delete-finalizer from it).
+//
+// The maps view the caller's memory directly — the R matrix (REALSXP, no copy)
+// or the memory-mapped file — and the XPtr's protection slot pins the R objects
+// (X, D, y, or the mmap holder) until the finalizer has run. The solver keeps
+// its own copies of the maps; the holder keeps them for $restore() and $load().
+//
+// Nothing is copied: a solver constructed with normalize = TRUE or intercept =
+// TRUE preprocesses the R matrix (or the mmap file) IN PLACE and holds a claim
+// on it until $restore() or garbage collection; with both FALSE it is a reader
+// and never writes (TSolver_Base::restore() documents the contract). y is never
+// written: the solver centers an internal copy.
 
 struct TSolverRcpp {
-    Eigen::MatrixXd              X_data_;
-    Eigen::MatrixXd              D_data_;
-    Eigen::Map<Eigen::MatrixXd>  X_map_;
-    Eigen::Map<Eigen::MatrixXd>  D_map_;
-    trex::tsolvers::ad::TSolver_Base* solver_;
+    Eigen::Map<Eigen::MatrixXd>  X_map_;    // view over the R matrix or the mmap file
+    Eigen::Map<Eigen::MatrixXd>  D_map_;    // view over the R matrix
+    Eigen::Map<Eigen::VectorXd>  y_map_;    // view over the R vector (never written)
+    trex::tsolvers::ad::TSolver_Base* solver_;   // the concrete solver (owned)
 
-    TSolverRcpp(Eigen::MatrixXd X_in, Eigen::MatrixXd D_in)
-        : X_data_(std::move(X_in)), D_data_(std::move(D_in)),
-          X_map_(X_data_.data(), X_data_.rows(), X_data_.cols()),
-          D_map_(D_data_.data(), D_data_.rows(), D_data_.cols()),
-          solver_(nullptr) {}
+    TSolverRcpp(Eigen::Map<Eigen::MatrixXd> X,
+                Eigen::Map<Eigen::MatrixXd> D,
+                Eigen::Map<Eigen::VectorXd> y)
+        : X_map_(X), D_map_(D), y_map_(y), solver_(nullptr) {}
 
     TSolverRcpp(const TSolverRcpp&)            = delete;
     TSolverRcpp& operator=(const TSolverRcpp&) = delete;
     TSolverRcpp(TSolverRcpp&&)                 = delete;
     TSolverRcpp& operator=(TSolverRcpp&&)      = delete;
 
+    // A writer that is garbage-collected without $restore() writes the
+    // caller's X and D back from ~TSolver_Base (the finalizer safety net),
+    // so the R matrix or the mmap file never stays preprocessed without an
+    // owner. The R objects are still alive then (protection slot).
     ~TSolverRcpp() { delete solver_; }
 };
 

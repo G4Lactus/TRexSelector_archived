@@ -152,7 +152,7 @@ public:
      *
      * @return Reference to the transformer for chaining.
      */
-    DataTransformer& fit(Eigen::Map<Eigen::MatrixXd>& X, double threshold = 1e-12);
+    DataTransformer& fit(const Eigen::Ref<const Eigen::MatrixXd>& X, double threshold = 1e-12);
 
     /**
      * @brief Apply the transformation in place: x' = (x - center) / scale.

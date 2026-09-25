@@ -93,7 +93,8 @@ Other T-Rex selectors and controls:
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{X}}{Numeric matrix (n x p). Stored by reference; centered in-place
+      \item{\code{X}}{Numeric matrix (n x p), or an \code{mmap_matrix} opened
+\code{"readwrite"}. Stored by reference (no copy); centered in place
 during \code{select()} and restored on return.}
       \item{\code{M}}{Integer, number of sparse principal components to extract.}
       \item{\code{tFDR}}{Numeric, target false discovery rate in \code{(0, 1)}.}

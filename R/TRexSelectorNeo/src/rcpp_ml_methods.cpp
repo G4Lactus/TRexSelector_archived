@@ -32,6 +32,20 @@ using enet_cv   = trex::ml_methods::model_selection::enet_cv_ccd;
 // through the same Eigen::Map interface that serves in-memory matrices.
 using MmapMatrixD = trex::utils::memmap::MemoryMappedMatrix<double>;
 
+/**
+ * @brief Read-only zero-copy view of an R double matrix.
+ *
+ * RcppEigen converts only to a mutable Eigen::Map, so the read-only entry
+ * points take the R matrix (REALSXP, no copy; the R6 layer coerces other
+ * storage) and build the const map by hand. It binds to the cores'
+ * Eigen::Ref<const MatrixXd> without a copy (2026-09-25, Tier A of
+ * notes/ZERO_COPY_PLAN.md; before, `const Eigen::MatrixXd&` parameters
+ * copied X in full on every call).
+ */
+static Eigen::Map<const Eigen::MatrixXd> const_map(const Rcpp::NumericMatrix& m) {
+    return {m.begin(), m.nrow(), m.ncol()};
+}
+
 // =================================================================================
 
 /*
@@ -222,8 +236,9 @@ void zscore_scaler_fit_mmap(
     XPtr<MmapMatrixD> mmap_ptr, // NOLINT(performance-unnecessary-value-param)
     double threshold = 1e-12
 ) {
-    auto map = mmap_ptr->getMap();
-    ptr->fit(map, threshold);
+    // Read-only: the const map accepts a "readonly" mapping (2026-09-25).
+    const MmapMatrixD& mmap = *mmap_ptr;
+    ptr->fit(mmap.getMap(), threshold);
 }
 
 //' @title Transform Inplace ZScoreScaler on a MemoryMappedMatrix (zero-copy)
@@ -465,8 +480,9 @@ void lpnorm_scaler_fit_mmap(
     XPtr<MmapMatrixD> mmap_ptr, // NOLINT(performance-unnecessary-value-param)
     double threshold = 1e-12
 ) {
-    auto map = mmap_ptr->getMap();
-    ptr->fit(map, threshold);
+    // Read-only: the const map accepts a "readonly" mapping (2026-09-25).
+    const MmapMatrixD& mmap = *mmap_ptr;
+    ptr->fit(mmap.getMap(), threshold);
 }
 
 //' @title Transform Inplace LpNormScaler on a MemoryMappedMatrix (zero-copy)
@@ -522,8 +538,9 @@ void lpnorm_scaler_inverse_transform_inplace_mmap(
 //' @return XPtr to ridge_cv
 //' @noRd
 // [[Rcpp::export]]
-XPtr<ridge_cv> ridge_cv_create() {
-    return XPtr<ridge_cv>(new ridge_cv());
+XPtr<ridge_cv> ridge_cv_create(bool low_memory = false) {
+    // low_memory: the kernel (dual) fold engine, see ridge_cv_svd(bool) (Tier C2).
+    return XPtr<ridge_cv>(new ridge_cv(low_memory));
 }
 
 //' @title Fit Ridge CV
@@ -539,14 +556,14 @@ XPtr<ridge_cv> ridge_cv_create() {
 // [[Rcpp::export]]
 void ridge_cv_fit(
     XPtr<ridge_cv> ptr, // NOLINT(performance-unnecessary-value-param)
-    const Eigen::MatrixXd& X,
+    Rcpp::NumericMatrix X,
     const Eigen::VectorXd& y,
     int num_folds,
     int n_lambda,
     double lambda_ratio,
     unsigned int seed
 ) {
-    ptr->fit(X, y, num_folds, n_lambda, lambda_ratio, seed);
+    ptr->fit(const_map(X), y, num_folds, n_lambda, lambda_ratio, seed);
 }
 
 //' @title Fit RidgeCV on a MemoryMappedMatrix (zero-copy)
@@ -669,8 +686,10 @@ Eigen::VectorXd ridge_cv_get_cv_std(
 //' @return XPtr to enet_path
 //' @noRd
 // [[Rcpp::export]]
-XPtr<enet_path> enet_create() {
-    return XPtr<enet_path>(new enet_path());
+XPtr<enet_path> enet_create(bool low_memory = false) {
+    // low_memory: the raw-X engine (no working copy of X; a memory-mapped X
+    // is read in place), see enet_gaussian(bool) (2026-09-25, Tier C1).
+    return XPtr<enet_path>(new enet_path(low_memory));
 }
 
 //' @title Fit Elastic Net over an auto-generated glmnet-style grid
@@ -678,7 +697,7 @@ XPtr<enet_path> enet_create() {
 // [[Rcpp::export]]
 void enet_fit(
     XPtr<enet_path> ptr, // NOLINT(performance-unnecessary-value-param)
-    const Eigen::MatrixXd& X,
+    Rcpp::NumericMatrix X,
     const Eigen::VectorXd& y,
     double alpha,
     int n_lambda,
@@ -689,7 +708,28 @@ void enet_fit(
     int max_iter,
     double tol
 ) {
-    ptr->fit(X, y, alpha, n_lambda, lambda_min_ratio, standardize,
+    ptr->fit(const_map(X), y, alpha, n_lambda, lambda_min_ratio, standardize,
+             intercept, use_strong_rule, max_iter, tol);
+}
+
+//' @title Fit Elastic Net on a MemoryMappedMatrix (zero-copy, readonly suffices)
+//' @noRd
+// [[Rcpp::export]]
+void enet_fit_mmap(
+    XPtr<enet_path> ptr,        // NOLINT(performance-unnecessary-value-param)
+    XPtr<MmapMatrixD> mmap_ptr, // NOLINT(performance-unnecessary-value-param)
+    const Eigen::VectorXd& y,
+    double alpha,
+    int n_lambda,
+    double lambda_min_ratio,
+    bool standardize,
+    bool intercept,
+    bool use_strong_rule,
+    int max_iter,
+    double tol
+) {
+    const MmapMatrixD& mmap = *mmap_ptr;   // const overload -> ConstMapType
+    ptr->fit(mmap.getMap(), y, alpha, n_lambda, lambda_min_ratio, standardize,
              intercept, use_strong_rule, max_iter, tol);
 }
 
@@ -698,7 +738,7 @@ void enet_fit(
 // [[Rcpp::export]]
 void enet_fit_grid(
     XPtr<enet_path> ptr, // NOLINT(performance-unnecessary-value-param)
-    const Eigen::MatrixXd& X,
+    Rcpp::NumericMatrix X,
     const Eigen::VectorXd& y,
     const Eigen::VectorXd& lambda_grid,
     double alpha,
@@ -708,7 +748,27 @@ void enet_fit_grid(
     int max_iter,
     double tol
 ) {
-    ptr->fit(X, y, lambda_grid, alpha, standardize, intercept,
+    ptr->fit(const_map(X), y, lambda_grid, alpha, standardize, intercept,
+             use_strong_rule, max_iter, tol);
+}
+
+//' @title Fit Elastic Net at an explicit grid on a MemoryMappedMatrix (zero-copy)
+//' @noRd
+// [[Rcpp::export]]
+void enet_fit_grid_mmap(
+    XPtr<enet_path> ptr,        // NOLINT(performance-unnecessary-value-param)
+    XPtr<MmapMatrixD> mmap_ptr, // NOLINT(performance-unnecessary-value-param)
+    const Eigen::VectorXd& y,
+    const Eigen::VectorXd& lambda_grid,
+    double alpha,
+    bool standardize,
+    bool intercept,
+    bool use_strong_rule,
+    int max_iter,
+    double tol
+) {
+    const MmapMatrixD& mmap = *mmap_ptr;
+    ptr->fit(mmap.getMap(), y, lambda_grid, alpha, standardize, intercept,
              use_strong_rule, max_iter, tol);
 }
 
@@ -757,14 +817,34 @@ bool enet_converged(
     return ptr->converged();
 }
 
+//' @title Number of lambdas whose coordinate descent did not converge
+//' @noRd
+// [[Rcpp::export]]
+int enet_n_nonconverged(
+    XPtr<enet_path> ptr // NOLINT(performance-unnecessary-value-param)
+) {
+    return ptr->n_nonconverged();
+}
+
 //' @title Predictions per lambda for new data
 //' @noRd
 // [[Rcpp::export]]
 Eigen::MatrixXd enet_predict(
     XPtr<enet_path> ptr, // NOLINT(performance-unnecessary-value-param)
-    const Eigen::MatrixXd& X_new
+    Rcpp::NumericMatrix X_new
 ) {
-    return ptr->predict(X_new);
+    return ptr->predict(const_map(X_new));
+}
+
+//' @title Predictions per lambda for new data in a MemoryMappedMatrix (zero-copy)
+//' @noRd
+// [[Rcpp::export]]
+Eigen::MatrixXd enet_predict_mmap(
+    XPtr<enet_path> ptr,        // NOLINT(performance-unnecessary-value-param)
+    XPtr<MmapMatrixD> mmap_ptr  // NOLINT(performance-unnecessary-value-param)
+) {
+    const MmapMatrixD& mmap = *mmap_ptr;
+    return ptr->predict(mmap.getMap());
 }
 
 // =================================================================================
@@ -775,8 +855,8 @@ Eigen::MatrixXd enet_predict(
 //' @return XPtr to enet_cv
 //' @noRd
 // [[Rcpp::export]]
-XPtr<enet_cv> enet_cv_create() {
-    return XPtr<enet_cv>(new enet_cv());
+XPtr<enet_cv> enet_cv_create(bool low_memory = false) {
+    return XPtr<enet_cv>(new enet_cv(low_memory));
 }
 
 //' @title Fit Elastic Net CV over a glmnet-style grid
@@ -784,7 +864,7 @@ XPtr<enet_cv> enet_cv_create() {
 // [[Rcpp::export]]
 void enet_cv_fit(
     XPtr<enet_cv> ptr, // NOLINT(performance-unnecessary-value-param)
-    const Eigen::MatrixXd& X,
+    Rcpp::NumericMatrix X,
     const Eigen::VectorXd& y,
     double alpha,
     int n_folds,
@@ -796,7 +876,29 @@ void enet_cv_fit(
     int max_iter,
     double tol
 ) {
-    ptr->fit(X, y, alpha, n_folds, n_lambda, lambda_min_ratio, seed,
+    ptr->fit(const_map(X), y, alpha, n_folds, n_lambda, lambda_min_ratio, seed,
+             standardize, intercept, max_iter, tol);
+}
+
+//' @title Fit Elastic Net CV on a MemoryMappedMatrix (zero-copy, readonly suffices)
+//' @noRd
+// [[Rcpp::export]]
+void enet_cv_fit_mmap(
+    XPtr<enet_cv> ptr,          // NOLINT(performance-unnecessary-value-param)
+    XPtr<MmapMatrixD> mmap_ptr, // NOLINT(performance-unnecessary-value-param)
+    const Eigen::VectorXd& y,
+    double alpha,
+    int n_folds,
+    int n_lambda,
+    double lambda_min_ratio,
+    unsigned int seed,
+    bool standardize,
+    bool intercept,
+    int max_iter,
+    double tol
+) {
+    const MmapMatrixD& mmap = *mmap_ptr;
+    ptr->fit(mmap.getMap(), y, alpha, n_folds, n_lambda, lambda_min_ratio, seed,
              standardize, intercept, max_iter, tol);
 }
 
@@ -879,8 +981,31 @@ Eigen::VectorXd enet_cv_get_cv_std(
 //'   and \code{V} (p x M).
 //' @noRd
 // [[Rcpp::export]]
-Rcpp::List svd_compute(const Eigen::MatrixXd& X, int M) {
-    SVDResult res = SVDSolver{}.compute(X, static_cast<Eigen::Index>(M));
+Rcpp::List svd_compute(Rcpp::NumericMatrix X, int M,
+                       double min_dim_thresh = 10000, double block_size = 1024) {
+    // Dispatch thresholds (Tier C3): a lower min_dim_thresh selects the
+    // randomized, block-wise (no copy) path for smaller designs.
+    SVDSolver solver{static_cast<Eigen::Index>(min_dim_thresh), static_cast<Eigen::Index>(block_size)};
+    SVDResult res = solver.compute(const_map(X), static_cast<Eigen::Index>(M));
+    return Rcpp::List::create(
+        Rcpp::Named("U") = res.U,
+        Rcpp::Named("S") = res.S,
+        Rcpp::Named("V") = res.V
+    );
+}
+
+//' @title Compute SVD of a MemoryMappedMatrix (zero-copy, readonly suffices)
+//' @noRd
+// [[Rcpp::export]]
+Rcpp::List svd_compute_mmap(
+    XPtr<MmapMatrixD> mmap_ptr, // NOLINT(performance-unnecessary-value-param)
+    int M,
+    double min_dim_thresh = 10000,
+    double block_size = 1024
+) {
+    const MmapMatrixD& mmap = *mmap_ptr;
+    SVDSolver solver{static_cast<Eigen::Index>(min_dim_thresh), static_cast<Eigen::Index>(block_size)};
+    SVDResult res = solver.compute(mmap.getMap(), static_cast<Eigen::Index>(M));
     return Rcpp::List::create(
         Rcpp::Named("U") = res.U,
         Rcpp::Named("S") = res.S,
@@ -914,12 +1039,31 @@ Rcpp::XPtr<PCA> pca_create(
     bool normalize = true
 ) {
     // Zero-copy view over the R buffer (X is REALSXP by contract). The PCA
-    // constructor preprocesses X in place but retains no map into it, so the
-    // returned XPtr carries no write-back-on-destruction hazard and needs no
-    // prot slot; restore() is explicit via pca_restore(ptr, X).
+    // constructor preprocesses X in place and keeps a raw pointer into it
+    // until fit(); the protection slot pins X for the object's lifetime.
     Eigen::Map<Eigen::MatrixXd> X_map(X.begin(), X.nrow(), X.ncol());
     return Rcpp::XPtr<PCA>(
-        new PCA(X_map, static_cast<Eigen::Index>(M), center, normalize));
+        new PCA(X_map, static_cast<Eigen::Index>(M), center, normalize),
+        true, R_NilValue, X);
+}
+
+//' @title Create PCA object on a MemoryMappedMatrix (zero-copy)
+//'
+//' @description The centering / normalization is applied IN THE FILE
+//'   (readwrite mapping required when center or normalize is TRUE);
+//'   \code{pca_restore_mmap()} undoes it.
+//' @noRd
+// [[Rcpp::export]]
+Rcpp::XPtr<PCA> pca_create_mmap(
+    XPtr<MmapMatrixD> mmap_ptr, // NOLINT(performance-unnecessary-value-param)
+    int M,
+    bool center = true,
+    bool normalize = true
+) {
+    auto X_map = mmap_ptr->getMap();   // mutable map over the file
+    return Rcpp::XPtr<PCA>(
+        new PCA(X_map, static_cast<Eigen::Index>(M), center, normalize),
+        true, R_NilValue, mmap_ptr);
 }
 
 //' @title Fit PCA
@@ -957,6 +1101,17 @@ void pca_restore(
     ptr->restore(X_map);
 }
 
+//' @title Restore a MemoryMappedMatrix after PCA centering/normalization
+//' @noRd
+// [[Rcpp::export]]
+void pca_restore_mmap(
+    Rcpp::XPtr<PCA> ptr,        // NOLINT(performance-unnecessary-value-param)
+    XPtr<MmapMatrixD> mmap_ptr  // NOLINT(performance-unnecessary-value-param)
+) {
+    auto X_map = mmap_ptr->getMap();
+    ptr->restore(X_map);
+}
+
 //' @title Transform new data with fitted PCA
 //'
 //' @param ptr XPtr to PCA.
@@ -967,9 +1122,20 @@ void pca_restore(
 // [[Rcpp::export]]
 Eigen::MatrixXd pca_transform(
     Rcpp::XPtr<PCA> ptr, // NOLINT(performance-unnecessary-value-param)
-    const Eigen::MatrixXd& X_new
+    Rcpp::NumericMatrix X_new
 ) {
-    return ptr->transform(X_new);
+    return ptr->transform(const_map(X_new));
+}
+
+//' @title Transform new data in a MemoryMappedMatrix with a fitted PCA (zero-copy)
+//' @noRd
+// [[Rcpp::export]]
+Eigen::MatrixXd pca_transform_mmap(
+    Rcpp::XPtr<PCA> ptr,        // NOLINT(performance-unnecessary-value-param)
+    XPtr<MmapMatrixD> mmap_ptr  // NOLINT(performance-unnecessary-value-param)
+) {
+    const MmapMatrixD& mmap = *mmap_ptr;
+    return ptr->transform(mmap.getMap());
 }
 
 //' @title Get PCA column means
@@ -1039,9 +1205,21 @@ Eigen::VectorXd pca_get_explained_variance(
 //' @noRd
 // [[Rcpp::export]]
 Eigen::VectorXd ridge_solve(
-    const Eigen::MatrixXd& X,
+    Rcpp::NumericMatrix X,
     const Eigen::VectorXd& y,
     double lambda
 ) {
-    return RidgeSolver::solve(X, y, lambda);
+    return RidgeSolver::solve(const_map(X), y, lambda);
+}
+
+//' @title Solve Ridge Regression on a MemoryMappedMatrix (zero-copy, readonly suffices)
+//' @noRd
+// [[Rcpp::export]]
+Eigen::VectorXd ridge_solve_mmap(
+    XPtr<MmapMatrixD> mmap_ptr, // NOLINT(performance-unnecessary-value-param)
+    const Eigen::VectorXd& y,
+    double lambda
+) {
+    const MmapMatrixD& mmap = *mmap_ptr;
+    return RidgeSolver::solve(mmap.getMap(), y, lambda);
 }

@@ -9,6 +9,29 @@ API backed by a Cpp \code{TSolver_Base} instance. Users should instantiate one
 of the concrete subclasses (\code{TLARS_Solver}, \code{TLASSO_Solver}, etc.)
 rather than this class directly.
 }
+\section{In-place preprocessing (the writer/reader contract)}{
+
+The solver works on the caller's memory without copying: the R matrices
+\code{X} and \code{D} (double storage; an integer matrix is coerced first,
+which is a copy) or the memory-mapped file behind an \code{mmap_matrix}.
+With \code{normalize = TRUE} or \code{intercept = TRUE} in
+\code{\link{tsolver_options}} the solver is a \emph{writer}: it centers /
+scales the columns of \code{X} and \code{D} in place (the change is
+visible on the caller's matrix), keeps the statistics itself, and holds a
+claim on both until \code{$restore()} or garbage collection, both of which
+write \code{X} and \code{D} back (\code{$restore()} is idempotent and the
+fitted path stays available); constructing a second writer (T-solver or
+T-Rex selector) on a claimed matrix is an error, because a second
+in-place transformation moves the data by rounding. With both
+\code{FALSE} the solver is a \emph{reader}: it runs as constructed and
+never writes. A pipeline with several solvers on one matrix pre-scales
+once in front (\link{MLLpNormScaler}) and constructs readers. \code{$load()}
+expects \code{X} and \code{D} in the state they were saved in: load into
+a reader on pre-scaled data, or into a writer constructed with the same
+options on the same data (it keeps the duty to write back). \code{y} is
+never written (the solver centers an internal copy).
+}
+
 \examples{
 # TSolver_Base is abstract; use a concrete subclass instead, e.g.:
 # solver <- TLARS_Solver$new(X, D, y)
@@ -44,6 +67,22 @@ rather than this class directly.
     \item \href{#method-TSolver_Base-get_intercept}{\code{TSolver_Base$get_intercept()}}
     \item \href{#method-TSolver_Base-save}{\code{TSolver_Base$save()}}
     \item \href{#method-TSolver_Base-load}{\code{TSolver_Base$load()}}
+    \item \href{#method-TSolver_Base-get_residuals}{\code{TSolver_Base$get_residuals()}}
+    \item \href{#method-TSolver_Base-get_beta_path}{\code{TSolver_Base$get_beta_path()}}
+    \item \href{#method-TSolver_Base-get_cp_with_sigma}{\code{TSolver_Base$get_cp_with_sigma()}}
+    \item \href{#method-TSolver_Base-solver_type_to_string}{\code{TSolver_Base$solver_type_to_string()}}
+    \item \href{#method-TSolver_Base-get_dropped_indices}{\code{TSolver_Base$get_dropped_indices()}}
+    \item \href{#method-TSolver_Base-get_active_predictor_indices}{\code{TSolver_Base$get_active_predictor_indices()}}
+    \item \href{#method-TSolver_Base-get_active_dummy_indices}{\code{TSolver_Base$get_active_dummy_indices()}}
+    \item \href{#method-TSolver_Base-get_num_actives}{\code{TSolver_Base$get_num_actives()}}
+    \item \href{#method-TSolver_Base-get_dummy_start_index}{\code{TSolver_Base$get_dummy_start_index()}}
+    \item \href{#method-TSolver_Base-is_connected}{\code{TSolver_Base$is_connected()}}
+    \item \href{#method-TSolver_Base-set_tolerance}{\code{TSolver_Base$set_tolerance()}}
+    \item \href{#method-TSolver_Base-set_tie_seed}{\code{TSolver_Base$set_tie_seed()}}
+    \item \href{#method-TSolver_Base-set_exchangeable_tie}{\code{TSolver_Base$set_exchangeable_tie()}}
+    \item \href{#method-TSolver_Base-get_warnings}{\code{TSolver_Base$get_warnings()}}
+    \item \href{#method-TSolver_Base-clear_warnings}{\code{TSolver_Base$clear_warnings()}}
+    \item \href{#method-TSolver_Base-restore}{\code{TSolver_Base$restore()}}
     \item \href{#method-TSolver_Base-clone}{\code{TSolver_Base$clone()}}
   }
 }
@@ -52,7 +91,8 @@ rather than this class directly.
 \if{latex}{\out{\hypertarget{method-TSolver_Base-initialize}{}}}
 \subsection{\code{TSolver_Base$new()}}{
   Validate and store data fields. Called by every subclass \code{initialize}.
-Not intended for direct instantiation.
+Not intended for direct instantiation. The stored \code{X} and \code{D}
+are the matrices the C++ solver maps (no copy for double storage).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{TSolver_Base$new(X, D, y)}
@@ -112,7 +152,10 @@ early-stop condition is met.}
 \if{html}{\out{<a id="method-TSolver_Base-get_actions"></a>}}
 \if{latex}{\out{\hypertarget{method-TSolver_Base-get_actions}{}}}
 \subsection{\code{TSolver_Base$get_actions()}}{
-  Get the action path (variable additions and removals per step).
+  Get the action path (variable additions and removals per
+step). The C++ solver already records the R \code{lars} convention:
+1-based signed codes, \code{+j} for the addition and \code{-j} for the
+removal of variable \code{j} (dummies continue after the predictors).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{TSolver_Base$get_actions(r_index = TRUE)}
@@ -121,15 +164,16 @@ early-stop condition is met.}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{r_index}}{Logical; if \code{TRUE} (default) indices inside each
-action vector are 1-based (R convention); if \code{FALSE} they are
-0-based (Cpp convention).}
+      \item{\code{r_index}}{Logical; if \code{TRUE} (default) the 1-based signed
+codes are returned as recorded. If \code{FALSE} the 0-based indices
+of the variables acted on are returned (\code{abs(a) - 1}); the sign
+is dropped there because a 0-based signed code cannot distinguish
+the addition from the removal of the first variable.}
     }
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{
-    A list of integer vectors, one per step. Positive indices denote
-variable additions; negative indices denote removals.
+    A list of integer vectors, one per step.
   }
 }
 
@@ -310,7 +354,8 @@ variable additions; negative indices denote removals.
 \if{latex}{\out{\hypertarget{method-TSolver_Base-load}{}}}
 \subsection{\code{TSolver_Base$load()}}{
   Restore the solver state from a binary file created by
-\code{$save()}.
+\code{$save()}. The loaded solver expects \code{X} and \code{D} in
+the state they were saved in and is a reader (it never writes).
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{TSolver_Base$load(filename)}
@@ -321,6 +366,286 @@ variable additions; negative indices denote removals.
     \describe{
       \item{\code{filename}}{Character; path to the input file.}
     }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Invisibly returns \code{self}.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-TSolver_Base-get_residuals"></a>}}
+\if{latex}{\out{\hypertarget{method-TSolver_Base-get_residuals}{}}}
+\subsection{\code{TSolver_Base$get_residuals()}}{
+  Residual vector at the current step.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{TSolver_Base$get_residuals()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Numeric vector of length n.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-TSolver_Base-get_beta_path"></a>}}
+\if{latex}{\out{\hypertarget{method-TSolver_Base-get_beta_path}{}}}
+\subsection{\code{TSolver_Base$get_beta_path()}}{
+  Coefficient path: one column per step including the
+all-zero start (column 1), predictors first, dummies from
+\code{get_dummy_start_index()} on; the same layout as Python's
+\code{getBetaPath()}.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{TSolver_Base$get_beta_path()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Numeric matrix ((p + num_dummies) x (steps + 1)).
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-TSolver_Base-get_cp_with_sigma"></a>}}
+\if{latex}{\out{\hypertarget{method-TSolver_Base-get_cp_with_sigma}{}}}
+\subsection{\code{TSolver_Base$get_cp_with_sigma()}}{
+  Mallows' Cp along the path with a supplied noise variance.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{TSolver_Base$get_cp_with_sigma(sigma_hat_sq)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{sigma_hat_sq}}{Positive numeric, the noise variance estimate.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Numeric vector, one per step.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-TSolver_Base-solver_type_to_string"></a>}}
+\if{latex}{\out{\hypertarget{method-TSolver_Base-solver_type_to_string}{}}}
+\subsection{\code{TSolver_Base$solver_type_to_string()}}{
+  Name of the underlying solver type (e.g. \code{"TLARS"}).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{TSolver_Base$solver_type_to_string()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Character scalar.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-TSolver_Base-get_dropped_indices"></a>}}
+\if{latex}{\out{\hypertarget{method-TSolver_Base-get_dropped_indices}{}}}
+\subsection{\code{TSolver_Base$get_dropped_indices()}}{
+  Variables dropped during the path (1-based, predictors and
+dummies alike).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{TSolver_Base$get_dropped_indices()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Integer vector.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-TSolver_Base-get_active_predictor_indices"></a>}}
+\if{latex}{\out{\hypertarget{method-TSolver_Base-get_active_predictor_indices}{}}}
+\subsection{\code{TSolver_Base$get_active_predictor_indices()}}{
+  Active predictor indices (1-based, dummies excluded).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{TSolver_Base$get_active_predictor_indices()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Integer vector.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-TSolver_Base-get_active_dummy_indices"></a>}}
+\if{latex}{\out{\hypertarget{method-TSolver_Base-get_active_dummy_indices}{}}}
+\subsection{\code{TSolver_Base$get_active_dummy_indices()}}{
+  Active dummy indices (1-based within the dummy block).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{TSolver_Base$get_active_dummy_indices()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Integer vector.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-TSolver_Base-get_num_actives"></a>}}
+\if{latex}{\out{\hypertarget{method-TSolver_Base-get_num_actives}{}}}
+\subsection{\code{TSolver_Base$get_num_actives()}}{
+  Number of active variables (predictors and dummies).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{TSolver_Base$get_num_actives()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Integer.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-TSolver_Base-get_dummy_start_index"></a>}}
+\if{latex}{\out{\hypertarget{method-TSolver_Base-get_dummy_start_index}{}}}
+\subsection{\code{TSolver_Base$get_dummy_start_index()}}{
+  1-based column at which the dummies start in the merged
+(predictors, dummies) index space, i.e. \code{p + 1}.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{TSolver_Base$get_dummy_start_index()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Integer.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-TSolver_Base-is_connected"></a>}}
+\if{latex}{\out{\hypertarget{method-TSolver_Base-is_connected}{}}}
+\subsection{\code{TSolver_Base$is_connected()}}{
+  Whether the solver is connected to its data views.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{TSolver_Base$is_connected()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Logical.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-TSolver_Base-set_tolerance"></a>}}
+\if{latex}{\out{\hypertarget{method-TSolver_Base-set_tolerance}{}}}
+\subsection{\code{TSolver_Base$set_tolerance()}}{
+  Set the numerical tolerance of the internal comparisons.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{TSolver_Base$set_tolerance(tol)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{tol}}{Positive numeric.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Invisibly returns \code{self}.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-TSolver_Base-set_tie_seed"></a>}}
+\if{latex}{\out{\hypertarget{method-TSolver_Base-set_tie_seed}{}}}
+\subsection{\code{TSolver_Base$set_tie_seed()}}{
+  Seed the tie-break engine.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{TSolver_Base$set_tie_seed(seed)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{seed}}{Non-negative integer.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Invisibly returns \code{self}.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-TSolver_Base-set_exchangeable_tie"></a>}}
+\if{latex}{\out{\hypertarget{method-TSolver_Base-set_exchangeable_tie}{}}}
+\subsection{\code{TSolver_Base$set_exchangeable_tie()}}{
+  Exchangeable-tie band for the greedy solvers (TOMP / TAFS
+families); \code{alpha <= 0} turns it off.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{TSolver_Base$set_exchangeable_tie(alpha, floor = 0.5)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{alpha}}{Band width in units of the ranking-noise sd.}
+      \item{\code{floor}}{Minimum |correlation| of a tie candidate (default 0.5).}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Invisibly returns \code{self}.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-TSolver_Base-get_warnings"></a>}}
+\if{latex}{\out{\hypertarget{method-TSolver_Base-get_warnings}{}}}
+\subsection{\code{TSolver_Base$get_warnings()}}{
+  Warnings recorded by the solver (dropped columns, the
+already-preprocessed input, collinear rejections, ...).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{TSolver_Base$get_warnings()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Character vector.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-TSolver_Base-clear_warnings"></a>}}
+\if{latex}{\out{\hypertarget{method-TSolver_Base-clear_warnings}{}}}
+\subsection{\code{TSolver_Base$clear_warnings()}}{
+  Clear the recorded warnings.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{TSolver_Base$clear_warnings()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Invisibly returns \code{self}.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-TSolver_Base-restore"></a>}}
+\if{latex}{\out{\hypertarget{method-TSolver_Base-restore}{}}}
+\subsection{\code{TSolver_Base$restore()}}{
+  Undo the in-place centering / scaling a writer solver
+applied to \code{X} and \code{D} at construction and release its
+claim on them, so that another writer may take the matrices. The
+solver's fitted path stays available. \code{y} is not modified. No-op
+for a reader (\code{normalize = FALSE, intercept = FALSE}).
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{TSolver_Base$restore()}
     \if{html}{\out{</div>}}
   }
   \subsection{Returns}{

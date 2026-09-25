@@ -831,7 +831,7 @@ test_that("MLLpNormScaler fit_transform_inplace works on an mmap_matrix handle",
   expect_equal(as.matrix(mm), X, tolerance = 1e-12)
 })
 
-test_that("scaler methods on a readonly mmap_matrix raise the C++ mode guard", {
+test_that("scaler fit() reads a readonly mmap_matrix; the in-place transforms need readwrite", {
   set.seed(33)
   X <- matrix(rnorm(20 * 4), 20, 4)
   f <- tempfile(fileext = ".bin")
@@ -839,10 +839,14 @@ test_that("scaler methods on a readonly mmap_matrix raise the C++ mode guard", {
   mem_matrix_from(X, f)
   ro <- mem_matrix(f, rows = 20, cols = 4, mode = "readonly")
 
-  # The scaler core binds a mutable Eigen map, so every scaler method —
-  # including fit() — requires a "readwrite" handle.
+  # fit() only reads: since 2026-09-25 it binds a const map, so a "readonly"
+  # handle is accepted and the statistics equal the in-memory fit exactly.
   sc <- MLZScoreScaler$new()
-  expect_error(sc$fit(ro), "ReadOnly")
+  expect_no_error(sc$fit(ro))
+  sc_mem <- MLZScoreScaler$new(); sc_mem$fit(X)
+  expect_identical(sc$get_centers(), sc_mem$get_centers())
+  expect_identical(sc$get_scales(), sc_mem$get_scales())
+  # The in-place transforms write the file and still need a "readwrite" handle.
   expect_error(sc$transform_inplace(ro), "ReadOnly")
 })
 
@@ -864,4 +868,164 @@ test_that("MLRidgeCV fits zero-copy from a readonly mmap_matrix handle", {
   expect_equal(cv_mm$cv_min(), cv_mem$cv_min())
   expect_equal(cv_mm$get_cv_errors(), cv_mem$get_cv_errors())
   expect_error(MLRidgeCV$new()$fit(ro, rnorm(n - 1)))  # dimension mismatch
+})
+
+
+# =============================================================================
+# Memory-mapped inputs of the regression / SVD / PCA classes (2026-09-25,
+# Tier A of notes/ZERO_COPY_PLAN.md): the mmap path calls the same core
+# through an equivalent view, so it must match the in-memory path
+# bit-for-bit; the read-only methods accept a "readonly" mapping.
+# =============================================================================
+
+local({
+  set.seed(33)
+  n <- 50; p <- 12
+  X <- matrix(rnorm(n * p), n, p)
+  y <- X[, 1] * 2 - X[, 4] + rnorm(n)
+  f <- tempfile(fileext = ".bin")
+  invisible(mem_matrix_from(X, f))                 # the file, written once
+  ro <- mem_matrix(f, n, p, mode = "readonly")     # read-only handle
+  on.exit(unlink(f), add = TRUE)
+
+  test_that("MLRidgeCV on a readonly mmap_matrix equals the in-memory fit", {
+    a <- MLRidgeCV$new(); a$fit(X, y, num_folds = 5, n_lambda = 30, seed = 1)
+    b <- MLRidgeCV$new(); b$fit(ro, y, num_folds = 5, n_lambda = 30, seed = 1)
+    expect_identical(b$get_cv_errors(), a$get_cv_errors())
+    expect_identical(b$cv_1se(), a$cv_1se())
+  })
+
+  test_that("MLElasticNet fit / fit_grid / predict on a readonly mmap_matrix equal the in-memory path", {
+    a <- MLElasticNet$new(); a$fit(X, y, alpha = 0.6, n_lambda = 25)
+    b <- MLElasticNet$new(); b$fit(ro, y, alpha = 0.6, n_lambda = 25)
+    expect_identical(b$get_coef(), a$get_coef())
+    expect_identical(b$predict(ro), a$predict(X))
+    g <- a$get_lambdas()[3:8]
+    a2 <- MLElasticNet$new(); a2$fit_grid(X, y, g, alpha = 0.6)
+    b2 <- MLElasticNet$new(); b2$fit_grid(ro, y, g, alpha = 0.6)
+    expect_identical(b2$get_coef(), a2$get_coef())
+  })
+
+  test_that("MLElasticNetCV on a readonly mmap_matrix equals the in-memory fit", {
+    a <- MLElasticNetCV$new(); a$fit(X, y, alpha = 0.5, n_folds = 5, n_lambda = 25, seed = 2)
+    b <- MLElasticNetCV$new(); b$fit(ro, y, alpha = 0.5, n_folds = 5, n_lambda = 25, seed = 2)
+    expect_identical(b$get_cv_errors(), a$get_cv_errors())
+    expect_identical(b$index_min(), a$index_min())
+  })
+
+  test_that("MLSVD and MLRidge on a readonly mmap_matrix equal the in-memory path", {
+    expect_identical(MLSVD$new()$compute(ro, M = 3), MLSVD$new()$compute(X, M = 3))
+    expect_identical(MLRidge$new()$solve(ro, y, lambda = 0.5),
+                     MLRidge$new()$solve(X, y, lambda = 0.5))
+  })
+
+  test_that("MLPCA on a readwrite mmap_matrix centers the file in place and restores it", {
+    rw <- mem_matrix(f, n, p, mode = "readwrite")
+    X0 <- as.matrix(rw)
+    Xm <- X0 + 0
+    a <- MLPCA$new(Xm, M = 3); a$fit()
+    b <- MLPCA$new(rw, M = 3)
+    expect_identical(as.matrix(rw), Xm)              # the same in-place preprocessing
+    b$fit()
+    expect_identical(b$get_loadings(), a$get_loadings())
+    expect_identical(b$get_explained_variance(), a$get_explained_variance())
+    expect_identical(b$transform(ro), a$transform(ro))
+    a$restore(); b$restore()
+    expect_equal(as.matrix(rw), X0, tolerance = 1e-12)
+    expect_equal(Xm, X0, tolerance = 1e-12)
+  })
+
+  test_that("an integer matrix is coerced once and the R matrix is not read twice", {
+    Xi <- matrix(1:(n * p), n, p)
+    expect_no_error(MLRidge$new()$solve(Xi, y, lambda = 1))
+    expect_no_error(MLSVD$new()$compute(Xi, M = 2))
+  })
+})
+
+
+# =============================================================================
+# low_memory engine (2026-09-25, ZERO_COPY_PLAN Tier C1): the raw-X coordinate
+# descent agrees with the copying engine to rounding and reads a readonly
+# mmap_matrix in place.
+# =============================================================================
+
+test_that("MLElasticNet(low_memory = TRUE) agrees with the copying engine", {
+  set.seed(81)
+  n <- 80; p <- 30
+  X <- matrix(rnorm(n * p), n, p); X[, 4] <- X[, 4] + 500   # a large-mean column
+  y <- X[, 1] * 2 - X[, 4] * 0.01 + rnorm(n)
+  a <- MLElasticNet$new(); a$fit(X, y, alpha = 0.7, n_lambda = 30, tol = 1e-9)
+  b <- MLElasticNet$new(low_memory = TRUE); b$fit(X, y, alpha = 0.7, n_lambda = 30, tol = 1e-9)
+  expect_equal(b$get_lambdas(), a$get_lambdas(), tolerance = 1e-12)
+  expect_equal(b$get_coef(), a$get_coef(), tolerance = 1e-7)
+  expect_equal(b$get_intercepts(), a$get_intercepts(), tolerance = 1e-7)
+  expect_equal(b$predict(X[1:5, ]), a$predict(X[1:5, ]), tolerance = 1e-7)
+
+  f <- tempfile(fileext = ".bin"); on.exit(unlink(f), add = TRUE)
+  invisible(mem_matrix_from(X, f))
+  ro <- mem_matrix(f, n, p, mode = "readonly")
+  c <- MLElasticNet$new(low_memory = TRUE); c$fit(ro, y, alpha = 0.7, n_lambda = 30, tol = 1e-9)
+  expect_identical(c$get_coef(), b$get_coef())   # the same engine on the same numbers
+})
+
+test_that("MLElasticNetCV(low_memory = TRUE) agrees with the copying engine", {
+  set.seed(82)
+  n <- 80; p <- 30
+  X <- matrix(rnorm(n * p), n, p)
+  y <- X[, 2] * 2 + rnorm(n)
+  a <- MLElasticNetCV$new(); a$fit(X, y, alpha = 0.5, n_folds = 5, n_lambda = 30, seed = 3, tol = 1e-9)
+  b <- MLElasticNetCV$new(low_memory = TRUE); b$fit(X, y, alpha = 0.5, n_folds = 5, n_lambda = 30, seed = 3, tol = 1e-9)
+  expect_equal(b$get_cv_errors(), a$get_cv_errors(), tolerance = 1e-7)
+  expect_identical(b$index_min(), a$index_min())
+  expect_identical(b$index_1se(), a$index_1se())
+})
+
+test_that("MLRidgeCV(low_memory = TRUE) agrees with the SVD route and reads a readonly mmap", {
+  set.seed(84)
+  n <- 60; p <- 300
+  X <- matrix(rnorm(n * p), n, p)
+  y <- X[, 1] * 2 + rnorm(n)
+  a <- MLRidgeCV$new(); a$fit(X, y, num_folds = 5, n_lambda = 40, seed = 4)
+  b <- MLRidgeCV$new(low_memory = TRUE); b$fit(X, y, num_folds = 5, n_lambda = 40, seed = 4)
+  expect_equal(b$get_lambdas(), a$get_lambdas(), tolerance = 1e-14)
+  expect_equal(b$get_cv_errors(), a$get_cv_errors(), tolerance = 1e-7)
+  expect_identical(b$index_min(), a$index_min())
+  f <- tempfile(fileext = ".bin"); on.exit(unlink(f), add = TRUE)
+  invisible(mem_matrix_from(X, f))
+  ro <- mem_matrix(f, n, p, mode = "readonly")
+  c <- MLRidgeCV$new(low_memory = TRUE); c$fit(ro, y, num_folds = 5, n_lambda = 40, seed = 4)
+  expect_identical(c$get_cv_errors(), b$get_cv_errors())
+})
+
+test_that("MLSVD thresholds select the randomized (no-copy) path and give a valid decomposition", {
+  set.seed(85)
+  n <- 120; p <- 80
+  # A decaying spectrum (rank-4 signal above noise): the regime the randomized
+  # route is built for. On a flat Gaussian spectrum it is only approximate.
+  X <- matrix(rnorm(n * 4), n, 4) %*% diag(c(40, 30, 20, 10)) %*% matrix(rnorm(4 * p), 4, p) +
+       0.1 * matrix(rnorm(n * p), n, p)
+  direct <- MLSVD$new()$compute(X, M = 4)
+  rnd    <- MLSVD$new(min_dim_thresh = 16, block_size = 32)$compute(X, M = 4)
+  expect_equal(dim(rnd$U), c(n, 4)); expect_equal(dim(rnd$V), c(p, 4))
+  expect_equal(crossprod(rnd$U), diag(4), tolerance = 1e-10)
+  expect_equal(crossprod(rnd$V), diag(4), tolerance = 1e-10)
+  expect_equal(rnd$S, direct$S, tolerance = 1e-4)   # the randomized route's accuracy
+})
+
+test_that("MLElasticNet$n_nonconverged() and the thread controls are exposed", {
+  set.seed(86)
+  X <- matrix(rnorm(60 * 8), 60, 8); y <- X[, 1] + rnorm(60)
+  en <- MLElasticNet$new(); en$fit(X, y, n_lambda = 10)
+  expect_identical(en$n_nonconverged(), 0L)
+  expect_true(en$converged())
+  old <- trex_get_max_threads()
+  expect_true(is.numeric(old) && old >= 1)
+  prev <- trex_set_num_threads(1)
+  expect_identical(prev, old)
+  expect_true(trex_get_max_threads() >= 1)
+  trex_set_num_threads(old)
+  # mem_matrix_from coerces an integer matrix explicitly
+  f <- tempfile(fileext = ".bin"); on.exit(unlink(f), add = TRUE)
+  mm <- mem_matrix_from(matrix(1:12, 3, 4), f)
+  expect_equal(as.matrix(mm), matrix(as.double(1:12), 3, 4))
 })

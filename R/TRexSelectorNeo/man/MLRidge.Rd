@@ -57,7 +57,8 @@ Other ML methods:
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{X}}{A numeric matrix (n x p).}
+      \item{\code{X}}{A numeric matrix (n x p), or an \code{mmap_matrix} (bound
+zero-copy; \code{"readonly"} suffices).}
       \item{\code{y}}{Numeric response vector of length n.}
       \item{\code{lambda}}{Non-negative regularization parameter.}
     }

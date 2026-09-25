@@ -52,7 +52,21 @@ Other ML methods:
   Initialize the MLRidgeCV object.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{MLRidgeCV$new()}
+    \preformatted{MLRidgeCV$new(low_memory = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{low_memory}}{Logical (default \code{FALSE}). \code{FALSE}: each
+fold gathers and standardizes its training rows and takes a thin SVD
+(about three to four copies of X in flight). \code{TRUE}: the dual
+(kernel) form — n x n kernels accumulated from column blocks of X read
+in place (an \code{mmap_matrix} included, \code{"readonly"}
+suffices), no p-dimensional coefficients; same estimator, grid and
+rank rule, agreement to numerical precision; memory O(n^2) instead of
+O(n p), the route for p >> n.}
+    }
     \if{html}{\out{</div>}}
   }
 }

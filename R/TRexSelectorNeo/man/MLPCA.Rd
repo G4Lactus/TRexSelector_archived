@@ -6,7 +6,11 @@
 \description{
 Fits PCA to a data matrix, retaining the top-M principal
 components. Centering/normalization is applied to \code{X} in-place at
-construction time and undone by \code{restore()}.
+construction time (the R matrix or the memory-mapped file itself, no
+copy) and undone by \code{restore()}, which may be called before or
+after \code{fit()} and is idempotent; an object that is garbage-collected
+without \code{restore()} writes \code{X} back in its finalizer (the
+same rule as the T-solvers).
 }
 \details{
 Wraps the C++ \code{PCA} class. The instance is bound to \code{X}
@@ -69,7 +73,8 @@ is applied to \code{X} in-place immediately.
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{X}}{A numeric matrix (n x p). Modified in-place when
+      \item{\code{X}}{A numeric matrix (n x p), or an \code{mmap_matrix}
+(\code{"readwrite"}: the file is modified). Modified in place when
 centering/normalizing; call \code{restore()} to undo.}
       \item{\code{M}}{Integer, number of principal components.}
       \item{\code{center}}{Logical, whether to center \code{X} in-place
@@ -109,8 +114,9 @@ in-place (default: \code{TRUE}).}
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{X_new}}{A numeric matrix (n_new x p). The stored training
-means/norms are applied before projection.}
+      \item{\code{X_new}}{A numeric matrix (n_new x p), or an \code{mmap_matrix}
+(zero-copy). The stored training means/norms are applied before
+projection.}
     }
     \if{html}{\out{</div>}}
   }

@@ -34,7 +34,10 @@ the LARS family (\link{TLARS_Solver}, \link{TLASSO_Solver}, \link{TSTEPWISE_Solv
 \link{TGP_Solver}, \link{TACGP_Solver}, \link{TMP_Solver}, \link{TOOLS_Solver},
 \link{TNCGMP_Solver}, \link{TIKOMP_Solver}), the AFS solver \link{TAFS_Solver}, and the
 coordinate-descent family (\link{TCDLASSO_Solver}, \link{TCDENET_Solver},
-\link{TCDIENET_Solver}, \link{TCDTIKNET_Solver}).
+\link{TCDIENET_Solver}, \link{TCDTIKNET_Solver}). The solvers work on the caller's
+matrices without copying and may preprocess them in place; the
+writer/reader contract and \verb{$restore()} are described in \link{tsolver_options}
+and \link{TSolver_Base}.
 }
 
 \section{ML methods (\verb{ML*}, \verb{ml_*})}{

@@ -191,3 +191,58 @@ test_that("exchangeable tie-breaking is plumbed through for greedy solvers", {
                 label = paste(method, "tie-broken run in [1,p]"))
   }
 })
+
+
+# =============================================================================
+# restore(): give X back before select() (2026-09-25, ZERO_COPY_PLAN 5.2)
+# =============================================================================
+
+test_that("TRexSelector$restore() gives X back before select(); select() then errors", {
+  set.seed(51)
+  n <- 50; p <- 30
+  X <- matrix(rnorm(n * p), n, p)
+  y <- X[, 1] * 2 + rnorm(n)
+  X0 <- X + 0
+  sel <- TRexSelector$new(X, y, tFDR = 0.2, verbose = FALSE, control = trex_control(K = 5))
+  expect_false(isTRUE(all.equal(X, X0)))          # normalized in place at construction
+  sel$restore()
+  expect_equal(X, X0, tolerance = 1e-12)
+  sel$restore()                                    # idempotent
+  expect_equal(X, X0, tolerance = 1e-12)
+  expect_error(sel$select(), "restore")
+  # A fresh selector on the same matrix runs and restores X itself
+  sel2 <- TRexSelector$new(X, y, tFDR = 0.2, verbose = FALSE, control = trex_control(K = 5))
+  sel2$select()
+  expect_equal(X, X0, tolerance = 1e-12)
+  sel2$restore()                                   # no-op after select()
+  expect_equal(X, X0, tolerance = 1e-12)
+})
+
+test_that("the derived selectors inherit restore()", {
+  set.seed(52)
+  n <- 40; p <- 20
+  X <- matrix(rnorm(n * p), n, p)
+  y <- X[, 2] * 2 + rnorm(n)
+  X0 <- X + 0
+  sel <- TRexScreeningSelector$new(X, y, seed = 3, verbose = FALSE)
+  sel$restore()
+  expect_equal(X, X0, tolerance = 1e-12)
+  expect_error(sel$select(), "restore")
+})
+
+test_that("the selector control getters and num_dummies are exposed", {
+  set.seed(53)
+  n <- 40; p <- 20
+  X <- matrix(rnorm(n * p), n, p)
+  y <- X[, 1] * 2 + rnorm(n)
+  sel <- TRexSelector$new(X, y, tFDR = 0.2, verbose = FALSE,
+                          control = trex_control(K = 5, max_dummy_multiplier = 2))
+  expect_equal(sel$tFDR, 0.2)
+  expect_identical(sel$K, 5L)
+  expect_identical(sel$max_num_dummies, 2L)
+  expect_type(sel$max_T_stop, "logical")
+  expect_type(sel$stagnation_check, "logical")
+  sel$select()
+  expect_identical(sel$num_selected, length(sel$selected_indices))
+  expect_true(sel$num_dummies >= p)
+})

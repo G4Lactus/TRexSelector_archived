@@ -56,7 +56,17 @@ Other ML methods:
   Initialize the MLElasticNetCV object.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{MLElasticNetCV$new()}
+    \preformatted{MLElasticNetCV$new(low_memory = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{low_memory}}{Logical (default \code{FALSE}); \code{TRUE} runs the
+full-data fit and every fold on X itself with a 0/1 training mask
+(no allocation of the size of X; an \code{mmap_matrix} is read in
+place). See \code{\link{MLElasticNet}}.}
+    }
     \if{html}{\out{</div>}}
   }
 }
@@ -86,7 +96,8 @@ Other ML methods:
   \subsection{Arguments}{
     \if{html}{\out{<div class="arguments">}}
     \describe{
-      \item{\code{X}}{Predictor matrix (n x p).}
+      \item{\code{X}}{Predictor matrix (n x p), or an \code{mmap_matrix} (bound
+zero-copy; \code{"readonly"} suffices, the fit does not modify X).}
       \item{\code{y}}{Response vector (n).}
       \item{\code{alpha}}{Mixing in \code{[0, 1]}: 1 = lasso, 0 = ridge (default 0).}
       \item{\code{n_folds}}{Number of folds (default 10).}

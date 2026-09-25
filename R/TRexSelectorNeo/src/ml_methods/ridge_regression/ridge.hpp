@@ -90,7 +90,9 @@ private:
                                         double lambda) {
         Eigen::Index p = X.cols();
 
-        // Normal equation: (X^T X + lambda I) beta = X^T y
+        // Normal equation: (X^T X + lambda I) beta = X^T y. The Gram matrix
+        // is accumulated from column blocks of the (possibly memory-mapped)
+        // view; X itself is never copied.
         Eigen::MatrixXd XtX = Eigen::MatrixXd::Zero(p, p);
         XtX.selfadjointView<Eigen::Lower>().rankUpdate(X.transpose());
 
@@ -99,14 +101,21 @@ private:
 
         Eigen::VectorXd Xty = X.transpose() * y;
 
-        // Fast Cholesky decomposition (X^T X + λI is SPD for λ > 0)
-        Eigen::LLT<Eigen::MatrixXd> llt(XtX);
+        // Fast Cholesky decomposition (X^T X + λI is SPD for λ > 0), IN PLACE
+        // in XtX's storage: one p x p matrix instead of two (2026-09-25,
+        // Tier B of notes/ZERO_COPY_PLAN.md; same algorithm, bit-identical).
+        Eigen::LLT<Eigen::Ref<Eigen::MatrixXd>> llt(XtX);
         if (llt.info() == Eigen::Success) {
             return llt.solve(Xty);
         }
 
-        // Fallback: LDLT handles the near-singular case
-        Eigen::LDLT<Eigen::MatrixXd> ldlt(XtX);
+        // Fallback: LDLT handles the near-singular case. The failed in-place
+        // LLT has overwritten the lower triangle, so the Gram matrix is
+        // rebuilt (rare path; a second pass over X, no copy of it).
+        XtX.setZero();
+        XtX.selfadjointView<Eigen::Lower>().rankUpdate(X.transpose());
+        XtX.diagonal().array() += lambda;
+        Eigen::LDLT<Eigen::Ref<Eigen::MatrixXd>> ldlt(XtX);
         if (ldlt.info() == Eigen::Success) {
             return ldlt.solve(Xty);
         }
@@ -146,13 +155,19 @@ private:
 
         Eigen::VectorXd alpha;
 
-        // Fast Cholesky decomposition
-        Eigen::LLT<Eigen::MatrixXd> llt(XXt);
+        // Fast Cholesky decomposition, IN PLACE in XXt's storage (one n x n
+        // matrix instead of two; 2026-09-25, Tier B, bit-identical)
+        Eigen::LLT<Eigen::Ref<Eigen::MatrixXd>> llt(XXt);
         if (llt.info() == Eigen::Success) {
             alpha = llt.solve(y);
         } else {
-            // Fall back to LDLT if LLT fails
-            Eigen::LDLT<Eigen::MatrixXd> ldlt(XXt);
+            // Fall back to LDLT if LLT fails: the failed in-place LLT has
+            // overwritten the lower triangle, so the kernel is rebuilt (a
+            // second pass over X, no copy of it).
+            XXt.setZero();
+            XXt.selfadjointView<Eigen::Lower>().rankUpdate(X);
+            XXt.diagonal().array() += lambda;
+            Eigen::LDLT<Eigen::Ref<Eigen::MatrixXd>> ldlt(XXt);
             if (ldlt.info() == Eigen::Success) {
                 alpha = ldlt.solve(y);
             } else {

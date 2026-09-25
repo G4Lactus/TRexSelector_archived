@@ -1,5 +1,6 @@
 // [[Rcpp::depends(RcppEigen)]]
 #include <RcppEigen.h>
+#include <algorithm>
 #include "rcpp_trex_da.h"
 
 using namespace Rcpp;
@@ -131,10 +132,36 @@ void trex_da_select(XPtr<RTRexDASelector> r_ptr) {
 
 //' @title Cast DA pointer to Base pointer
 //' @noRd
+
+// ==============================================================================
+// A vector of R x (T_stop x p) matrices as one R array T_stop x p x R, filled
+// once from the const references (the by-value std::vector return copied every
+// matrix, Rcpp::wrap copied them again into a list, and simplify2array() in R a
+// third time; 2026-09-25, notes/ZERO_COPY_PLAN.md 5.2).
+// ==============================================================================
+static Rcpp::NumericVector da_array_from_matrices(const std::vector<Eigen::MatrixXd>& mats) {
+    const R_xlen_t R = static_cast<R_xlen_t>(mats.size());
+    if (R == 0) { return Rcpp::NumericVector(0); }
+    const R_xlen_t T = static_cast<R_xlen_t>(mats[0].rows());
+    const R_xlen_t P = static_cast<R_xlen_t>(mats[0].cols());
+    Rcpp::NumericVector arr(Rcpp::Dimension(T, P, R));
+    double* out = arr.begin();
+    for (R_xlen_t r = 0; r < R; ++r) {
+        const Eigen::MatrixXd& m = mats[static_cast<std::size_t>(r)];
+        if (m.rows() != T || m.cols() != P) {
+            Rcpp::stop("DA result matrices have inconsistent dimensions.");
+        }
+        std::copy(m.data(), m.data() + static_cast<std::ptrdiff_t>(T * P), out + r * T * P);
+    }
+    return arr;
+}
+
 // [[Rcpp::export]]
 XPtr<RTRexSelector> trex_da_to_base_ptr(XPtr<RTRexDASelector> r_ptr) {
     RTRexSelector* base_ptr = static_cast<RTRexSelector*>(r_ptr.get());
-    return XPtr<RTRexSelector>(base_ptr, false);
+    // Non-owning view; the owning XPtr is pinned in the protection slot so the
+    // object outlives every base-pointer handle (2026-09-25).
+    return XPtr<RTRexSelector>(base_ptr, false, R_NilValue, r_ptr);
 }
 
 //' @title Get DA Rho Threshold
@@ -173,20 +200,20 @@ double trex_da_get_cor_coef(XPtr<RTRexDASelector> r_ptr) {
 //' @title Get DA FDP Hat Array BT
 //' @noRd
 // [[Rcpp::export]]
-std::vector<Eigen::MatrixXd> trex_da_get_fdp_hat_array_bt(XPtr<RTRexDASelector> r_ptr) {
-    return r_ptr->get()->getDAResult().FDP_hat_array_BT;
+Rcpp::NumericVector trex_da_get_fdp_hat_array_bt(XPtr<RTRexDASelector> r_ptr) {
+    return da_array_from_matrices(r_ptr->get()->getDAResult().FDP_hat_array_BT);
 }
 
 //' @title Get DA Phi Array BT
 //' @noRd
 // [[Rcpp::export]]
-std::vector<Eigen::MatrixXd> trex_da_get_phi_array_bt(XPtr<RTRexDASelector> r_ptr) {
-    return r_ptr->get()->getDAResult().Phi_array_BT;
+Rcpp::NumericVector trex_da_get_phi_array_bt(XPtr<RTRexDASelector> r_ptr) {
+    return da_array_from_matrices(r_ptr->get()->getDAResult().Phi_array_BT);
 }
 
 //' @title Get DA R Array BT
 //' @noRd
 // [[Rcpp::export]]
-std::vector<Eigen::MatrixXd> trex_da_get_r_array_bt(XPtr<RTRexDASelector> r_ptr) {
-    return r_ptr->get()->getDAResult().R_array_BT;
+Rcpp::NumericVector trex_da_get_r_array_bt(XPtr<RTRexDASelector> r_ptr) {
+    return da_array_from_matrices(r_ptr->get()->getDAResult().R_array_BT);
 }

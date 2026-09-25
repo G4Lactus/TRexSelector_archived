@@ -14,9 +14,7 @@
 #include <cstddef>
 #include <iomanip>
 #include <iostream>
-#include <mutex>
 #include <random>
-#include <set>
 #include <sstream>
 #include <string>
 
@@ -25,6 +23,7 @@
 
 // utils includes
 #include <utils/fp_classify/fp_classify.hpp>
+#include <tsolvers/ad/solver_utils/buffer_registry.hpp>
 
 // ===================================================================================
 
@@ -49,40 +48,27 @@ namespace er = trex::trex_selector_methods::ad::utils::experiment_runner;
 // at construction and restores it when select() finishes or on destruction.
 // Two selectors mapped onto the SAME buffer therefore corrupt each other: the
 // first to restore leaves the buffer raw, so the second silently runs on
-// unnormalized data. This registry enforces the contract that at most one live
-// selector may hold a given buffer in its normalized state, turning the silent
-// corruption into a clear, immediate error. Keyed on the buffer base pointer;
-// mutex-guarded so concurrent construction (e.g. under OpenMP) is safe.
+// unnormalized data. The claim turns the silent corruption into a clear,
+// immediate error: at most one live writer may hold a given buffer in its
+// preprocessed state. The registry itself lives in the T-solver utilities
+// (mutex-guarded, keyed on the buffer base pointer) and is shared with the
+// T-solvers that preprocess in place, so a live writer solver and a live
+// selector can never both hold the same X.
 namespace {
 
-std::mutex& bufferRegistryMutex() {
-    static std::mutex m;
-    return m;
-}
-
-std::set<const void*>& bufferRegistry() {
-    static std::set<const void*> reg;
-    return reg;
-}
+namespace bufreg = trex::tsolvers::ad::solver_utils::buffer_registry;
 
 void claimBufferOrThrow(const void* ptr) {
-    if (ptr == nullptr) { return; }
-    std::lock_guard<std::mutex> lock(bufferRegistryMutex());
-    if (!bufferRegistry().insert(ptr).second) {
-        throw std::runtime_error(
-            "TRexSelector: the input matrix X is already held by another live "
-            "T-Rex selector, which normalizes X in place. Constructing a second "
-            "selector on the same matrix would corrupt both. Give each selector "
-            "its own copy of X, or run them one at a time (construct, select, "
-            "and let each selector go out of scope before creating the next).");
-    }
+    bufreg::claimOrThrow(ptr,
+        "TRexSelector: the input matrix X is already held by another live "
+        "T-Rex selector or T-solver, which preprocesses X in place. Constructing "
+        "a second one on the same matrix would corrupt both. Give each its own "
+        "copy of X, restore() the solver first, or run them one at a time "
+        "(construct, select, and let each go out of scope before creating the "
+        "next).");
 }
 
-void releaseBuffer(const void* ptr) {
-    if (ptr == nullptr) { return; }
-    std::lock_guard<std::mutex> lock(bufferRegistryMutex());
-    bufferRegistry().erase(ptr);
-}
+void releaseBuffer(const void* ptr) { bufreg::release(ptr); }
 
 } // namespace
 
@@ -240,6 +226,23 @@ void TRexSelector::denormalizeAndReleaseX() {
 }
 
 
+void TRexSelector::restore() {
+    if (X_is_normalized_) {
+        denormalizeAndReleaseX();
+        released_ = true;   // the normalized view is gone: select() must refuse
+    }
+}
+
+
+void TRexSelector::ensureNotReleased() const {
+    if (released_) {
+        throw std::runtime_error(
+            "TRexSelector::select(): restore() gave X back before select() ran; "
+            "this selector can no longer run, construct a new one.");
+    }
+}
+
+
  // ===================================================================================
  // Validation
  // ===================================================================================
@@ -336,6 +339,8 @@ void TRexSelector::validateTRexParameters() const {
 // ===================================================================================
 
 TRexSelector::SelectionResult TRexSelector::select() {
+
+    ensureNotReleased();
 
     // 1. Voting grid and optimization point
     // -----------------------------------------------------

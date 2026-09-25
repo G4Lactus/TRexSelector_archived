@@ -74,6 +74,21 @@ Other T-Rex selectors and controls:
     \item{\code{x_l2_norms}}{computed L2 norms of the scaled predictors}
 
     \item{\code{y_mean}}{computed mean of the response sequence}
+
+    \item{\code{tFDR}}{The target FDR level.}
+
+    \item{\code{K}}{The number of random experiments.}
+
+    \item{\code{max_num_dummies}}{The maximum dummy multiplier of the L-loop.}
+
+    \item{\code{max_T_stop}}{Whether the maximum T_stop rule is active.}
+
+    \item{\code{stagnation_check}}{Whether the stagnation check is active.}
+
+    \item{\code{num_selected}}{The number of selected variables.}
+
+    \item{\code{num_dummies}}{The number of dummies used by the last select()
+(the L-loop's calibration).}
   }
   \if{html}{\out{</div>}}
 }
@@ -81,6 +96,7 @@ Other T-Rex selectors and controls:
 \subsection{Public methods}{
   \itemize{
     \item \href{#method-TRexSelector-initialize}{\code{TRexSelector$new()}}
+    \item \href{#method-TRexSelector-restore}{\code{TRexSelector$restore()}}
     \item \href{#method-TRexSelector-select}{\code{TRexSelector$select()}}
     \item \href{#method-TRexSelector-clone}{\code{TRexSelector$clone()}}
   }
@@ -114,6 +130,27 @@ Other T-Rex selectors and controls:
 \code{trex_control()}).}
     }
     \if{html}{\out{</div>}}
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-TRexSelector-restore"></a>}}
+\if{latex}{\out{\hypertarget{method-TRexSelector-restore}{}}}
+\subsection{\code{TRexSelector$restore()}}{
+  Give \code{X} back before \code{select()}: undo the
+in-place normalization applied at construction and release the
+buffer claim (idempotent; a no-op after \code{select()}, which
+restores \code{X} itself). A restored selector cannot run:
+\code{select()} then errors, construct a new one. Without it, an
+unselected selector gives \code{X} back only when it is
+garbage-collected.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{TRexSelector$restore()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Invisibly returns \code{self}.
   }
 }
 
