@@ -168,9 +168,9 @@ inline void bind_ml_methods(py::module& m) {
         .def(py::init<bool, bool>(),
              py::arg("center") = true, py::arg("scale") = true)
         .def("fit",
-            [](ZScoreScaler& self, Eigen::Ref<Eigen::MatrixXd> X, double threshold) -> ZScoreScaler& {
-            Eigen::Map<Eigen::MatrixXd> X_map(X.data(), X.rows(), X.cols());
-            self.fit(X_map, threshold);
+            [](ZScoreScaler& self, Eigen::Ref<const Eigen::MatrixXd> X, double threshold) -> ZScoreScaler& {
+                // read-only: any float64 array, read-only or C-ordered (converted once)
+                self.fit(X, threshold);
             return self;
         }, py::arg("X"), py::arg("threshold") = 1e-12,
            py::return_value_policy::reference_internal)
@@ -241,9 +241,9 @@ inline void bind_ml_methods(py::module& m) {
              py::arg("center") = true,
              py::arg("scale") = true)
         .def("fit", [](LpNormScaler& self,
-            Eigen::Ref<Eigen::MatrixXd> X, double threshold) -> LpNormScaler& {
-                Eigen::Map<Eigen::MatrixXd> X_map(X.data(), X.rows(), X.cols());
-                self.fit(X_map, threshold);
+            Eigen::Ref<const Eigen::MatrixXd> X, double threshold) -> LpNormScaler& {
+                // read-only: any float64 array, read-only or C-ordered (converted once)
+                self.fit(X, threshold);
                 return self;
         }, py::arg("X"), py::arg("threshold") = 1e-12,
            py::return_value_policy::reference_internal)
@@ -301,6 +301,19 @@ inline void bind_ml_methods(py::module& m) {
      */
     py::class_<ridge_cv_svd>(m, "RidgeCV")
         .def(py::init<>())
+        .def(py::init<bool>(), py::arg("low_memory"),
+             "low_memory=True: the dual (kernel) fold engine — n x n kernels accumulated "
+             "from column blocks of X read in place, no p-dimensional coefficients; same "
+             "estimator, grid and rank rule, agreement to numerical precision; memory "
+             "O(n^2) instead of O(n p), the route for p >> n.")
+        .def("set_low_memory", &ridge_cv_svd::set_low_memory, py::arg("low_memory"),
+             "Switch the fold engine; takes effect at the next fit().")
+        .def("low_memory", &ridge_cv_svd::low_memory,
+             "Whether the kernel fold engine is selected.")
+        .def("interpolates", &ridge_cv_svd::interpolates,
+             "Whether the smallest training fold has p >= n_train, so the lambda -> 0 end of the grid interpolates.")
+        .def("selection_at_grid_edge", &ridge_cv_svd::selection_at_grid_edge,
+             "Whether lambda.min or lambda.1se sits on the first or last grid point.")
         .def("fit",
             [](ridge_cv_svd& self, Eigen::Ref<const Eigen::MatrixXd> X,
                Eigen::Ref<const Eigen::VectorXd> y, int n_folds,
@@ -331,6 +344,17 @@ inline void bind_ml_methods(py::module& m) {
      */
     py::class_<enet_gaussian>(m, "ElasticNet")
         .def(py::init<>())
+        .def(py::init<bool>(), py::arg("low_memory"),
+             "low_memory=False (default): the coordinate descent runs on a centered and "
+             "standardized working copy of X (one n x p matrix while fitting). "
+             "low_memory=True: it runs on X itself through the caller's view (a "
+             "MemoryMappedMatrix.to_numpy() view included) with no allocation of the size "
+             "of X; same estimator and grid, the two engines agree to rounding (about "
+             "1e-12 in the coefficients).")
+        .def("set_low_memory", &enet_gaussian::set_low_memory, py::arg("low_memory"),
+             "Switch the engine; takes effect at the next fit().")
+        .def("low_memory", &enet_gaussian::low_memory,
+             "Whether the raw-X (no working copy) engine is selected.")
         .def("fit",
             [](enet_gaussian& self, Eigen::Ref<const Eigen::MatrixXd> X,
                Eigen::Ref<const Eigen::VectorXd> y, double alpha,
@@ -392,6 +416,17 @@ inline void bind_ml_methods(py::module& m) {
      */
     py::class_<enet_cv_ccd>(m, "ElasticNetCV")
         .def(py::init<>())
+        .def(py::init<bool>(), py::arg("low_memory"),
+             "low_memory=True runs the full-data fit and every fold on X itself with a 0/1 "
+             "training mask (no allocation of the size of X); see ElasticNet.")
+        .def("set_low_memory", &enet_cv_ccd::set_low_memory, py::arg("low_memory"),
+             "Switch the engine; takes effect at the next fit().")
+        .def("low_memory", &enet_cv_ccd::low_memory,
+             "Whether the raw-X engine is selected.")
+        .def("selection_at_grid_edge", &enet_cv_ccd::selection_at_grid_edge,
+             "Whether lambda.min or lambda.1se sits on the first or last grid point.")
+        .def("grid_truncated", &enet_cv_ccd::grid_truncated,
+             "Whether the deviance rules stopped the path before the requested n_lambda.")
         .def("fit",
             [](enet_cv_ccd& self, Eigen::Ref<const Eigen::MatrixXd> X,
                Eigen::Ref<const Eigen::VectorXd> y, double alpha, int n_folds,
@@ -443,6 +478,14 @@ inline void bind_ml_methods(py::module& m) {
      */
     py::class_<SVDSolver>(m, "SVDSolver")
         .def(py::init<>())
+        .def(py::init<Eigen::Index, Eigen::Index>(),
+             py::arg("min_dim_thresh") = 10000, py::arg("block_size") = 1024,
+             "Dispatch thresholds (2026-09-25, Tier C3): the direct Jacobi path copies X "
+             "and computes every singular triplet; when min(n, p) exceeds min_dim_thresh "
+             "and M < min(n, p) / 10 the randomized path runs two block-wise passes over X "
+             "(no copy; the route for a memory-mapped X), and p > 2n always takes the Gram "
+             "path. Lowering min_dim_thresh selects the randomized path for smaller "
+             "designs; block_size is the column block of the block-wise passes.")
         .def("compute",
             [](SVDSolver& self,
                Eigen::Ref<const Eigen::MatrixXd> X, // NOLINT(performance-unnecessary-value-param)

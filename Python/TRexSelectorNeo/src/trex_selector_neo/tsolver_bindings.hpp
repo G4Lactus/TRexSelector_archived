@@ -346,6 +346,27 @@ public:
 
 
 /**
+ * @brief The in-place writer/reader contract, appended to every T-solver's
+ *        constructor docstring (2026-09-25; the C++ text lives on
+ *        TSolver_Base::restore()).
+ */
+inline const std::string kInPlaceContractDoc =
+    "\n\nIn-place contract: with normalize=True or intercept=True the solver is a "
+    "WRITER. It centers/scales the columns of X and D IN PLACE through the views "
+    "(a Fortran-ordered float64 array is shared, a C-ordered one is copied first), "
+    "keeps the statistics itself and holds a claim on both buffers until restore() "
+    "or destruction, both of which write X and D back (restore() is idempotent and "
+    "must be given the same arrays); constructing a second writer (T-solver or "
+    "T-Rex selector) on a claimed buffer raises RuntimeError, because a second "
+    "in-place transformation moves the data by rounding. With normalize=False and "
+    "intercept=False the solver is a READER: it runs as constructed and never "
+    "touches the buffers. A pipeline with several solvers on one buffer should "
+    "pre-scale once in front (LpNormScaler) and construct the solvers as readers; a "
+    "solver resumed with load() is a reader that expects the buffers in the saved "
+    "state. y is never written (the solver centers an internal copy).";
+
+
+/**
  * @brief Attach the method set shared by every T-Solver to an existing class binding.
  *
  * @details Binds all TSolver_Base-backed methods (path execution, coefficient and
@@ -427,7 +448,9 @@ py::class_<PySolverWrapper<Solver>>& add_standard_tsolver_methods(
         .def("restore", &PySolverWrapper<Solver>::restore, py::arg("X"), py::arg("D"),
              py::arg("y"),
              py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(),
-             "Restore solver state parameters based on fresh target views.")
+             "Undo the solver's in-place centering/scaling of X and D (a writer, see the "
+             "constructor) and release its claim on the buffers, so that a later writer "
+             "may take them; y is not modified. No-op for a reader.")
         .def("save", &PySolverWrapper<Solver>::save, py::arg("filepath"),
              "Serialize calculation state directly to disk utilizing Cereal.")
         .def("load", &PySolverWrapper<Solver>::load, py::arg("filepath"),
@@ -457,7 +480,7 @@ py::class_<PySolverWrapper<Solver>> bind_standard_tsolver(py::module& m, const s
     py::class_<PySolverWrapper<Solver>> cls(m, name.c_str());
     const std::string init_doc =
         "Initializes the solver via zero-copy views of X, D and y; every other input "
-        "comes from `options` (SolverOptions). " + doc;
+        "comes from `options` (SolverOptions). " + doc + kInPlaceContractDoc;
     cls.def(py::init<Eigen::Ref<Eigen::MatrixXd>, Eigen::Ref<Eigen::MatrixXd>,
                       Eigen::Ref<Eigen::VectorXd>, const SolverOptions&>(),
              py::arg("X"),
@@ -483,7 +506,7 @@ py::class_<PySolverWrapper<Solver>> bind_groups_tsolver(py::module& m, const std
     const std::string init_doc =
         "Initializes the solver via zero-copy views of X, D and y with a 0-based group id per "
         "original variable (`groups`, length p); every other input comes from `options` "
-        "(SolverOptions). " + doc;
+        "(SolverOptions). " + doc + kInPlaceContractDoc;
     cls.def(py::init<Eigen::Ref<Eigen::MatrixXd>, Eigen::Ref<Eigen::MatrixXd>,
                       Eigen::Ref<Eigen::VectorXd>, const Eigen::VectorXi&, const SolverOptions&>(),
              py::arg("X"), py::arg("D"), py::arg("y"), py::arg("groups"),
@@ -509,7 +532,7 @@ py::class_<PySolverWrapper<Solver>> bind_tikhonov_tsolver(py::module& m, const s
     const std::string init_doc =
         "Initializes the solver via zero-copy views of X, D and y with the p x p PSD Tikhonov "
         "matrix K (a dense array; converted to sparse internally); every other input comes "
-        "from `options` (SolverOptions). " + doc;
+        "from `options` (SolverOptions). " + doc + kInPlaceContractDoc;
     cls.def(py::init([](Eigen::Ref<Eigen::MatrixXd> X, Eigen::Ref<Eigen::MatrixXd> D,
                         Eigen::Ref<Eigen::VectorXd> y, const Eigen::MatrixXd& tikhonov_K,
                         const SolverOptions& options) {
@@ -578,9 +601,12 @@ inline void bind_solver_options(py::module& m) {
                 return o;
             }), "Keyword constructor: every keyword must name a SolverOptions field.")
        .def_readwrite("normalize", &SolverOptions::normalize,
-            "Scale each column of X (and D) to unit L2 norm (or unit SD, see scaling_mode). Default True.")
+            "Scale each column of X (and D) to unit L2 norm (or unit SD, see scaling_mode), "
+            "IN PLACE through the views (the solver becomes a writer and claims the buffers "
+            "until restore() or destruction). False when the caller pre-scaled. Default True.")
        .def_readwrite("intercept", &SolverOptions::intercept,
-            "Center X, D and y (an intercept is fitted). Default True.")
+            "Center X and D in place (a writer, as for normalize) and the solver's internal "
+            "copy of y (an intercept is fitted). False when the caller pre-centered. Default True.")
        .def_readwrite("scaling_mode", &SolverOptions::scaling_mode,
             "Column scaling applied when normalize is True: ScalingMode.L2 (default) or ZSCORE.")
        .def_readwrite("verbose", &SolverOptions::verbose, "Print status and diagnostics. Default False.")
@@ -731,9 +757,9 @@ inline void bind_tsolvers_module(py::module& m) {
              py::arg("groups"),
              py::arg("options") = trex::tsolvers::ad::SolverOptions{},
              py::keep_alive<1, 2>(), py::keep_alive<1, 3>(), py::keep_alive<1, 4>(),
-             "Initializes the augmented-LASSO Informed Elastic Net solver with a 0-based group"
-             " id per original variable (`groups`, length p); reads options.lambda2 (the"
-             " group-ridge penalty) and options.tenet_aug_use_lars.");
+             ("Initializes the augmented-LASSO Informed Elastic Net solver with a 0-based group"
+              " id per original variable (`groups`, length p); reads options.lambda2 (the"
+              " group-ridge penalty) and options.tenet_aug_use_lars." + kInPlaceContractDoc).c_str());
     add_standard_tsolver_methods<TIENETAug_Solver>(cls_tienet_aug);
     cls_tienet_aug
         .def("getLambda2", &PySolverWrapper<TIENETAug_Solver>::getLambda2,

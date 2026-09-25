@@ -8,8 +8,14 @@ import typing
 from . import clustering
 __all__: list[str] = ['ElasticNet', 'ElasticNetCV', 'L1', 'L2', 'LpNormScaler', 'NormType', 'PCA', 'PCAResult', 'RidgeCV', 'RidgeSolver', 'SVDResult', 'SVDSolver', 'ZScoreScaler', 'clustering']
 class ElasticNet:
+    @typing.overload
     def __init__(self) -> None:
         ...
+    @typing.overload
+    def __init__(self, low_memory: bool) -> None:
+        """
+        low_memory=False (default): the coordinate descent runs on a centered and standardized working copy of X (one n x p matrix while fitting). low_memory=True: it runs on X itself through the caller's view (a MemoryMappedMatrix.to_numpy() view included) with no allocation of the size of X; same estimator and grid, the two engines agree to rounding (about 1e-12 in the coefficients).
+        """
     def coef(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]:
         """
         Coefficient path in original predictor scale (p x n_lambda).
@@ -38,6 +44,10 @@ class ElasticNet:
         """
         Lambda grid used (descending).
         """
+    def low_memory(self) -> bool:
+        """
+        Whether the raw-X (no working copy) engine is selected.
+        """
     def n_nonconverged(self) -> int:
         """
         Number of lambda points that hit max_iter without converging.
@@ -46,9 +56,19 @@ class ElasticNet:
         """
         Predictions per lambda: (X_new @ coef) + intercept.
         """
+    def set_low_memory(self, low_memory: bool) -> None:
+        """
+        Switch the engine; takes effect at the next fit().
+        """
 class ElasticNetCV:
+    @typing.overload
     def __init__(self) -> None:
         ...
+    @typing.overload
+    def __init__(self, low_memory: bool) -> None:
+        """
+        low_memory=True runs the full-data fit and every fold on X itself with a 0/1 training mask (no allocation of the size of X); see ElasticNet.
+        """
     def cv_1se(self) -> float:
         """
         Largest lambda within 1 SE of the min.
@@ -69,6 +89,10 @@ class ElasticNetCV:
         """
         Fit K-fold CV over a glmnet-style EN grid (alpha: 1 = lasso, 0 = ridge).
         """
+    def grid_truncated(self) -> bool:
+        """
+        Whether the deviance rules stopped the path before the requested n_lambda.
+        """
     def index_1se(self) -> int:
         """
         0-based index of lambda.1se.
@@ -81,10 +105,22 @@ class ElasticNetCV:
         """
         Lambda grid used (descending).
         """
+    def low_memory(self) -> bool:
+        """
+        Whether the raw-X engine is selected.
+        """
+    def selection_at_grid_edge(self) -> bool:
+        """
+        Whether lambda.min or lambda.1se sits on the first or last grid point.
+        """
+    def set_low_memory(self, low_memory: bool) -> None:
+        """
+        Switch the engine; takes effect at the next fit().
+        """
 class LpNormScaler:
     def __init__(self, norm_type: NormType = ..., center: bool = True, scale: bool = True) -> None:
         ...
-    def fit(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], threshold: typing.SupportsFloat | typing.SupportsIndex = 1e-12) -> LpNormScaler:
+    def fit(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], threshold: typing.SupportsFloat | typing.SupportsIndex = 1e-12) -> LpNormScaler:
         ...
     def fit_transform(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], threshold: typing.SupportsFloat | typing.SupportsIndex = 1e-12) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]:
         """
@@ -208,8 +244,14 @@ class PCAResult:
     def explained_variance(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, 1]"]) -> None:
         ...
 class RidgeCV:
+    @typing.overload
     def __init__(self) -> None:
         ...
+    @typing.overload
+    def __init__(self, low_memory: bool) -> None:
+        """
+        low_memory=True: the dual (kernel) fold engine — n x n kernels accumulated from column blocks of X read in place, no p-dimensional coefficients; same estimator, grid and rank rule, agreement to numerical precision; memory O(n^2) instead of O(n p), the route for p >> n.
+        """
     def cv_1se(self) -> float:
         """
         Largest lambda within 1 SE of the min.
@@ -238,9 +280,25 @@ class RidgeCV:
         """
         0-based index of lambda.min.
         """
+    def interpolates(self) -> bool:
+        """
+        Whether the smallest training fold has p >= n_train, so the lambda -> 0 end of the grid interpolates.
+        """
     def lambdas(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
         """
         Lambda grid used (descending).
+        """
+    def low_memory(self) -> bool:
+        """
+        Whether the kernel fold engine is selected.
+        """
+    def selection_at_grid_edge(self) -> bool:
+        """
+        Whether lambda.min or lambda.1se sits on the first or last grid point.
+        """
+    def set_low_memory(self, low_memory: bool) -> None:
+        """
+        Switch the fold engine; takes effect at the next fit().
         """
 class RidgeSolver:
     @staticmethod
@@ -270,14 +328,20 @@ class SVDResult:
     def V(self, arg0: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"]) -> None:
         ...
 class SVDSolver:
+    @typing.overload
     def __init__(self) -> None:
         ...
+    @typing.overload
+    def __init__(self, min_dim_thresh: typing.SupportsInt | typing.SupportsIndex = 10000, block_size: typing.SupportsInt | typing.SupportsIndex = 1024) -> None:
+        """
+        Dispatch thresholds (2026-09-25, Tier C3): the direct Jacobi path copies X and computes every singular triplet; when min(n, p) exceeds min_dim_thresh and M < min(n, p) / 10 the randomized path runs two block-wise passes over X (no copy; the route for a memory-mapped X), and p > 2n always takes the Gram path. Lowering min_dim_thresh selects the randomized path for smaller designs; block_size is the column block of the block-wise passes.
+        """
     def compute(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], M: typing.SupportsInt | typing.SupportsIndex) -> SVDResult:
         ...
 class ZScoreScaler:
     def __init__(self, center: bool = True, scale: bool = True) -> None:
         ...
-    def fit(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], threshold: typing.SupportsFloat | typing.SupportsIndex = 1e-12) -> ZScoreScaler:
+    def fit(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], threshold: typing.SupportsFloat | typing.SupportsIndex = 1e-12) -> ZScoreScaler:
         ...
     def fit_transform(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], threshold: typing.SupportsFloat | typing.SupportsIndex = 1e-12) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]:
         """

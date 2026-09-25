@@ -482,6 +482,7 @@ def test_tienet_and_tcdienet_group_getters(solver_data):
         assert (np.asarray(s.getGroups()) == groups).all()
         assert s.getNumGroups() == len(np.unique(groups))
         assert s.getNumSteps() > 0
+        del s   # a writer holds X and D until it is gone (in-place contract)
 
 
 def test_cd_family_certified_getters(solver_data):
@@ -495,6 +496,7 @@ def test_cd_family_certified_getters(solver_data):
     assert all(g >= 0.0 for g in s.getRecordGaps())
     assert all(v >= 0.0 for v in s.getRecordKktViolations())
     assert s.getKktViolation() >= 0.0
+    del s   # release the writer's claim on X and D before the next writer
 
     legacy = TCDLASSO_Solver(X, D, y, SolverOptions(cd_certified_localization=False))
     assert legacy.isCertifiedLocalization() is False
@@ -511,7 +513,9 @@ def test_tikhonov_solvers_take_a_dense_k(solver_data):
         if cls is not TCDTIKNET_Solver:   # the CD solver keeps K internal
             assert np.allclose(s.getTikhonovK(), K)
         assert s.getNumSteps() > 0
+        del s   # a writer holds X and D until it is gone (in-place contract)
     tik = TCDTIKNET_Solver(X, D, y, K, SolverOptions(lambda2=0.5, fold_dummies=True))
     assert tik.isFoldedDummyCoupling() is True
+    del tik
     with pytest.raises(ValueError):
         TIKNET_Solver(X, D, y, -np.eye(p), SolverOptions(lambda2=0.5))

@@ -179,12 +179,16 @@ std::vector<MergeStep> internal_dispatch_linkage(
  *         Columns correspond to [cluster1, cluster2, distance, new_cluster_size].
  */
 inline Eigen::MatrixXd py_agglomerative_cluster(
-    const Eigen::MatrixXd& data,
+    Eigen::Ref<const Eigen::MatrixXd> data,
     LinkageMethod method,
     DistanceMetric metric,
     bool use_mmap = false) {
 
     // Python has row objects, the C++ engine expects columns to be objects.
+    // `data` is a read-only view of the caller's Fortran-ordered float64 array
+    // (a C-ordered array is converted once by pybind11); the former
+    // `const Eigen::MatrixXd&` parameter copied it in full on every call
+    // (2026-09-25, Tier A of notes/ZERO_COPY_PLAN.md).
     auto transposed_data = data.transpose();
     using TransposedType = decltype(transposed_data);
 

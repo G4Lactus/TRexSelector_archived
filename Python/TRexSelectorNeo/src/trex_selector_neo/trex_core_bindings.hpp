@@ -94,6 +94,12 @@ public:
         return selector_->select();
     }
 
+    /** @brief Give X back before select() (idempotent; no-op after select()). */
+    void restore() { selector_->restore(); }
+
+    /** @brief Number of dummies used by the last select() (the L-loop's calibration). */
+    std::size_t getNumDummies() const noexcept { return selector_->getNumDummies(); }
+
     /** @brief Get Target FDR. */
     double getTFDR() const { return selector_->getTFDR(); }
 
@@ -365,6 +371,14 @@ inline void bind_trex_core(py::module& m_tsm) {
              py::arg("seed") = -1, py::arg("verbose") = true,
              py::keep_alive<1, 2>(), py::keep_alive<1, 3>(),
              "Construct the selector. X and y are accessed zero-copy via Eigen::Map.")
+        .def("getNumDummies", &PyTRexSelector::getNumDummies,
+             "Number of dummies used by the last select() (the L-loop's calibration).")
+        .def("restore", &PyTRexSelector::restore,
+             "Give X back before select(): undo the in-place normalization applied at "
+             "construction and release the buffer claim (idempotent; a no-op after "
+             "select(), which restores X itself). A restored selector cannot run: "
+             "select() then raises, construct a new one. Without it, an unselected "
+             "selector gives X back only when it is garbage-collected.")
         .def("select", &PyTRexSelector::select, py::call_guard<py::gil_scoped_release>(),
              "Run the T-Rex algorithm and return a SelectionResult.")
         .def("getTFDR", &PyTRexSelector::getTFDR, "Return the target FDR.")

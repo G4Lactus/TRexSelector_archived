@@ -120,7 +120,7 @@ class LinkageMethod:
     @property
     def value(self) -> int:
         ...
-def agglomerative_cluster(data: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"], method: LinkageMethod, metric: DistanceMetric = ..., use_mmap: bool = False) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]:
+def agglomerative_cluster(data: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], method: LinkageMethod, metric: DistanceMetric = ..., use_mmap: bool = False) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]:
     """
     Perform hierarchical agglomerative clustering, returning a SciPy-style [N-1, 4] linkage matrix.
     """

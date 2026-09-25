@@ -1998,6 +1998,10 @@ class TRexSelector:
         """
         Return whether use_max_T_stop is active.
         """
+    def getNumDummies(self) -> int:
+        """
+        Number of dummies used by the last select() (the L-loop's calibration).
+        """
     def getNumSelected(self) -> int:
         """
         Return the number of selected predictors.
@@ -2053,6 +2057,10 @@ class TRexSelector:
     def getYMean(self) -> float:
         """
         Return the mean of y.
+        """
+    def restore(self) -> None:
+        """
+        Give X back before select(): undo the in-place normalization applied at construction and release the buffer claim (idempotent; a no-op after select(), which restores X itself). A restored selector cannot run: select() then raises, construct a new one. Without it, an unselected selector gives X back only when it is garbage-collected.
         """
     def select(self) -> SelectionResult:
         """

@@ -106,6 +106,18 @@ class TRexSelector:
         """
         return self._selector.select()
 
+    def restore(self) -> None:
+        """
+        Give X back before select(): undo the in-place normalization applied at
+        construction and release the buffer claim.
+
+        Idempotent, and a no-op after select() (which restores X itself). A
+        restored selector cannot run: select() then raises RuntimeError,
+        construct a new one. Without it, an unselected selector gives X back
+        only when it is garbage-collected.
+        """
+        self._selector.restore()
+
     @property
     def tFDR(self) -> float:
         return self._selector.getTFDR()
@@ -113,6 +125,11 @@ class TRexSelector:
     @property
     def K(self) -> int:
         return self._selector.getK()
+
+    @property
+    def num_dummies(self) -> int:
+        """Number of dummies used by the last select() (the L-loop's calibration)."""
+        return self._selector.getNumDummies()
 
     @property
     def num_selected(self) -> int:

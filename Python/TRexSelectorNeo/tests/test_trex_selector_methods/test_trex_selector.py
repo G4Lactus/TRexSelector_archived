@@ -556,3 +556,38 @@ def test_constant_column_is_rejected_under_l2_and_a_constant_atom_passes_under_n
     with pytest.raises(ValueError, match="column 4"):
         trex_selector_neo.TRexSelector(Xz, y, trex_control=_control(trex_selector_neo.ScalingMode.NONE, K=3),
                                        verbose=False)
+
+
+# ---------------------------------------------------------------------------
+# restore(): give X back before select() (2026-09-25, ZERO_COPY_PLAN 5.2)
+# ---------------------------------------------------------------------------
+
+def test_restore_before_select_gives_x_back(fast_control):
+    rng = np.random.default_rng(77)
+    n, p = 50, 30
+    X = np.asfortranarray(rng.standard_normal((n, p)))   # shared, not copied
+    y = X[:, 0] * 2.0 + rng.standard_normal(n)
+    X0 = X.copy(order="F")
+    sel = trex_selector_neo.TRexSelector(X, y, trex_control=fast_control, verbose=False)
+    assert not np.allclose(X, X0)                        # normalized in place at construction
+    sel.restore()
+    assert np.allclose(X, X0, atol=1e-12)
+    sel.restore()                                        # idempotent
+    assert np.allclose(X, X0, atol=1e-12)
+    with pytest.raises(RuntimeError, match="restore"):
+        sel.select()
+    sel2 = trex_selector_neo.TRexSelector(X, y, trex_control=fast_control, verbose=False)
+    sel2.select()                                        # a fresh selector runs and restores X itself
+    assert np.allclose(X, X0, atol=1e-12)
+    sel2.restore()                                       # no-op after select()
+    assert np.allclose(X, X0, atol=1e-12)
+
+
+def test_num_dummies_is_exposed(fast_control):
+    rng = np.random.default_rng(78)
+    n, p = 40, 20
+    X = np.asfortranarray(rng.standard_normal((n, p)))
+    y = X[:, 0] * 2.0 + rng.standard_normal(n)
+    sel = trex_selector_neo.TRexSelector(X, y, trex_control=fast_control, verbose=False)
+    sel.select()
+    assert sel.num_dummies >= p

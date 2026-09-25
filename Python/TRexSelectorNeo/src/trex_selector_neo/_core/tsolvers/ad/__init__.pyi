@@ -201,7 +201,7 @@ class SolverOptions:
     @property
     def intercept(self) -> bool:
         """
-        Center X, D and y (an intercept is fitted). Default True.
+        Center X and D in place (a writer, as for normalize) and the solver's internal copy of y (an intercept is fitted). False when the caller pre-centered. Default True.
         """
     @intercept.setter
     def intercept(self, arg0: bool) -> None:
@@ -233,7 +233,7 @@ class SolverOptions:
     @property
     def normalize(self) -> bool:
         """
-        Scale each column of X (and D) to unit L2 norm (or unit SD, see scaling_mode). Default True.
+        Scale each column of X (and D) to unit L2 norm (or unit SD, see scaling_mode), IN PLACE through the views (the solver becomes a writer and claims the buffers until restore() or destruction). False when the caller pre-scaled. Default True.
         """
     @normalize.setter
     def normalize(self, arg0: bool) -> None:
