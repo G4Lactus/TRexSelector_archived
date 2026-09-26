@@ -443,7 +443,7 @@ public:
      * @brief Reverse the in-place preprocessing (centering/scaling) applied to
      * the design matrices at construction, and release the buffer claims.
      *
-     * @details The in-place contract (2026-09-25). A solver constructed with
+     * @details The in-place contract. A solver constructed with
      *          normalize = true or intercept = true is a WRITER: it transforms
      *          the caller's X and D in place through the maps, keeps the
      *          statistics (means, norms) itself, carries them in its

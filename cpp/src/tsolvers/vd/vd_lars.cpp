@@ -25,7 +25,7 @@ double VD_LARS::find_and_add_active_() {
 
     // No ±infinity masking here: non-finite sentinels are UB for any consumer
     // compiling with -ffast-math (-ffinite-math-only); the library itself
-    // builds IEEE-conformant since 2026-09-24, the finite forms stay.
+    // builds IEEE-conformant, the finite forms stay.
     double C_vd = 0.0;
     bool any_unrealized = false;
     for (int d = 0; d < L_; ++d) {

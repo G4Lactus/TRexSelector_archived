@@ -97,7 +97,7 @@ protected:
      *  maintained by cycling descendants (T-LASSO, T-ENET, T-Stagewise). */
     std::size_t num_removals_{0};
 
-    /** @brief Pending drop-recovery step (FIX 2026-08-15), shared by the
+    /** @brief Pending drop-recovery step, shared by the
      *  cycling descendants (T-LASSO, T-ENET, T-IENET): set when the previous
      *  step ended in a LASSO-style drop. The next executeStep iteration then
      *  adds NO variable and moves along the REDUCED active set until an

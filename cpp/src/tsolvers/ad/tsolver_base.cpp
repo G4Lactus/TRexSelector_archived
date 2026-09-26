@@ -53,7 +53,7 @@ TSolver_Base::TSolver_Base(
       scaling_mode_(options.scaling_mode), intercept_(options.intercept),
       verbose_(options.verbose), is_connected_(true) {
 
-    // Numerics and tie-breaking (PLAN WP9: construction-time options).
+    // Numerics and tie-breaking (construction-time options).
     eps_ = options.tol;
     setExchangeableTie(options.exch_tie_alpha, options.exch_tie_floor);
     if (options.tie_seed >= 0) {
@@ -94,7 +94,7 @@ TSolver_Base::TSolver_Base(
 // ============================================================================
 
 void TSolver_Base::preprocess() {
-    // 0. Single-owner invariant for in-place preprocessing (2026-09-25): this
+    // 0. Single-owner invariant for in-place preprocessing: this
     //    solver is about to transform the caller's X and D through the maps,
     //    so it claims both buffers for its lifetime (or until restore()). A
     //    second writer on a claimed buffer throws: a second in-place
@@ -191,7 +191,7 @@ void TSolver_Base::restore(Eigen::Map<Eigen::MatrixXd>& X,
                            Eigen::Map<Eigen::VectorXd>& y) const {
 
     // Idempotent, and a no-op for readers and resumed solvers: only the
-    // object whose preprocessing is in effect writes back (2026-09-25).
+    // object whose preprocessing is in effect writes back.
     if (!holds_preprocessed_.value) { return; }
 
     // Safety assertions

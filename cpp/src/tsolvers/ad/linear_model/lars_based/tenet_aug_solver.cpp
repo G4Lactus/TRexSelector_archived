@@ -142,7 +142,7 @@ TENETAug_Solver::TENETAug_Solver(
     MapVecXd& y,
     const SolverOptions& options
 ) {
-    // SolverOptions fields consumed here (PLAN WP9).
+    // SolverOptions fields consumed here.
     const double      lambda2        = options.lambda2;
     const bool        normalize      = options.normalize;
     const bool        intercept      = options.intercept;

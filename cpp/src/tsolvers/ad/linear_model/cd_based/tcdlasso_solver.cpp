@@ -66,7 +66,7 @@ TCDLASSO_Solver::TCDLASSO_Solver(
     : TSolver_Base(X, D, y, options),
       algo_type_(algorithm_type) {
 
-    // 0. CD knobs (PLAN WP9: construction-time options; the setters keep
+    // 0. CD knobs (construction-time options; the setters keep
     //    their validation and warn on an out-of-range value).
     setLambdaRelTol(options.cd_lambda_rel_tol);
     setCdTolerances(options.cd_tol_certify, options.cd_tol_probe);

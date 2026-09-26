@@ -1,6 +1,8 @@
 # SD T-Solvers — Sparse-Dummy Terminating Solvers
 
-Design notes and validated findings. Status: 2026-07-12.
+Design notes and validated findings.
+
+Status: 2026-07-12
 
 > **Consolidated method document** (mathematical description, selector
 > layer, open problems): `trex_selector_methods/sd/trex_sd/trex_sd.md`.
