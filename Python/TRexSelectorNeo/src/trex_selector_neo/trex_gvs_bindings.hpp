@@ -145,7 +145,7 @@ inline void bind_trex_gvs(py::module& m) {
         .def_readonly("n_profile_at_edge", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::n_profile_at_edge, "lambda_2 values whose profiled lambda_1 optimum landed on a truncation edge (0 = healthy).")
         .def_readonly("support_cap", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::support_cap, "Support cap (glmnet dfmax) applied, or -1 when disabled.")
         .def_readonly("low_dimensional", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::low_dimensional, "p <= cap: the cap was inert.")
-        // Boundary-pick guard (PLAN WP6): the chosen pick on its grid.
+        // Boundary-pick guard: the chosen pick on its grid.
         .def_readonly("grid_index", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::grid_index, "0-based index of the returned lambda_2 on the tuner's grid (-1: no tuner ran).")
         .def_readonly("grid_size", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::grid_size, "Number of lambda_2 grid points searched (0: no tuner ran).")
         .def_readonly("at_grid_edge", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::at_grid_edge, "The returned lambda_2 is the first or last grid point: the grid boundary, not a CV optimum.")

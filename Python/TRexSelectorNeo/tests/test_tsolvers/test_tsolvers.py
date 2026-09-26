@@ -85,7 +85,7 @@ def make_tncgmp(X, D, y):
 def make_tafs(X, D, y):
     return TAFS_Solver(X, D, y, SolverOptions(rho_afs=1.0))
 
-# Bound with TODO 5.4: native IEN, the sparse-K solvers, the CD family.
+# Native IEN, the sparse-K solvers, the CD family.
 def make_tienet(X, D, y):
     return TIENET_Solver(X, D, y, _groups_for(X.shape[1]), SolverOptions(lambda2=0.5))
 
@@ -469,7 +469,7 @@ def test_tenet_aug_diagnostics_reflect_inner_solver(solver_data):
 
 
 # ---------------------------------------------------------------------------
-# Solvers bound with TODO 5.4: family getters
+# Family getters
 # ---------------------------------------------------------------------------
 
 def test_tienet_and_tcdienet_group_getters(solver_data):

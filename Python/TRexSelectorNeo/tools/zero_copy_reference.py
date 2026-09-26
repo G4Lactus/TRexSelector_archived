@@ -1,13 +1,14 @@
 #!/usr/bin/env python
-"""Bit-identity harness of the Python ML surface (notes/ZERO_COPY_PLAN.md, 0).
+"""Bit-identity harness of the Python ML surface.
 
     python tools/zero_copy_reference.py record  <dir>   # on the current tree
     python tools/zero_copy_reference.py compare <dir>   # after a change
 
 Every ML class is run on fixed synthetic data of three shapes and every
 output is saved as a .npz; compare requires bit equality (np.array_equal on
-float64 views), so a Tier A or Tier B change must reproduce the recording
-exactly. The reference is platform-specific; keep it out of git.
+float64 views), so a change at the binding boundary or a copy fusion must
+reproduce the recording exactly. The reference is platform-specific; keep it
+out of git.
 """
 
 import sys

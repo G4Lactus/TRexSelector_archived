@@ -334,7 +334,7 @@ class SVDSolver:
     @typing.overload
     def __init__(self, min_dim_thresh: typing.SupportsInt | typing.SupportsIndex = 10000, block_size: typing.SupportsInt | typing.SupportsIndex = 1024) -> None:
         """
-        Dispatch thresholds (2026-09-25, Tier C3): the direct Jacobi path copies X and computes every singular triplet; when min(n, p) exceeds min_dim_thresh and M < min(n, p) / 10 the randomized path runs two block-wise passes over X (no copy; the route for a memory-mapped X), and p > 2n always takes the Gram path. Lowering min_dim_thresh selects the randomized path for smaller designs; block_size is the column block of the block-wise passes.
+        Dispatch thresholds: the direct Jacobi path copies X and computes every singular triplet; when min(n, p) exceeds min_dim_thresh and M < min(n, p) / 10 the randomized path runs two block-wise passes over X (no copy; the route for a memory-mapped X), and p > 2n always takes the Gram path. Lowering min_dim_thresh selects the randomized path for smaller designs; block_size is the column block of the block-wise passes.
         """
     def compute(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], M: typing.SupportsInt | typing.SupportsIndex) -> SVDResult:
         ...

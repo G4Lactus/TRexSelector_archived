@@ -480,7 +480,7 @@ inline void bind_ml_methods(py::module& m) {
         .def(py::init<>())
         .def(py::init<Eigen::Index, Eigen::Index>(),
              py::arg("min_dim_thresh") = 10000, py::arg("block_size") = 1024,
-             "Dispatch thresholds (2026-09-25, Tier C3): the direct Jacobi path copies X "
+             "Dispatch thresholds: the direct Jacobi path copies X "
              "and computes every singular triplet; when min(n, p) exceeds min_dim_thresh "
              "and M < min(n, p) / 10 the randomized path runs two block-wise passes over X "
              "(no copy; the route for a memory-mapped X), and p > 2n always takes the Gram "

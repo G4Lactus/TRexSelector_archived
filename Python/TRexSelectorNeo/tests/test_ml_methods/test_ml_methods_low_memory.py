@@ -1,6 +1,6 @@
-"""The raw-X (low_memory) elastic-net engine against the copying engine
-(notes/ZERO_COPY_PLAN.md, Tier C1): same estimator, same grid, agreement to
-rounding; the caller's array is never written."""
+"""The raw-X (low_memory) elastic-net engine against the copying engine:
+same estimator, same grid, agreement to rounding; the caller's array is
+never written."""
 
 import numpy as np
 import pytest

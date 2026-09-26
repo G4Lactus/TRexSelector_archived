@@ -186,9 +186,8 @@ inline Eigen::MatrixXd py_agglomerative_cluster(
 
     // Python has row objects, the C++ engine expects columns to be objects.
     // `data` is a read-only view of the caller's Fortran-ordered float64 array
-    // (a C-ordered array is converted once by pybind11); the former
-    // `const Eigen::MatrixXd&` parameter copied it in full on every call
-    // (2026-09-25, Tier A of notes/ZERO_COPY_PLAN.md).
+    // (a C-ordered array is converted once by pybind11); a
+    // `const Eigen::MatrixXd&` parameter would copy it in full on every call.
     auto transposed_data = data.transpose();
     using TransposedType = decltype(transposed_data);
 

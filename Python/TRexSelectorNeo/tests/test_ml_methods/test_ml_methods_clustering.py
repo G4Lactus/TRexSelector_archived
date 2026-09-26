@@ -131,7 +131,7 @@ def test_cut_tree_all_singletons(cluster_data):
 
 
 # ---------------------------------------------------------------------------
-# Input guards (PLAN WP4 4.1 / 4.2): the C++ core rejects non-finite data and
+# Input guards: the C++ core rejects non-finite data and
 # malformed linkage matrices with ValueError instead of indexing out of range.
 # ---------------------------------------------------------------------------
 

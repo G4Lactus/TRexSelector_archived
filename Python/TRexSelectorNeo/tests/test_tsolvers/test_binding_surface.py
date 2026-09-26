@@ -182,7 +182,7 @@ def test_set_exchangeable_tie_reproducible(make_solver):
 
 def test_solver_options_keywords_and_fields(data):
     """SolverOptions: keyword constructor, unknown keywords rejected, fields round-trip,
-    and the options reach the solver (PLAN WP9)."""
+    and the options reach the solver."""
     X, D, y = data
     o = SolverOptions(lambda2=0.25, normalize=False, tol=1e-9, tie_seed=7)
     assert o.lambda2 == 0.25 and o.normalize is False and o.intercept is True

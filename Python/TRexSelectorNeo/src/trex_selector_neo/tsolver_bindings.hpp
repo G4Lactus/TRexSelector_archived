@@ -347,7 +347,7 @@ public:
 
 /**
  * @brief The in-place writer/reader contract, appended to every T-solver's
- *        constructor docstring (2026-09-25; the C++ text lives on
+ *        constructor docstring (the C++ text lives on
  *        TSolver_Base::restore()).
  */
 inline const std::string kInPlaceContractDoc =
@@ -462,8 +462,8 @@ py::class_<PySolverWrapper<Solver>>& add_standard_tsolver_methods(
 /**
  * @brief Standardized Pybind11 registration for the T-Solvers.
  *
- * @details Binds the canonical `(X, D, y, options)` constructor (PLAN WP9:
- *          every input except the data lives in SolverOptions) plus the
+ * @details Binds the canonical `(X, D, y, options)` constructor (every
+ *          input except the data lives in SolverOptions) plus the
  *          shared method set. The IEN solvers, which also take a group
  *          vector, bind their own init and call add_standard_tsolver_methods().
  *
@@ -701,7 +701,7 @@ inline void bind_tsolvers_module(py::module& m) {
                "K = blockdiag(I - 1 1^T / p_m): within-group centering.")
         .export_values();
 
-    // Every input except X, D, y (PLAN WP9).
+    // Every input except X, D, y.
     bind_solver_options(m);
 
     // -------------------------------------------------------------------------
@@ -824,7 +824,7 @@ inline void bind_tsolvers_module(py::module& m) {
         " exchangeable-tie fields.");
 
     // -------------------------------------------------------------------------
-    // CD-based sub-module (TODO 5.4)
+    // CD-based sub-module
     // -------------------------------------------------------------------------
     using namespace trex::tsolvers::ad::linear_model::cd_based;
 

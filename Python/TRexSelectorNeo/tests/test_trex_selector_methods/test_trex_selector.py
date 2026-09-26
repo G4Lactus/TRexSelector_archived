@@ -415,7 +415,7 @@ def test_cd_localization_modes_run(signal_data, certified):
 
 
 # ---------------------------------------------------------------------------
-# ScalingMode.NONE — user-managed design (PLAN WP5) and input rejection
+# ScalingMode.NONE (user-managed design) and input rejection
 # ---------------------------------------------------------------------------
 
 def _unit_l2_columns(X):
@@ -559,7 +559,7 @@ def test_constant_column_is_rejected_under_l2_and_a_constant_atom_passes_under_n
 
 
 # ---------------------------------------------------------------------------
-# restore(): give X back before select() (2026-09-25, ZERO_COPY_PLAN 5.2)
+# restore(): give X back before select()
 # ---------------------------------------------------------------------------
 
 def test_restore_before_select_gives_x_back(fast_control):
