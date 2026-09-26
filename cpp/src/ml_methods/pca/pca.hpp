@@ -129,7 +129,7 @@ public:
 
     /**
      * @brief Read-only PCA: no centering, no normalisation, X is never
-     *        written (2026-09-25, Tier B of notes/ZERO_COPY_PLAN.md).
+     *        written.
      *
      * @details Accepts a const matrix or a read-only memory-mapped file;
      *          fit() reads it through a const map. restore() is a no-op and
@@ -150,8 +150,8 @@ public:
      * @brief Destructor: writes X back if the in-place preprocessing is still
      *        in effect (the object was never restore()d), then releases.
      *
-     * @details The same rule as the T-solvers and the T-Rex selector
-     *          (2026-09-25): the caller's buffer never stays preprocessed
+     * @details The same rule as the T-solvers and the T-Rex selector: the
+     *          caller's buffer never stays preprocessed
      *          without an owner. The buffer must still be alive; the bindings
      *          pin it (R: the XPtr protection slot; Python: keep_alive).
      *          A restore()d or read-only object writes nothing.
@@ -255,8 +255,7 @@ public:
      * @param X The matrix passed to the constructor (the same buffer; the
      *          preprocessing was applied there and is undone there). May be
      *          called before fit(): the preprocessing happened at
-     *          construction, so a caller who does not fit still gets X back
-     *          (2026-09-25).
+     *          construction, so a caller who does not fit still gets X back.
      *
      * @throws std::invalid_argument if X is not the constructor's matrix.
      */

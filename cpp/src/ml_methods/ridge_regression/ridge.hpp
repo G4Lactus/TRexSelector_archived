@@ -102,8 +102,8 @@ private:
         Eigen::VectorXd Xty = X.transpose() * y;
 
         // Fast Cholesky decomposition (X^T X + λI is SPD for λ > 0), IN PLACE
-        // in XtX's storage: one p x p matrix instead of two (2026-09-25,
-        // Tier B of notes/ZERO_COPY_PLAN.md; same algorithm, bit-identical).
+        // in XtX's storage: one p x p matrix instead of two (same algorithm,
+        // bit-identical).
         Eigen::LLT<Eigen::Ref<Eigen::MatrixXd>> llt(XtX);
         if (llt.info() == Eigen::Success) {
             return llt.solve(Xty);
@@ -156,7 +156,7 @@ private:
         Eigen::VectorXd alpha;
 
         // Fast Cholesky decomposition, IN PLACE in XXt's storage (one n x n
-        // matrix instead of two; 2026-09-25, Tier B, bit-identical)
+        // matrix instead of two; bit-identical)
         Eigen::LLT<Eigen::Ref<Eigen::MatrixXd>> llt(XXt);
         if (llt.info() == Eigen::Success) {
             alpha = llt.solve(y);

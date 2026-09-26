@@ -418,7 +418,7 @@ private:
             }
         };
 
-        // NOTE (negative result, 2026-08-05): an exact line search along each
+        // NOTE (negative result): an exact line search along each
         // group's 1_m direction after every sweep — intended to remove the
         // stiff group-mean mode of the block Hessian d*I + (lambda2/p_m)*11^T
         // — was implemented and measured to fire ZERO times on the
@@ -678,9 +678,6 @@ public:
      *                          unit-L2 column scaling glmnet's own criterion
      *                          is |delta| < sqrt(n)*3.16e-4 (~4.5e-3 at
      *                          n = 200): 1e-4 is still ~45x stricter.
-     *                          Decision Fabian, 2026-09-24 (PLAN WP3);
-     *                          evidence in the Scientific Notes
-     *                          (tccd_agreement_and_tolerance_findings.md).
      * @param dfmax_ratio       Support cap as a fraction of the (smallest)
      *                          fold training size: the reference scan stops
      *                          each lambda1 path at the first point with

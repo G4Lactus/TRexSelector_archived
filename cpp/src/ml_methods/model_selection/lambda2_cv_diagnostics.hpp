@@ -13,11 +13,11 @@
  *  addition to the value; see `TRexGVSSelector::getLambda2CVDiagnostics()`
  *  and `TRexTikhonovSelector::getLambda2CVDiagnostics()`.
  *
- *  Boundary-pick guard (PLAN WP6, TODO 4.12; warning-only by decision of
- *  2026-09-24): a pick is boundary-dominated when the CHOSEN lambda_2 sits
- *  on the first or last point of its grid (`at_grid_edge`), or when, in the
- *  2D IEN tuner, the profiled lambda_1 optimum of that chosen lambda_2 sits
- *  on the truncation edge of the lambda_1 path (`profile_at_edge`). Either
+ *  Boundary-pick guard (warning-only by design): a pick is boundary-dominated
+ *  when the CHOSEN lambda_2 sits on the first or last point of its grid
+ *  (`at_grid_edge`), or when, in the 2D IEN tuner, the profiled lambda_1
+ *  optimum of that chosen lambda_2 sits on the truncation edge of the
+ *  lambda_1 path (`profile_at_edge`). Either
  *  makes `boundary_pick` true; the selectors then emit one warning built by
  *  `boundary_pick_message()` and return the pick unchanged. The two modes
  *  were established on the demo designs in August 2026: a truncation edge

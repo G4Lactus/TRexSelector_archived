@@ -214,7 +214,7 @@ public:
         num_original_ = data.cols();
         blocks_per_row_ = static_cast<Eigen::Index>(
                             std::ceil(static_cast<double>(num_original_) / BLOCK_SIZE));
-        // Overflow-checked extent of the tiled distance matrix (PLAN WP4 4.3):
+        // Overflow-checked extent of the tiled distance matrix:
         // a wrapped product would size the backing file or the RAM buffer
         // too small for the tile arithmetic that follows.
         namespace ca = trex::utils::checked_arith;

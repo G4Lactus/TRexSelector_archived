@@ -61,7 +61,7 @@ public:
     enet_gaussian() = default;
 
     /**
-     * @brief Choose the engine (2026-09-25, Tier C1 of notes/ZERO_COPY_PLAN.md).
+     * @brief Choose the engine.
      *
      * @param low_memory false (default): the coordinate descent runs on a
      *        centred and standardised working copy of X (one n x p matrix
@@ -196,9 +196,8 @@ public:
     /**
      * @brief Fit at a caller-supplied grid on an OWNED predictor matrix,
      *        which becomes the working copy Xs_ (centred and standardised in
-     *        place): one n x p matrix instead of two. Used by the CV folds
-     *        (2026-09-25, Tier B). Results are bit-identical to fit() on the
-     *        same matrix.
+     *        place): one n x p matrix instead of two. Used by the CV folds.
+     *        Results are bit-identical to fit() on the same matrix.
      */
     void fit_owned(Eigen::MatrixXd&& X_owned,
                    Eigen::Ref<const Eigen::VectorXd> y,
@@ -226,7 +225,7 @@ public:
     /**
      * @brief Fit at a caller-supplied grid on the rows selected by a 0/1 mask,
      *        with the raw-X engine: the training fold is never gathered
-     *        (2026-09-25, Tier C1; used by enet_cv_ccd in low-memory mode).
+     *        (used by enet_cv_ccd in low-memory mode).
      *
      * @param mask  Length n, 1 for a training row, 0 for a held-out row. The
      *              column statistics, the response scaling and every dot
@@ -441,8 +440,8 @@ private:
 
     // ---- low-memory engine: coordinate descent on the raw X ------------------
     //
-    // (2026-09-25, Tier C1 of notes/ZERO_COPY_PLAN.md.) The copying engine
-    // works on Xs = (X - m) / s. Here the descent reads X itself:
+    // The copying engine works on Xs = (X - m) / s. Here the descent reads
+    // X itself:
     //   * the column means m_j, the centred sums of squares and the scales s_j
     //     are computed in two read-only passes over the (masked) rows;
     //   * the residual r_true = r + c is kept as a vector r plus a scalar
@@ -671,10 +670,10 @@ private:
 
     /**
      * @brief Preprocess an OWNED predictor matrix: it becomes Xs_ and is
-     *        centred in place, so no second n x p copy is made (2026-09-25,
-     *        Tier B of notes/ZERO_COPY_PLAN.md; the CV folds use it).
-     *        Bit-identical to preprocess(): the same column means over the
-     *        same contiguous columns, the same per-element subtraction.
+     *        centred in place, so no second n x p copy is made (the CV folds
+     *        use it). Bit-identical to preprocess(): the same column means
+     *        over the same contiguous columns, the same per-element
+     *        subtraction.
      */
     void preprocess_owned(Eigen::MatrixXd&& X_owned,
                           Eigen::Ref<const Eigen::VectorXd> y,
@@ -717,8 +716,7 @@ private:
 
     /** @brief Free the centred working copy of X (and the centred y) once the
      *  path is solved: predict() and every accessor read beta_, a0_ and the
-     *  scaling vectors only, so a fitted object holds p x K, not n x p
-     *  (2026-09-25, Tier B). */
+     *  scaling vectors only, so a fitted object holds p x K, not n x p. */
     void release_working_set() noexcept
     {
         Eigen::MatrixXd().swap(Xs_);
@@ -774,7 +772,7 @@ private:
     Eigen::VectorXd dev_ratio_; ///< fraction of null deviance explained per lambda
     int             n_nonconverged_ = 0;
 
-    // raw-X engine (Tier C1)
+    // raw-X engine
     bool            low_memory_ = false;
     Eigen::VectorXd col_sum_;   ///< masked column sums of X
     Eigen::VectorXd d_;         ///< ||x_{s,j}||^2 / n over the training rows
@@ -981,7 +979,7 @@ public:
      *      (n < p ? 1e-2 : 1e-4) rule is right here and must NOT be replaced
      *      by the flat 1e-2 that `ienet_cv_ccd` uses.
      *
-     *  Verified 2026-08-05 on both regimes (n=150,p=100 and n=200,p=500):
+     *  Verified on both regimes (n=150,p=100 and n=200,p=500):
      *  picks interior at idx_min 61/100 and 88/100, idx_1se 50/100 and
      *  53/100 — no edge, no retuning warranted. */
     bool selection_at_grid_edge() const noexcept {

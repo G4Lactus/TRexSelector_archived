@@ -51,7 +51,7 @@ namespace trex::ml_methods::clustering::hierarchical::agglomerative {
 namespace detail {
 
 /**
- * @brief Reject non-finite input before any engine sees it (PLAN WP4 4.1).
+ * @brief Reject non-finite input before any engine sees it.
  *
  * @details A NaN or Inf entry makes every distance involving that column
  *  NaN; the nearest-neighbour searches then compare false everywhere and
@@ -121,7 +121,7 @@ public:
 
         Eigen::Index num_objs = data.cols();
 
-        // Every engine below assumes finite distances (PLAN WP4 4.1).
+        // Every engine below assumes finite distances.
         detail::reject_non_finite(data);
 
         // -----------------------------------------------------------------------
