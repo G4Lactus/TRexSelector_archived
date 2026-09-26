@@ -546,8 +546,9 @@ public:
      *          instead of i.i.d. columns: layer width is `layer_cols` (= p),
      *          each layer is drawn per cluster as Z * L_m^T and scattered to
      *          the cluster's column positions, and blocks are CENTERED ONLY
-     *          (realized column norms kept — FIX 2026-07-08; the i.i.d.
-     *          path's per-column norm equalization is deliberately skipped).
+     *          (realized column norms kept, the as-drawn dummy convention;
+     *          the i.i.d. path's per-column norm equalization is deliberately
+     *          skipped).
      *
      *          Stream discipline (see cluster_dummies::makeLayerStream):
      *          fresh-per-iteration entry points (generateAndStore /
@@ -925,7 +926,7 @@ private:
      *
      * @details Fills layers [first_layer, cols / p) of `target` with
      *          per-cluster colored MVN draws and centers each written
-     *          column (realized norms kept — FIX 2026-07-08 convention).
+     *          column (realized norms kept, the as-drawn dummy convention).
      *
      *          Stream discipline (cluster_dummies::makeLayerStream):
      *            - l_tag > 0 (fresh-per-iteration): all layers drawn
@@ -984,7 +985,7 @@ private:
             block = cdum::drawClusterDummyLayer(
                 n_, cluster_layer_cols_, cluster_cols_, cluster_chol_, rng);
             // Center-only; realized column norms are part of the dummy
-            // null distribution (FIX 2026-07-08).
+            // null distribution (the as-drawn dummy convention).
             block.rowwise() -= block.colwise().mean();
         };
 

@@ -21,10 +21,10 @@
  *   and its relatives) judge a fitted estimate and are known to land two
  *   orders of magnitude above the selection-optimal range on K_center, or to
  *   fall back to the lasso support wherever the extra members carry
- *   coefficients an individual fit cannot justify (Scientific Notes,
- *   tik_lambda2_determination.md). The T-Rex calibration itself chooses its
- *   internal parameters (the stopping time and the voting level) by
- *   maximizing the number of selected variables subject to the estimated FDP;
+ *   coefficients an individual fit cannot justify. The T-Rex calibration
+ *   itself chooses its internal parameters (the stopping time and the voting
+ *   level) by maximizing the number of selected variables subject to the
+ *   estimated FDP;
  *   this header applies the same rule to lambda_2.
  *
  *   **The rule.** For every lambda_2 on a user grid one full selection is run

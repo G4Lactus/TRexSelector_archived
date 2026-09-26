@@ -3,8 +3,9 @@
 Consolidated method notes — solver family (`tsolvers/sd/`) and
 selector (`trex_selector_methods/sd/trex_sd/`). **Living document**: the method
 is not finished; Section 9 lists the open analysis and improvement
-directions. Status: 2026-07-12. Earlier engineering notes:
-`tsolvers/sd/sd_tsolver.md`.
+directions. Earlier engineering notes: `tsolvers/sd/sd_tsolver.md`.
+
+Status: 2026-07-12
 
 ---
 

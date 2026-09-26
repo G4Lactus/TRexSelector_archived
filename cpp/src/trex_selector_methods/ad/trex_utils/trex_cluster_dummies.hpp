@@ -40,7 +40,7 @@
  *  cluster discovery lives in trex_cluster_hac.hpp.
  *
  *  Column post-processing is the CALLER's choice and is deliberately NOT
- *  done here: per the FIX (2026-07-08) convention, dummies enter the solvers
+ *  done here: per the as-drawn dummy convention, dummies enter the solvers
  *  center-only with their REALIZED column norms (the chi fluctuation of the
  *  MVN draw is part of the dummy null distribution; equalizing the norms
  *  made dummies systematically less competitive and inflated the realized

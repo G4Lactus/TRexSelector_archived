@@ -66,7 +66,7 @@ namespace mm = trex::trex_selector_methods::ad::utils::memmap_manager;
 // ===================================================================================
 
 /**
- * @brief Scoped Eigen thread budget (PLAN WP4 4.5, Arnau).
+ * @brief Scoped Eigen thread budget.
  *
  * @details Eigen's thread count is ONE process-global integer. Writing it from
  *  inside an OpenMP team is a data race, and pointless there: Eigen never
@@ -391,7 +391,7 @@ private:
         // active-level limit let every solver / preprocessing region below
         // spawn a full inner team inside a CALLER's parallel loop (a Monte
         // Carlo over trials): 6 x 6 threads on a 12-core machine, observed
-        // 2026-09-09 on demo_13 (p = 2200, L up to 22000).
+        // on demo_13 (p = 2200, L up to 22000).
         #ifdef _OPENMP
         int old_max_levels = omp_get_max_active_levels();
         if (do_parallel) omp_set_max_active_levels(2);
@@ -991,7 +991,7 @@ private:
      *          (createVotingGrid), that residue decided the strict `Phi > v`
      *          comparison at the ties the lattice makes routine: the classical
      *          runner selected at exact ties, the GVS K-loop (and R) did not
-     *          (the Tikhonov-vs-GVS L-loop divergence, resolved 2026-09-24).
+     *          (the Tikhonov-vs-GVS L-loop divergence).
      *
      * @param summaries Vector of K experiment summaries.
      * @param cfg Runner configuration (for p, T_stop, K).

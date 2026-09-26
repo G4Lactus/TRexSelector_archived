@@ -76,9 +76,9 @@
  *
  *    Column scaling: X_ is centered + rescaled by the base class
  *    (ScalingMode::L2 or ZSCORE). ALL dummy blocks keep their realized
- *    column norms (chi fluctuation = part of the dummy null, FIX
- *    2026-07-08): EN variants and native IEN (TIENET) are centered (only)
- *    before being handed to the solver; the augmented IEN (TIENET_AUG)
+ *    column norms (chi fluctuation = part of the dummy null; the as-drawn
+ *    dummy convention): EN variants and native IEN (TIENET) are centered
+ *    (only) before being handed to the solver; the augmented IEN (TIENET_AUG)
  *    block is passed raw and centered inside the wrapper (see above).
  *
  *  Design notes:
