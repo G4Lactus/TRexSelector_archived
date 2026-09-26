@@ -33,8 +33,7 @@ namespace trex::tsolvers::ad::linear_model::omp_based {
 // ===================================================================================
 
 /** @brief Variants for the Norm-Corrective GMP solver — defined with the
- *  other option enums in tsolvers/solver_options.hpp (PLAN WP9); visible
- *  here under its historical name. */
+ *  other option enums in tsolvers/solver_options.hpp and re-exported here. */
 using trex::tsolvers::ad::NCGMPVariant;
 
 /**

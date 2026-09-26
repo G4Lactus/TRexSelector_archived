@@ -1142,8 +1142,8 @@ TAFS_Solver <- R6::R6Class(
 
 
 # ==============================================================================
-# Solvers bound with TODO 5.4: native T-IENET, the sparse-K solvers and the
-# CD family. All take $new(X, D, y, [groups | tikhonov_K,] options).
+# Native T-IENET, the sparse-K solvers and the CD family. All take
+# $new(X, D, y, [groups | tikhonov_K,] options).
 # ==============================================================================
 
 #' T-IENET Solver (native pathwise)

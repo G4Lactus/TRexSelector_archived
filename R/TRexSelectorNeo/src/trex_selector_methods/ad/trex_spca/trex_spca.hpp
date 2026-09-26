@@ -246,7 +246,7 @@ public:
      *
      * @return Const reference to the stored TRexSPCAResult (sparse PCs,
      *         loadings, active sets, explained variance); the bindings wrap
-     *         it once instead of copying Z and V twice (2026-09-25). A caller
+     *         it once instead of copying Z and V twice. A caller
      *         that writes `auto res = spca.select();` still gets its own copy.
      */
     const TRexSPCAResult& select();

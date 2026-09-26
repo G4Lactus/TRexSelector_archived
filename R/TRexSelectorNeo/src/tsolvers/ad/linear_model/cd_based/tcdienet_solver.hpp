@@ -43,8 +43,8 @@ namespace trex::tsolvers::ad::linear_model::cd_based {
  *                Mathematically identical to the TCDTIKNET FOLDED path with
  *                K_GC, at O(1) instead of O(p_m) per coordinate update.
  */
-// Defined with the other option enums in tsolvers/solver_options.hpp
-// (PLAN WP9); visible here under its historical name.
+// Defined with the other option enums in tsolvers/solver_options.hpp and
+// re-exported here.
 using trex::tsolvers::ad::GroupPenaltyVariant;
 
 // =============================================================================

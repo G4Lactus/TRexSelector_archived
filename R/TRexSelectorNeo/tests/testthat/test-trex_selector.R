@@ -194,7 +194,7 @@ test_that("exchangeable tie-breaking is plumbed through for greedy solvers", {
 
 
 # =============================================================================
-# restore(): give X back before select() (2026-09-25, ZERO_COPY_PLAN 5.2)
+# restore(): give X back before select()
 # =============================================================================
 
 test_that("TRexSelector$restore() gives X back before select(); select() then errors", {

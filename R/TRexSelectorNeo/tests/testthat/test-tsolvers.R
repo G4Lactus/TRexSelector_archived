@@ -30,7 +30,7 @@ y <- X[, 5] * 4.0 + X[, 15] * (-2.5) + X[, 25] * 3.1 + rnorm(n)
 # ---------------------------------------------------------------------------
 # Solver factory (22 entries: 21 solver types, TNCGMP counted for both variants)
 #
-# In-place contract (2026-09-25): the R6 solvers map X and D without copying.
+# In-place contract: the R6 solvers map X and D without copying.
 # A factory call with the defaults builds a WRITER that preprocesses X and D in
 # place and claims them until $restore() (or GC); a test that builds several
 # writers on the fixture restores each before the next. With (FALSE, FALSE)
@@ -68,7 +68,7 @@ y <- X[, 5] * 4.0 + X[, 15] * (-2.5) + X[, 25] * 3.1 + rnorm(n)
   TNCGMP_ls  = function(nrm = TRUE, ic = TRUE) TNCGMP_Solver$new(X, D, y, options = tsolver_options(normalize = nrm, intercept = ic, ncgmp_variant = "line_search")),
   TNCGMP_fc  = function(nrm = TRUE, ic = TRUE) TNCGMP_Solver$new(X, D, y, options = tsolver_options(normalize = nrm, intercept = ic, ncgmp_variant = "fully_corrective")),
   TAFS       = function(nrm = TRUE, ic = TRUE) TAFS_Solver$new(X, D, y, options = tsolver_options(normalize = nrm, intercept = ic, rho_afs = 1.0)),
-  # Bound with TODO 5.4: native IEN, the sparse-K solvers, the CD family.
+  # Native IEN, the sparse-K solvers, the CD family.
   TIENET     = function(nrm = TRUE, ic = TRUE) TIENET_Solver$new(X, D, y, groups = .tienet_groups,
                                             options = tsolver_options(normalize = nrm, intercept = ic, lambda2 = 0.5)),
   TIKNET     = function(nrm = TRUE, ic = TRUE) TIKNET_Solver$new(X, D, y, tikhonov_K = .group_mean_k_30,
@@ -392,7 +392,7 @@ test_that("All solver types resume from checkpoint identically to a continuous r
 
 
 # =============================================================================
-# Group 6: solvers bound with TODO 5.4 — family getters
+# Group 6: family getters
 # =============================================================================
 
 test_that("TIENET_Solver / TCDIENET_Solver: lambda2, groups (1-based), num_groups", {
@@ -450,8 +450,7 @@ test_that("Sparse-K solvers accept a dense K or a dgCMatrix and report lambda2",
 
 
 # =============================================================================
-# Surface catch-up (2026-09-25, ZERO_COPY_PLAN 5.4): the base methods the
-# Python binding has had, and the family getters.
+# The base methods shared with the Python binding, and the family getters.
 # =============================================================================
 
 test_that("the T-solver base methods added in the surface catch-up work", {

@@ -1,5 +1,5 @@
 # =======================================================================================
-# scaling_mode = "NONE" (user-managed design, PLAN WP5) and input rejection
+# scaling_mode = "NONE" (user-managed design) and input rejection
 # =======================================================================================
 
 planted_design <- function(seed = 5, n = 300, p = 60) {

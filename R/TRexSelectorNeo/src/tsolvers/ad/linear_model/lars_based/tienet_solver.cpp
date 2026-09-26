@@ -134,7 +134,7 @@ void TIENET_Solver::executeStep(std::size_t T_stop, bool early_stop) {
 
         // ========================================================
         // STEP 0: Drop-recovery step (R-lars drop-breakpoint
-        // semantics, FIX 2026-08-15; see TLASSO_Solver::executeStep).
+        // semantics; see TLASSO_Solver::executeStep).
         // The previous step ended in a drop, so NO variable joins:
         // the path moves along the REDUCED active set with the
         // IEN-modified correlation level until an inactive genuinely

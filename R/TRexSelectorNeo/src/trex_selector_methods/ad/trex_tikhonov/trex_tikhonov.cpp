@@ -376,7 +376,7 @@ er::ExperimentRunnerConfig TRexTikhonovSelector::buildRunnerConfig(
 
 namespace {
 
-/** @brief The boundary-pick guard (PLAN WP6, warning-only): one warning
+/** @brief The boundary-pick guard (warning-only): one warning
  *  when the returned lambda_2 sits on its grid boundary or, for the IEN
  *  tuner, when its profiled lambda_1 optimum sits on the truncation edge.
  *  The pick is returned unchanged; getLambda2CVDiagnostics() carries the

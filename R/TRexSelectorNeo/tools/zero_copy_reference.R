@@ -1,14 +1,13 @@
 #!/usr/bin/env Rscript
 # =============================================================================
-# zero_copy_reference.R — bit-identity harness of the R ML surface
-# (notes/ZERO_COPY_PLAN.md, section 0).
+# zero_copy_reference.R — bit-identity harness of the R ML surface.
 #
 #   Rscript tools/zero_copy_reference.R record  <dir>   # on the current tree
 #   Rscript tools/zero_copy_reference.R compare <dir>   # after a change
 #
 # Every ML class is run on fixed synthetic data of three shapes and every
 # output is saved with saveRDS; compare uses identical() on the whole list,
-# so a Tier A or Tier B change (binding boundary, copy fusion) must
+# so a change at the binding boundary or a copy fusion must
 # reproduce the recording exactly. Run with R_LIBS pointing at the library
 # under test. The reference is platform-specific; keep it out of git.
 # =============================================================================

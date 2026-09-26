@@ -369,7 +369,7 @@ void trex_selector_select(
 //'
 //' @details Undoes the in-place normalization applied at construction and
 //'   releases the buffer claim (idempotent; a no-op after select()). A
-//'   restored selector cannot run: select() then errors (2026-09-25).
+//'   restored selector cannot run: select() then errors.
 //' @noRd
 // [[Rcpp::export]]
 void trex_selector_restore(

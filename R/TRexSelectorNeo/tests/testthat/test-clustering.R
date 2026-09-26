@@ -377,7 +377,7 @@ test_that("ml_cut_tree round-trip works on mmap-derived linkage", {
 
 
 # =============================================================================
-# Group 8: Input guards (PLAN WP4 4.1 / 4.2) — the C++ core rejects non-finite
+# Group 8: Input guards — the C++ core rejects non-finite
 # data and malformed linkage matrices with a translatable error instead of
 # indexing out of range.
 # =============================================================================

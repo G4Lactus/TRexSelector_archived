@@ -571,7 +571,7 @@ test_that("the IEN tuner grids pass through and the tuner diagnostics are expose
   expect_true(is.numeric(diag$n_profile_at_edge))
   expect_gt(sel_cv$lambda2_used, 0)
 
-  # Boundary-pick guard fields (PLAN WP6): the chosen pick on its grid.
+  # Boundary-pick guard fields: the chosen pick on its grid.
   expect_identical(diag$grid_size, 10L)
   expect_true(diag$grid_index >= 0L && diag$grid_index < diag$grid_size)
   expect_type(diag$at_grid_edge, "logical")

@@ -101,7 +101,7 @@ struct NormalizationParams {
  *          below eps, measured after centering under L2 / ZSCORE and on the
  *          raw column under NONE — throws std::invalid_argument naming the
  *          column (a constant predictor dies here, not silently inside a
- *          solver; PLAN WP4 4.1 (d)). Under NONE a column whose raw L2 norm
+ *          solver). Under NONE a column whose raw L2 norm
  *          leaves [0.25, 4] is counted and one warning is emitted (the
  *          dummies follow the unit-L2 standard, so the user-managed design
  *          should be unit-L2-commensurate). The matrix is unmodified when
@@ -111,7 +111,7 @@ struct NormalizationParams {
  * @param params Struct to store normalization parameters (means and norms).
  * @param eps Dead-column threshold on the working L2 norm (default: machine
  *            epsilon; the selectors pass the solver tolerance).
- * @param verbose Unused for X since 2026-09-24 (the rejection is an
+ * @param verbose Unused for X (the rejection is an
  *                exception and the NONE warning is not gated); kept for
  *                source compatibility.
  * @param mode Column scaling convention (default: L2). ZSCORE divides by the

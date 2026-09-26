@@ -2,7 +2,7 @@
 # test-tsolvers-inplace.R
 # =============================================================================
 #
-# The in-place writer/reader contract of the R6 T-solvers (2026-09-25).
+# The in-place writer/reader contract of the R6 T-solvers.
 #
 # The solvers map the R matrices (and memory-mapped files) without copying.
 #   - A WRITER (normalize or intercept TRUE) centers / scales X and D in place,

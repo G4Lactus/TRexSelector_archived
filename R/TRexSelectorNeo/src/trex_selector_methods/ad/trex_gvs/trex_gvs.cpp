@@ -415,7 +415,7 @@ void TRexGVSSelector::finalizeSetup() {
 
 namespace {
 
-/** @brief The boundary-pick guard (PLAN WP6, warning-only): one warning
+/** @brief The boundary-pick guard (warning-only): one warning
  *  when the returned lambda_2 sits on its grid boundary or, for the IEN
  *  tuner, when its profiled lambda_1 optimum sits on the truncation edge.
  *  The pick is returned unchanged; getLambda2CVDiagnostics() carries the
@@ -748,7 +748,7 @@ Eigen::MatrixXd TRexGVSSelector::extractPhiContribFromPath(
     // dummy variables are non-zero (first-reach, `>= t`). At that step,
     // every active original feature gets a +1 contribution.
     //
-    // Semantics (2026-08-23, aligned with the base ExperimentRunner): a
+    // Semantics (aligned with the base ExperimentRunner): a
     // recorded step that jumps from t-1 straight to t+1 dummies (a tie
     // batch: simultaneous entries within the solver's lambda tolerance)
     // contributes its support to column t as well as t+1 — the batch is
@@ -756,7 +756,7 @@ Eigen::MatrixXd TRexGVSSelector::extractPhiContribFromPath(
     // under which phi_T does not depend on whether a near-tie happened to
     // be recorded as one step or two. Measured effect vs strict equality:
     // none (demo_03_trex_gvs_study Part 3d, TENET vs TCDENET, 50 MC,
-    // identical at K = 2/5/20, 2026-08-06); zero columns come from the
+    // identical at K = 2/5/20); zero columns come from the
     // `found_col == n_steps` branch (the path never reaches t dummies).
     for (std::size_t t = 1; t <= T_stop; ++t) {
 
@@ -839,7 +839,7 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
     const bool do_parallel =
         trex_ctrl_.parallel_rnd_experiments && (trex_ctrl_.max_outer_threads > 1);
     // Eigen budget set ONCE from this thread and restored on exit; never
-    // written inside the team (PLAN WP4 4.5, see EigenThreadScope).
+    // written inside the team (see EigenThreadScope).
     trex::trex_selector_methods::ad::utils::experiment_runner::EigenThreadScope
         eigen_scope(do_parallel ? trex_ctrl_.max_inner_threads : 0);
     #ifdef _OPENMP
@@ -881,8 +881,8 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
                 //    the augmented solvers build and own their augmented
                 //    systems internally.
                 std::unique_ptr<tsolvers::ad::TSolver_Base> solver;
-                // Construction-time options shared by every variant below
-                // (PLAN WP9): the K-loop runs the solvers AS CONSTRUCTED on
+                // Construction-time options shared by every variant below:
+                // the K-loop runs the solvers AS CONSTRUCTED on
                 // the pre-normalized X_ / centered y_ (normalize = false);
                 // the CD knobs of the control apply to the CCD variants.
                 tsolvers::ad::SolverOptions opts;
@@ -908,7 +908,7 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
                     // IEN native: pathwise LARS-IEN (no augmented copies).
                     // X is the shared base-normalized map, D_k was CENTERED
                     // ONLY in prepareDummiesForLStep (realized dummy norms
-                    // kept, FIX 2026-07-08 convention), y is centered, so
+                    // kept, the as-drawn dummy convention), y is centered, so
                     // the solver runs AS CONSTRUCTED with
                     // normalize/intercept=false (in-place normalization of
                     // the shared X across the parallel K loop is forbidden).
@@ -943,8 +943,8 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
                     // TIENETAug_Solver. D_k is RAW; with normalize=false,
                     // intercept=true the wrapper CENTERS its OWNED copies of
                     // the data blocks (no per-column rescaling — the
-                    // realized dummy norms are part of the null, FIX
-                    // 2026-07-08 convention; centering is a no-op on the
+                    // realized dummy norms are part of the null, the
+                    // as-drawn dummy convention; centering is a no-op on the
                     // already-normalized X) BEFORE appending the group-ridge
                     // rows. The same flags govern the degenerate
                     // lambda2 == 0 collapse (inner solver centers, does not
@@ -1174,8 +1174,8 @@ void TRexGVSSelector::prepareDummiesForLStep(LStepContext& ctx)
     }
 
     // ---- (Re)build solver-side D buffers ----------------------------------
-    // ALL variants keep the realized dummy column norms (FIX 2026-07-08
-    // below — the chi fluctuation of the MVN draw is part of the dummy null
+    // ALL variants keep the realized dummy column norms (the as-drawn dummy
+    // convention below — the chi fluctuation of the MVN draw is part of the dummy null
     // distribution; erasing it made dummies systematically less competitive
     // and inflated the realized FDR). EN variants and IEN native (TIENET):
     // the dummy columns are CENTERED ONLY here (the native solver runs with
@@ -1199,8 +1199,8 @@ void TRexGVSSelector::prepareDummiesForLStep(LStepContext& ctx)
             }
             assembleDummyBlock(k, dmap);
             if (!ien || ien_native) {
-            // FIX (2026-07-08): dummies enter the solver AS DRAWN (centered
-            // only, NO per-column norm equalization). The cluster-MVN draw
+            // The as-drawn dummy convention: dummies enter the solver centered
+            // only, with NO per-column norm equalization. The cluster-MVN draw
             // already carries the correct population scale (Sigma_m computed
             // on the normalized X_); its random realized column norms are an
             // essential part of the dummy null distribution. Exactly
@@ -1229,7 +1229,7 @@ void TRexGVSSelector::prepareDummiesForLStep(LStepContext& ctx)
         for (std::size_t k = 0; k < K; ++k) {
             assembleDummyBlock(k, D_solver_bufs_[k]);
             if (!ien || ien_native) {
-                // Center-only, AS-DRAWN norms (FIX 2026-07-08) — see the
+                // Center-only, as-drawn norms — see the
                 // memory-mapped branch above for the full rationale.
                 D_solver_bufs_[k].rowwise() -=
                     D_solver_bufs_[k].colwise().mean();
@@ -1317,7 +1317,7 @@ void TRexGVSSelector::onSelectBegin() {
     //    per-k regions with NO rewrite (evaluateStep ignores
     //    existing_on_disk entirely), so a shared file would hand every
     //    experiment the LAST experiment's dummies, the exact stale-dummy
-    //    bug fixed in the core T-loop on 2026-07-28.
+    //    bug once fixed in the core T-loop.
     if (gvs_use_mmap_) {
         const std::size_t max_dummies = trex_ctrl_.max_dummy_multiplier * p_;
         memmap_mgr_ = std::make_unique<mm::MemmapManager>(

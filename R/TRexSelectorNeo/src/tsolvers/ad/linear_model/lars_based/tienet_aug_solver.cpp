@@ -132,7 +132,7 @@ TIENETAug_Solver::TIENETAug_Solver(
     const Eigen::VectorXi& groups,
     const SolverOptions& options
 ) {
-    // SolverOptions fields consumed here (PLAN WP9).
+    // SolverOptions fields consumed here.
     const double      lambda2        = options.lambda2;
     const bool        normalize      = options.normalize;
     const bool        intercept      = options.intercept;

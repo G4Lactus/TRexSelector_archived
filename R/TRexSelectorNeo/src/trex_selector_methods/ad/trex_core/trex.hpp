@@ -217,7 +217,7 @@ struct TRexControlParameter {
             // Serial experiments: the solvers may use every core — unless
             // the selector is being constructed INSIDE a caller's parallel
             // region (a Monte Carlo loop over trials), where an inner team
-            // per outer thread oversubscribes the machine (2026-09-09).
+            // per outer thread oversubscribes the machine.
             max_outer_threads = 1;
             max_inner_threads = omp_in_parallel() ? 1 : omp_get_max_threads();
         }
@@ -534,8 +534,7 @@ public:
      *          hand X back right away with restore() instead of waiting for
      *          the destructor (in R and Python: the garbage collector).
      *          Idempotent; a no-op after select(). A restored selector cannot
-     *          run: select() throws, construct a new one (2026-09-25,
-     *          notes/ZERO_COPY_PLAN.md 5.2).
+     *          run: select() throws, construct a new one.
      */
     void restore();
 

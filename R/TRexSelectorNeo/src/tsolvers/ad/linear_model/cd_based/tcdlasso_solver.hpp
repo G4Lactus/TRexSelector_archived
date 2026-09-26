@@ -210,7 +210,7 @@ protected:
 
     /** @brief Coordinate-sweep convergence tolerance (certification solves).
      *
-     *  Kept at 1e-10 by decision (Fabian, 2026-09-24, PLAN WP3). In
+     *  Kept at 1e-10 deliberately. In
      *  CERTIFIED mode it only seeds the first certification round —
      *  certifyPoint() tightens by x0.1 per round until every coordinate is
      *  decided — so a looser seed saves little (5-9 % on the scenario-B
@@ -219,9 +219,7 @@ protected:
      *  LEGACY mode 1e-7 (the value aligned with kkt_slack_, which decides
      *  membership) is 2.2x faster with identical selections on that one
      *  design; it stays a per-run knob (cd_tol_certify) until the evidence
-     *  covers more designs. Findings:
-     *  Scientific Notes / Terminating Coordinate Descent /
-     *  tccd_agreement_and_tolerance_findings.md. */
+     *  covers more designs. */
     double cd_tol_{1e-10};
 
     /** @brief Looser sweep tolerance for jump/bisection probe solves. */

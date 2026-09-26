@@ -262,7 +262,7 @@ test_that("TRexSPCASelector accepts tenet_aug_use_lars (LARS vs LASSO inner path
 
 
 # =============================================================================
-# Memory-mapped X (2026-09-25, ZERO_COPY_PLAN 5.1): the file is centered in
+# Memory-mapped X: the file is centered in
 # place during select() and restored; results equal the in-memory path.
 # =============================================================================
 

@@ -23,7 +23,7 @@
  *  Clang (17+; GCC alike): every floating-point parameter and return value
  *  is tagged `nofpclass(nan inf)`, the optimizer knows the class of the
  *  argument before the memcpy, and the whole classifier folds to a
- *  constant — observed 2026-09-23 (Homebrew LLVM, Release -ffast-math):
+ *  constant — observed with Homebrew LLVM in a Release -ffast-math build:
  *  isfinite(+inf) == true for an infinity handed in by a caller, so a
  *  validator using it let an infinite lambda_2 through. The argument is
  *  therefore read back through a `volatile` first (detail::to_bits): the

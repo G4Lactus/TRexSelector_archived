@@ -41,7 +41,7 @@ void TLASSO_Solver::executeStep(std::size_t T_stop, bool early_stop) {
 
         // ========================================================
         // STEP 0: Drop-recovery step (R-lars drop-breakpoint
-        // semantics, FIX 2026-08-15). The previous step ended in a
+        // semantics). The previous step ended in a
         // LASSO drop, so NO variable joins here: the path moves along
         // the REDUCED active set until an inactive genuinely catches
         // up. Without this step the just-dropped variable — whose

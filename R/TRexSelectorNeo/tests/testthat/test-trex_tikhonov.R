@@ -276,7 +276,7 @@ test_that("lambda_2 auto-resolves via the IEN-geometry tuner", {
   expect_gte(diag$n_profile_at_edge, 0)
   expect_false(sel$lambda2_pilot$ran)
 
-  # Boundary-pick guard fields (PLAN WP6).
+  # Boundary-pick guard fields.
   expect_identical(diag$grid_size, 10L)
   expect_true(diag$grid_index >= 0L && diag$grid_index < 10L)
   expect_identical(diag$boundary_pick, diag$at_grid_edge || diag$profile_at_edge)

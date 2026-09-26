@@ -4,8 +4,7 @@
 /**
  * @file solver_options.hpp
  *
- * @brief SolverOptions — every T-solver input except the data X, D and y
- *        (PLAN WP9, "T-Solver specific" item 1).
+ * @brief SolverOptions — every T-solver input except the data X, D and y.
  *
  * @details One structure carries the preprocessing flags, the numerical
  *  tolerance, the tie-breaking configuration and every family

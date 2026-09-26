@@ -303,7 +303,7 @@ public:
     }
 
     /**
-     * @brief Validate a merge matrix before it is indexed (PLAN WP4 4.2, Arnau).
+     * @brief Validate a merge matrix before it is indexed.
      *
      * @details `cut_tree` reads `merges[i]` for the first `rows_needed`
      *  steps and indexes its bookkeeping by cluster id; a user-built matrix

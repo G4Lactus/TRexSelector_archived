@@ -18,7 +18,7 @@
  *          selector at the end of its run. A second in-place preprocessing
  *          of a buffer that is already transformed is not idempotent: it
  *          moves the data by rounding, and downstream near-ties resolve
- *          differently (found 2026-09-25 in the T-Stagewise checkpoint
+ *          differently (found in the T-Stagewise checkpoint
  *          demo). The registry makes the invariant executable at the cost
  *          of a set of pointers: a writer claims each buffer it transforms
  *          for as long as it holds it, and a second writer on a claimed

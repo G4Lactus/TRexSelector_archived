@@ -66,7 +66,7 @@ public:
     ridge_cv_svd() = default;
 
     /**
-     * @brief Choose the fold engine (2026-09-25, Tier C2 of notes/ZERO_COPY_PLAN.md).
+     * @brief Choose the fold engine.
      *
      * @param low_memory false (default): each fold gathers and standardises
      *        its training rows and takes a thin Jacobi SVD (about 3-4 copies of
@@ -305,8 +305,7 @@ public:
             // X_s_tr = (X_train - x_mean_tr) / x_scale_tr. The two passes
             // round exactly like the former fused expression into a second
             // matrix (a subtraction, then a division; no fusion possible), so
-            // the fold is bit-identical and one n_train x p copy is gone
-            // (2026-09-25, Tier B of notes/ZERO_COPY_PLAN.md).
+            // the fold is bit-identical and one n_train x p copy is gone.
             X_train.rowwise() -= x_mean_tr.transpose();
             X_train.array().rowwise() /= x_scale_tr.transpose().array();
             const Eigen::MatrixXd& X_s_tr = X_train;
@@ -467,7 +466,7 @@ public:
      *  `selection_at_grid_edge()` it tells you whether `cv_min()` is a real
      *  minimum or the grid simply running out.
      *
-     *  Measured (2026-08-05) on both regimes of the T-Rex demo designs, the
+     *  Measured on both regimes of the T-Rex demo designs, the
      *  picks are comfortably interior — idx_min 558/1000 at n=150,p=100 and
      *  179/1000 at n=200,p=500 — so no grid retuning was warranted. This
      *  accessor exists to make that verifiable per run rather than assumed. */
@@ -486,7 +485,7 @@ public:
 
 private:
 
-    // ---- kernel (dual) fold engine (Tier C2) ---------------------------------
+    // ---- kernel (dual) fold engine -------------------------------------------
     //
     // With X_s = U S V^T the standardised training fold, the SVD route forms
     // B_s = V_r diag(s / (s^2 + lambda)) U_r^T y_c and predicts X_s,te B_s.
@@ -626,7 +625,7 @@ private:
     /** @brief Index of the largest lambda within one SE of the minimum. */
     Eigen::Index idx_1se_ = 0;
     bool         interpolates_ = false;
-    bool         low_memory_   = false;   ///< kernel fold engine (Tier C2)
+    bool         low_memory_   = false;   ///< kernel fold engine
 };
 
 // ===================================================================================

@@ -93,8 +93,8 @@ TRexDASelector <- R6::R6Class("TRexDASelector",
       if (!missing(value)) {
         stop("Field is read-only.")
       }
-      # A 3-d array (T_stop x p x R) built once in C++ (2026-09-25); an
-      # empty result is a length-0 numeric vector, as before.
+      # A 3-d array (T_stop x p x R) built once in C++; an empty result
+      # is a length-0 numeric vector.
       trex_da_get_fdp_hat_array_bt(private$ptr)
     },
 
@@ -103,8 +103,8 @@ TRexDASelector <- R6::R6Class("TRexDASelector",
       if (!missing(value)) {
         stop("Field is read-only.")
       }
-      # A 3-d array (T_stop x p x R) built once in C++ (2026-09-25); an
-      # empty result is a length-0 numeric vector, as before.
+      # A 3-d array (T_stop x p x R) built once in C++; an empty result
+      # is a length-0 numeric vector.
       trex_da_get_phi_array_bt(private$ptr)
     },
 
@@ -113,8 +113,8 @@ TRexDASelector <- R6::R6Class("TRexDASelector",
       if (!missing(value)) {
         stop("Field is read-only.")
       }
-      # A 3-d array (T_stop x p x R) built once in C++ (2026-09-25); an
-      # empty result is a length-0 numeric vector, as before.
+      # A 3-d array (T_stop x p x R) built once in C++; an empty result
+      # is a length-0 numeric vector.
       trex_da_get_r_array_bt(private$ptr)
     },
 

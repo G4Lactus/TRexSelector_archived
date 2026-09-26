@@ -839,7 +839,7 @@ test_that("scaler fit() reads a readonly mmap_matrix; the in-place transforms ne
   mem_matrix_from(X, f)
   ro <- mem_matrix(f, rows = 20, cols = 4, mode = "readonly")
 
-  # fit() only reads: since 2026-09-25 it binds a const map, so a "readonly"
+  # fit() only reads: it binds a const map, so a "readonly"
   # handle is accepted and the statistics equal the in-memory fit exactly.
   sc <- MLZScoreScaler$new()
   expect_no_error(sc$fit(ro))
@@ -872,10 +872,10 @@ test_that("MLRidgeCV fits zero-copy from a readonly mmap_matrix handle", {
 
 
 # =============================================================================
-# Memory-mapped inputs of the regression / SVD / PCA classes (2026-09-25,
-# Tier A of notes/ZERO_COPY_PLAN.md): the mmap path calls the same core
-# through an equivalent view, so it must match the in-memory path
-# bit-for-bit; the read-only methods accept a "readonly" mapping.
+# Memory-mapped inputs of the regression / SVD / PCA classes: the mmap path
+# calls the same core through an equivalent view, so it must match the
+# in-memory path bit-for-bit; the read-only methods accept a "readonly"
+# mapping.
 # =============================================================================
 
 local({
@@ -944,9 +944,8 @@ local({
 
 
 # =============================================================================
-# low_memory engine (2026-09-25, ZERO_COPY_PLAN Tier C1): the raw-X coordinate
-# descent agrees with the copying engine to rounding and reads a readonly
-# mmap_matrix in place.
+# low_memory engine: the raw-X coordinate descent agrees with the copying
+# engine to rounding and reads a readonly mmap_matrix in place.
 # =============================================================================
 
 test_that("MLElasticNet(low_memory = TRUE) agrees with the copying engine", {

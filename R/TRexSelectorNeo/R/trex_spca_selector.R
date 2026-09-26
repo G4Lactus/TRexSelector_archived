@@ -139,8 +139,7 @@ TRexSPCASelector <- R6::R6Class("TRexSPCASelector",
                           seed    = -1L,
                           verbose = FALSE) {
       # A memory-mapped X is centered in the file during select() and
-      # restored ("readwrite"); an R matrix is bound zero-copy (2026-09-25;
-      # the whole file used to be read through as.matrix()).
+      # restored ("readwrite"); an R matrix is bound zero-copy.
       is_mmap <- inherits(X, "mmap_matrix")
       if (!is_mmap && !is.matrix(X)) X <- as.matrix(X)
       stopifnot(

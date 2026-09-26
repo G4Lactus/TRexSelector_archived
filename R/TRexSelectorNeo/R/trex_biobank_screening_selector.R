@@ -58,7 +58,7 @@ TRexBiobankScreeningSelector <- R6::R6Class("TRexBiobankScreeningSelector",
 
       # A memory-mapped X is mapped directly ("readwrite": the screening's
       # inner selectors normalize it in place per call and restore it); an R
-      # matrix is bound zero-copy in double storage (2026-09-25).
+      # matrix is bound zero-copy in double storage.
       is_mmap <- inherits(X, "mmap_matrix")
       if (!is_mmap) X <- .as_double_matrix(X)
       n_x <- if (is_mmap) dim(X)[1] else nrow(X)

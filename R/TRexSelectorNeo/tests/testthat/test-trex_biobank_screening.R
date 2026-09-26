@@ -230,7 +230,7 @@ test_that("TRexBiobankScreeningSelector 2D result has 1-based phenotype_index an
 
 
 # =============================================================================
-# Memory-mapped X (2026-09-25, ZERO_COPY_PLAN 5.1): mapped directly instead of
+# Memory-mapped X: mapped directly instead of
 # being read whole; results equal the in-memory path.
 # =============================================================================
 
