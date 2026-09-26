@@ -638,7 +638,7 @@ TEST_F(TRexTikhonovTest, Equivalence_FoldedGroupKMatchesGvsTcdienet_Singletons) 
  *  lambda_2 in {10, 0} the Tikhonov and GVS selectors select IDENTICAL
  *  sets. Together with the DISABLED test below this pins WHERE the two
  *  selectors part company: only when the L-loop extends the cluster
- *  dummies beyond L = p (finding 2026-08-25, TRex_Tikhonov demos). */
+ *  dummies beyond L = p (found in the TRex_Tikhonov demos). */
 TEST_F(TRexTikhonovTest, Equivalence_FoldedGroupKMatchesGvsTcdienet_DemoControl_LcappedAtP) {
     const Eigen::Index n = 150, p = 100, grouped = 20, gsize = 5;
     std::vector<Eigen::Index> prior_groups(static_cast<std::size_t>(p));
@@ -714,7 +714,7 @@ TEST_F(TRexTikhonovTest, Equivalence_FoldedGroupKMatchesGvsTcdienet_DemoControl_
 /** @brief The same configuration with the L-loop allowed to grow
  *  (max_dummy_multiplier = 10) on the six seeds that used to diverge
  *  (6 of 160 over seeds 1-80 x lambda_2 {10, 0}; both directions,
- *  lambda_2 = 0 included). Root cause (2026-09-24): the dummies and the
+ *  lambda_2 = 0 included). Root cause: the dummies and the
  *  per-experiment paths were identical; the classical runner accumulated
  *  Phi as K additions of 1/K, leaving a rounding residue that decided the
  *  strict `Phi > v` comparison at the ties the 1/K voting lattice makes

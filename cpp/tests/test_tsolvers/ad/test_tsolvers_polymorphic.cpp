@@ -78,8 +78,7 @@ std::unique_ptr<T> create_solver(Eigen::Map<Eigen::MatrixXd>& X,
                                  Eigen::Map<Eigen::MatrixXd>& D,
                                  Eigen::Map<Eigen::VectorXd>& y) {
     // Every solver takes (X, D, y, options); the EN / IEN families read
-    // lambda2 from the options, the IEN family also takes the group vector
-    // (PLAN WP9).
+    // lambda2 from the options, the IEN family also takes the group vector.
     trex::tsolvers::ad::SolverOptions opts;
     opts.lambda2 = 0.5;
     if constexpr (std::is_same_v<T, TENET_Solver> ||

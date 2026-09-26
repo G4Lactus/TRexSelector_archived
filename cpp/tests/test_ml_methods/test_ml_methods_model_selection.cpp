@@ -716,7 +716,7 @@ TEST(IenetCvCcdTest, StructureAndDeterminism) {
 }
 
 
-/** @brief The boundary-pick guard fields (PLAN WP6) describe the pick the
+/** @brief The boundary-pick guard fields describe the pick the
  *  caller uses: grid position, grid-edge flag, the chosen lambda2's own
  *  profile-at-edge flag, and their OR; the per-lambda2 flags sum to the
  *  edge counter; the message is empty exactly when the pick is healthy. */
@@ -794,8 +794,8 @@ TEST(Lambda2CvDiagnosticsTest, GridPickRecordAndMessage) {
 
 /** @brief A pure-noise response (flat CV curve) pins the IEN tuner's 1SE
  *  pick to the lambda2 grid ceiling while the truncation-edge counter can
- *  stay at zero — the second failure mode of TODO 4.12, which the guard
- *  must see through at_grid_edge, not n_profile_at_edge. */
+ *  stay at zero — a failure mode the guard must see through at_grid_edge,
+ *  not n_profile_at_edge. */
 TEST(IenetCvCcdTest, PureNoisePinsThePickToTheGridCeiling) {
     const Eigen::Index n = 60, p = 24;
     Eigen::MatrixXd X = random_matrix(n, p, 61);
@@ -940,7 +940,7 @@ TEST(RidgeCvSvdTest, DimensionalAndGridCheckers) {
  *  wrong here. Pinned so the two classes do not get "harmonized".
  *
  *  This test ALSO pins a KNOWN DEFICIENCY that `selection_at_grid_edge()`
- *  was added to surface (found 2026-08-05). At alpha = 0 the grid anchor is
+ *  was added to surface. At alpha = 0 the grid anchor is
  *  lambda_max = max|X^T y| / (n * alpha_eff) with alpha_eff = 1e-3, i.e.
  *  inflated ~1000x above the natural ridge scale, so glmnet's 1e-4 span
  *  reaches only ~0.1x that scale. On this problem that is not deep enough:

@@ -5,7 +5,7 @@
  * @file test_trex_scaling_none.cpp
  *
  * @brief ScalingMode::NONE (user-managed design) and the normalizer's input
- *        rejection (PLAN WP5; WP4 4.1 (d)).
+ *        rejection.
  *
  * @details Contracts pinned here:
  *   - NONE leaves X and y bit-identical, stores the identity parameters, and

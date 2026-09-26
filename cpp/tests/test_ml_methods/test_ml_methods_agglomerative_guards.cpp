@@ -2,7 +2,7 @@
 /**
  * @file test_ml_methods_agglomerative_guards.cpp
  *
- * @brief Input guards of the agglomerative clustering (PLAN WP4 4.1 / 4.2):
+ * @brief Input guards of the agglomerative clustering:
  *  non-finite data is rejected at the dispatcher before any engine runs, a
  *  zero-norm column keeps its documented "maximally dissimilar" convention,
  *  and cut_tree / cut_tree_by_height refuse malformed merge matrices instead

@@ -402,7 +402,7 @@ TEST(PCATest, Exceptions_TransformBeforeFit) {
 /** @brief Test restore() before fit() throws std::runtime_error. */
 TEST(PCATest, RestoreBeforeFitGivesXBack) {
     // The preprocessing happens at construction, so a caller who does not
-    // fit still gets X back (2026-09-25; it used to throw before fit()).
+    // fit still gets X back (it used to throw before fit()).
     Eigen::MatrixXd X = Eigen::MatrixXd::Random(20, 10);
     const Eigen::MatrixXd X0 = X;
     PCA pca(X, 3);

@@ -2,7 +2,7 @@
 /**
  * @file test_utils_checked_arith.cpp
  * @brief Overflow-checked size arithmetic (checked_arith.hpp) and its use in the
- *  memory-mapped matrix (PLAN WP4 4.3, Arnau): a wrapping rows * cols * sizeof
+ *  memory-mapped matrix: a wrapping rows * cols * sizeof
  *  must throw before any file is touched instead of mapping a too-small file.
  */
 // ========================================================================================
@@ -42,7 +42,7 @@ TEST(CheckedArithTest, ProductsThatFitPassThrough) {
 TEST(CheckedArithTest, WrappingProductsThrow) {
     const std::size_t half = std::numeric_limits<std::size_t>::max() / 2 + 1;
     EXPECT_THROW(checked_mul(half, 2), std::overflow_error);
-    // Arnau's example: (2^61 + 1) * 8 wraps to 8 in 64-bit arithmetic.
+    // (2^61 + 1) * 8 wraps to 8 in 64-bit arithmetic.
     EXPECT_THROW(checked_bytes((std::size_t{1} << 61) + 1, 1, 8), std::overflow_error);
     EXPECT_THROW(checked_bytes(std::size_t{1} << 40, std::size_t{1} << 40, 1),
                  std::overflow_error);

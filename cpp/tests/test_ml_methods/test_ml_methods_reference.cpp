@@ -2,8 +2,7 @@
 /**
  * @file test_ml_methods_reference.cpp
  *
- * @brief Bit-identity harness for the zero-copy work on the ML methods
- *        (notes/ZERO_COPY_PLAN.md, section 0).
+ * @brief Bit-identity harness for the zero-copy work on the ML methods.
  *
  * @details Every ML core is run on fixed synthetic data of three shapes
  *          (tall, wide, square) and every output is compared byte for byte
@@ -16,9 +15,9 @@
  *                                     tree records, every later run compares.
  *            unset                  — the tests are skipped.
  *
- *          Tier A and Tier B changes (binding boundary, copy fusion) must
- *          keep every case identical; a Tier C change (algebraic rewrite)
- *          re-records after its tolerance has been checked and reported.
+ *          Changes at the binding boundary and copy fusions must keep
+ *          every case identical; an algebraic rewrite re-records after
+ *          its tolerance has been checked and reported.
  */
 // ==================================================================================
 
@@ -168,8 +167,9 @@ void compare_or_record(const std::string& case_name, const Stream& s) {
     }
     EXPECT_EQ(first_diff, ref.size())
         << case_name << ": output differs from the recorded reference " << file
-        << " at byte " << first_diff << " (Tier A/B must be bit-identical; a "
-        << "Tier C change re-records after its tolerance report)";
+        << " at byte " << first_diff << " (binding-boundary and copy-fusion "
+        << "changes must be bit-identical; an algebraic rewrite re-records "
+        << "after its tolerance report)";
 }
 
 } // namespace

@@ -4,7 +4,7 @@
 /**
  * @file test_tsolvers_buffer_guard.cpp
  *
- * @brief Tests for the shared-buffer claim of the T-solvers (2026-09-25):
+ * @brief Tests for the shared-buffer claim of the T-solvers:
  *        the single-owner invariant for buffers preprocessed in place.
  *
  * @details A T-solver constructed with normalize = true or intercept = true

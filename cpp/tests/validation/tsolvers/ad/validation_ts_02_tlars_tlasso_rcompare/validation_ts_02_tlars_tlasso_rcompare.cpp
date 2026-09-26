@@ -119,7 +119,7 @@ static std::vector<int> read_actions(const std::filesystem::path& path)
 // ============================================================================
 /**
  * @brief Flatten getActions() into a single signed action stream.
- *  FIX 2026-08-15: the tsolvers actions are ALREADY R's signed-1-based
+ *  The tsolvers actions are ALREADY R's signed-1-based
  *  convention (TSolver_Base::actionAdd(j) = +(j+1), actionDrop(j) =
  *  -(j+1)); the previous +1/-1 remap here double-shifted every index and
  *  made the action comparison report DIFFER even for paths matching at
@@ -341,7 +341,7 @@ int main(int argc, char** argv)
               << "   EN ridge-damped tie tol = " << EN_TIE_TOL << "\n\n";
 
     std::cout <<
-        "  Interpretation (post drop-recovery FIX 2026-08-15):\n"
+        "  Interpretation (with the drop-recovery step):\n"
         "   * TLARS matches CRAN to machine precision throughout the full-rank\n"
         "     region (steps < n); p+L>n means the path tail is non-unique\n"
         "     (null-space extrapolation), so it is excluded from the gate.\n"

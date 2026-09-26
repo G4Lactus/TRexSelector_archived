@@ -1,8 +1,7 @@
 #!/bin/bash
 # =============================================================================
 # run_install_smoke.sh — install the C++ SDK into a scratch prefix and build
-# a find_package consumer against it (PLAN WP4 4.4; Arnau's request for an
-# install / find_package smoke test).
+# a find_package consumer against it (the install / find_package smoke test).
 #
 #   usage: cpp/tests/install_smoke/run_install_smoke.sh [build-dir]
 #          (default build dir: cpp/build/release)

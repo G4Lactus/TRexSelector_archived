@@ -3,7 +3,7 @@
  * @file test_ml_methods_memory.cpp
  *
  * @brief Peak-memory budget of the ML cores, in units of the design matrix
- *        (notes/ZERO_COPY_PLAN.md, section 0: the allocation guard).
+ *        (the allocation guard).
  *
  * @details Eigen allocates through malloc, not operator new, so a global
  *          operator-new counter cannot see it; the portable measure is the
@@ -12,7 +12,7 @@
  *          after it on a design of 32 MB; the growth is the working memory
  *          the call needed on top of what was already resident. A full
  *          copy of X raises it by at least one X. The budgets below are the
- *          CURRENT state of each core, tightened as the tiers land; a
+ *          CURRENT state of each core, tightened as copies are removed; a
  *          regression that adds a copy of X fails here.
  *
  *          The measurement is a process-wide peak, so each test must run in
@@ -21,10 +21,10 @@
  *          otherwise the first test's peak hides the later ones. Set
  *          TREX_ML_MEMORY_VERBOSE=1 to print the measured growth per call.
  *
- *          Measured 2026-09-25 (macOS, Accelerate BLAS, Eigen 5.0), wide
- *          500 x 8000: ridge CV 4.55 x X, elastic net 1.09 x X, elastic net
- *          CV 2.17 x X, SVD 0.35 x X, ridge 0.33 x X, PCA 0.35 x X, scaler
- *          0.03 x X.
+ *          Measured on the copying cores before the in-place rewrites
+ *          (macOS, Accelerate BLAS, Eigen 5.0), wide 500 x 8000: ridge CV
+ *          4.55 x X, elastic net 1.09 x X, elastic net CV 2.17 x X, SVD
+ *          0.35 x X, ridge 0.33 x X, PCA 0.35 x X, scaler 0.03 x X.
  */
 // ==================================================================================
 
@@ -114,7 +114,7 @@ double growth_in_X(const Design& d, const char* what, F&& f) {
 } // namespace
 
 // ==================================================================================
-// Budgets: the current state (2026-09-25), tightened per tier
+// Budgets: the current state of each core
 // ==================================================================================
 
 /** @brief RidgeCV: per fold X_train + standardized copy + Jacobi internals. */

@@ -115,7 +115,7 @@ TEST(DummyScaling, GenerateAndStoreColumnsCenteredAndScaled) {
 
 /** @brief ScalingMode::NONE is the user-managed design convention; the
  *         dummies keep the unit-L2 standard, so a NONE generator must be
- *         bit-identical to the L2 generator with the same seed (PLAN WP5). */
+ *         bit-identical to the L2 generator with the same seed. */
 TEST(DummyScaling, NoneMapsDummiesToTheUnitL2Standard) {
     const std::size_t n = 40, p = 25, K = 3;
 

@@ -2,8 +2,7 @@
 /**
  * @file test_ml_methods_low_memory.cpp
  *
- * @brief The raw-X (low-memory) elastic-net engine against the copying engine
- *        (notes/ZERO_COPY_PLAN.md, Tier C1).
+ * @brief The raw-X (low-memory) elastic-net engine against the copying engine.
  *
  * @details Same estimator, same grid, two arithmetic routes: the copying
  *          engine centres and standardises X into a working copy, the raw
@@ -176,7 +175,7 @@ INSTANTIATE_TEST_SUITE_P(Shapes, LowMemoryEngine, ::testing::ValuesIn(kShapes),
 
 
 // ==================================================================================
-// Ridge CV: the kernel (dual) fold engine against the SVD route (Tier C2)
+// Ridge CV: the kernel (dual) fold engine against the SVD route
 // ==================================================================================
 
 #include <ml_methods/model_selection/ridge_cv_svd.hpp>

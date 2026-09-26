@@ -1,5 +1,5 @@
 # ==================================================================================
-# Install smoke consumer (PLAN WP4 4.4; Arnau's install / find_package check).
+# Install smoke consumer (install / find_package check).
 #
 # A minimal downstream project: it finds an INSTALLED TRexSelector through
 # find_package and links one selector target. Driven by run_install_smoke.sh,

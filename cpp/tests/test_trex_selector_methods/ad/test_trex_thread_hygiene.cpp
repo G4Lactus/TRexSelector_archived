@@ -3,8 +3,8 @@
  * @file test_trex_thread_hygiene.cpp
  *
  * @brief The process-global thread settings must be exactly what they were
- *  before a selection once select() returns, on every runner path (PLAN WP4
- *  4.5, Arnau): the library sets its budget once from the calling thread,
+ *  before a selection once select() returns, on every runner path: the
+ *  library sets its budget once from the calling thread,
  *  never inside an OpenMP team, and restores it. A leak here changes the
  *  threading of the host process (an R or Python session) behind its back.
  *

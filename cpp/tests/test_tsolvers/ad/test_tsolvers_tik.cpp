@@ -319,7 +319,7 @@ protected:
             ::testing::TempDir() + "tik_ckpt_" + tag + ".bin";
         // The writer `part` stays alive across the resumed run: the resumed
         // reader expects the buffers in the saved (preprocessed) state, and
-        // a writer writes X and D back when it is destroyed (2026-09-25).
+        // a writer writes X and D back when it is destroyed.
         SolverT part = make(mp);
         part.executeStep(T_partial, true);
         part.save(file);
@@ -734,7 +734,7 @@ TEST_F(TSolverTikTest, SerializeLoadContinueAcrossDropRecovery_TIKNET) {
     // on every platform; DropDesign's std::rand data differ between glibc
     // and the macOS libc, and its seed 12 hit only on the latter). The
     // configuration below was found by a search over seeds, signal columns
-    // and amplitudes (2026-09-25): the T = 2 probe ends on a drop step.
+    // and amplitudes: the T = 2 probe ends on a drop step.
     PortableDropDesign dd(20, 75);
     dd.y += 5.0 * dd.D.col(5);  // dummy signal pulls a dummy admission
                                 // onto a drop step (pending checkpoint)

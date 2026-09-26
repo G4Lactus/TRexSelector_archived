@@ -55,7 +55,7 @@ add_trex_test(test_ml_methods_agglomerative_dispatcher test_ml_methods/test_ml_m
 add_trex_test(test_ml_methods_svd test_ml_methods/test_ml_methods_svd.cpp)
 add_trex_test(test_ml_methods_pca test_ml_methods/test_ml_methods_pca.cpp)
 add_trex_test(test_ml_methods_ridge test_ml_methods/test_ml_methods_ridge.cpp)
-# Zero-copy harness (notes/ZERO_COPY_PLAN.md, section 0): bit-identity against
+# Zero-copy harness: bit-identity against
 # a recorded reference (skipped unless TREX_ML_REF_DIR is set) and the peak-
 # memory budgets of the cores in units of X.
 add_trex_test(test_ml_methods_reference test_ml_methods/test_ml_methods_reference.cpp)

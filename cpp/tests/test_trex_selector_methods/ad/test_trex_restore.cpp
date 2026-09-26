@@ -2,8 +2,7 @@
 /**
  * @file test_trex_restore.cpp
  *
- * @brief TRexSelector::restore(): give X back before select() (2026-09-25,
- *        notes/ZERO_COPY_PLAN.md 5.2).
+ * @brief TRexSelector::restore(): give X back before select().
  *
  * @details The selector normalizes X in place at construction and restores
  *          it when select() returns (and in the destructor). restore() hands

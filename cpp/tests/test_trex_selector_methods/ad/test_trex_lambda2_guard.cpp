@@ -5,7 +5,7 @@
  * @file test_trex_lambda2_guard.cpp
  *
  * @brief The lambda_2 tuner boundary-pick guard at the selector level
- *        (PLAN WP6, TODO 4.12; warning-only by decision of 2026-09-24).
+ *        (warning-only by design).
  *
  * @details Contracts pinned here:
  *   - GVS-IEN with the IEN CCD tuner on a pure-noise response: the pick is

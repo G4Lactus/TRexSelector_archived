@@ -52,9 +52,8 @@ using trex::tsolvers::ad::SparseBetaPath;
 namespace {
 
 /** @brief Real-variable support at the FIRST recorded step with at least t
- *  active dummies (first-reach, the T-Rex phi extraction semantics since
- *  2026-08-23), for t = 1..T. result[t-1] is empty when no recorded step
- *  reaches count t. */
+ *  active dummies (first-reach, the T-Rex phi extraction semantics), for
+ *  t = 1..T. result[t-1] is empty when no recorded step reaches count t. */
 std::vector<std::set<std::size_t>> supportsAtDummyCounts(
     const SparseBetaPath& path, std::size_t p, std::size_t T,
     double eps = 1e-12) {
@@ -159,7 +158,7 @@ protected:
             ::testing::TempDir() + "cd_ckpt_" + tag + ".bin";
         // The writer `part` stays alive across the resumed run: the resumed
         // reader expects the buffers in the saved (preprocessed) state, and
-        // a writer writes X and D back when it is destroyed (2026-09-25).
+        // a writer writes X and D back when it is destroyed.
         SolverT part = make(mp);
         part.executeStep(T_partial, true);
         part.save(file);
