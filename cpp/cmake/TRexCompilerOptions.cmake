@@ -7,14 +7,14 @@
 # NOTE: -march=native (MSVC: /arch:AVX2) is gated behind NOT TREX_PORTABLE_BUILD
 # (wheel/PyPI builds).
 #
-# FLAG POLICY (Fabian, 2026-08-17; enacted 2026-09-24): Release builds are
+# FLAG POLICY: Release builds are
 # IEEE 754 conformant — NO -ffast-math / /fp:fast in any configuration.
 # -ffast-math implies -ffinite-math-only, under which the compiler tags every
 # floating-point argument and return value as finite and folds away exactly
 # the NaN/Inf observability the guards depend on: with it, every
 # fp_classify::isfinite / isinf / isnan in the Release library compiled to a
-# constant (found 2026-09-23 through a validator that let an infinite lambda_2
-# through), and a literal infinity materialized into a container arrives as an
+# constant (found through a validator that let an infinite lambda_2 through),
+# and a literal infinity materialized into a container arrives as an
 # arbitrary finite value. The bit-based checks in utils/fp_classify stay
 # mandatory in HEADERS, because downstream consumers may still compile them
 # with fast-math.

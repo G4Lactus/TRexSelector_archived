@@ -230,7 +230,7 @@ endif()
 
 
 # ============================================================================
-# Install layout and hygiene (PLAN WP4 4.4 / 4.6)
+# Install layout and hygiene
 # ============================================================================
 # Headers install under a NAMESPACED root, <prefix>/include/TRexSelector/, so
 # the package never owns generic names such as include/utils inside a shared

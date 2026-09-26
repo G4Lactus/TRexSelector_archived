@@ -1,9 +1,9 @@
 # Linux verification in OrbStack (Docker)
 
 Reproduces the three Ubuntu CI jobs and the Linux wheel build locally, on
-an export of the committed `HEAD` (the worktree is never touched). First run
-2026-09-25; it found two macOS-calibrated C++ tests and three unparseable Rd
-pages that CI could not see.
+an export of the committed `HEAD` (the worktree is never touched). Its first
+run found two macOS-calibrated C++ tests and three unparseable Rd pages that
+CI could not see.
 
 ## Stage A: `ubuntu:24.04`, native arm64
 
