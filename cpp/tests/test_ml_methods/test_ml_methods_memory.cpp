@@ -124,7 +124,11 @@ TEST(MLMemory, RidgeCV) {
         ridge_cv_svd cv;
         cv.fit(d.X, d.y, 5, 20, 1000.0, 1u);
     });
-    EXPECT_LT(g, 4.0) << "ridge CV allocated more than its budget of 4 x X";
+    // The Jacobi SVD keeps one internal copy of the fold under Eigen 5.0 (the
+    // QR preconditioner) and two under Eigen 3.4 (plus its scaled copy):
+    // measured 3.64 X on macOS / Eigen 5.0 and 4.50 X on Ubuntu / Eigen 3.4.
+    const double budget = EIGEN_VERSION_AT_LEAST(5, 0, 0) ? 4.0 : 5.0;
+    EXPECT_LT(g, budget) << "ridge CV allocated more than its budget of " << budget << " x X";
 }
 
 /** @brief ElasticNet: the centred member copy Xs_ plus p x K paths. */
