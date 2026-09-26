@@ -46,6 +46,20 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
 
 ### 2026-09-25
 
+#### Linux verification of f390bfc (OrbStack): one budget, one locale
+
+- The three Ubuntu jobs on the committed f390bfc: C++ 548 of 549, the R
+  suite, `R CMD build`, `R CMD check` (the three known environment NOTEs),
+  Python 610, the install smoke, and the cp312 manylinux_2_28 x86_64 wheel
+  with its in-container tests — all green, except:
+- `MLMemory.RidgeCV` measured 4.50 X on Ubuntu (Eigen 3.4) against the
+  4 X budget set on macOS (Eigen 5.0): the Jacobi SVD keeps two internal
+  copies of the fold under 3.4 (the scaled copy and the QR preconditioner)
+  and one under 5.0. The budget is version-dependent now (4 X / 5 X).
+- `R CMD check` reported a WARNING in the syntax check because a bare
+  `ubuntu:24.04` image has no `en_US.UTF-8` locale; the stage script
+  installs `locales`, generates it and runs the check under it.
+
 #### ML methods: zero-copy harness and the read-only binding boundary (Tier A)
 
 - Ground rule (Fabian): no binding copies X, D or a memory-mapped matrix;
