@@ -44,6 +44,28 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   `-ffast-math`: results are IEEE 754 conformant; runs from fast-math builds are
   not bit-reproducible against these.
 
+### 2026-09-26
+
+#### CRAN readiness: the as-cran result, and the Linux installed size
+
+- `R CMD check --as-cran` on macOS (R 4.6): Status 1 NOTE, the "new
+  submission" one every first submission gets; tarball 1.7 MB, installed
+  11.8 MB, examples (also `--run-donttest`), tests, both manuals and the
+  vignette OK; install 323 s, vignette rebuild 158 s.
+- The 292 MB installed size seen in the Ubuntu run was debug information,
+  not code: R compiles with `-g` on every platform, macOS keeps the DWARF
+  in the object files (the shared object is 6.8 MB), ELF platforms link
+  the DWARF of the 48 Eigen-templated translation units into the shared
+  object. The generated `src/Makevars.in` now strips it after linking on
+  Linux (`all: $(SHLIB) strippedLib`, the CRAN-accepted post-link idiom of
+  rstan and prophet; no compiler flag is overridden; a no-op elsewhere).
+  Measured in the provisioned Ubuntu image: shared object 5.6 MB,
+  installed package 7.1 MB. `Makevars.win` is unchanged; the templates in
+  `bundle_for_cran.sh` are plain ASCII.
+- Still to do before a submission: a precomputed vignette (2.6 min of
+  simulations at check time), win-builder for Windows and R-devel, and
+  the release from the public main repository.
+
 ### 2026-09-25
 
 #### Linux verification of f390bfc (OrbStack): one budget, one locale
