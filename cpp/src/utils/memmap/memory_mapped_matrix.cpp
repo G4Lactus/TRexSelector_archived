@@ -68,7 +68,7 @@ template<typename Scalar>
 void MemoryMappedMatrix<Scalar>::initialize() {
     // Overflow-checked BEFORE the file is touched: a wrapped product would
     // create a too-small file that the Map still claims to cover, and every
-    // later in-bounds-looking access would fault (PLAN WP4 4.3, Arnau).
+    // later in-bounds-looking access would fault.
     const std::size_t required_bytes = trex::utils::checked_arith::checked_bytes(
         rows_, cols_, sizeof(Scalar), "MemoryMappedMatrix");
     namespace fs = std::filesystem;
