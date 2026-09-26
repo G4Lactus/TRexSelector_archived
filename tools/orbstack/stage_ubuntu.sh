@@ -39,8 +39,9 @@ if [ "${1:-}" != "--no-apt" ]; then
         libopenblas-dev liblapack-dev \
         r-base r-base-dev r-cran-rcpp r-cran-rcppeigen r-cran-bh r-cran-r6 \
         r-cran-matrix r-cran-testthat r-cran-knitr r-cran-rmarkdown r-cran-ggplot2 \
-        pandoc qpdf \
-        python3 python3-venv python3-pip python3-dev; } > "$LOG/apt.log" 2>&1
+        pandoc qpdf locales \
+        python3 python3-venv python3-pip python3-dev \
+      && locale-gen en_US.UTF-8; } > "$LOG/apt.log" 2>&1
     say "apt: exit $?"
     # Rcereal is LinkingTo and not in apt; patchwork (Suggests) may fail
     # to install from source on the apt ggplot2 and is not required.
@@ -73,7 +74,10 @@ rm -rf "$REPO"/TRexSelectorNeo_*.tar.gz "$REPO"/TRexSelectorNeo.Rcheck
 run r_build R CMD build --no-build-vignettes --no-manual R/TRexSelectorNeo
 TARBALL=$(ls -t "$REPO"/TRexSelectorNeo_*.tar.gz 2>/dev/null | head -1)
 step r_check
-( cd "$REPO" && _R_CHECK_CRAN_INCOMING_=false _R_CHECK_FORCE_SUGGESTS_=false \
+# en_US.UTF-8 (generated in the apt step): the syntax check sets that locale
+# and a bare ubuntu:24.04 image has none, which surfaces as a WARNING.
+( cd "$REPO" && LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
+    _R_CHECK_CRAN_INCOMING_=false _R_CHECK_FORCE_SUGGESTS_=false \
     R CMD check --no-manual --ignore-vignettes --no-build-vignettes "$TARBALL" ) > "$LOG/r_check.log" 2>&1
 say "r_check: exit $?"
 grep -E "^Status:|WARNING|ERROR|NOTE" "$LOG/r_check.log" | sed 's/^/    /' | tee -a "$SUM"
