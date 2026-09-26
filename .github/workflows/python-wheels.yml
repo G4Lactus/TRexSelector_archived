@@ -22,7 +22,7 @@ jobs:
       fail-fast: false
       matrix:
         # Pin macOS to a stable arm64 runner (macos-14) rather than macos-latest,
-        # which migrated to the bleeding-edge macOS 26 image around 2026-06-15 and
+        # which now points at the bleeding-edge macOS 26 image and
         # breaks delocate-wheel's repair/arch step. macos-14 also yields wheels with
         # a broader minimum-OS compatibility.
         os: [ubuntu-latest, macos-14, windows-latest]
