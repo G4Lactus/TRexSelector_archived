@@ -54,8 +54,43 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   and equal T-MP's. The augmented EN wrappers count the intercept in their
   degrees of freedom for lambda2 > 0 (one more than before). See the 2026-09-27
   entry.
+- `SolverOptions::tie_seed` defaults to 0 (C++, R `tsolver_options()`, Python
+  `SolverOptions`): a solver without an explicit seed breaks exact ties
+  reproducibly; a negative seed keeps the former std::random_device behavior. The
+  T-Rex selectors are unchanged (seeded selectors derive per-experiment seeds,
+  unseeded ones pass -1).
 
 ### 2026-09-27
+
+#### T-solvers: selection read from the coefficient path, the fixed default tie seed, IEEE Examples
+
+- `cdiagnostics::selected_variables()`: the selection of a fitted solver as the
+  T-Rex selector reads it, the variables with |beta_j| > machine epsilon at the
+  last recorded step, split into predictors and dummies (active ones in
+  active-set order, then the frozen ones). `print_selection()` and
+  `print_selection_quality()` use it; they listed the active set, which
+  under-reported T-Stagewise (one demo run: 32 active, 44 with a coefficient,
+  four true variables near 2.7 among the frozen ones). Frozen variables are
+  printed on a line of their own; for the other solvers the output is unchanged.
+  The TSTAGEWISE_Solver documentation states the frozen coefficients.
+- `SolverOptions::tie_seed` defaults to 0: direct solver runs are reproducible
+  also where exact ties occur (T-LASSO at T = 50 changed in 1 of 500 demo runs
+  between repetitions with the random_device default). A negative seed keeps the
+  nondeterministic seeding; the T-Rex selectors pass their seeds explicitly.
+- Cycling at saturation (T-Stagewise through removals and re-entries up to the
+  step limit, T-LASSO more mildly) is part of these solvers and is left as is.
+- The Examples compile their demos without `-ffast-math`, as the library: the
+  header-inline library code they instantiate stays IEEE 754 conformant, and demo
+  numbers are bit-comparable with the library builds.
+- Solver identities over full paths (Examples cpp/tsolvers/README.md, measured on
+  demo_ts_perf_01, 100 runs to T = 100): T-OMP = T-AFS (rho 1) = T-NCGMP (fully
+  corrective) bit for bit; T-Stepwise the same steps as T-OMP (coefficients within
+  1.1e-12); T-MP = T-NCGMP (line search) in every step (coefficients within
+  2.1e-14); T-LASSO = T-LARS bit for bit up to the first T-LASSO drop, T-Stagewise
+  within 2.7e-13 up to its first NNLS removal.
+- Tests: C++ 572 of 572 (new: `SelectedVariablesReadTheCoefficientPath`,
+  `TStagewiseSelection.FrozenCoefficientsAreSelected`,
+  `DefaultTieSeedIsReproducible`), R and Python check the default seed.
 
 #### T-solvers: T-NCGMP stopping rules, augmented EN degrees of freedom, install timestamps
 
