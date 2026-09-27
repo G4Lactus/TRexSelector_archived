@@ -447,6 +447,10 @@ er::ExperimentRunnerConfig TRexSelector::buildRunnerConfig(
     cfg.scaling_mode          = (trex_ctrl_.scaling_mode == dn::ScalingMode::ZSCORE)
                                     ? trex::tsolvers::ad::ScalingMode::ZSCORE
                                     : trex::tsolvers::ad::ScalingMode::L2;
+    // The constructor centered X and y in every mode except NONE (the
+    // user-managed design is left untouched): the solvers then run on
+    // centered data of rank n - 1.
+    cfg.precentered           = (trex_ctrl_.scaling_mode != dn::ScalingMode::NONE);
     cfg.use_warm_start        = use_warm_start;
     cfg.use_memory_mapping    = trex_ctrl_.use_memory_mapping;
     cfg.max_outer_threads     = trex_ctrl_.max_outer_threads;

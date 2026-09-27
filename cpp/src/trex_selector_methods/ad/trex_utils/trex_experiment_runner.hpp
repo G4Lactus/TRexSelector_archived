@@ -158,6 +158,11 @@ struct ExperimentRunnerConfig {
      *  their own columns (needed for augmented-EN consistency). */
     trex::tsolvers::ad::ScalingMode scaling_mode = trex::tsolvers::ad::ScalingMode::L2;
 
+    /** @brief X and y were centered by the selector (the dummies always
+     *  are): the solvers cap their active sets at n - 1, the rank of the
+     *  centered design (SolverOptions::precentered). */
+    bool precentered = false;
+
     // --- Warm start ---
     bool use_warm_start = false;
 
@@ -743,6 +748,7 @@ private:
             .y = y,
             .normalize = false,
             .intercept = false,
+            .precentered = cfg.precentered,
             .verbose = false,
             .scaling_mode = cfg.scaling_mode,
             .T_stop = cfg.T_stop,

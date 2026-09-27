@@ -889,6 +889,9 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
                 opts.lambda2            = lambda2_;
                 opts.normalize          = false;
                 opts.intercept          = false;
+                // X_ and y_ are centered in every mode except NONE, D_k
+                // always: the design has rank n - 1.
+                opts.precentered        = (trex_ctrl_.scaling_mode != dn::ScalingMode::NONE);
                 opts.verbose            = false;
                 opts.scaling_mode       = solver_scaling;
                 opts.tenet_aug_use_lars = trex_gvs_ctrl_.tenet_aug_use_lars;
