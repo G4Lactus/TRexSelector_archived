@@ -15,8 +15,10 @@
 
 // std includes
 #include <algorithm>
+#include <cmath>
 #include <iostream>
 #include <iomanip>
+#include <limits>
 #include <vector>
 
 // utils includes
@@ -193,6 +195,79 @@ inline void print_talgo_demo_config(
 
 
 
+// Selection of a fitted solver
+// ===========================================================
+
+/**
+ * @brief Variables selected by a fitted solver, split into predictors and
+ *        dummies (unified indices; dummies start at getDummyStartIndex()).
+ */
+struct Selection {
+    /** @brief Selected predictors: active ones in active-set order, then the
+     *  frozen ones in ascending order. */
+    std::vector<std::size_t> predictors;
+    /** @brief Selected dummies, in the same order convention. */
+    std::vector<std::size_t> dummies;
+    /** @brief Selected variables outside the active set (predictors and
+     *  dummies, ascending): T-Stagewise keeps the coefficient of a variable
+     *  its NNLS reduction removes from the active set. */
+    std::vector<std::size_t> frozen;
+};
+
+/**
+ * @brief The selection of a fitted solver as the T-Rex selector reads it:
+ *        the variables with |beta_j| > machine epsilon at the last recorded
+ *        step of the coefficient path.
+ *
+ * @details For most solvers this is the active set. T-Stagewise keeps the
+ *          coefficients of variables it removes from the active set, so its
+ *          selection can exceed the active set; a solver whose working set runs
+ *          ahead of its last recorded step (a CD solve at its sweep budget) is
+ *          reported by the recorded step.
+ *
+ * @tparam SolverType Concrete solver type exposing getBetaPathSparse(),
+ *                    getActives() and getDummyStartIndex().
+ *
+ * @param solver Fitted solver instance.
+ *
+ * @return Selected predictors, dummies and the frozen part.
+ */
+template<typename SolverType>
+inline Selection selected_variables(const SolverType& solver) {
+    Selection sel;
+    const auto path = solver.getBetaPathSparse();
+    if (path.steps.empty()) { return sel; }
+
+    const auto& last = path.steps.back();
+    const double eps = std::numeric_limits<double>::epsilon();
+    std::vector<std::size_t> support;
+    for (std::size_t k = 0; k < last.idx.size(); ++k) {
+        if (std::abs(last.val[k]) > eps) { support.push_back(last.idx[k]); }
+    }
+    std::sort(support.begin(), support.end());
+    auto in_support = [&support](std::size_t j) {
+        return std::binary_search(support.begin(), support.end(), j);
+    };
+
+    const std::size_t dummy_start = solver.getDummyStartIndex();
+    std::vector<std::size_t> listed;
+    for (std::size_t j : solver.getActives()) {
+        if (!in_support(j)) { continue; }
+        (j >= dummy_start ? sel.dummies : sel.predictors).push_back(j);
+        listed.push_back(j);
+    }
+    std::sort(listed.begin(), listed.end());
+    for (std::size_t j : support) {
+        if (std::binary_search(listed.begin(), listed.end(), j)) { continue; }
+        (j >= dummy_start ? sel.dummies : sel.predictors).push_back(j);
+        sel.frozen.push_back(j);
+    }
+    return sel;
+}
+// ==========================================================
+
+
+
 // Print selection diagnostics
 // ===========================================================
 
@@ -200,8 +275,11 @@ inline void print_talgo_demo_config(
  * @brief Print selected variables and dummies from fitted solver's solution path
  *        with color coding.
  *
- * @tparam SolverType Concrete solver type exposing getActivePredictorIndices(),
- *                    getActiveDummyIndices(), getActions(), and getDummyStartIndex().
+ * @details The selection is read from the coefficient path
+ *          (selected_variables()), as the T-Rex selector reads it.
+ *
+ * @tparam SolverType Concrete solver type exposing getBetaPathSparse(),
+ *                    getActives(), getActions(), and getDummyStartIndex().
  *
  * @param solver Fitted solver instance.
  * @param true_support Indices of true non-zero coefficients.
@@ -212,14 +290,21 @@ inline void print_selection(
     const std::vector<std::size_t>& true_support
 ) {
     std::cout << "\nSelection:\n";
+    const Selection sel = selected_variables(solver);
 
-    // 1. Predictors in active set
+    // 1. Selected predictors
     std::cout << "  Predictors: ";
-    print_vector(solver.getActivePredictorIndices());
+    print_vector(sel.predictors);
 
-    // 2. Dummies in active set
+    // 2. Selected dummies
     std::cout << "\n  Dummies: ";
-    print_vector(solver.getActiveDummyIndices());
+    print_vector(sel.dummies);
+
+    // Variables that carry a coefficient outside the active set
+    if (!sel.frozen.empty()) {
+        std::cout << "\n  Frozen (coefficient kept outside the active set): ";
+        print_vector(sel.frozen);
+    }
 
     // 3. Full selection path (with dummies colored)
     // Actions are stored as 1-based signed indices (R lars convention,
@@ -277,7 +362,11 @@ inline void print_selection(
 /**
  * @brief Prints the quality metrics of the variable selection.
  *
- * @tparam TSolver Concrete solver type exposing getActivePredictorIndices().
+ * @details The selected predictors are read from the coefficient path
+ *          (selected_variables()), as the T-Rex selector reads them.
+ *
+ * @tparam TSolver Concrete solver type exposing getBetaPathSparse(),
+ *                 getActives() and getDummyStartIndex().
  *
  * @param solver The solver instance after fitting.
  * @param true_support The indices of the true support variables.
@@ -287,8 +376,8 @@ void print_selection_quality(
     const TSolver& solver,
     const std::vector<std::size_t>& true_support
 ) {
-    // Get selected indices from TSolver
-    auto selected = solver.getActivePredictorIndices();
+    // Selected predictors from the coefficient path
+    auto selected = selected_variables(solver).predictors;
 
     // Compute counts and rates
     std::size_t true_positives = eval_counts::true_positives_count(

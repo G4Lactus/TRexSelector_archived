@@ -50,8 +50,9 @@ NULL
 #' @param verbose Logical; print status and diagnostics. Default \code{FALSE}.
 #' @param tol Numerical tolerance of the solver's internal comparisons.
 #'   Default: machine epsilon.
-#' @param tie_seed Seed of the solver's tie-break engine; a negative value
-#'   (default) seeds from the system entropy source.
+#' @param tie_seed Seed of the solver's tie-break engine. Default 0: a fixed
+#'   seed, so a solver run is reproducible also where exact ties occur; a
+#'   negative value seeds from the system entropy source (nondeterministic).
 #' @param exch_tie_alpha Exchangeable-tie band width for the greedy solvers
 #'   (TOMP and TAFS families), in units of the pairwise ranking-noise sd;
 #'   0 (default) turns it off. Ignored by the path solvers.
@@ -92,7 +93,7 @@ tsolver_options <- function(normalize = TRUE,
                             scaling_mode = c("L2", "ZSCORE"),
                             verbose = FALSE,
                             tol = .Machine$double.eps,
-                            tie_seed = -1,
+                            tie_seed = 0,
                             exch_tie_alpha = 0,
                             exch_tie_floor = 0.5,
                             lambda2 = 0,

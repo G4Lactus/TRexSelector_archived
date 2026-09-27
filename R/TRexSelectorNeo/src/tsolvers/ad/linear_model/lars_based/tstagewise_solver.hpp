@@ -35,10 +35,17 @@ namespace trex::tsolvers::ad::linear_model::lars_based {
  * @brief T-Stagewise solver via LARS-Stagewise algorithm.
  *
  * @details Implements the Incremental Forward Stagewise Regression path.
- * Enroces monotonicity, i.e., coefficients must evolve in the direction of their
+ * Enforces monotonicity, i.e., coefficients must evolve in the direction of their
  * correlation signs (w_j * Sign_j > 0).
  * If this is violated, a non-negative least squares (NNLS) reduction is applied
  * to the active set.
+ *
+ * @note A variable the NNLS reduction removes from the active set keeps its
+ * coefficient (frozen), so the support of the coefficient path can exceed the
+ * active set. The selection is read from the coefficient path, as the T-Rex
+ * selector and cdiagnostics::selected_variables() do; getActives() lists the
+ * active set only. At saturation the path cycles through removals and
+ * re-entries up to the step limit.
  */
 class TSTAGEWISE_Solver : public TLARS_Solver {
 

@@ -457,8 +457,8 @@ er::ExperimentRunnerConfig TRexSelector::buildRunnerConfig(
     cfg.max_inner_threads     = trex_ctrl_.max_inner_threads;
     cfg.verbose               = verbose_;
     // Deterministic tie-break shuffles for user-seeded runs: experiment k
-    // derives mix_seed64(seed_, k) in the runner. seed_ < 0 keeps the
-    // solvers' random_device tie seeding (nondeterministic).
+    // derives mix_seed64(seed_, k) in the runner. seed_ < 0 seeds the
+    // solvers' tie-break engines from random_device (nondeterministic).
     cfg.tie_seed_base         = static_cast<long long>(seed_);
     // Base id for the stateless permutation strategy (same id as the stored
     // PERMUTATION path, so both variants produce bit-identical experiments).

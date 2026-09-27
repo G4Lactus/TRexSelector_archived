@@ -534,3 +534,8 @@ test_that("precentered counts the intercept like intercept = TRUE and caps the a
   expect_equal(tail(reader$get_dof(), 1), reader$get_num_actives() + 1)
   expect_lte(reader$get_num_actives(), nn - 1L)
 })
+
+test_that("the default tie seed is fixed (reproducible tie-breaking)", {
+  expect_identical(tsolver_options()$tie_seed, 0)
+  expect_identical(tsolver_options(tie_seed = -1)$tie_seed, -1)
+})

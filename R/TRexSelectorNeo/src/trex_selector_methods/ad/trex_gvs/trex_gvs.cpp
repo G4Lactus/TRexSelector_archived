@@ -898,8 +898,8 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
                 disp::applyCdKnobs(opts, trex_ctrl_.solver_params);
                 // Per-experiment deterministic tie-break seed, derived from
                 // the selector seed exactly as the base ExperimentRunner does
-                // (dispatchForExperiment); -1 keeps the solver's
-                // random_device default for unseeded runs. Only consulted
+                // (dispatchForExperiment); -1 seeds the solver from
+                // random_device for unseeded runs. Only consulted
                 // when the exchangeable-tie band is on (exch_tie_alpha > 0).
                 opts.tie_seed = (seed_ >= 0)
                     ? static_cast<long long>(

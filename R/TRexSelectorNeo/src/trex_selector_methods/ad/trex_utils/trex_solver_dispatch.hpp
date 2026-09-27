@@ -262,8 +262,8 @@ struct SolverConfig {
     SolverHyperparameters hyperparams{};
 
     /** @brief Deterministic tie-break seed for the solver's internal RNG
-     *  (pruneTiedDummies shuffle). < 0 keeps the solver's default
-     *  std::random_device seeding (nondeterministic). Applied only on fresh
+     *  (pruneTiedDummies shuffle). < 0 (the T-Rex default, an unseeded
+     *  selector): std::random_device seeding (nondeterministic). Applied only on fresh
      *  construction — warm-started / deserialized solvers keep their RNG
      *  state so the shuffle stream continues instead of restarting. */
     long long tie_seed = -1;

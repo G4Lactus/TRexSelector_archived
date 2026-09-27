@@ -11,7 +11,7 @@ tsolver_options(
   scaling_mode = c("L2", "ZSCORE"),
   verbose = FALSE,
   tol = .Machine$double.eps,
-  tie_seed = -1,
+  tie_seed = 0,
   exch_tie_alpha = 0,
   exch_tie_floor = 0.5,
   lambda2 = 0,
@@ -53,8 +53,9 @@ scaling applied when \code{normalize} is \code{TRUE}.}
 \item{tol}{Numerical tolerance of the solver's internal comparisons.
 Default: machine epsilon.}
 
-\item{tie_seed}{Seed of the solver's tie-break engine; a negative value
-(default) seeds from the system entropy source.}
+\item{tie_seed}{Seed of the solver's tie-break engine. Default 0: a fixed
+seed, so a solver run is reproducible also where exact ties occur; a
+negative value seeds from the system entropy source (nondeterministic).}
 
 \item{exch_tie_alpha}{Exchangeable-tie band width for the greedy solvers
 (TOMP and TAFS families), in units of the pairwise ranking-noise sd;
