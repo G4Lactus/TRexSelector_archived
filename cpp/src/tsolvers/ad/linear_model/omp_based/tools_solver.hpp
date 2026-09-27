@@ -38,6 +38,16 @@ namespace trex::tsolvers::ad::linear_model::omp_based {
  * @details Inherits the execution flow and state management from TOMP_Solver, but
  * overrides the variable selection step to project candidate columns onto
  * the orthogonal complement of the active set prior to correlation calculation.
+ *
+ * The selection score of candidate j is |x_j^T r| / ||P_perp x_j||, with r the
+ * least-squares residual on the active set (r is orthogonal to the active span,
+ * so x_j^T r = (P_perp x_j)^T r). The squared projected norms of all candidates
+ * are kept and downdated by (q^T x_j)^2 for every new orthonormal direction q of
+ * the active span (q = X_A R^{-1} e_k, the k-th column of the thin Q factor),
+ * inside the correlation pass: one O(n (p + L)) pass per step, as for T-OMP,
+ * instead of re-orthogonalizing every candidate against the whole active set
+ * (the modified Gram-Schmidt form of OLS, without an orthogonalized copy of
+ * the dictionary).
  */
 class TOOLS_Solver : public tsolvers::ad::linear_model::omp_based::TOMP_Solver {
 public:
@@ -99,7 +109,8 @@ public:
     template <class Archive>
     void serialize(Archive& archive) {
         archive(
-            cereal::base_class<trex::tsolvers::ad::linear_model::omp_based::TOMP_Solver>(this)
+            cereal::base_class<trex::tsolvers::ad::linear_model::omp_based::TOMP_Solver>(this),
+            CEREAL_NVP(proj_sq_), CEREAL_NVP(proj_rank_)
         );
     }
 
@@ -124,15 +135,33 @@ public:
 
 protected:
     // ==========================================================================
+    // OLS State
+    // ==========================================================================
+
+    /** @brief Squared norms ||P_perp x_j||^2 of all columns (unified index)
+     *  projected onto the orthogonal complement of the active span; current
+     *  for the inactive columns. */
+    Eigen::VectorXd proj_sq_{};
+
+    /** @brief Number of active positions already downdated into proj_sq_. */
+    std::size_t proj_rank_{0};
+
+    // ==========================================================================
     // Core OLS Selection
     // ==========================================================================
 
     /**
-     * @brief Find inactive variables tied for the maximum OLS selection score.
-     * * Calculates the correlation of the residual with the normalized orthogonal
-     * projection of each inactive variable using the Cholesky factor R_.
+     * @brief Find inactive variables tied for the maximum OLS selection score
+     * |x_j^T r| / ||P_perp x_j|| (candidates with a numerically vanishing
+     * projection are excluded).
      */
     std::pair<double, std::vector<std::size_t>> findTiedMaxCorrelations() const override;
+
+    /**
+     * @brief Downdate proj_sq_ for the active positions added since the last
+     * call, fused with the refresh of the correlations X^T r of the inactives.
+     */
+    void updateCorrelations() override;
 };
 
 // ==================================================================================

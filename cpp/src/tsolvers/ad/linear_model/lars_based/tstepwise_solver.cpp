@@ -101,7 +101,7 @@ void TSTEPWISE_Solver::executeStep(std::size_t T_stop, bool early_stop) {
 
         // Track dummy count and compute DoF (includes dummies + intercept)
         updateDummyTracking();
-        DoF_.push_back(actives_.size() + (intercept_ ? 1 : 0));
+        DoF_.push_back(actives_.size() + interceptDoF());
 
         // ========================================================
         // STEP 7: Update inactive set and recompute correlations

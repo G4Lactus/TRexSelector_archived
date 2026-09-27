@@ -102,11 +102,13 @@ void TIENETAug_Solver::buildMaps() {
 
 void TIENETAug_Solver::buildInnerSolver(bool normalize,
                                         bool intercept,
+                                        bool precentered,
                                         bool verbose,
                                         ScalingMode scaling_mode) {
     SolverOptions inner;
     inner.normalize    = normalize;
     inner.intercept    = intercept;
+    inner.precentered  = precentered;
     inner.verbose      = verbose;
     inner.scaling_mode = scaling_mode;
     inner.tol          = eps_;
@@ -136,6 +138,7 @@ TIENETAug_Solver::TIENETAug_Solver(
     const double      lambda2        = options.lambda2;
     const bool        normalize      = options.normalize;
     const bool        intercept      = options.intercept;
+    const bool        precentered    = options.precentered;
     const bool        verbose        = options.verbose;
     const ScalingMode scaling_mode   = options.scaling_mode;
     const bool        use_lars_inner = options.tenet_aug_use_lars;
@@ -188,14 +191,16 @@ TIENETAug_Solver::TIENETAug_Solver(
     dummy_start_idx_ = p;
     normalize_       = normalize;
     intercept_       = intercept;
+    precentered_     = precentered;
     verbose_         = verbose;
-    effective_n_     = static_cast<std::size_t>(X.rows()) - (intercept ? 1 : 0);
+    effective_n_     = static_cast<std::size_t>(X.rows()) - interceptDoF();
 
     // Inner-solver preprocessing configuration. Defaults to the caller's
     // request (used only for the non-augmented lambda2 == 0 path, where the
     // external scaling of X/D must be respected).
-    bool inner_normalize = normalize;
-    bool inner_intercept = intercept;
+    bool inner_normalize   = normalize;
+    bool inner_intercept   = intercept;
+    bool inner_precentered = precentered;
 
     if (lambda2_ == 0.0) {
         // lambda2 = 0: the group penalty vanishes. TIENETAug collapses to a
@@ -270,10 +275,14 @@ TIENETAug_Solver::TIENETAug_Solver(
 
         inner_normalize = false;
         inner_intercept = false;
+        // The appended group-ridge rows are not centered: the augmented
+        // design keeps its full row bound.
+        inner_precentered = false;
     }
 
     buildMaps();
-    buildInnerSolver(inner_normalize, inner_intercept, verbose, scaling_mode);
+    buildInnerSolver(inner_normalize, inner_intercept, inner_precentered, verbose,
+                     scaling_mode);
     syncDiagnosticsFromInner();
 }
 

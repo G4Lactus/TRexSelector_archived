@@ -81,6 +81,14 @@ struct SolverOptions {
      *  pre-centered. Default true. */
     bool intercept = true;
 
+    /** @brief The caller centered X, D and y (intercept = false on centered
+     *  data, as in the T-Rex selectors). The centered columns span at most
+     *  n - 1 dimensions, so the solver counts the intercept as with
+     *  intercept = true: the active set is capped at n - 1 and the degrees
+     *  of freedom and Cp include the intercept. The data are not touched.
+     *  Redundant when intercept is true. Default false. */
+    bool precentered = false;
+
     /** @brief Column-scaling convention applied when normalize is true:
      *  L2 (unit L2 norm, default) or ZSCORE (sample SD). */
     ScalingMode scaling_mode = ScalingMode::L2;

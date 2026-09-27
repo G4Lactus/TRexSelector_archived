@@ -105,7 +105,7 @@ void TGP_Solver::executeStep(std::size_t T_stop, bool early_stop) {
         RSS_.emplace_back(rss);
         R2_.emplace_back(1.0 - rss / RSS_[0]);
         updateDummyTracking();
-        DoF_.emplace_back(actives_.size() + (intercept_ ? 1 : 0));
+        DoF_.emplace_back(actives_.size() + interceptDoF());
 
         // ==========================================================
         // STEP 9: Update correlations for ALL variables

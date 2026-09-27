@@ -51,7 +51,8 @@ TSolver_Base::TSolver_Base(
     )
     : X_(X), D_(D), y_(y), normalize_(options.normalize),
       scaling_mode_(options.scaling_mode), intercept_(options.intercept),
-      verbose_(options.verbose), is_connected_(true) {
+      precentered_(options.precentered), verbose_(options.verbose),
+      is_connected_(true) {
 
     // Numerics and tie-breaking (construction-time options).
     eps_ = options.tol;
@@ -84,8 +85,9 @@ TSolver_Base::TSolver_Base(
         );
     }
 
-    // Set effective_n_ for diagnostics and Cp calculation, depending on intercept handling
-    effective_n_ = X.rows() - (intercept_ ? 1 : 0);
+    // Row bound of the active set and n of the Cp calculation: centered data
+    // (fitted intercept or caller-centered) have rank at most n - 1
+    effective_n_ = X.rows() - interceptDoF();
 }
 
 
@@ -757,7 +759,7 @@ std::vector<double> TSolver_Base::getCp() const {
     if (RSS_.empty() || DoF_.empty()) return cp_out;
 
     // Derive n from serialized state so Cp is available on disconnected solvers
-    std::size_t n = effective_n_ + (intercept_ ? 1 : 0);
+    std::size_t n = effective_n_ + interceptDoF();
     double resvar = fpc::quiet_nan();
 
     for (int i = static_cast<int>(RSS_.size()) - 1; i >= 0; --i) {
@@ -784,7 +786,7 @@ std::vector<double> TSolver_Base::getCp(double sigma_hat_sq) const {
     cp_out.reserve(RSS_.size());
 
     // Derive n from serialized state so Cp is available on disconnected solvers
-    std::size_t n = effective_n_ + (intercept_ ? 1 : 0);
+    std::size_t n = effective_n_ + interceptDoF();
     bool valid = fpc::isfinite(sigma_hat_sq) && sigma_hat_sq > 0;
     for (std::size_t k = 0; k < RSS_.size(); ++k) {
         cp_out.push_back((DoF_[k] < n && valid) ? (RSS_[k] / sigma_hat_sq -

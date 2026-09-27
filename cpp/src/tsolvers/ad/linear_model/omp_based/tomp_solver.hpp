@@ -63,6 +63,11 @@ protected:
     /** @brief Algorithm variant type. */
     SolverTypeOMPBased algo_type_{SolverTypeOMPBased::TOMP};
 
+    /** @brief Cache of X_A^T y in active-set order for the refit in
+     *  updateBetaPath(). Not serialized: a loaded solver recomputes it on
+     *  its next step with the same dot products. */
+    std::vector<double> xty_active_{};
+
     /** @brief Protected constructor for inheritance. */
     explicit TOMP_Solver(SolverTypeOMPBased type);
 

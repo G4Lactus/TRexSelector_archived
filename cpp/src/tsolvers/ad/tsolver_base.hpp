@@ -217,6 +217,10 @@ protected:
     /** @brief Flag indicating if an intercept should be included. Default is true. */
     bool intercept_{true};
 
+    /** @brief The caller centered X, D and y (SolverOptions::precentered).
+     *  Default is false. */
+    bool precentered_{false};
+
     /** @brief Flag indicating if verbose output is enabled. Default is false. */
     bool verbose_{false};
 
@@ -581,6 +585,14 @@ protected:
         } else {
             return D_->col(static_cast<Eigen::Index>(j - p_original_));
         }
+    }
+
+    /** @brief 1 when the model carries an intercept, fitted by this solver
+     *  (intercept_) or removed by the caller's centering (precentered_),
+     *  else 0. The row bound effective_n_, the degrees of freedom and Cp
+     *  count it. */
+    std::size_t interceptDoF() const noexcept {
+        return (intercept_ || precentered_) ? 1 : 0;
     }
 
     /** @brief Preprocess the data as part of class constructor. */
@@ -973,7 +985,7 @@ protected:
             CEREAL_NVP(y_), CEREAL_NVP(r_), CEREAL_NVP(correlations_),
 
             // Preprocessing
-            CEREAL_NVP(normalize_), CEREAL_NVP(intercept_),
+            CEREAL_NVP(normalize_), CEREAL_NVP(intercept_), CEREAL_NVP(precentered_),
             CEREAL_NVP(verbose_), cereal::make_nvp("scaling_mode", scaling_mode),
             CEREAL_NVP(meansx_), CEREAL_NVP(normsx_),
             CEREAL_NVP(meansd_), CEREAL_NVP(normsd_),

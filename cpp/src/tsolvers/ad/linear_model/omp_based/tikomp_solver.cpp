@@ -138,7 +138,7 @@ void TIKOMP_Solver::executeStep(std::size_t T_stop, bool early_stop) {
         RSS_.push_back(rss);
         R2_.push_back(1.0 - rss / RSS_[0]);
         updateDummyTracking();
-        DoF_.push_back(actives_.size() + (intercept_ ? 1 : 0));
+        DoF_.push_back(actives_.size() + interceptDoF());
 
         // ========================================================
         // STEP 4: Inactives and penalized correlations update

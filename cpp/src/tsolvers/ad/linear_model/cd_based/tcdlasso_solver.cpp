@@ -100,7 +100,7 @@ TCDLASSO_Solver::TCDLASSO_Solver(
     double rss = y_.dot(y_);
     RSS_.emplace_back(rss);
     R2_.emplace_back(0.0);
-    DoF_.emplace_back(intercept_ ? 1 : 0);
+    DoF_.emplace_back(interceptDoF());
     dummies_at_step_.reserve(maxSteps_ + 1);
     dummies_at_step_.push_back(0);
 
@@ -757,7 +757,7 @@ void TCDLASSO_Solver::recordCrossingStep(double lambda1) {
     R2_.push_back(1.0 - rss / RSS_[0]);
     count_active_dummies_ = countActiveDummiesCd();
     updateDummyTracking();
-    DoF_.push_back(actives_.size() + (intercept_ ? 1 : 0));
+    DoF_.push_back(actives_.size() + interceptDoF());
 
     // Rebuild the inactive set (base rebuild is gated on any_dropped_).
     any_dropped_ = true;
