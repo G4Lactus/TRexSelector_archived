@@ -12,9 +12,12 @@
 #include <gtest/gtest.h>
 
 // std includes
+#include <cmath>
 #include <filesystem>
 #include <memory>
+#include <random>
 #include <set>
+#include <type_traits>
 
 // Eigen includes
 #include <Eigen/Dense>
@@ -99,6 +102,53 @@ std::unique_ptr<T> create_solver(Eigen::Map<Eigen::MatrixXd>& X,
         // on the option defaults.
         return std::make_unique<T>(X, D, y);
     }
+}
+
+/** @brief Solvers whose active set may exceed the row bound: the quadratic
+ *  penalty (lambda2 > 0) lifts the cap of the elastic nets, and the
+ *  line-search variant of TNCGMP (the default) runs without an active-set
+ *  cap. */
+template <typename T>
+constexpr bool lifts_row_bound =
+    std::is_same_v<T, TENET_Solver> || std::is_same_v<T, TENETAug_Solver> ||
+    std::is_same_v<T, TIENET_Solver> || std::is_same_v<T, TIENETAug_Solver> ||
+    std::is_same_v<T, TCDENET_Solver> || std::is_same_v<T, TCDIENET_Solver> ||
+    std::is_same_v<T, TNCGMP_Solver>;
+
+// Factory with explicit preprocessing options (lambda2 = 0.5 as above)
+template <typename T>
+std::unique_ptr<T> create_solver_with(Eigen::Map<Eigen::MatrixXd>& X,
+                                      Eigen::Map<Eigen::MatrixXd>& D,
+                                      Eigen::Map<Eigen::VectorXd>& y,
+                                      trex::tsolvers::ad::SolverOptions opts) {
+    opts.lambda2 = 0.5;
+    if constexpr (std::is_same_v<T, TIENET_Solver> ||
+                  std::is_same_v<T, TIENETAug_Solver> ||
+                  std::is_same_v<T, TCDIENET_Solver>) {
+        Eigen::VectorXi groups = Eigen::VectorXi::LinSpaced(
+            X.cols(), 0, static_cast<int>(X.cols()) - 1);
+        return std::make_unique<T>(X, D, y, groups, opts);
+    } else {
+        return std::make_unique<T>(X, D, y, opts);
+    }
+}
+
+/** @brief Integer-valued n x p matrix whose columns sum to exactly zero (the
+ *  last row is minus the sum of the others): the floating-point column means
+ *  are exactly 0, so a solver's own centering is a bitwise no-op. */
+Eigen::MatrixXd exactly_centered_integers(Eigen::Index n, Eigen::Index p, unsigned seed) {
+    std::mt19937 rng(seed);
+    std::uniform_int_distribution<int> draw(-6, 6);
+    Eigen::MatrixXd M(n, p);
+    for (Eigen::Index j = 0; j < p; ++j) {
+        double sum = 0.0;
+        for (Eigen::Index i = 0; i + 1 < n; ++i) {
+            M(i, j) = static_cast<double>(draw(rng));
+            sum += M(i, j);
+        }
+        M(n - 1, j) = -sum;
+    }
+    return M;
 }
 
 template <typename T>
@@ -227,6 +277,72 @@ TYPED_TEST(TSolverPolymorphicTest, ActiveInactiveDroppedPartition) {
     insert_all(solver->getDroppedIndices(), "dropped");
 
     EXPECT_EQ(seen.size(), p_tot) << "actives/inactives/dropped do not cover all indices";
+}
+
+/** @brief Contract of SolverOptions::precentered: a reader on caller-centered
+ *         data counts the intercept exactly as intercept = true does on the
+ *         same data (same path, degrees of freedom and Cp), and the active set
+ *         stays within the n - 1 row bound of the centered design unless the
+ *         quadratic penalty lifts the cap. The data are exactly centered, so
+ *         the intercept run's own centering is a bitwise no-op.
+ */
+TYPED_TEST(TSolverPolymorphicTest, PrecenteredCountsInterceptLikeIntercept) {
+    constexpr Eigen::Index n = 20, p = 30, L = 30;
+    const Eigen::MatrixXd X0 = exactly_centered_integers(n, p, 11);
+    const Eigen::MatrixXd D0 = exactly_centered_integers(n, L, 12);
+    Eigen::VectorXd beta = Eigen::VectorXd::Zero(p);
+    beta(1) = 3.0; beta(4) = -2.0; beta(9) = 2.0;
+    const Eigen::VectorXd y0 = X0 * beta + exactly_centered_integers(n, 1, 13).col(0);
+
+    trex::tsolvers::ad::SolverOptions base;
+    base.normalize = false;
+    base.tie_seed = 7;
+
+    // intercept = true: the solver centers its (separate) buffers itself
+    Eigen::MatrixXd Xa = X0, Da = D0;
+    Eigen::VectorXd ya = y0;
+    Eigen::Map<Eigen::MatrixXd> Xa_map(Xa.data(), n, p);
+    Eigen::Map<Eigen::MatrixXd> Da_map(Da.data(), n, L);
+    Eigen::Map<Eigen::VectorXd> ya_map(ya.data(), n);
+    trex::tsolvers::ad::SolverOptions with_intercept = base;
+    with_intercept.intercept = true;
+    auto fitted = create_solver_with<TypeParam>(Xa_map, Da_map, ya_map, with_intercept);
+    fitted->executeStep(L, true);
+
+    // precentered reader on the caller-centered data
+    Eigen::MatrixXd Xb = X0, Db = D0;
+    Eigen::VectorXd yb = y0;
+    Eigen::Map<Eigen::MatrixXd> Xb_map(Xb.data(), n, p);
+    Eigen::Map<Eigen::MatrixXd> Db_map(Db.data(), n, L);
+    Eigen::Map<Eigen::VectorXd> yb_map(yb.data(), n);
+    trex::tsolvers::ad::SolverOptions reader = base;
+    reader.intercept = false;
+    reader.precentered = true;
+    auto precentered = create_solver_with<TypeParam>(Xb_map, Db_map, yb_map, reader);
+    precentered->executeStep(L, true);
+
+    EXPECT_EQ(fitted->getActions(), precentered->getActions());
+    EXPECT_EQ(fitted->getDoF(), precentered->getDoF());
+    EXPECT_EQ(fitted->getNumActives(), precentered->getNumActives());
+    const auto cp_fitted = fitted->getCp();
+    const auto cp_precentered = precentered->getCp();
+    ASSERT_EQ(cp_fitted.size(), cp_precentered.size());
+    for (std::size_t k = 0; k < cp_fitted.size(); ++k) {
+        if (std::isnan(cp_fitted[k])) {
+            EXPECT_TRUE(std::isnan(cp_precentered[k])) << "step " << k;
+        } else {
+            EXPECT_EQ(cp_fitted[k], cp_precentered[k]) << "step " << k;
+        }
+    }
+    // The augmented wrappers report the inner solver's degrees of freedom,
+    // which runs intercept-free on the augmented system for lambda2 > 0.
+    if constexpr (!std::is_same_v<TypeParam, TENETAug_Solver> &&
+                  !std::is_same_v<TypeParam, TIENETAug_Solver>) {
+        EXPECT_EQ(precentered->getDoF().front(), 1u);
+    }
+    if constexpr (!lifts_row_bound<TypeParam>) {
+        EXPECT_LE(precentered->getNumActives(), static_cast<std::size_t>(n - 1));
+    }
 }
 
 // ========================================================================================

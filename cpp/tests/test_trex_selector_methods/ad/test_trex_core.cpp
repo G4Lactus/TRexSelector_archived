@@ -323,6 +323,56 @@ TEST(TRexCoreTest, DataIntegrity_XRestoredOnDestruction) {
 
 
 // ========================================================================================
+// Row bound of the solvers on the selector-centered design
+// ========================================================================================
+
+/** @brief Exposes the protected runner configuration of the selector. */
+class RunnerConfigProbe : public TRexSelector {
+public:
+    using TRexSelector::TRexSelector;
+    using TRexSelector::buildRunnerConfig;
+};
+
+/** @brief The selector centers X and y in every ScalingMode except NONE, so the
+ *         runner marks the design precentered (the solvers cap their active sets
+ *         at n - 1, the rank of the centered design); NONE leaves the design
+ *         untouched and keeps the bound n. The dispatch forwards the flag into
+ *         the solver options.
+ */
+TEST(TRexCoreTest, RunnerMarksCenteredDesignPrecentered) {
+    namespace tdn = trex::trex_selector_methods::ad::utils::data_normalizer;
+    namespace ter = trex::trex_selector_methods::ad::utils::experiment_runner;
+
+    for (const auto mode : {tdn::ScalingMode::L2, tdn::ScalingMode::ZSCORE, tdn::ScalingMode::NONE}) {
+        Eigen::MatrixXd X = Eigen::MatrixXd::Random(30, 10);
+        Eigen::VectorXd y = Eigen::VectorXd::Random(30);
+        Eigen::Map<Eigen::MatrixXd> X_map(X.data(), X.rows(), X.cols());
+        Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
+
+        TRexControlParameter trex_ctrl;
+        trex_ctrl.K = 3;
+        trex_ctrl.max_dummy_multiplier = 2;
+        trex_ctrl.scaling_mode = mode;
+
+        RunnerConfigProbe trex(X_map, y_map, 0.1, trex_ctrl, 42, false);
+        const ter::ExperimentRunnerConfig cfg =
+            trex.buildRunnerConfig(10, 1, false, ter::ExperimentStrategy::Standard);
+        EXPECT_EQ(cfg.precentered, mode != tdn::ScalingMode::NONE)
+            << "scaling mode " << static_cast<int>(mode);
+    }
+
+    Eigen::MatrixXd Xs = Eigen::MatrixXd::Zero(4, 2), Ds = Eigen::MatrixXd::Zero(4, 2);
+    Eigen::VectorXd ys = Eigen::VectorXd::Zero(4);
+    Eigen::Map<Eigen::MatrixXd> Xs_map(Xs.data(), 4, 2), Ds_map(Ds.data(), 4, 2);
+    Eigen::Map<Eigen::VectorXd> ys_map(ys.data(), 4);
+    disp::SolverConfig solver_cfg{.X = Xs_map, .D = Ds_map, .y = ys_map, .precentered = true};
+    EXPECT_TRUE(disp::toSolverOptions(solver_cfg).precentered);
+    solver_cfg.precentered = false;
+    EXPECT_FALSE(disp::toSolverOptions(solver_cfg).precentered);
+}
+
+
+// ========================================================================================
 // Stagnation-stop AUTO default (resolved by solver family in the constructor)
 // ========================================================================================
 

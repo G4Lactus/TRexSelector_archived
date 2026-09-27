@@ -29,6 +29,7 @@
 #include <tsolvers/ad/linear_model/omp_based/tmp_solver.hpp>
 #include <tsolvers/ad/linear_model/omp_based/tomp_solver.hpp>
 #include <tsolvers/ad/linear_model/omp_based/tgp_solver.hpp>
+#include <tsolvers/ad/linear_model/omp_based/tools_solver.hpp>
 
 // utils includes
 #include <utils/datageneration/utils_datagen.hpp>
@@ -409,6 +410,104 @@ TEST_F(TSolverExecutionTest, TIENETLambda2ZeroReducesToTLASSO) {
     auto beta_ien   = ien.getBeta(-1);
     auto beta_lasso = lasso.getBeta(-1);
     EXPECT_TRUE(beta_ien.isApprox(beta_lasso, 1e-10));
+}
+
+// ========================================================================================
+/**
+ * @brief T-OLS with the selection score recomputed from scratch at every step:
+ *        h_j = X_A^T x_j and one triangular solve per candidate, the direct
+ *        form of ||P_perp x_j||^2 = ||x_j||^2 - ||R^{-T} h_j||^2.
+ */
+class TOOLSFromScratch : public trex::tsolvers::ad::linear_model::omp_based::TOOLS_Solver {
+public:
+    using TOOLS_Solver::TOOLS_Solver;
+
+protected:
+    std::pair<double, std::vector<std::size_t>> findTiedMaxCorrelations() const override {
+        double Cmax = 0.0;
+        std::vector<std::size_t> tied;
+        if (inactives_.empty()) return {Cmax, tied};
+
+        const auto m = static_cast<Eigen::Index>(actives_.size());
+        for (std::size_t j : inactives_) {
+            const double corr = correlations_(static_cast<Eigen::Index>(j));
+            double score;
+            if (m == 0) {
+                const double nrm = getColumn(j).norm();
+                score = (nrm > eps_) ? std::abs(corr) / nrm : -1.0;
+            } else {
+                Eigen::VectorXd hj(m);
+                for (Eigen::Index k = 0; k < m; ++k) {
+                    hj(k) = getColumn(actives_[static_cast<std::size_t>(k)]).dot(getColumn(j));
+                }
+                const Eigen::VectorXd w = backsolveT(R_, hj);
+                const double orth_sq = getColumn(j).squaredNorm() - w.squaredNorm();
+                score = (orth_sq < eps_) ? -1.0 : std::abs(corr) / std::sqrt(orth_sq);
+            }
+            if (score > Cmax + eps_) {
+                Cmax = score;
+                tied.clear();
+                tied.push_back(j);
+            } else if (score >= Cmax - eps_ && score > 0.0) {
+                tied.push_back(j);
+            }
+        }
+        return {Cmax, tied};
+    }
+};
+
+/**
+ * @brief T-OLS downdates the projected candidate norms by (q^T x_j)^2 per new
+ *        active position instead of re-projecting every candidate: the path
+ *        (actions and coefficients, bit for bit) must match the from-scratch
+ *        score on centered designs run to the n - 1 row bound.
+ */
+TEST(TOOLSScoring, DowndatedNormsMatchFromScratchProjection) {
+    using trex::tsolvers::ad::SolverOptions;
+    using trex::tsolvers::ad::linear_model::omp_based::TOOLS_Solver;
+
+    constexpr Eigen::Index n = 60, p = 120, L = 120;
+    for (int seed : {1, 2, 3, 4, 5}) {
+        SyntheticData data(n, p, L, {3, 17, 41, 77, 101}, {3.0, -2.0, 2.0, -3.0, 2.5},
+                           10.0, seed, -1, -1, predictor_policy::Normal(),
+                           dummygen::Distribution::Normal(), noisegen::noise_policy::Normal());
+        Eigen::MatrixXd Xs = data.getX();
+        Eigen::MatrixXd Ds = data.getD();
+        Eigen::VectorXd ys = data.getY();
+
+        // Caller-side centering and unit-L2 scaling; the solvers are readers
+        auto center_scale = [](Eigen::MatrixXd& M) {
+            M.rowwise() -= M.colwise().mean();
+            M.array().rowwise() /= M.colwise().norm().array();
+        };
+        center_scale(Xs);
+        center_scale(Ds);
+        ys.array() -= ys.mean();
+
+        Eigen::Map<Eigen::MatrixXd> X_map(Xs.data(), n, p);
+        Eigen::Map<Eigen::MatrixXd> D_map(Ds.data(), n, L);
+        Eigen::Map<Eigen::VectorXd> y_map(ys.data(), n);
+
+        const SolverOptions opts{.normalize = false, .intercept = false, .precentered = true,
+                                 .tie_seed = seed};
+        TOOLS_Solver downdated(X_map, D_map, y_map, opts);
+        TOOLSFromScratch reference(X_map, D_map, y_map, opts);
+        for (std::size_t T : {1, 5, 20, 120}) {  // warm starts through a T grid
+            downdated.executeStep(T, true);
+            reference.executeStep(T, true);
+        }
+
+        EXPECT_EQ(downdated.getActions(), reference.getActions()) << "seed " << seed;
+        const auto pd = downdated.getBetaPathSparse();
+        const auto pr = reference.getBetaPathSparse();
+        ASSERT_EQ(pd.steps.size(), pr.steps.size()) << "seed " << seed;
+        for (std::size_t s = 0; s < pd.steps.size(); ++s) {
+            EXPECT_EQ(pd.steps[s].idx, pr.steps[s].idx) << "seed " << seed << ", step " << s;
+            EXPECT_EQ(pd.steps[s].val, pr.steps[s].val) << "seed " << seed << ", step " << s;
+        }
+        // The paths run into the row bound of the centered design
+        EXPECT_EQ(downdated.getNumActives(), static_cast<std::size_t>(n - 1)) << "seed " << seed;
+    }
 }
 
 // ========================================================================================
