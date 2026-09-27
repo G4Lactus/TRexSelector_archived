@@ -619,7 +619,8 @@ inline void bind_solver_options(py::module& m) {
        .def_readwrite("tol", &SolverOptions::tol,
             "Numerical tolerance of the solver's internal comparisons. Default: machine epsilon.")
        .def_readwrite("tie_seed", &SolverOptions::tie_seed,
-            "Seed of the tie-break engine; < 0 (default) seeds from std::random_device.")
+            "Seed of the tie-break engine. Default 0: a fixed seed, so a solver run is reproducible "
+            "also where exact ties occur; < 0 seeds from std::random_device (nondeterministic).")
        .def_readwrite("exch_tie_alpha", &SolverOptions::exch_tie_alpha,
             "Exchangeable-tie band width for the greedy solvers (TOMP/TAFS families); 0 (default) = off.")
        .def_readwrite("exch_tie_floor", &SolverOptions::exch_tie_floor,

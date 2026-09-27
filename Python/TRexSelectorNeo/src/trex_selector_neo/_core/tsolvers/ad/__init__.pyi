@@ -273,7 +273,7 @@ class SolverOptions:
     @property
     def tie_seed(self) -> int:
         """
-        Seed of the tie-break engine; < 0 (default) seeds from std::random_device.
+        Seed of the tie-break engine. Default 0: a fixed seed, so a solver run is reproducible also where exact ties occur; < 0 seeds from std::random_device (nondeterministic).
         """
     @tie_seed.setter
     def tie_seed(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:

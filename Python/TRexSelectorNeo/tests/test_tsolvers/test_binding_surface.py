@@ -196,6 +196,7 @@ def test_solver_options_keywords_and_fields(data):
     t.executeStep(2)
     assert t.getNumSteps() > 0
     assert SolverOptions().precentered is False
+    assert SolverOptions().tie_seed == 0  # fixed default: reproducible tie-breaking
     assert SolverOptions(precentered=True).precentered is True
 
 
