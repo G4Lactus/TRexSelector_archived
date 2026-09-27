@@ -146,7 +146,8 @@ struct ExperimentRunnerConfig {
     disp::SolverHyperparameters solver_params{};
 
     /** @brief Base for deterministic per-experiment tie-break seeds
-     *  (< 0 = nondeterministic, solvers keep random_device seeding).
+     *  (< 0 = nondeterministic: the solvers are seeded from
+     *  std::random_device, like the unseeded selector's dummies).
      *  Set from the user's selector seed; experiment k receives
      *  mix_seed64(tie_seed_base, k) so reproducible runs get reproducible
      *  tie-break shuffles in pruneTiedDummies. */
@@ -757,7 +758,7 @@ private:
             .solver_file = {},
             .hyperparams = cfg.solver_params,
             // Per-experiment deterministic tie-break seed (user-seeded runs);
-            // -1 keeps the solver's random_device default.
+            // -1 (unseeded selector) seeds the solver from random_device.
             .tie_seed = (cfg.tie_seed_base >= 0)
                 ? static_cast<long long>(
                       trex::utils::datageneration::dummygen::mix_seed64(
