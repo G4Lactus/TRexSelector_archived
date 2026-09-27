@@ -16,6 +16,7 @@
 #include <utils/eval_metrics/utils_eval_counts.hpp>
 #include <utils/eval_metrics/utils_eval_rates.hpp>
 #include <utils/eval_metrics/utils_eval_composites.hpp>
+#include <utils/eval_metrics/utils_eval_cdiagnostics.hpp>
 
 // ========================================================================================
 
@@ -26,6 +27,7 @@ namespace trex::test::utils::eval {
 namespace counts = trex::utils::eval::counts;
 namespace rates = trex::utils::eval::rates;
 namespace composites = trex::utils::eval::composites;
+namespace cdiagnostics = trex::utils::eval::cdiagnostics;
 
 // ========================================================================================
 
@@ -95,6 +97,39 @@ TEST(EvalMetricsTest, F1Score) {
     EXPECT_DOUBLE_EQ(composites::f1_score(0.0, 1.0), 0.0);
     EXPECT_DOUBLE_EQ(composites::f1_score(1.0, 0.0), 0.0);
     EXPECT_DOUBLE_EQ(composites::f1_score(0.5, 0.5), 0.5);
+}
+
+/** @brief Minimal solver surface for cdiagnostics::selected_variables(): a
+ *  last recorded step, an active set and the dummy start index. */
+struct SelectionProbe {
+    struct Step { std::vector<std::size_t> idx; std::vector<double> val; };
+    struct Path { std::vector<Step> steps; };
+    Path path;
+    std::vector<std::size_t> actives;
+    std::size_t dummy_start = 10;
+    Path getBetaPathSparse() const { return path; }
+    const std::vector<std::size_t>& getActives() const { return actives; }
+    std::size_t getDummyStartIndex() const { return dummy_start; }
+};
+
+/** @brief The selection is the support of the last recorded step
+ *  (|beta_j| > machine epsilon): active variables in active-set order, then
+ *  the frozen ones (a coefficient outside the active set) in ascending order;
+ *  active variables without a coefficient are not selected. */
+TEST(EvalMetricsTest, SelectedVariablesReadTheCoefficientPath) {
+    SelectionProbe s;
+    s.path.steps.push_back({{}, {}});  // step 0
+    // 7 and 12 frozen (outside the active set), 4 below machine epsilon
+    s.path.steps.push_back({{3, 12, 1, 7, 4, 11}, {0.5, -0.2, 1.5, 0.3, 1e-20, 0.1}});
+    s.actives = {11, 3, 1, 4, 5};
+    const auto sel = cdiagnostics::selected_variables(s);
+    EXPECT_EQ(sel.predictors, (std::vector<std::size_t>{3, 1, 7}));
+    EXPECT_EQ(sel.dummies, (std::vector<std::size_t>{11, 12}));
+    EXPECT_EQ(sel.frozen, (std::vector<std::size_t>{7, 12}));
+
+    SelectionProbe empty;
+    const auto none = cdiagnostics::selected_variables(empty);
+    EXPECT_TRUE(none.predictors.empty() && none.dummies.empty() && none.frozen.empty());
 }
 
 // ========================================================================================

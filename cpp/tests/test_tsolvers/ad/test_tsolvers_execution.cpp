@@ -33,6 +33,7 @@
 
 // utils includes
 #include <utils/datageneration/utils_datagen.hpp>
+#include <utils/eval_metrics/utils_eval_cdiagnostics.hpp>
 
 // ========================================================================================
 
@@ -545,6 +546,44 @@ TEST(TOOLSScoring, DowndatedNormsMatchFromScratchProjection) {
         // The paths run into the row bound of the centered design
         EXPECT_EQ(downdated.getNumActives(), static_cast<std::size_t>(n - 1)) << "seed " << seed;
     }
+}
+
+/**
+ * @brief T-Stagewise keeps the coefficient of a variable its NNLS reduction
+ *        removes from the active set: cdiagnostics::selected_variables() reads
+ *        the selection from the coefficient path, so it covers those frozen
+ *        variables, while the active set does not.
+ */
+TEST(TStagewiseSelection, FrozenCoefficientsAreSelected) {
+    namespace cdiag = trex::utils::eval::cdiagnostics;
+    constexpr Eigen::Index n = 60, p = 60, L = 60;
+    int runs_with_frozen = 0;
+    for (int seed = 1; seed <= 10; ++seed) {
+        SyntheticData data(n, p, L, {2, 11, 23, 37, 49}, {3.0, -2.0, 2.0, -3.0, 2.5}, 10.0, seed,
+                           -1, -1, predictor_policy::Normal(), dummygen::Distribution::Normal(),
+                           noisegen::noise_policy::Normal());
+        Eigen::MatrixXd Xs = data.getX(), Ds = data.getD();
+        Eigen::VectorXd ys = data.getY();
+        Eigen::Map<Eigen::MatrixXd> X_map(Xs.data(), n, p), D_map(Ds.data(), n, L);
+        Eigen::Map<Eigen::VectorXd> y_map(ys.data(), n);
+        TSTAGEWISE_Solver solver(X_map, D_map, y_map, trex::tsolvers::ad::SolverOptions{.tie_seed = seed});
+        solver.executeStep(10, true);
+
+        const auto sel = cdiag::selected_variables(solver);
+        const auto path = solver.getBetaPathSparse();
+        const auto& last = path.steps.back();
+        std::size_t support = 0;
+        for (double v : last.val) { support += std::abs(v) > std::numeric_limits<double>::epsilon(); }
+        EXPECT_EQ(sel.predictors.size() + sel.dummies.size(), support) << "seed " << seed;
+        const auto& actives = solver.getActives();
+        for (std::size_t j : sel.frozen) {
+            EXPECT_EQ(std::find(actives.begin(), actives.end(), j), actives.end()) << "seed " << seed;
+        }
+        EXPECT_EQ(sel.predictors.size() + sel.dummies.size(),
+                  solver.getNumActives() + sel.frozen.size()) << "seed " << seed;
+        runs_with_frozen += sel.frozen.empty() ? 0 : 1;
+    }
+    EXPECT_GT(runs_with_frozen, 0) << "no T-Stagewise run froze a coefficient";
 }
 
 // ========================================================================================

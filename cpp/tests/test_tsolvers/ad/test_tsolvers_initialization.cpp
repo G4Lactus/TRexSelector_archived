@@ -143,5 +143,30 @@ TEST_F(TSolverInitTest, RestoreReversesPreprocessing) {
     EXPECT_TRUE(y.isApprox(y0, 1e-9)) << "y not restored";
 }
 
+/** @brief The default tie seed is fixed: two solvers built with default
+ *         options start from the same tie-break engine state (reproducible
+ *         runs also where exact ties occur); a negative seed draws from
+ *         std::random_device. Readers, so both share the fixture buffers. */
+TEST_F(TSolverInitTest, DefaultTieSeedIsReproducible) {
+    Eigen::Map<Eigen::MatrixXd> X_map(X.data(), X.rows(), X.cols());
+    Eigen::Map<Eigen::MatrixXd> D_map(D.data(), D.rows(), D.cols());
+    Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
+
+    trex::tsolvers::ad::SolverOptions reader;
+    reader.normalize = false;
+    reader.intercept = false;
+    EXPECT_EQ(reader.tie_seed, 0);
+
+    TLARS_Solver a(X_map, D_map, y_map, reader);
+    TLARS_Solver b(X_map, D_map, y_map, reader);
+    EXPECT_TRUE(a.getRNG() == b.getRNG());
+
+    trex::tsolvers::ad::SolverOptions entropy = reader;
+    entropy.tie_seed = -1;
+    TLARS_Solver c(X_map, D_map, y_map, entropy);
+    TLARS_Solver d(X_map, D_map, y_map, entropy);
+    EXPECT_FALSE(c.getRNG() == d.getRNG());  // equal with probability 2^-32
+}
+
 // ========================================================================================
 } /* End of namespace trex::test::tsolvers::ad::linear_model */
