@@ -263,6 +263,13 @@ if(TREX_INSTALL_CPP_SDK)
                     "TRexSelector.install-stamp, so it was not written by this "
                     "project. Remove or rename it by hand if it is stale.")
             endif()
+            # Content of the tree about to be pruned, for the timestamp step
+            # after the header installs (see below).
+            file(GLOB_RECURSE _trex_prev_files RELATIVE "${_trex_dir}" "${_trex_dir}/*")
+            foreach(_trex_rel IN LISTS _trex_prev_files)
+                string(MAKE_C_IDENTIFIER "${_trex_rel}" _trex_key)
+                file(SHA256 "${_trex_dir}/${_trex_rel}" "_trex_prev_sha_${_trex_key}")
+            endforeach()
             file(REMOVE_RECURSE "${_trex_dir}")
             message(STATUS "TRexSelector: pruned the package header tree ${_trex_dir}")
         endif()
@@ -316,6 +323,34 @@ if(TREX_INSTALL_CPP_SDK)
         NAMESPACE   TRexSelector::
         DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/TRexSelector
     )
+
+    # Timestamps of the rewritten header tree. file(INSTALL) gives every
+    # installed file the modification time of its source, so a header edited
+    # before a consumer object was compiled (against the previous install)
+    # looks older than that object after the install, the consumer is not
+    # rebuilt, and a changed class layout corrupts its heap. Headers whose
+    # content changed (or that are new) since the previous install therefore
+    # get the install time; unchanged headers keep theirs, so consumers
+    # rebuild exactly what depends on a change. Runs after the header
+    # installs of src/ (CMP0082).
+    install(CODE [[
+        set(_trex_dir "$ENV{DESTDIR}${CMAKE_INSTALL_PREFIX}/${_trex_include_root}")
+        if(EXISTS "${_trex_dir}")
+            file(GLOB_RECURSE _trex_new_files RELATIVE "${_trex_dir}" "${_trex_dir}/*")
+            set(_trex_changed 0)
+            foreach(_trex_rel IN LISTS _trex_new_files)
+                string(MAKE_C_IDENTIFIER "${_trex_rel}" _trex_key)
+                file(SHA256 "${_trex_dir}/${_trex_rel}" _trex_sha)
+                if(NOT DEFINED "_trex_prev_sha_${_trex_key}" OR
+                   NOT _trex_sha STREQUAL "${_trex_prev_sha_${_trex_key}}")
+                    file(TOUCH_NOCREATE "${_trex_dir}/${_trex_rel}")
+                    math(EXPR _trex_changed "${_trex_changed} + 1")
+                endif()
+            endforeach()
+            message(STATUS "TRexSelector: ${_trex_changed} new or changed file(s) "
+                           "in the header tree carry the install time")
+        endif()
+    ]])
 endif()
 
 
