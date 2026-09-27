@@ -43,6 +43,53 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
 - Floating-point classification is bit-based and the Release build no longer uses
   `-ffast-math`: results are IEEE 754 conformant; runs from fast-math builds are
   not bit-reproducible against these.
+- The T-Rex selectors mark their centered design `precentered`: on a saturating
+  design the solvers stop at n - 1 active variables (the rank of the centered
+  design) instead of taking an n-th, numerically collinear step. T-solver
+  checkpoints written before 2026-09-27 are unreadable (the base state and T-OLS
+  gained fields). See the 2026-09-27 entry.
+
+### 2026-09-27
+
+#### T-solvers: T-OLS scoring in one pass per step, the T-OMP refit, and `precentered`
+
+- Found in the Examples performance demo (demo_ts_perf_01: n 100, L = p = 300,
+  500 runs): T-OLS took 1.25 ms to T = 1 and 82 ms to T = 100, against 0.17 and
+  2.50 ms for T-OMP. The scoring re-orthogonalized every candidate against the
+  whole active set at every step (`h_j = X_A^T x_j` and a triangular solve per
+  candidate), `O((p + L) n k^2)` per path; 97 % of the T-OLS time.
+- T-OLS keeps the squared projected norms `||P_perp x_j||^2` of all candidates and
+  downdates them by `(q^T x_j)^2` for each new direction `q = X_A R^{-1} e_k` of the
+  active span, fused into the correlation pass: one `O(n (p + L))` pass per step,
+  the modified Gram-Schmidt form of OLS (Blumensath & Davies, OMP vs. OLS) without
+  an orthogonalized copy of the dictionary. 82 -> 2.9 ms to T = 100, 18.5 ->
+  1.2 ms to T = 20, 1.25 -> 0.28 ms to T = 1 (1.3-1.6x T-OMP). The path equals the
+  from-scratch score bit for bit up to n - 1 active variables (500 of 500 demo
+  runs; pinned by `TOOLSScoring.DowndatedNormsMatchFromScratchProjection`); the
+  norms are serialized, so a resumed solver continues bit for bit.
+- T-OMP: `updateActiveSet()` no longer copies `R_` as a backup before
+  `updateR()`, which never mutates it (T-AFS and TIKOMP already skipped the
+  copy), and the refit caches `X_A^T y` in active-set order. 2.50 -> 2.13 ms to
+  T = 100 at demo conditions (per core 2.30 -> 1.83 ms); paths bitwise unchanged
+  (T-OMP, TOOLS and TIKOMP share the refit).
+- `SolverOptions::precentered` (R `tsolver_options(precentered = )`, Python
+  `SolverOptions(precentered=)`): the caller centered X, D and y. The solver
+  counts the intercept as with `intercept = true` — the active set is capped at
+  n - 1, the degrees of freedom and Cp include the intercept — without touching
+  the data. Before, a reader on centered data allowed n active variables; at
+  saturation the n-th entered as a noise pick through the machine-epsilon
+  collinearity check and blew up the refit (100 demo runs at T = 100: T-LARS 98
+  runs, coefficients up to 4.4x; T-OMP / T-AFS 76 runs, 7.6x; T-OLS 55 runs,
+  coefficients 5e5). The T-Rex dispatch (`buildRunnerConfig`) and the GVS K-loop
+  set it in every ScalingMode except NONE; the augmented EN wrappers pass it to
+  the inner solver only on the lambda2 = 0 collapse (the augmented rows are not
+  centered). The elastic nets with lambda2 > 0 and the line-search T-NCGMP keep
+  running without the cap. Contract test for all 18 AD solvers:
+  `PrecenteredCountsInterceptLikeIntercept` (same path, DoF and Cp as
+  `intercept = true` on exactly centered data).
+- With `precentered` left false every other solver path is bitwise unchanged
+  (12 solver configurations, 100 demo runs, actions, DoF and coefficients).
+- Tests: C++ 569 of 569, R 282 expectations, Python 611.
 
 ### 2026-09-26
 
