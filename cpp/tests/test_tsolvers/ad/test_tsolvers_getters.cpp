@@ -304,7 +304,7 @@ TEST(TSolverGettersTest, TENETAugMatchesGramBasedTENET) {
     Eigen::Map<Eigen::MatrixXd> X1_map(X1.data(), n, p);
     Eigen::Map<Eigen::MatrixXd> D1_map(D1.data(), n, L);
     Eigen::Map<Eigen::VectorXd> y1_map(y1.data(), n);
-    TENET_Solver gram(X1_map, D1_map, y1_map, trex::tsolvers::ad::SolverOptions{.normalize = false, .intercept = false, .lambda2 = lambda2});
+    TENET_Solver gram(X1_map, D1_map, y1_map, trex::tsolvers::ad::SolverOptions{.normalize = false, .intercept = false, .precentered = true, .lambda2 = lambda2});
     gram.executeStep(3, true);
 
     Eigen::MatrixXd X2 = X, D2 = D;
@@ -319,6 +319,9 @@ TEST(TSolverGettersTest, TENETAugMatchesGramBasedTENET) {
     EXPECT_TRUE(gram.getBeta(-1).isApprox(aug.getBeta(-1), 1e-8))
         << "max abs diff: "
         << (gram.getBeta(-1) - aug.getBeta(-1)).cwiseAbs().maxCoeff();
+    // Both count the intercept of the centered data: the precentered reader
+    // and the wrapper around the intercept-free augmented system
+    EXPECT_EQ(gram.getDoF(), aug.getDoF());
 }
 
 /** @brief TENET Cp is undefined when n <= p_total + 1 (the typical T-Rex

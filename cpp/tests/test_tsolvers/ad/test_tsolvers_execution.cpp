@@ -195,6 +195,40 @@ TEST_F(TSolverExecutionTest, NCGMPVariantsMatchMPAndOMP) {
     ASSERT_EQ(omp_path.cols(), ncg_fc_path.cols());
     EXPECT_TRUE(omp_path.isApprox(ncg_fc_path, 1e-12))
         << "max abs diff: " << (omp_path - ncg_fc_path).cwiseAbs().maxCoeff();
+
+    // Full paths: the stopping rules agree as well (active-set cap and step
+    // limit of T-MP / T-OMP), so both variants end where their reference does
+    auto full = [this](auto make_solver) {
+        Eigen::MatrixXd Xc = X, Dc = D;
+        Eigen::VectorXd yc = y;
+        Eigen::Map<Eigen::MatrixXd> X_map(Xc.data(), Xc.rows(), Xc.cols());
+        Eigen::Map<Eigen::MatrixXd> D_map(Dc.data(), Dc.rows(), Dc.cols());
+        Eigen::Map<Eigen::VectorXd> y_map(yc.data(), yc.size());
+        auto solver = make_solver(X_map, D_map, y_map);
+        solver.executeStep(0, false);
+        return std::make_pair(solver.getActions(), solver.getBetaPathSparse().dense());
+    };
+    const auto [mp_actions, mp_full] = full([](auto& Xm, auto& Dm, auto& ym) {
+        return TMP_Solver(Xm, Dm, ym);
+    });
+    const auto [ls_actions, ls_full] = full([](auto& Xm, auto& Dm, auto& ym) {
+        return TNCGMP_Solver(Xm, Dm, ym);
+    });
+    EXPECT_EQ(mp_actions, ls_actions);
+    ASSERT_EQ(mp_full.cols(), ls_full.cols());
+    EXPECT_TRUE(mp_full.isApprox(ls_full, 1e-12))
+        << "max abs diff: " << (mp_full - ls_full).cwiseAbs().maxCoeff();
+
+    const auto [omp_actions, omp_full] = full([](auto& Xm, auto& Dm, auto& ym) {
+        return TOMP_Solver(Xm, Dm, ym);
+    });
+    const auto [fc_actions, fc_full] = full([](auto& Xm, auto& Dm, auto& ym) {
+        return TNCGMP_Solver(Xm, Dm, ym, trex::tsolvers::ad::SolverOptions{.ncgmp_variant = NCGMPVariant::FullyCorrective});
+    });
+    EXPECT_EQ(omp_actions, fc_actions);
+    ASSERT_EQ(omp_full.cols(), fc_full.cols());
+    EXPECT_TRUE(omp_full.isApprox(fc_full, 1e-12))
+        << "max abs diff: " << (omp_full - fc_full).cwiseAbs().maxCoeff();
 }
 
 
@@ -379,6 +413,9 @@ TEST_F(TSolverExecutionTest, TIENETNativeMatchesAugmentedPath) {
         EXPECT_EQ(native.getActives(), aug.getActives());
         EXPECT_EQ(native.getActiveDummyIndices().size(),
                   aug.getActiveDummyIndices().size());
+        // The wrapper counts the intercept although its inner solver runs
+        // intercept-free on the augmented system
+        EXPECT_EQ(native.getDoF(), aug.getDoF());
     }
 }
 

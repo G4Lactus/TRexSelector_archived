@@ -104,16 +104,13 @@ std::unique_ptr<T> create_solver(Eigen::Map<Eigen::MatrixXd>& X,
     }
 }
 
-/** @brief Solvers whose active set may exceed the row bound: the quadratic
- *  penalty (lambda2 > 0) lifts the cap of the elastic nets, and the
- *  line-search variant of TNCGMP (the default) runs without an active-set
- *  cap. */
+/** @brief Solvers whose active set may exceed the row bound by design: the
+ *  quadratic penalty (lambda2 > 0) lifts the cap of the elastic nets. */
 template <typename T>
 constexpr bool lifts_row_bound =
     std::is_same_v<T, TENET_Solver> || std::is_same_v<T, TENETAug_Solver> ||
     std::is_same_v<T, TIENET_Solver> || std::is_same_v<T, TIENETAug_Solver> ||
-    std::is_same_v<T, TCDENET_Solver> || std::is_same_v<T, TCDIENET_Solver> ||
-    std::is_same_v<T, TNCGMP_Solver>;
+    std::is_same_v<T, TCDENET_Solver> || std::is_same_v<T, TCDIENET_Solver>;
 
 // Factory with explicit preprocessing options (lambda2 = 0.5 as above)
 template <typename T>
@@ -334,12 +331,7 @@ TYPED_TEST(TSolverPolymorphicTest, PrecenteredCountsInterceptLikeIntercept) {
             EXPECT_EQ(cp_fitted[k], cp_precentered[k]) << "step " << k;
         }
     }
-    // The augmented wrappers report the inner solver's degrees of freedom,
-    // which runs intercept-free on the augmented system for lambda2 > 0.
-    if constexpr (!std::is_same_v<TypeParam, TENETAug_Solver> &&
-                  !std::is_same_v<TypeParam, TIENETAug_Solver>) {
-        EXPECT_EQ(precentered->getDoF().front(), 1u);
-    }
+    EXPECT_EQ(precentered->getDoF().front(), 1u);
     if constexpr (!lifts_row_bound<TypeParam>) {
         EXPECT_LE(precentered->getNumActives(), static_cast<std::size_t>(n - 1));
     }
