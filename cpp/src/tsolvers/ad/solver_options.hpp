@@ -103,9 +103,10 @@ struct SolverOptions {
     double tol = std::numeric_limits<double>::epsilon();
 
     /** @brief Seed of the solver's tie-break engine (pruneTiedDummies
-     *  shuffle; the exchangeable-tie draw). < 0 (default): seeded from
-     *  std::random_device, i.e. nondeterministic. */
-    long long tie_seed = -1;
+     *  shuffle; the exchangeable-tie draw). Default 0: a fixed seed, so a
+     *  solver run is reproducible also where exact ties occur. < 0: seeded
+     *  from std::random_device, i.e. nondeterministic. */
+    long long tie_seed = 0;
 
     /** @brief Exchangeable-tie band width for the greedy solvers (TOMP, TAFS
      *  families), in units of the pairwise ranking-noise sd: statistically
