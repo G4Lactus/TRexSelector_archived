@@ -503,3 +503,34 @@ test_that("the family getters: Kahan interval, alpha, Tikhonov K, KKT violation"
   expect_true(is.numeric(cd$get_kkt_violation()) && cd$get_kkt_violation() >= 0)
   cd$restore()
 })
+
+test_that("precentered counts the intercept like intercept = TRUE and caps the active set at n - 1", {
+  # Integer columns with exactly zero sums: the writer's own centering is a
+  # bitwise no-op, so both solvers see the same numbers.
+  set.seed(7)
+  centered_int <- function(nr, nc) {
+    M <- matrix(sample(-6:6, (nr - 1L) * nc, replace = TRUE), nr - 1L, nc)
+    rbind(M, -colSums(M)) * 1.0
+  }
+  nn <- 20L
+  Xc <- centered_int(nn, 30L)
+  Dc <- centered_int(nn, 30L)
+  yc <- drop(Xc[, 2] * 3 - Xc[, 5] * 2 + centered_int(nn, 1L))
+
+  fitted <- TOMP_Solver$new(Xc + 0, Dc + 0, yc,
+                            options = tsolver_options(normalize = FALSE, intercept = TRUE,
+                                                      tie_seed = 7))
+  on.exit(fitted$restore(), add = TRUE)
+  reader <- TOMP_Solver$new(Xc, Dc, yc,
+                            options = tsolver_options(normalize = FALSE, intercept = FALSE,
+                                                      precentered = TRUE, tie_seed = 7))
+  fitted$execute_step(T_stop = 30)
+  reader$execute_step(T_stop = 30)
+
+  expect_identical(reader$get_actions(), fitted$get_actions())
+  expect_identical(reader$get_dof(), fitted$get_dof())
+  expect_identical(reader$get_cp(), fitted$get_cp())
+  # get_dof() starts at step 1; the intercept is counted at every step
+  expect_equal(tail(reader$get_dof(), 1), reader$get_num_actives() + 1)
+  expect_lte(reader$get_num_actives(), nn - 1L)
+})

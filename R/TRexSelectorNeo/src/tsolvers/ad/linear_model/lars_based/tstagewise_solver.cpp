@@ -92,7 +92,7 @@ void TSTAGEWISE_Solver::executeStep(std::size_t T_stop, bool early_stop) {
             RSS_.push_back(r_.dot(r_));
             R2_.push_back(0.0);
             updateDummyTracking();
-            DoF_.push_back(intercept_ ? 1 : 0);
+            DoF_.push_back(interceptDoF());
             updateInactiveSet();
             break;
         }
@@ -132,7 +132,7 @@ void TSTAGEWISE_Solver::executeStep(std::size_t T_stop, bool early_stop) {
         R2_.push_back(1.0 - rss / RSS_[0]);
 
         updateDummyTracking();
-        DoF_.push_back(actives_.size() + (intercept_ ? 1 : 0));
+        DoF_.push_back(actives_.size() + interceptDoF());
     }
 }
 

@@ -7,6 +7,7 @@
 tsolver_options(
   normalize = TRUE,
   intercept = TRUE,
+  precentered = FALSE,
   scaling_mode = c("L2", "ZSCORE"),
   verbose = FALSE,
   tol = .Machine$double.eps,
@@ -35,6 +36,14 @@ pre-scaled (see the in-place note below). Default \code{TRUE}.}
 
 \item{intercept}{Logical; center X, D and y (an intercept is fitted).
 \code{FALSE} when the caller pre-centered. Default \code{TRUE}.}
+
+\item{precentered}{Logical; the caller centered X, D and y
+(\code{intercept = FALSE} on centered data, as in the T-Rex
+selectors). The centered columns span at most n - 1 dimensions, so the
+solver counts the intercept as with \code{intercept = TRUE}: the active
+set is capped at n - 1 and the degrees of freedom and Cp include the
+intercept. The data are not touched. Redundant when \code{intercept}
+is \code{TRUE}. Default \code{FALSE}.}
 
 \item{scaling_mode}{\code{"L2"} (default) or \code{"ZSCORE"}: the column
 scaling applied when \code{normalize} is \code{TRUE}.}

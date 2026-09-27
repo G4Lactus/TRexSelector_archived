@@ -113,11 +113,12 @@ void TENETAug_Solver::buildMaps() {
         y_aug_owned_.data(), y_aug_owned_.size());
 }
 
-void TENETAug_Solver::buildInnerSolver(bool normalize, bool intercept, bool verbose,
-                                       ScalingMode scaling_mode) {
+void TENETAug_Solver::buildInnerSolver(bool normalize, bool intercept, bool precentered,
+                                       bool verbose, ScalingMode scaling_mode) {
     SolverOptions inner;
     inner.normalize    = normalize;
     inner.intercept    = intercept;
+    inner.precentered  = precentered;
     inner.verbose      = verbose;
     inner.scaling_mode = scaling_mode;
     inner.tol          = eps_;
@@ -146,6 +147,7 @@ TENETAug_Solver::TENETAug_Solver(
     const double      lambda2        = options.lambda2;
     const bool        normalize      = options.normalize;
     const bool        intercept      = options.intercept;
+    const bool        precentered    = options.precentered;
     const bool        verbose        = options.verbose;
     const ScalingMode scaling_mode   = options.scaling_mode;
     const bool        use_lars_inner = options.tenet_aug_use_lars;
@@ -168,14 +170,16 @@ TENETAug_Solver::TENETAug_Solver(
     dummy_start_idx_ = p;
     normalize_ = normalize;
     intercept_ = intercept;
+    precentered_ = precentered;
     verbose_ = verbose;
-    effective_n_ = static_cast<std::size_t>(X.rows()) - (intercept ? 1 : 0);
+    effective_n_ = static_cast<std::size_t>(X.rows()) - interceptDoF();
 
     // Inner-solver scaling configuration. Defaults to whatever the caller
     // requested (used only for the non-augmented lambda2 == 0 path, where the
     // external scaling of X/D must be respected).
     bool inner_normalize       = normalize;
     bool inner_intercept       = intercept;
+    bool inner_precentered     = precentered;
     ScalingMode inner_scaling  = scaling_mode;
 
     if (lambda2_ == 0.0) {
@@ -207,11 +211,15 @@ TENETAug_Solver::TENETAug_Solver(
         // X/D (and centering of y), exactly as in the R reference.
         inner_normalize = false;
         inner_intercept = false;
+        // The appended ridge rows are not centered: the augmented design
+        // keeps its full row bound.
+        inner_precentered = false;
         inner_scaling   = scaling_mode;
     }
 
     buildMaps();
-    buildInnerSolver(inner_normalize, inner_intercept, verbose, inner_scaling);
+    buildInnerSolver(inner_normalize, inner_intercept, inner_precentered, verbose,
+                     inner_scaling);
     syncDiagnosticsFromInner();
 }
 

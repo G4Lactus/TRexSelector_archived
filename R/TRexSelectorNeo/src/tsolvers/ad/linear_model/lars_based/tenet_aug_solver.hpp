@@ -179,11 +179,13 @@ class TENETAug_Solver : public TSolver_Base {
      * @brief Create the inner TLASSO_Solver, forwarding preprocessing flags.
      * @param normalize  Passed to TLASSO_Solver (L2-normalise columns).
      * @param intercept  Passed to TLASSO_Solver (centre columns and y).
+     * @param precentered Passed to TLASSO_Solver (caller-centered data;
+     *        false on the augmented system).
      * @param verbose    Passed to TLASSO_Solver.
      * @param scaling_mode Passed to TLASSO_Solver (L2 or z-score scaling).
      */
-    void buildInnerSolver(bool normalize, bool intercept, bool verbose,
-                          ScalingMode scaling_mode = ScalingMode::L2);
+    void buildInnerSolver(bool normalize, bool intercept, bool precentered,
+                          bool verbose, ScalingMode scaling_mode = ScalingMode::L2);
 
 public:
     // ========================================================================
@@ -310,7 +312,7 @@ public:
                 CEREAL_NVP(use_lars_inner_),
                 CEREAL_NVP(p_original_), CEREAL_NVP(num_dummies_),
                 CEREAL_NVP(dummy_start_idx_), CEREAL_NVP(effective_n_),
-                CEREAL_NVP(normalize_), CEREAL_NVP(intercept_),
+                CEREAL_NVP(normalize_), CEREAL_NVP(intercept_), CEREAL_NVP(precentered_),
                 CEREAL_NVP(verbose_),
                 CEREAL_NVP(X_aug_owned_),
                 CEREAL_NVP(D_aug_owned_),

@@ -223,6 +223,12 @@ struct SolverConfig {
      */
     bool intercept = false;
 
+    /** @brief The caller centered X, D and y (SolverOptions::precentered):
+     *  the solver caps its active set at n - 1. In TRex context true for
+     *  every ScalingMode except NONE.
+     */
+    bool precentered = false;
+
     /** @brief Enable verbose output from the solver. */
     bool verbose   = false;
 
@@ -378,6 +384,7 @@ inline trex::tsolvers::ad::SolverOptions toSolverOptions(const SolverConfig& cfg
     const SolverHyperparameters& hp = cfg.hyperparams;
     o.normalize      = cfg.normalize;
     o.intercept      = cfg.intercept;
+    o.precentered    = cfg.precentered;
     o.verbose        = cfg.verbose;
     o.scaling_mode   = cfg.scaling_mode;
     o.tol            = hp.tol;

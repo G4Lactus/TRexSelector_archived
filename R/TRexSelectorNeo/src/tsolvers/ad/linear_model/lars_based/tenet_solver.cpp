@@ -184,7 +184,7 @@ void TENET_Solver::executeStep(std::size_t T_stop, bool early_stop) {
             drop_recovery_pending_ = (num_removals_ > removals_before);
 
             updateDummyTracking();
-            DoF_.push_back(actives_.size() + (intercept_ ? 1 : 0));
+            DoF_.push_back(actives_.size() + interceptDoF());
             updateInactiveSet();
             continue;
         }
@@ -305,7 +305,7 @@ void TENET_Solver::executeStep(std::size_t T_stop, bool early_stop) {
 
         // T-ENET: Record dummy count and DoF after all adds/removes
         updateDummyTracking();
-        DoF_.push_back(actives_.size() + (intercept_ ? 1 : 0));
+        DoF_.push_back(actives_.size() + interceptDoF());
 
         // ========================================================
         // STEP 10: Update inactive set
@@ -490,7 +490,7 @@ std::vector<double> TENET_Solver::getCp() const {
     if (RSS_.empty() || DoF_.empty()) { return cp_out; }
 
     // Derive n from serialized state so Cp is available on disconnected solvers
-    std::size_t n = effective_n_ + (intercept_ ? 1 : 0);
+    std::size_t n = effective_n_ + interceptDoF();
     double rss_final = RSS_.back();
     double p_total = static_cast<double>(p_original_ + num_dummies_);
 

@@ -84,6 +84,7 @@ SolverOptions parse_solver_options(const Rcpp::List& o) {
 
     if (has("normalize")) opts.normalize = Rcpp::as<bool>(o["normalize"]);
     if (has("intercept")) opts.intercept = Rcpp::as<bool>(o["intercept"]);
+    if (has("precentered")) opts.precentered = Rcpp::as<bool>(o["precentered"]);
     if (has("verbose"))   opts.verbose   = Rcpp::as<bool>(o["verbose"]);
     if (has("scaling_mode")) {
         const std::string m = Rcpp::as<std::string>(o["scaling_mode"]);

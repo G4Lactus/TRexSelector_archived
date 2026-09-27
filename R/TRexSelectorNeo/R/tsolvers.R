@@ -24,6 +24,13 @@ NULL
 #'   pre-scaled (see the in-place note below). Default \code{TRUE}.
 #' @param intercept Logical; center X, D and y (an intercept is fitted).
 #'   \code{FALSE} when the caller pre-centered. Default \code{TRUE}.
+#' @param precentered Logical; the caller centered X, D and y
+#'   (\code{intercept = FALSE} on centered data, as in the T-Rex
+#'   selectors). The centered columns span at most n - 1 dimensions, so the
+#'   solver counts the intercept as with \code{intercept = TRUE}: the active
+#'   set is capped at n - 1 and the degrees of freedom and Cp include the
+#'   intercept. The data are not touched. Redundant when \code{intercept}
+#'   is \code{TRUE}. Default \code{FALSE}.
 #'
 #' @section In-place preprocessing (the writer/reader contract):
 #' The T-solvers work on the caller's matrices without copying, in R as in
@@ -81,6 +88,7 @@ NULL
 #' @export
 tsolver_options <- function(normalize = TRUE,
                             intercept = TRUE,
+                            precentered = FALSE,
                             scaling_mode = c("L2", "ZSCORE"),
                             verbose = FALSE,
                             tol = .Machine$double.eps,
@@ -106,6 +114,7 @@ tsolver_options <- function(normalize = TRUE,
   list(
     normalize                 = as.logical(normalize),
     intercept                 = as.logical(intercept),
+    precentered               = as.logical(precentered),
     scaling_mode              = scaling_mode,
     verbose                   = as.logical(verbose),
     tol                       = as.numeric(tol),
