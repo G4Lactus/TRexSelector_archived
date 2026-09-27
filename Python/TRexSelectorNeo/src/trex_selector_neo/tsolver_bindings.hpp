@@ -607,6 +607,12 @@ inline void bind_solver_options(py::module& m) {
        .def_readwrite("intercept", &SolverOptions::intercept,
             "Center X and D in place (a writer, as for normalize) and the solver's internal "
             "copy of y (an intercept is fitted). False when the caller pre-centered. Default True.")
+       .def_readwrite("precentered", &SolverOptions::precentered,
+            "The caller centered X, D and y (intercept=False on centered data, as in the T-Rex "
+            "selectors). The centered columns span at most n - 1 dimensions, so the solver counts "
+            "the intercept as with intercept=True: the active set is capped at n - 1 and the "
+            "degrees of freedom and Cp include the intercept. The data are not touched. Redundant "
+            "when intercept is True. Default False.")
        .def_readwrite("scaling_mode", &SolverOptions::scaling_mode,
             "Column scaling applied when normalize is True: ScalingMode.L2 (default) or ZSCORE.")
        .def_readwrite("verbose", &SolverOptions::verbose, "Print status and diagnostics. Default False.")
@@ -648,6 +654,7 @@ inline void bind_solver_options(py::module& m) {
        .def("__repr__", [](const SolverOptions& o) {
             return "SolverOptions(normalize=" + std::string(o.normalize ? "True" : "False") +
                    ", intercept=" + (o.intercept ? "True" : "False") +
+                   ", precentered=" + (o.precentered ? "True" : "False") +
                    ", lambda2=" + std::to_string(o.lambda2) +
                    ", rho_afs=" + std::to_string(o.rho_afs) + ", ...)";
        });

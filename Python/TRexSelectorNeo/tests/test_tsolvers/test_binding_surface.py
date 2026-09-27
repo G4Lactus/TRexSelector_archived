@@ -17,6 +17,7 @@ from trex_selector_neo.tsolvers.ad.lars_based import (
     TENETAug_Solver,
     TIENETAug_Solver,
 )
+from trex_selector_neo.tsolvers.ad.omp_based import TOMP_Solver
 
 
 @pytest.fixture
@@ -194,3 +195,34 @@ def test_solver_options_keywords_and_fields(data):
     t = TENET_Solver(X, D, y, o)
     t.executeStep(2)
     assert t.getNumSteps() > 0
+    assert SolverOptions().precentered is False
+    assert SolverOptions(precentered=True).precentered is True
+
+
+def _exactly_centered_integers(rng, n, p):
+    """Integer columns with exactly zero sums: a solver's own centering is a bitwise no-op."""
+    M = rng.integers(-6, 7, size=(n - 1, p)).astype(float)
+    return np.asfortranarray(np.vstack([M, -M.sum(axis=0)]))
+
+
+def test_precentered_counts_intercept_like_intercept():
+    """precentered: a reader on caller-centered data counts the intercept like
+    intercept=True (same path, DoF and Cp) and caps the active set at n - 1."""
+    rng = np.random.default_rng(7)
+    n = 20
+    X = _exactly_centered_integers(rng, n, 30)
+    D = _exactly_centered_integers(rng, n, 30)
+    y = np.asfortranarray(X[:, 1] * 3.0 - X[:, 4] * 2.0 + _exactly_centered_integers(rng, n, 1)[:, 0])
+
+    fitted = TOMP_Solver(X.copy(order="F"), D.copy(order="F"), y.copy(),
+                         SolverOptions(normalize=False, intercept=True, tie_seed=7))
+    reader = TOMP_Solver(X, D, y,
+                         SolverOptions(normalize=False, intercept=False, precentered=True, tie_seed=7))
+    fitted.executeStep(30, True)
+    reader.executeStep(30, True)
+
+    assert reader.getActions() == fitted.getActions()
+    assert list(reader.getDoF()) == list(fitted.getDoF())
+    np.testing.assert_array_equal(np.asarray(reader.getCp()), np.asarray(fitted.getCp()))
+    assert reader.getDoF()[0] == 1
+    assert reader.getNumActives() <= n - 1

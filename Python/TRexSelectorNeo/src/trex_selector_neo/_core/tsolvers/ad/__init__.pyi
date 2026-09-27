@@ -239,6 +239,14 @@ class SolverOptions:
     def normalize(self, arg0: bool) -> None:
         ...
     @property
+    def precentered(self) -> bool:
+        """
+        The caller centered X, D and y (intercept=False on centered data, as in the T-Rex selectors). The centered columns span at most n - 1 dimensions, so the solver counts the intercept as with intercept=True: the active set is capped at n - 1 and the degrees of freedom and Cp include the intercept. The data are not touched. Redundant when intercept is True. Default False.
+        """
+    @precentered.setter
+    def precentered(self, arg0: bool) -> None:
+        ...
+    @property
     def rho_afs(self) -> float:
         """
         TAFS shrinkage step in (0, 1]; 1 (default) is forward stepwise.
