@@ -43,7 +43,7 @@
 #include <utils/memmap/memory_mapped_matrix.hpp>
 
 // ===============================================================================
-// TSolverRcpp — zero-copy holder of the T-solver and its views (2026-09-25)
+// TSolverRcpp — zero-copy holder of the T-solver and its views
 // ===============================================================================
 //
 // The single definition, shared by rcpp_tsolvers.cpp and RcppExports.cpp (which

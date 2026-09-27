@@ -117,9 +117,9 @@ TRexSPCAControlParameter parse_spca_control(const Rcpp::List& spca_ctrl_list) {
 
 
 // ==============================================================================
-// Shared body of the in-memory and the memory-mapped entry points (2026-09-25,
-// notes/ZERO_COPY_PLAN.md 5.1): the selector centers X in place through the
-// map during select() and restores it on return.
+// Shared body of the in-memory and the memory-mapped entry points: the
+// selector centers X in place through the map during select() and restores
+// it on return.
 // ==============================================================================
 static Rcpp::List spca_select_on_map(
     Eigen::Map<Eigen::MatrixXd>& X_map,

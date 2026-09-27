@@ -239,6 +239,12 @@ void TENETAug_Solver::syncDiagnosticsFromInner() {
     RSS_             = inner_->getRSS();
     R2_              = inner_->getR2();
     DoF_             = inner_->getDoF();
+    // For lambda2 > 0 the inner solver runs intercept-free on the augmented
+    // system; the wrapper's model carries the intercept of the centered data
+    // blocks (intercept or precentered), as the pathwise solvers count it.
+    if (lambda2_ > 0.0 && interceptDoF() == 1) {
+        for (std::size_t& dof : DoF_) { ++dof; }
+    }
     actions_         = inner_->getActions();
     actives_         = inner_->getActives();
     inactives_       = inner_->getInactives();

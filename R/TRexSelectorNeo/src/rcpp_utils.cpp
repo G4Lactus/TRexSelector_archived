@@ -170,7 +170,7 @@ int mmap_matrix_cols(
 double mmap_matrix_size(
     XPtr<MemoryMappedMatrix<double>> ptr  // NOLINT(performance-unnecessary-value-param)
 ) {
-    // double: an int overflows above 2^31 - 1 elements (2026-09-25, 5.5)
+    // double: an int overflows above 2^31 - 1 elements
     return static_cast<double>(ptr->size());
 }
 
@@ -441,7 +441,7 @@ Rcpp::List rcpp_normalize_design(
 }
 
 // ==============================================================================
-// Thread controls (2026-09-25, 5.4): the OpenMP thread count the library uses.
+// Thread controls: the OpenMP thread count the library uses.
 // ==============================================================================
 
 //' @noRd

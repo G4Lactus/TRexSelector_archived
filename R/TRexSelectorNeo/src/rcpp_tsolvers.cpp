@@ -71,7 +71,7 @@ static Eigen::Map<Eigen::VectorXd> map_of(Rcpp::NumericVector& v) {
 // Every solver is constructed as (X, D, y, options) — plus the 1-based group
 // vector of the IEN solvers (TIENETAug, TIENET, TCDIENET) or the Tikhonov
 // matrix of the sparse-K solvers (TIKNET, TIKOMP, TCDTIKNET) — where
-// `options` is the R list built by tsolver_options() (PLAN WP9 / TODO 5.4).
+// `options` is the R list built by tsolver_options().
 // parse_solver_options() maps it onto the C++ SolverOptions; absent fields
 // keep the C++ defaults.
 
@@ -1647,8 +1647,7 @@ void tsolver_load(
 
 
 // ==============================================================================
-// Family getters of the solvers bound with TODO 5.4 (TIENET, the CD family,
-// the sparse-K solvers)
+// Family getters of TIENET, the CD family and the sparse-K solvers
 // ==============================================================================
 
 //' @title TIENET: group-ridge penalty used
@@ -1772,8 +1771,7 @@ bool tsolver_tcdtiknet_is_folded(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-
 
 
 // ==============================================================================
-// Surface catch-up (2026-09-25, notes/ZERO_COPY_PLAN.md 5.4): the base methods
-// the Python binding has had, plus the family getters.
+// The base methods shared with the Python binding, plus the family getters.
 // ==============================================================================
 
 //' @noRd

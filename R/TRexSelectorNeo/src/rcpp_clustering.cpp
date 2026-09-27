@@ -192,8 +192,8 @@ NumericMatrix rcpp_agglomerative_cluster(
     // Clustering the variables of a design (T-Rex's internal use) needs no
     // transpose and no copy: the core takes the design as is. The former
     // note about undefined behaviour with Average + LSH_Approx described an
-    // NN-chain bug the core fixed in June 2026 (Ward routing + chain guard),
-    // not the lazy transpose (2026-09-25, notes/ZERO_COPY_PLAN.md).
+    // NN-chain bug of the core, fixed there (Ward routing + chain guard),
+    // not the lazy transpose.
     Eigen::MatrixXd transposed = data.transpose();
     using TransposedType = Eigen::MatrixXd;
 

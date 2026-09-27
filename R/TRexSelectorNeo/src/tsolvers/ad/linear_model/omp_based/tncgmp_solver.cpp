@@ -35,10 +35,10 @@ TNCGMP_Solver::TNCGMP_Solver(
     std::size_t p_tot = p_original_ + num_dummies_;
     max_actives_ = std::min(p_tot - dropped_indices_.size(), effective_n_);
 
-    // Line Search (MP) may require more steps than dimensions since it doesn't orthogonalize
-    maxSteps_ = (variant_ == NCGMPVariant::LineSearch) ?
-                            20 * p_tot :
-                            8 * std::min(max_actives_, effective_n_);
+    // Both variants stop by the rules of the solver they reduce to (T-MP and
+    // T-OMP share them): at most effective_n_ distinct atoms and
+    // 8 x min(max_actives_, effective_n_) steps.
+    maxSteps_ = 8 * std::min(max_actives_, effective_n_);
 
     logInfo(concatMsg(
             solverTypeToString(), " sequence\n",
@@ -47,9 +47,7 @@ TNCGMP_Solver::TNCGMP_Solver(
             "  Max steps: ", maxSteps_, "\n"
     ));
 
-    // Path storage is sparse (per-step support only), so even the LineSearch
-    // variant's large step ceiling (20 * p_tot) no longer implies a dense
-    // p_tot x steps allocation.
+    // Path storage is sparse (per-step support only).
     r_ = y_;
     initBetaPathStorage();
 
@@ -77,12 +75,12 @@ void TNCGMP_Solver::executeStep(std::size_t T_stop, bool early_stop) {
     // diagnostics arrays); they are prepended to the next successful step.
     std::vector<int> pending_drop_actions;
 
-    // Line Search (MP) re-selects active atoms, so it is not bounded by the
-    // inactive set or the active-set size; it stops via maxSteps_, T_stop,
-    // or vanishing correlations.
+    // Line Search (MP) re-selects active atoms, so an empty inactive set does
+    // not end it; like T-MP it stops once effective_n_ distinct atoms are
+    // active, via maxSteps_, T_stop, or vanishing correlations.
     while (currentStep_ < maxSteps_ &&
-           (variant_ == NCGMPVariant::LineSearch ||
-            (!inactives_.empty() && actives_.size() < effective_n_)) &&
+           actives_.size() < effective_n_ &&
+           (variant_ == NCGMPVariant::LineSearch || !inactives_.empty()) &&
            (!early_stop || T_stop == 0 || count_active_dummies_ < T_stop)) {
 
         // 1. Linear Minimization Oracle (LMO) - Max Correlation

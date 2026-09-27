@@ -73,7 +73,7 @@ TRexControlParameter parse_control_parameter(const Rcpp::List& control) {
         }
     }
 
-    // Working-design convention (PLAN WP5): L2 (default) / ZSCORE center and
+    // Working-design convention: L2 (default) / ZSCORE center and
     // scale inside the selector; NONE takes X and y as supplied.
     if (control.containsElementNamed("scaling_mode")) {
         namespace dn = trex::trex_selector_methods::ad::utils::data_normalizer;
@@ -465,8 +465,8 @@ Eigen::VectorXd trex_selector_get_voting_grid(
 Rcpp::NumericMatrix trex_selector_get_fdp_hat_mat(
     XPtr<RTRexSelector> r_ptr // NOLINT (performance-unnecessary-value-param)
 ) {
-    // Wrapped once from the const reference (a by-value return copied
-    // the T_stop x p matrix twice; 2026-09-25, notes/ZERO_COPY_PLAN.md 5.2).
+    // Wrapped once from the const reference (a by-value return would copy
+    // the T_stop x p matrix twice).
     return Rcpp::wrap(r_ptr->getFDPHatMat());
 }
 
@@ -477,8 +477,8 @@ Rcpp::NumericMatrix trex_selector_get_fdp_hat_mat(
 Rcpp::NumericMatrix trex_selector_get_phi_mat(
     XPtr<RTRexSelector> r_ptr // NOLINT (performance-unnecessary-value-param)
 ) {
-    // Wrapped once from the const reference (a by-value return copied
-    // the T_stop x p matrix twice; 2026-09-25, notes/ZERO_COPY_PLAN.md 5.2).
+    // Wrapped once from the const reference (a by-value return would copy
+    // the T_stop x p matrix twice).
     return Rcpp::wrap(r_ptr->getPhiMat());
 }
 
@@ -489,8 +489,8 @@ Rcpp::NumericMatrix trex_selector_get_phi_mat(
 Rcpp::NumericMatrix trex_selector_get_r_mat(
     XPtr<RTRexSelector> r_ptr // NOLINT (performance-unnecessary-value-param)
 ) {
-    // Wrapped once from the const reference (a by-value return copied
-    // the T_stop x p matrix twice; 2026-09-25, notes/ZERO_COPY_PLAN.md 5.2).
+    // Wrapped once from the const reference (a by-value return would copy
+    // the T_stop x p matrix twice).
     return Rcpp::wrap(r_ptr->getRMat());
 }
 
@@ -536,8 +536,8 @@ double trex_selector_get_y_mean(
 
 
 // ==============================================================================
-// Surface catch-up (2026-09-25, 5.4): the control getters of the wrapper, and
-// the number of dummies of the last select().
+// The control getters of the wrapper, and the number of dummies of the last
+// select().
 // ==============================================================================
 
 //' @noRd

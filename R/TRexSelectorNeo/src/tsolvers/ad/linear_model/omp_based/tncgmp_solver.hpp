@@ -46,8 +46,10 @@ using trex::tsolvers::ad::NCGMPVariant;
  * quadratic upper bound b = x - (1/L) * grad f(x). For the least-squares
  * objective used here (L = 1, grad f = -r), Variant 0 (LineSearch) reduces
  * EXACTLY to Matching Pursuit (T-MP) and Variant 1 (FullyCorrective) reduces
- * EXACTLY to Orthogonal Matching Pursuit (T-OMP); both equivalences are
- * pinned to machine precision in the test suite. The class is retained as
+ * EXACTLY to Orthogonal Matching Pursuit (T-OMP), stopping rules included
+ * (at most effective_n_ active atoms, 8 x min(max_actives, effective_n_)
+ * steps); both equivalences are pinned over the full path in the test
+ * suite. The class is retained as
  * the GMP framing in anticipation of non-quadratic losses (e.g., the planned
  * logistic model), where the norm-corrective updates genuinely differ from
  * MP/OMP.

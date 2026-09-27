@@ -73,10 +73,9 @@ XPtr<RTRexBiobankScreeningSelector> trex_biobank_screening_2d_create(
 }
 
 // ==============================================================================
-// Memory-mapped X (2026-09-25, notes/ZERO_COPY_PLAN.md 5.1): the file is
-// mapped directly; the screening's inner selectors normalize it in place per
-// screening call and restore it, so a "readwrite" mapping is required. Before,
-// the R6 class read the whole file into RAM through as.matrix().
+// Memory-mapped X: the file is mapped directly (never read into RAM); the
+// screening's inner selectors normalize it in place per screening call and
+// restore it, so a "readwrite" mapping is required.
 // ==============================================================================
 
 //' @noRd

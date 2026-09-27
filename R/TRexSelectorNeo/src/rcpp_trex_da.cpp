@@ -135,9 +135,8 @@ void trex_da_select(XPtr<RTRexDASelector> r_ptr) {
 
 // ==============================================================================
 // A vector of R x (T_stop x p) matrices as one R array T_stop x p x R, filled
-// once from the const references (the by-value std::vector return copied every
-// matrix, Rcpp::wrap copied them again into a list, and simplify2array() in R a
-// third time; 2026-09-25, notes/ZERO_COPY_PLAN.md 5.2).
+// once from the const references (a by-value std::vector return would copy
+// every matrix, Rcpp::wrap into a list and simplify2array() in R twice more).
 // ==============================================================================
 static Rcpp::NumericVector da_array_from_matrices(const std::vector<Eigen::MatrixXd>& mats) {
     const R_xlen_t R = static_cast<R_xlen_t>(mats.size());
@@ -160,7 +159,7 @@ static Rcpp::NumericVector da_array_from_matrices(const std::vector<Eigen::Matri
 XPtr<RTRexSelector> trex_da_to_base_ptr(XPtr<RTRexDASelector> r_ptr) {
     RTRexSelector* base_ptr = static_cast<RTRexSelector*>(r_ptr.get());
     // Non-owning view; the owning XPtr is pinned in the protection slot so the
-    // object outlives every base-pointer handle (2026-09-25).
+    // object outlives every base-pointer handle.
     return XPtr<RTRexSelector>(base_ptr, false, R_NilValue, r_ptr);
 }
 

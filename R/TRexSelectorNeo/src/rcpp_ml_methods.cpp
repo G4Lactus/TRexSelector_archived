@@ -38,9 +38,8 @@ using MmapMatrixD = trex::utils::memmap::MemoryMappedMatrix<double>;
  * RcppEigen converts only to a mutable Eigen::Map, so the read-only entry
  * points take the R matrix (REALSXP, no copy; the R6 layer coerces other
  * storage) and build the const map by hand. It binds to the cores'
- * Eigen::Ref<const MatrixXd> without a copy (2026-09-25, Tier A of
- * notes/ZERO_COPY_PLAN.md; before, `const Eigen::MatrixXd&` parameters
- * copied X in full on every call).
+ * Eigen::Ref<const MatrixXd> without a copy (a `const Eigen::MatrixXd&`
+ * parameter would copy X in full on every call).
  */
 static Eigen::Map<const Eigen::MatrixXd> const_map(const Rcpp::NumericMatrix& m) {
     return {m.begin(), m.nrow(), m.ncol()};
@@ -236,7 +235,7 @@ void zscore_scaler_fit_mmap(
     XPtr<MmapMatrixD> mmap_ptr, // NOLINT(performance-unnecessary-value-param)
     double threshold = 1e-12
 ) {
-    // Read-only: the const map accepts a "readonly" mapping (2026-09-25).
+    // Read-only: the const map accepts a "readonly" mapping.
     const MmapMatrixD& mmap = *mmap_ptr;
     ptr->fit(mmap.getMap(), threshold);
 }
@@ -480,7 +479,7 @@ void lpnorm_scaler_fit_mmap(
     XPtr<MmapMatrixD> mmap_ptr, // NOLINT(performance-unnecessary-value-param)
     double threshold = 1e-12
 ) {
-    // Read-only: the const map accepts a "readonly" mapping (2026-09-25).
+    // Read-only: the const map accepts a "readonly" mapping.
     const MmapMatrixD& mmap = *mmap_ptr;
     ptr->fit(mmap.getMap(), threshold);
 }
@@ -539,7 +538,7 @@ void lpnorm_scaler_inverse_transform_inplace_mmap(
 //' @noRd
 // [[Rcpp::export]]
 XPtr<ridge_cv> ridge_cv_create(bool low_memory = false) {
-    // low_memory: the kernel (dual) fold engine, see ridge_cv_svd(bool) (Tier C2).
+    // low_memory: the kernel (dual) fold engine, see ridge_cv_svd(bool).
     return XPtr<ridge_cv>(new ridge_cv(low_memory));
 }
 
@@ -688,7 +687,7 @@ Eigen::VectorXd ridge_cv_get_cv_std(
 // [[Rcpp::export]]
 XPtr<enet_path> enet_create(bool low_memory = false) {
     // low_memory: the raw-X engine (no working copy of X; a memory-mapped X
-    // is read in place), see enet_gaussian(bool) (2026-09-25, Tier C1).
+    // is read in place), see enet_gaussian(bool).
     return XPtr<enet_path>(new enet_path(low_memory));
 }
 
@@ -983,7 +982,7 @@ Eigen::VectorXd enet_cv_get_cv_std(
 // [[Rcpp::export]]
 Rcpp::List svd_compute(Rcpp::NumericMatrix X, int M,
                        double min_dim_thresh = 10000, double block_size = 1024) {
-    // Dispatch thresholds (Tier C3): a lower min_dim_thresh selects the
+    // Dispatch thresholds: a lower min_dim_thresh selects the
     // randomized, block-wise (no copy) path for smaller designs.
     SVDSolver solver{static_cast<Eigen::Index>(min_dim_thresh), static_cast<Eigen::Index>(block_size)};
     SVDResult res = solver.compute(const_map(X), static_cast<Eigen::Index>(M));
