@@ -48,8 +48,48 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   design) instead of taking an n-th, numerically collinear step. T-solver
   checkpoints written before 2026-09-27 are unreadable (the base state and T-OLS
   gained fields). See the 2026-09-27 entry.
+- T-NCGMP in its line-search variant (the default) stops by the T-MP rules (the
+  row bound on the active atoms, 8 x min(max_actives, row bound) steps) instead of running without
+  an active-set cap for 20 x (p + L) steps; past saturation its paths are shorter
+  and equal T-MP's. The augmented EN wrappers count the intercept in their
+  degrees of freedom for lambda2 > 0 (one more than before). See the 2026-09-27
+  entry.
 
 ### 2026-09-27
+
+#### T-solvers: T-NCGMP stopping rules, augmented EN degrees of freedom, install timestamps
+
+- T-NCGMP line search is T-MP step for step (Locatello et al. 2017, Alg. 4 with
+  L = 1) but ran without an active-set cap for 20 x (p + L) steps, so at T = 100
+  in demo_ts_perf_01 it ended with about 106 selected variables against 54 for
+  T-MP. It now stops by T-MP's rules (effective_n_ distinct atoms,
+  8 x min(max_actives_, effective_n_) steps); the fully corrective variant keeps
+  T-OMP's. On the demo setup (100 runs, T up to 100) the line-search actions equal
+  T-MP's in every run, the coefficients to 2e-14 (T-NCGMP divides the step by
+  `||x_j||^2`, 1 up to rounding on normalized columns).
+  `NCGMPVariantsMatchMPAndOMP` pins the full paths of both variants; the
+  precentered contract test no longer exempts T-NCGMP from the n - 1 cap.
+- TENETAug and TIENETAug reported the degrees of freedom of their inner solver,
+  which runs intercept-free on the augmented system for lambda2 > 0, so the
+  intercept was missing even with intercept = true. The wrappers add it
+  (intercept or precentered), as the pathwise TENET and TIENET count it; the
+  TENET / TENETAug and TIENET / TIENETAug parity tests compare the DoF.
+- Install timestamps: `file(INSTALL)` gives every installed header the
+  modification time of its source. A consumer object compiled after a header
+  edit but before the install looked newer than the changed header, was not
+  rebuilt, and the changed class layout corrupted its heap (seen in a scratch
+  benchmark after the T-OMP / T-OLS members were added). `cmake --install` now
+  records the SHA-256 of the header tree before pruning it and stamps new or
+  changed files with the install time; unchanged headers keep theirs (verified:
+  fresh install 106 files, repeat install 0, one altered header 1; the install
+  smoke test passes).
+- On a saturating design TCDLASSO can hit its sweep budget in `solveAtLambda`,
+  after which its working active set runs ahead of the last recorded step
+  (support 16, working set 18, n = 20); the recorded path and its DoF are
+  consistent. Noted, not changed.
+- R glue: the comment sweep had missed `R/TRexSelectorNeo/src/rcpp_*.cpp` and
+  `TRexSelectorNeo_types.h`; 23 plan references, work-package tags and date
+  stamps reformulated as the technical statement.
 
 #### T-solvers: T-OLS scoring in one pass per step, the T-OMP refit, and `precentered`
 
