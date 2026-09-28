@@ -14,8 +14,13 @@ consuming it from your own C++ project.
 | [Eigen3](https://eigen.tuxfamily.org)          | Linear algebra                            | any recent | Yes      |
 | [Boost](https://www.boost.org)                 | Headers + iostreams (memory-mapped files) | ≥ 1.80     | Yes      |
 | [Cereal](https://uscilab.github.io/cereal)     | Serialization of solver state             | any recent | Yes      |
-| [OpenMP](https://www.openmp.org)               | Parallelisation of random experiments     | ≥ 3.1      | Yes      |
+| [OpenMP](https://www.openmp.org)               | Parallelisation of random experiments     | ≥ 3.1      | Optional |
 | BLAS / LAPACK                                  | Accelerated linear algebra backend        | —          | Optional |
+
+*Without OpenMP the library builds single-threaded. CMake then reports "OpenMP not found:
+building single-threaded", and `omp_get_max_threads()` returns 1 through the stubs in
+`src/utils/openmp/utils_openmp.hpp`. `-DTREX_WITH_OPENMP=OFF` forces that build even where
+OpenMP exists.*
 
 **Platform Support:**
 
@@ -35,7 +40,8 @@ consuming it from your own C++ project.
 brew install cmake llvm eigen cereal boost openblas libomp
 ```
 
-*(CMake requires Homebrew LLVM, not Apple Clang, for OpenMP support).*
+*(CMake prefers Homebrew LLVM and its libomp for OpenMP. A compiler without OpenMP support
+gives a single-threaded build.)*
 
 **Ubuntu / Debian:**
 
@@ -75,6 +81,7 @@ Useful configure-time options:
 | `TREX_USE_BLAS_LAPACK` | ON (OFF on Windows) | Route Eigen through a BLAS/LAPACK backend (Accelerate/OpenBLAS) |
 | `TREX_PORTABLE_BUILD`  | OFF                 | Disable `-march=native` for portable/wheel/CI builds            |
 | `TREX_BUILD_TESTS`     | ON                  | Build the GoogleTest executables                                |
+| `TREX_WITH_OPENMP`     | ON                  | Use OpenMP when found. OFF forces the single-threaded build     |
 
 **Running the tests:**
 
@@ -164,6 +171,8 @@ cmake -S . -B build -DCMAKE_PREFIX_PATH=/path/to/TRexSelector/cpp/install
 
 All targets bring their transitive dependencies (Eigen3, Cereal, OpenMP, Boost, BLAS/LAPACK)
 with them — downstream projects do not need to call `find_package` for those individually.
+OpenMP is among them only when the library was built with it. `find_package(TRexSelector)`
+sets `TRexSelector_WITH_OPENMP` to tell which.
 
 ---
 

@@ -46,6 +46,8 @@ In the following sections, we show you how to install and use the package.
 
 The package compiles its C++ backend on installation, so a C++20-capable compiler is required (GCC ≥ 10, Clang ≥ 12, Apple Clang ≥ 14, or Rtools on Windows), together with R ≥ 4.3.
 
+OpenMP is optional. Without it the package compiles single-threaded and `trex_get_max_threads()` returns 1. On Linux and Windows, R supplies the OpenMP flags. CRAN's R for macOS has none, so `configure` compiles with the `omp.h` of Homebrew's libomp (`brew install libomp`) and links R's own OpenMP runtime (`lib/libomp.dylib` of the R installation, the one other packages load), or Homebrew's runtime when R ships none. Setting `TREX_OPENMP=no` forces the single-threaded build, for example `TREX_OPENMP=no R CMD INSTALL R/TRexSelectorNeo`.
+
 First install the R-side prerequisites (once, from an R session):
 
 ```{r, eval=FALSE}

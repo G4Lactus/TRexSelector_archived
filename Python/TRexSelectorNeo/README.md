@@ -24,10 +24,16 @@ pip install TRexSelectorNeo
 
 Requirements: Python ≥ 3.10 and NumPy ≥ 1.26 (installed automatically).
 
-**From source (GitHub)** — builds the C++ backend on your machine; requires a C++20 compiler, CMake ≥ 3.24, and the C++ dependencies Eigen3, Boost ≥ 1.80, Cereal, and OpenMP (see the [C++ core README](../../cpp/README.md) for how to install them per platform):
+**From source (GitHub)** — builds the C++ backend on your machine; requires a C++20 compiler, CMake ≥ 3.24, and the C++ dependencies Eigen3, Boost ≥ 1.80 and Cereal, with OpenMP optional (see the [C++ core README](../../cpp/README.md) for how to install them per platform):
 
 ```bash
 pip install git+https://github.com/G4Lactus/TRexSelector.git#subdirectory=Python/TRexSelectorNeo
+```
+
+Without OpenMP the package builds single-threaded and `trex_selector_neo.utils.get_max_threads()` returns 1. The CMake switch `TREX_WITH_OPENMP=OFF` forces that build where OpenMP exists:
+
+```bash
+pip install -C cmake.define.TREX_WITH_OPENMP=OFF Python/TRexSelectorNeo
 ```
 
 **Development install** — from a clone of the repository, as an editable install without build isolation (pybind11, scikit-build-core, and CMake must already be available in the active environment):
