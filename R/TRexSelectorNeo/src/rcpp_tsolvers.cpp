@@ -1387,6 +1387,16 @@ int tsolver_get_num_steps(
 
 //' @noRd
 // [[Rcpp::export]]
+double tsolver_get_memory_bytes(
+    XPtr<TSolverRcpp> ptr // NOLINT(performance-unnecessary-value-param)
+) {
+    // double: a byte count overflows R's 32-bit integers at 2 GiB
+    return static_cast<double>(ptr->solver_->memoryBytes());
+}
+
+
+//' @noRd
+// [[Rcpp::export]]
 List tsolver_get_actions(
     XPtr<TSolverRcpp> ptr // NOLINT(performance-unnecessary-value-param)
 ) {

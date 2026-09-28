@@ -19,6 +19,7 @@
 
 // tsolvers includes
 #include <tsolvers/ad/tsolver_base.hpp>
+#include <tsolvers/ad/solver_utils/memory_bytes.hpp>
 #include <tsolvers/ad/solver_utils/solver_preprocessing.hpp>
 
 // utils includes
@@ -810,6 +811,30 @@ std::vector<std::size_t> TSolver_Base::getActiveDummyIndices() const {
     res.reserve(count_active_dummies_);
     for (std::size_t j : actives_) if (j >= dummy_start_idx_) res.push_back(j);
     return res;
+}
+
+
+std::size_t TSolver_Base::memoryBytes() const noexcept {
+    using solver_utils::memory_bytes::bytesOf;
+
+    // X_ and D_ view the caller's buffers (borrowed); y_ is an own copy
+    std::size_t bytes = bytesOf(y_) + bytesOf(r_) + bytesOf(correlations_) + bytesOf(R_);
+
+    // Sparse path and the running coefficients
+    bytes += bytesOf(betaPathSparse_, [](const SparseBetaStep& step) noexcept {
+        return bytesOf(step.idx) + bytesOf(step.val);
+    });
+    bytes += bytesOf(beta_idx_) + bytesOf(beta_val_) + bytesOf(beta_pos_);
+
+    // Diagnostics, index sets, dummy tracking
+    bytes += bytesOf(RSS_) + bytesOf(R2_) + bytesOf(DoF_) + bytesOf(actions_) +
+             bytesOf(warnings_);
+    bytes += bytesOf(actives_) + bytesOf(inactives_) + bytesOf(dropped_indices_) +
+             bytesOf(dummies_at_step_);
+
+    // Writer statistics (empty for readers)
+    bytes += bytesOf(meansx_) + bytesOf(normsx_) + bytesOf(meansd_) + bytesOf(normsd_);
+    return bytes;
 }
 
 // ============================================================================

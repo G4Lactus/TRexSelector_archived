@@ -18,6 +18,7 @@
 
 // tsolvers includes
 #include <tsolvers/ad/linear_model/cd_based/tcdlasso_solver.hpp>
+#include <tsolvers/ad/solver_utils/memory_bytes.hpp>
 #include <tsolvers/ad/solver_utils/solver_preprocessing.hpp>
 
 // utils includes
@@ -1614,6 +1615,38 @@ void TCDLASSO_Solver::setFullPathGrid(std::size_t grid_points,
     }
     grid_points_ = grid_points;
     lambda_min_ratio_ = lambda_min_ratio;
+}
+
+
+// ============================================================================
+// Memory report
+// ============================================================================
+
+std::size_t TCDLASSO_Solver::memoryBytes() const noexcept {
+    using solver_utils::memory_bytes::bytesOf;
+
+    // Path, penalty and CD state
+    std::size_t bytes = TSolver_Base::memoryBytes() + bytesOf(lambda_) +
+                        bytesOf(penalty_dvec_) + bytesOf(tikhonov_K_) +
+                        bytesOf(penalty_diag_) + bytesOf(l2kb_) + bytesOf(beta_cd_) +
+                        bytesOf(colnorm2_) + bytesOf(in_active_) + bytesOf(is_dropped_);
+
+    // Gram cache over the ever-active slots
+    bytes += bytesOf(correlations_y_) + bytesOf(slot_of_) + bytesOf(slot_var_) +
+             bytesOf(gram_rows_) + bytesOf(gram_q_);
+
+    // Certified frontier, continuation cache and step records
+    const auto point = [](const CertifiedPoint& P) noexcept {
+        return bytesOf(P.support) + bytesOf(P.sign) + bytesOf(P.beta);
+    };
+    bytes += point(frontier_top_) + bytesOf(frontier_below_, point);
+    bytes += bytesOf(cont_cache_, [](const Continuation& C) noexcept {
+        return bytesOf(C.event_vars) + bytesOf(C.event_kind) + bytesOf(C.event_sign) +
+               bytesOf(C.beta_star) + bytesOf(C.dir) + bytesOf(C.c_exact) +
+               bytesOf(C.cdot);
+    });
+    bytes += bytesOf(record_gap_) + bytesOf(record_kkt_);
+    return bytes;
 }
 
 

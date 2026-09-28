@@ -16,6 +16,7 @@
 
 // tsolvers includes
 #include <tsolvers/ad/linear_model/lars_based/tienet_solver.hpp>
+#include <tsolvers/ad/solver_utils/memory_bytes.hpp>
 
 // utils includes
 #include <utils/fp_classify/fp_classify.hpp>
@@ -535,6 +536,18 @@ void TIENET_Solver::refreshDroppedCorrelation(std::size_t dropped_var) {
     correlations_(j) = getColumn(dropped_var).dot(r_) -
                        l2_over_pm_(g_j) * group_sums_(g_j);
     correlation_compensation_(j) = 0.0;
+}
+
+
+// ============================================================================
+// Memory report
+// ============================================================================
+
+std::size_t TIENET_Solver::memoryBytes() const noexcept {
+    using solver_utils::memory_bytes::bytesOf;
+    return TLARS_Solver::memoryBytes() + bytesOf(groups_) + bytesOf(group_of_unified_) +
+           bytesOf(group_size_) + bytesOf(l2_over_pm_) + bytesOf(group_sums_) +
+           bytesOf(group_dir_sums_);
 }
 
 

@@ -220,6 +220,16 @@ TSolver_Base <- R6::R6Class(
       tsolver_get_num_steps(self$ptr)
     },
 
+    #' @description Heap bytes the solver holds: its copy of \code{y}, the
+    #'   residual, correlations, Cholesky factor, coefficient path,
+    #'   diagnostics and reserved capacity (the C++ \code{memoryBytes()}).
+    #'   \code{X} and \code{D} are borrowed and not counted, nor are the
+    #'   temporaries inside a step, so the peak of a step is higher.
+    #' @return Numeric (double) byte count.
+    get_memory_bytes = function() {
+      tsolver_get_memory_bytes(self$ptr)
+    },
+
     #' @description Get the action path (variable additions and removals per
     #'   step). The C++ solver already records the R \code{lars} convention:
     #'   1-based signed codes, \code{+j} for the addition and \code{-j} for the

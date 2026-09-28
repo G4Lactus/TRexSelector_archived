@@ -56,6 +56,7 @@ never written (the solver centers an internal copy).
     \item \href{#method-TSolver_Base-initialize}{\code{TSolver_Base$new()}}
     \item \href{#method-TSolver_Base-execute_step}{\code{TSolver_Base$execute_step()}}
     \item \href{#method-TSolver_Base-get_num_steps}{\code{TSolver_Base$get_num_steps()}}
+    \item \href{#method-TSolver_Base-get_memory_bytes}{\code{TSolver_Base$get_memory_bytes()}}
     \item \href{#method-TSolver_Base-get_actions}{\code{TSolver_Base$get_actions()}}
     \item \href{#method-TSolver_Base-get_beta}{\code{TSolver_Base$get_beta()}}
     \item \href{#method-TSolver_Base-get_cp}{\code{TSolver_Base$get_cp()}}
@@ -145,6 +146,25 @@ early-stop condition is met.}
   }
   \subsection{Returns}{
     Integer number of completed steps.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-TSolver_Base-get_memory_bytes"></a>}}
+\if{latex}{\out{\hypertarget{method-TSolver_Base-get_memory_bytes}{}}}
+\subsection{\code{TSolver_Base$get_memory_bytes()}}{
+  Heap bytes the solver holds: its copy of \code{y}, the
+residual, correlations, Cholesky factor, coefficient path,
+diagnostics and reserved capacity (the C++ \code{memoryBytes()}).
+\code{X} and \code{D} are borrowed and not counted, nor are the
+temporaries inside a step, so the peak of a step is higher.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{TSolver_Base$get_memory_bytes()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Numeric (double) byte count.
   }
 }
 

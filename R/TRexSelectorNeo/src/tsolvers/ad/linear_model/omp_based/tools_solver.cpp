@@ -10,6 +10,7 @@
 
 // tsolvers includes
 #include <tsolvers/ad/linear_model/omp_based/tools_solver.hpp>
+#include <tsolvers/ad/solver_utils/memory_bytes.hpp>
 
 // utils includes
 #include <utils/openmp/utils_openmp.hpp>
@@ -130,6 +131,14 @@ std::pair<double, std::vector<std::size_t>> TOOLS_Solver::findTiedMaxCorrelation
     }
 
     return {Cmax, tied};
+}
+
+// ==================================================================================
+// Memory report
+// ==================================================================================
+
+std::size_t TOOLS_Solver::memoryBytes() const noexcept {
+    return TOMP_Solver::memoryBytes() + solver_utils::memory_bytes::bytesOf(proj_sq_);
 }
 
 // ==================================================================================

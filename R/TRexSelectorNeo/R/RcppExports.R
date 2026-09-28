@@ -1929,6 +1929,11 @@ tsolver_get_num_steps <- function(ptr) {
 }
 
 #' @noRd
+tsolver_get_memory_bytes <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_get_memory_bytes`, ptr)
+}
+
+#' @noRd
 tsolver_get_actions <- function(ptr) {
     .Call(`_TRexSelectorNeo_tsolver_get_actions`, ptr)
 }

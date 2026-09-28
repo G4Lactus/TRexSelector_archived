@@ -16,6 +16,7 @@
 
 // tsolvers includes
 #include <tsolvers/ad/linear_model/omp_based/tacgp_solver.hpp>
+#include <tsolvers/ad/solver_utils/memory_bytes.hpp>
 
 // ==================================================================================
 
@@ -224,6 +225,17 @@ void TACGP_Solver::storePreviousDirection() {
     direction_prev_ = direction_;
     // p^{n-1} <- p^{n}
     projected_direction_prev_ = projected_direction_;
+}
+
+
+// ==================================================================================
+// Memory report
+// ==================================================================================
+
+std::size_t TACGP_Solver::memoryBytes() const noexcept {
+    using solver_utils::memory_bytes::bytesOf;
+    return TGP_Solver::memoryBytes() + bytesOf(direction_prev_) +
+           bytesOf(projected_direction_prev_);
 }
 
 

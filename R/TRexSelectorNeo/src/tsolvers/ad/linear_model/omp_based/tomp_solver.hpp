@@ -150,6 +150,9 @@ public:
         }
     }
 
+    /** @brief TSolver_Base::memoryBytes() plus the X_A^T y cache of the refit. */
+    std::size_t memoryBytes() const noexcept override;
+
     // ==========================================================================
     // Serialization
     // ==========================================================================

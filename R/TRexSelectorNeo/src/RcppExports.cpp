@@ -2638,6 +2638,17 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// tsolver_get_memory_bytes
+double tsolver_get_memory_bytes(XPtr<TSolverRcpp> ptr);
+RcppExport SEXP _TRexSelectorNeo_tsolver_get_memory_bytes(SEXP ptrSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< XPtr<TSolverRcpp> >::type ptr(ptrSEXP);
+    rcpp_result_gen = Rcpp::wrap(tsolver_get_memory_bytes(ptr));
+    return rcpp_result_gen;
+END_RCPP
+}
 // tsolver_get_actions
 List tsolver_get_actions(XPtr<TSolverRcpp> ptr);
 RcppExport SEXP _TRexSelectorNeo_tsolver_get_actions(SEXP ptrSEXP) {
@@ -3566,6 +3577,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_TRexSelectorNeo_tsolver_get_inactives", (DL_FUNC) &_TRexSelectorNeo_tsolver_get_inactives, 1},
     {"_TRexSelectorNeo_tsolver_get_intercept", (DL_FUNC) &_TRexSelectorNeo_tsolver_get_intercept, 2},
     {"_TRexSelectorNeo_tsolver_get_num_steps", (DL_FUNC) &_TRexSelectorNeo_tsolver_get_num_steps, 1},
+    {"_TRexSelectorNeo_tsolver_get_memory_bytes", (DL_FUNC) &_TRexSelectorNeo_tsolver_get_memory_bytes, 1},
     {"_TRexSelectorNeo_tsolver_get_actions", (DL_FUNC) &_TRexSelectorNeo_tsolver_get_actions, 1},
     {"_TRexSelectorNeo_tsolver_get_lambda", (DL_FUNC) &_TRexSelectorNeo_tsolver_get_lambda, 1},
     {"_TRexSelectorNeo_tsolver_get_num_removals", (DL_FUNC) &_TRexSelectorNeo_tsolver_get_num_removals, 1},

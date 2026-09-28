@@ -174,6 +174,10 @@ public:
         return tikhonov_K_;
     }
 
+    /** @brief TOMP_Solver::memoryBytes() plus the copy of K, the folded sums,
+     *  the coupling state and the gather workspace. */
+    std::size_t memoryBytes() const noexcept override;
+
     // ==========================================================================
     // Serialization
     // ==========================================================================

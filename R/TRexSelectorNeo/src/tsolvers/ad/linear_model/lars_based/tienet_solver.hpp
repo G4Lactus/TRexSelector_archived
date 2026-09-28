@@ -204,6 +204,10 @@ public:
     /** @brief Current group sums sigma_m (valid after executeStep()). */
     const Eigen::VectorXd& getGroupSums() const noexcept { return group_sums_; }
 
+    /** @brief TLARS_Solver::memoryBytes() plus the group map and the per-group
+     *  sizes, penalty weights and sums. */
+    std::size_t memoryBytes() const noexcept override;
+
     // ============================================================================
     // Serialization & State Management
     // ============================================================================

@@ -165,6 +165,10 @@ public:
      */
     void executeStep(std::size_t T_stop = 0, bool early_stop = true) override;
 
+    /** @brief TGP_Solver::memoryBytes() plus the previous direction and its
+     *  projection. */
+    std::size_t memoryBytes() const noexcept override;
+
 
     // ==================================================================================
     // De-/Serialization

@@ -17,6 +17,7 @@
 
 // tsolvers includes
 #include <tsolvers/ad/linear_model/lars_based/tienet_aug_solver.hpp>
+#include <tsolvers/ad/solver_utils/memory_bytes.hpp>
 
 // ============================================================================
 
@@ -332,6 +333,29 @@ SparseBetaPath TIENETAug_Solver::getBetaPathSparse() const {
 
 Eigen::VectorXd TIENETAug_Solver::getBeta(int step) const {
     return inner_->getBeta(step);
+}
+
+// ============================================================================
+// Memory report
+// ============================================================================
+
+std::size_t TIENETAug_Solver::memoryBytes() const noexcept {
+    using solver_utils::memory_bytes::bytesOf;
+
+    // Base part: the diagnostic mirror (X_, D_ are never connected here)
+    std::size_t bytes = TSolver_Base::memoryBytes() + bytesOf(groups_) +
+                        bytesOf(X_aug_owned_) + bytesOf(D_aug_owned_) +
+                        bytesOf(y_aug_owned_);
+
+    // View objects and the inner solver: heap allocations of the wrapper
+    if (X_aug_map_) { bytes += sizeof(MapMatXd); }
+    if (D_aug_map_) { bytes += sizeof(MapMatXd); }
+    if (y_aug_map_) { bytes += sizeof(MapVecXd); }
+    if (inner_) {
+        bytes += (use_lars_inner_ ? sizeof(TLARS_Solver) : sizeof(TLASSO_Solver)) +
+                 inner_->memoryBytes();
+    }
+    return bytes;
 }
 
 // ============================================================================

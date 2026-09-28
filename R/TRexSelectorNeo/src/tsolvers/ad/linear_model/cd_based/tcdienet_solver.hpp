@@ -226,6 +226,10 @@ public:
         return group_sums_;
     }
 
+    /** @brief TCDENET_Solver::memoryBytes() plus the group map, the per-group
+     *  sizes, sums and penalty weights and the folded sums. */
+    std::size_t memoryBytes() const noexcept override;
+
     // ============================================================================
     // Serialization & State Management
     // ============================================================================

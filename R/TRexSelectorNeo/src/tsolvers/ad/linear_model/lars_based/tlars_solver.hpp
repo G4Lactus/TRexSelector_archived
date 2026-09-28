@@ -263,6 +263,10 @@ public:
                static_cast<double>(num_additions_);
     }
 
+    /** @brief TSolver_Base::memoryBytes() plus the lambda sequence (reserved for
+     *  maxSteps + 1 entries), the Kahan compensation and the sign and drop records. */
+    std::size_t memoryBytes() const noexcept override;
+
     // ============================================================================
     // De-/Serialization
     // ============================================================================

@@ -172,6 +172,10 @@ public:
      */
     void executeStep(std::size_t T_stop = 0, bool early_stop = true) override;
 
+    /** @brief TOMP_Solver::memoryBytes() plus the direction, its projection and
+     *  the active coefficients. */
+    std::size_t memoryBytes() const noexcept override;
+
     // ==================================================================================
     // De-/Serialization
     // ==================================================================================
