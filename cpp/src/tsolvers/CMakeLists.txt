@@ -98,8 +98,12 @@ target_link_libraries(trex_tsolvers
         # Explicit Redundancy
         Eigen3::Eigen                   # Core linear algebra
         cereal::cereal                  # Serialization
-        OpenMP::OpenMP_CXX              # Parallel computing
 )
+
+# OpenMP is optional (TREX_OPENMP_ENABLED, root CMakeLists.txt)
+if(TREX_OPENMP_ENABLED)
+    target_link_libraries(trex_tsolvers PUBLIC OpenMP::OpenMP_CXX)   # Parallel computing
+endif()
 
 # BLAS/LAPACK imported targets exist only when TREX_USE_BLAS_LAPACK is ON.
 # Python and portable/no-BLAS builds disable them, so link conditionally to

@@ -23,7 +23,7 @@ if(APPLE AND NOT DEFINED CMAKE_CXX_COMPILER)
     else()
         message(WARNING "*** Homebrew LLVM not found at ${HOMEBREW_LLVM_PREFIX}")
         message(WARNING "*** Install with: brew install llvm")
-        message(WARNING "*** Falling back to system compiler")
+        message(WARNING "*** Falling back to system compiler (single-threaded if it has no OpenMP)")
     endif()
 endif()
 
@@ -64,6 +64,7 @@ else()
 endif()
 option(TREX_PORTABLE_BUILD "Disable -march=native for portable/wheel builds. Set ON when building for PyPI or CI." OFF)
 option(TREX_INSTALL_CPP_SDK "Install the C++ SDK: headers, static libraries and the CMake package files. OFF for Python wheels, which need only the extension module." ON)
+option(TREX_WITH_OPENMP "Use OpenMP when it is found. OFF forces the single-threaded build even where OpenMP exists." ON)
 
 # Shared per-target compiler flags (GCC/Clang vs MSVC)
 include(cmake/TRexCompilerOptions.cmake)
@@ -81,26 +82,52 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Find packages with priority order
 # ============================================================================
 
-# OpenMP (required)
-# Pin libomp to the stable Homebrew symlink — survives future `brew upgrade llvm`
-if(APPLE)
-    if(NOT DEFINED HOMEBREW_LLVM_PREFIX)
-        set(HOMEBREW_LLVM_PREFIX "/opt/homebrew/opt/llvm")
+# OpenMP (optional)
+# Without OpenMP the library builds single-threaded: the pragmas are ignored
+# and utils/openmp/utils_openmp.hpp stubs the omp_* calls (one thread).
+# TREX_WITH_OPENMP=OFF forces that path even where OpenMP exists.
+# TREX_OPENMP_ENABLED records the outcome for the targets and the package config.
+set(TREX_OPENMP_ENABLED OFF)
+if(TREX_WITH_OPENMP)
+    # macOS: pin libomp to the stable Homebrew LLVM symlink (survives
+    # `brew upgrade llvm`), only for Homebrew's clang and when that libomp exists
+    if(APPLE)
+        if(NOT DEFINED HOMEBREW_LLVM_PREFIX)
+            set(HOMEBREW_LLVM_PREFIX "/opt/homebrew/opt/llvm")
+        endif()
+        if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND
+           EXISTS "${HOMEBREW_LLVM_PREFIX}/lib/libomp.dylib")
+            set(OpenMP_CXX_FLAGS       "-fopenmp=libomp -I${HOMEBREW_LLVM_PREFIX}/include")
+            set(OpenMP_CXX_LIB_NAMES   "libomp")
+            set(OpenMP_libomp_LIBRARY  "${HOMEBREW_LLVM_PREFIX}/lib/libomp.dylib"
+                CACHE FILEPATH "libomp path - pinned to stable Homebrew symlink" FORCE)
+        endif()
     endif()
-    set(OpenMP_CXX_FLAGS       "-fopenmp=libomp -I${HOMEBREW_LLVM_PREFIX}/include")
-    set(OpenMP_CXX_LIB_NAMES   "libomp")
-    set(OpenMP_libomp_LIBRARY  "${HOMEBREW_LLVM_PREFIX}/lib/libomp.dylib"
-        CACHE FILEPATH "libomp path - pinned to stable Homebrew symlink" FORCE)
-endif()
-if(MSVC)
-    if(CMAKE_VERSION VERSION_LESS 3.30)
-        message(FATAL_ERROR "MSVC builds need CMake >= 3.30 (OpenMP_RUNTIME_MSVC support)")
+    if(MSVC)
+        if(CMAKE_VERSION VERSION_LESS 3.30)
+            message(FATAL_ERROR "MSVC builds need CMake >= 3.30 (OpenMP_RUNTIME_MSVC support)")
+        endif()
+        # MSVC's default OpenMP 2.0 rejects the unsigned loop indices used in the
+        # solvers (error C3016); the LLVM runtime (-openmp:llvm) supports them.
+        set(OpenMP_RUNTIME_MSVC "llvm")
     endif()
-    # MSVC's default OpenMP 2.0 rejects the unsigned loop indices used in the
-    # solvers (error C3016); the LLVM runtime (-openmp:llvm) supports them.
-    set(OpenMP_RUNTIME_MSVC "llvm")
+    find_package(OpenMP)
+    if(OpenMP_CXX_FOUND)
+        set(TREX_OPENMP_ENABLED ON)
+    else()
+        message(STATUS "OpenMP not found: building single-threaded")
+    endif()
+else()
+    message(STATUS "OpenMP disabled (TREX_WITH_OPENMP=OFF): building single-threaded")
 endif()
-find_package(OpenMP REQUIRED)
+# Single-threaded build: the inactive `#pragma omp` lines would warn once each
+if(NOT TREX_OPENMP_ENABLED)
+    if(MSVC)
+        add_compile_options(/wd4068)
+    else()
+        add_compile_options(-Wno-unknown-pragmas)
+    endif()
+endif()
 
 # Eigen3 (required)
 find_package(Eigen3 REQUIRED NO_MODULE)
@@ -182,7 +209,7 @@ else()
 endif()
 #
 # OpenMP version
-if(OpenMP_FOUND)
+if(TREX_OPENMP_ENABLED)
     if(OpenMP_CXX_VERSION)
         message(STATUS "  - OpenMP: ${OpenMP_CXX_VERSION}")
     else()
@@ -190,8 +217,10 @@ if(OpenMP_FOUND)
     endif()
     message(STATUS "    * Flags: ${OpenMP_CXX_FLAGS}")
     message(STATUS "    * Libraries: ${OpenMP_CXX_LIBRARIES}")
+elseif(TREX_WITH_OPENMP)
+    message(STATUS "  - OpenMP: NOT FOUND (single-threaded build)")
 else()
-    message(STATUS "  - OpenMP: NOT FOUND")
+    message(STATUS "  - OpenMP: OFF (TREX_WITH_OPENMP=OFF, single-threaded build)")
 endif()
 #
 # BLAS/LAPACK

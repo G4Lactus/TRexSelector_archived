@@ -44,14 +44,18 @@ target_include_directories(trex_utils PUBLIC
 # 3. Link Dependencies
 # ==================================================================================
 # As foundational layer, it only depends on external libraries.
-# We link system OpenMP, Eigen, and Cereal so any module linking
-# trex::utils inherits them.
+# We link Eigen, Cereal, Boost and (when enabled) OpenMP so any module
+# linking trex::utils inherits them.
 target_link_libraries(trex_utils PUBLIC
     Eigen3::Eigen
     cereal::cereal
-    OpenMP::OpenMP_CXX
     Boost::headers
 )
+# OpenMP is optional (TREX_OPENMP_ENABLED, root CMakeLists.txt); without it
+# utils_openmp.hpp stubs the omp_* calls and the build is single-threaded
+if(TREX_OPENMP_ENABLED)
+    target_link_libraries(trex_utils PUBLIC OpenMP::OpenMP_CXX)
+endif()
 # ==================================================================================
 
 

@@ -6,8 +6,15 @@ include(CMakeFindDependencyMacro)
 
 # ── Required dependencies (must match root CMakeLists.txt) ──────────────────
 find_dependency(Eigen3    REQUIRED NO_MODULE)
-find_dependency(OpenMP    REQUIRED)
 find_dependency(cereal    REQUIRED)
+
+# OpenMP only when the library was built with it (TREX_OPENMP_ENABLED at
+# build time); a single-threaded build exports no OpenMP link. Consumers can
+# read TRexSelector_WITH_OPENMP.
+set(TRexSelector_WITH_OPENMP @TREX_OPENMP_ENABLED@)
+if(TRexSelector_WITH_OPENMP)
+    find_dependency(OpenMP REQUIRED)
+endif()
 # Boost is header-only here (Interprocess / Random / Math). Mirror the root
 # build: the legacy FindBoost module (CMP0167 OLD) also locates header-only
 # installs that ship no BoostConfig.cmake, and it provides Boost::headers
@@ -28,19 +35,24 @@ if(NOT Boost_FOUND)
     return()
 endif()
 
-# BLAS/LAPACK: mirror the Accelerate → OpenBLAS fallback logic
-if(APPLE)
-    set(BLA_VENDOR Apple)
-    find_dependency(BLAS)
-    find_dependency(LAPACK)
-    if(NOT BLAS_FOUND)
-        set(BLA_VENDOR OpenBLAS)
+# BLAS/LAPACK only when the library was built with them (TREX_USE_BLAS_LAPACK
+# at build time); mirror the Accelerate → OpenBLAS fallback logic. Consumers
+# can read TRexSelector_WITH_BLAS_LAPACK.
+set(TRexSelector_WITH_BLAS_LAPACK @TREX_USE_BLAS_LAPACK@)
+if(TRexSelector_WITH_BLAS_LAPACK)
+    if(APPLE)
+        set(BLA_VENDOR Apple)
+        find_dependency(BLAS)
+        find_dependency(LAPACK)
+        if(NOT BLAS_FOUND)
+            set(BLA_VENDOR OpenBLAS)
+            find_dependency(BLAS  REQUIRED)
+            find_dependency(LAPACK REQUIRED)
+        endif()
+    else()
         find_dependency(BLAS  REQUIRED)
         find_dependency(LAPACK REQUIRED)
     endif()
-else()
-    find_dependency(BLAS  REQUIRED)
-    find_dependency(LAPACK REQUIRED)
 endif()
 
 # ── Pull in exported targets ────────────────────────────────────────────────
