@@ -60,6 +60,61 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   T-Rex selectors are unchanged (seeded selectors derive per-experiment seeds,
   unseeded ones pass -1).
 
+### 2026-09-28
+
+#### T-solvers: the held heap bytes as `memoryBytes()`, R `$get_memory_bytes()`, Python `getMemoryBytes()`
+
+- Found in the Examples memory demo (demo_ts_perf_03: p = L = 1,000, n up to
+  2,000, T = 10): the peak resident set of a child process is no measure there.
+  libomp resets the thread count in every forked child on macOS (the
+  "single-threaded" children ran on 12 threads), and a spawned R or Python
+  interpreter serves the sub-MiB solver allocations from pages it already holds
+  (R read about 0 MiB per solver). The library now reports the memory itself, so
+  the demo can run in one process per language.
+- `TSolver_Base::memoryBytes()` (virtual, const, noexcept) sums the heap bytes of
+  the state a solver holds: the y copy, residual, correlations, Cholesky factor,
+  sparse path and running coefficients, diagnostics, index sets, the writer's
+  means and norms and every reservation (vectors by capacity, Eigen objects by
+  size). The classes with own containers add theirs (TLARS, TIENET, TIKNET, TOMP,
+  TGP, TACGP, TMP, TOOLS, TIKOMP, TCDLASSO, TCDIENET, TCDTIKNET and the augmented
+  wrappers); T-LASSO, T-Stepwise, T-Stagewise, T-ENET, T-NCGMP, T-AFS and T-CDENET
+  inherit. Not counted: the borrowed X and D (readers and writers alike), the
+  temporaries inside a step and the object itself (sizeof, about 3.3 kB with the
+  tie-break engine). The coefficient lookup map is an estimate (bucket array plus
+  four words per entry). A call is O(members + steps); nothing runs on the hot
+  path, no member is added and checkpoints are unchanged.
+- The report counts the up-front reservations as they are: `dummies_at_step_` and
+  the lambda sequences (LARS, CD) hold 8 min(max_actives, row bound) + 1 entries
+  (T-AFS divides by rho), 70 % of T-LARS at n = 2,000 (256 of 367 kB) and 94 % of
+  T-AFS with rho 0.1 (1,279 of 1,361 kB). T-CDLASSO keeps its Gram rows and its
+  continuation cache after a step; they are counted too. The augmented EN
+  wrappers count their owned augmented copies (8 (n + p + L)(p + L + 1) bytes for
+  TENETAug), the diagnostic mirror, the inner solver object and
+  `inner_->memoryBytes()`; the inner X and D view the owned copies, so nothing is
+  counted twice.
+- `solver_utils/memory_bytes.hpp`: `bytesOf()` for vectors (capacity, nested
+  heap), dense and sparse Eigen objects, strings and the hash-map estimate; the
+  products go through `checked_bytes`.
+- Bindings: R `TSolver_Base$get_memory_bytes()` returns a double (a byte count
+  overflows R integers at 2 GiB), Python `getMemoryBytes()` exists on every
+  solver. RcppExports, the Rd pages and the T-solver stubs are regenerated
+  (pybind11 3.1.0, pybind11-stubgen 2.5.5); the vendored copy is re-synced.
+- Against the allocator (macOS malloc zones, the 15 Examples demo solvers as
+  precentered readers, p = L = 1,000, T = 10): `memoryBytes()` is 88-92 % of the
+  bytes in use at n = 50 and 93-98 % at n = 2,000, the rest being the solver
+  object and the allocator's block rounding. The peak inside a step is 1.04-1.67x
+  the held state at n = 50 and 1.02-1.29x at n = 2,000.
+- Tests: C++ 645 of 645. `test_tsolvers_memory` (52): exact hand counts at
+  construction for T-LARS, T-OMP, T-OLS, T-AFS (rho 0.5), T-CDLASSO and TENETAug,
+  growth bounds after a step, doubling n moves only the two n-vectors, a writer
+  holds 16 (p + L) bytes more than a reader, every solver reports a positive and
+  growing value, the checkpoint is byte-identical. `test_tsolvers_memory_peak`
+  (21): a counting allocator (malloc zones on macOS, `__libc_*` on glibc, skipped
+  elsewhere and under sanitizers) bounds peak / held per family; measured up to
+  1.45 (LARS), 1.20 (OMP, AFS) and 4.3 (CD, whose certified localization builds
+  the restricted Gram for an eigen-solve). Verified on Linux (GCC 13, glibc 2.39)
+  as well. R 1407 expectations, Python 635.
+
 ### 2026-09-27
 
 #### T-solvers: selection read from the coefficient path, the fixed default tie seed, IEEE Examples
