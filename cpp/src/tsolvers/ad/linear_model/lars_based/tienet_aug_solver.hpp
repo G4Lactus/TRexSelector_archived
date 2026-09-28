@@ -51,7 +51,9 @@
  *  centered), the group-ridge rows are appended afterwards, and the
  *  augmented columns are NOT re-normalized. The inner solver then runs with
  *  `normalize = false, intercept = false`. This makes the wrapper exactly
- *  equivalent to the native pathwise TIENET_Solver.
+ *  equivalent to the native pathwise TIENET_Solver. The augmented copies are
+ *  owned, so memoryBytes() grows with 8 (n + M)(p + L + 1) bytes (M = 0 at
+ *  lambda2 = 0).
  *
  *  NOTE (R parity): the R reference (lm_dummy.R, GVS_type == "IEN") instead
  *  rescales the AUGMENTED system (`X_Dummy <- scale(X_Dummy)`; centered
@@ -311,6 +313,12 @@ public:
     /** @brief Set the tie-breaking seed on the inner solver (the wrapper's own
      *  random engine is unused). */
     void setTieSeed(uint32_t seed) { inner_->setTieSeed(seed); }
+
+    /** @brief The owned augmented X, D and y, the group vector, the wrapper's
+     *  diagnostic mirror, the inner solver object and view objects (heap
+     *  allocations of the wrapper) and inner_->memoryBytes(); the inner X and
+     *  D view the owned copies, so nothing is counted twice. */
+    std::size_t memoryBytes() const noexcept override;
 
     // ========================================================================
     // IEN-specific getters

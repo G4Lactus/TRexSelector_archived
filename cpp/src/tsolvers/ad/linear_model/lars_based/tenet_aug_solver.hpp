@@ -72,7 +72,8 @@ namespace trex::tsolvers::ad::linear_model::lars_based {
  *
  * Public interface: pass X, D, y, lambda2 and call executeStep() /
  * getBetaPathSparse().  In-memory warm-starting is supported via the inner
- * solver.
+ * solver. The augmented copies are owned, so memoryBytes() grows with
+ * 8 (n + p + L)(p + L + 1) bytes for lambda2 > 0 (8 n (p + L + 1) at 0).
  */
 class TENETAug_Solver : public TSolver_Base {
 
@@ -290,6 +291,12 @@ public:
     /** @brief Set the tie-breaking seed on the inner solver (the wrapper's own
      *  random engine is unused). */
     void setTieSeed(uint32_t seed) { inner_->setTieSeed(seed); }
+
+    /** @brief The owned augmented X, D and y, the wrapper's diagnostic mirror,
+     *  the inner solver object and view objects (heap allocations of the
+     *  wrapper) and inner_->memoryBytes(); the inner X and D view the owned
+     *  copies, so nothing is counted twice. */
+    std::size_t memoryBytes() const noexcept override;
 
     // ========================================================================
     // Cereal serialization

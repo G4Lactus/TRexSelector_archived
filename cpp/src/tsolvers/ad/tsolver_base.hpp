@@ -125,7 +125,8 @@ struct SparseBetaPath {
  * @brief Abstract base class for all terminating variable selection solvers.
  * Provides unified state management, memory-mapping support, and handles the
  * split design matrix (Original Predictors X + Dummy Predictors D) via a
- * unified index space.
+ * unified index space. memoryBytes() reports the heap bytes a solver holds,
+ * without the borrowed X and D.
  */
 class TSolver_Base {
 protected:
@@ -553,6 +554,13 @@ public:
 
     /** @brief Clear the recorded warnings. */
     void clearWarnings() noexcept { warnings_.clear(); }
+
+    /** @brief Heap bytes of the held state: the y copy, residual, correlations, Cholesky factor,
+     *  path, diagnostics, index sets, writer statistics and reservations (vectors by capacity,
+     *  Eigen by size), plus the solver's own members (overrides). Not counted: the borrowed X
+     *  and D, temporaries inside a step (the peak is higher), the object itself (sizeof, fixed).
+     *  The coefficient lookup map is an estimate. O(members + steps), allocates nothing. */
+    virtual std::size_t memoryBytes() const noexcept;
 
 protected:
     // ==========================================================================

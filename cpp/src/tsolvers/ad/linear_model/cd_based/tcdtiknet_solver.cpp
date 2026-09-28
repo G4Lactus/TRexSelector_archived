@@ -11,6 +11,7 @@
 
 // tsolvers includes
 #include <tsolvers/ad/linear_model/cd_based/tcdtiknet_solver.hpp>
+#include <tsolvers/ad/solver_utils/memory_bytes.hpp>
 
 // ============================================================================
 
@@ -119,6 +120,14 @@ void TCDTIKNET_Solver::penaltyMatVec(const std::vector<std::size_t>& A,
 void TCDTIKNET_Solver::zeroPenaltyState() {
     TCDLASSO_Solver::zeroPenaltyState();
     if (folded_w_.size() > 0) { folded_w_.setZero(); }
+}
+
+// ============================================================================
+// Memory report
+// ============================================================================
+
+std::size_t TCDTIKNET_Solver::memoryBytes() const noexcept {
+    return TCDENET_Solver::memoryBytes() + solver_utils::memory_bytes::bytesOf(folded_w_);
 }
 
 // ============================================================================

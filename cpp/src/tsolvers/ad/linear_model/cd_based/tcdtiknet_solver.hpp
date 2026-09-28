@@ -191,6 +191,10 @@ public:
     /** @brief Whether the solver runs FOLDED dummy coupling. */
     bool isFoldedDummyCoupling() const noexcept { return fold_dummies_; }
 
+    /** @brief TCDENET_Solver::memoryBytes() (the copy of K included) plus the
+     *  folded coupling state. */
+    std::size_t memoryBytes() const noexcept override;
+
     // ============================================================================
     // Serialization & State Management
     // ============================================================================

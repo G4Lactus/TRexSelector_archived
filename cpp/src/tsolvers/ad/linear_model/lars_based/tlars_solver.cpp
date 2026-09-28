@@ -17,6 +17,7 @@
 
 // tsolvers includes
 #include <tsolvers/ad/linear_model/lars_based/tlars_solver.hpp>
+#include <tsolvers/ad/solver_utils/memory_bytes.hpp>
 #include <tsolvers/ad/solver_utils/solver_preprocessing.hpp>
 
 // utils includes
@@ -481,6 +482,18 @@ void TLARS_Solver::setKahanRefreshInterval(std::size_t interval) {
     }
 
     kahan_refresh_interval_ = interval;
+}
+
+
+// ============================================================================
+// Memory report
+// ============================================================================
+
+std::size_t TLARS_Solver::memoryBytes() const noexcept {
+    using solver_utils::memory_bytes::bytesOf;
+    return TSolver_Base::memoryBytes() + bytesOf(lambda_) +
+           bytesOf(correlation_compensation_) + bytesOf(Sign_) +
+           bytesOf(last_dropped_vars_);
 }
 
 

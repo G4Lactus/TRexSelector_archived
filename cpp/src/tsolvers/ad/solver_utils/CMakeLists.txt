@@ -24,6 +24,7 @@ target_sources(trex_tsolvers PUBLIC
     FILES
         ${CMAKE_CURRENT_LIST_DIR}/solver_preprocessing.hpp
         ${CMAKE_CURRENT_LIST_DIR}/buffer_registry.hpp
+        ${CMAKE_CURRENT_LIST_DIR}/memory_bytes.hpp
         ${CMAKE_CURRENT_LIST_DIR}/tikhonov_validation.hpp
 )
 # ==================================================================================

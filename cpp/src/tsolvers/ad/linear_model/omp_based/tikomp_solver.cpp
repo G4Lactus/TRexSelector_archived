@@ -16,6 +16,7 @@
 
 // tsolvers includes
 #include <tsolvers/ad/linear_model/omp_based/tikomp_solver.hpp>
+#include <tsolvers/ad/solver_utils/memory_bytes.hpp>
 #include <tsolvers/ad/solver_utils/tikhonov_validation.hpp>
 
 // utils includes
@@ -268,6 +269,17 @@ Eigen::MatrixXd TIKOMP_Solver::updateRTIK(std::size_t j_new, double eps) {
         kcol_gather_(it.row()) = 0.0;
     }
     return newR;
+}
+
+
+// ==================================================================================
+// Memory report
+// ==================================================================================
+
+std::size_t TIKOMP_Solver::memoryBytes() const noexcept {
+    using solver_utils::memory_bytes::bytesOf;
+    return TOMP_Solver::memoryBytes() + bytesOf(tikhonov_K_) + bytesOf(folded_s_) +
+           bytesOf(ks_) + bytesOf(kcol_gather_);
 }
 
 

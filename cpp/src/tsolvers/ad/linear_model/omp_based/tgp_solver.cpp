@@ -9,6 +9,7 @@
 
 // tsolvers includes
 #include <tsolvers/ad/linear_model/omp_based/tgp_solver.hpp>
+#include <tsolvers/ad/solver_utils/memory_bytes.hpp>
 
 // ==================================================================================
 
@@ -254,6 +255,17 @@ std::vector<int> TGP_Solver::updateActiveSet(const std::vector<std::size_t>& new
 void TGP_Solver::updateCorrelations() {
     // c^n = X^T r for ALL non-dropped variables (to allow re-selection)
     refreshAllCorrelations();
+}
+
+
+// ==================================================================================
+// Memory report
+// ==================================================================================
+
+std::size_t TGP_Solver::memoryBytes() const noexcept {
+    using solver_utils::memory_bytes::bytesOf;
+    return TOMP_Solver::memoryBytes() + bytesOf(direction_) +
+           bytesOf(projected_direction_) + bytesOf(active_coefficients_);
 }
 
 

@@ -15,6 +15,7 @@
 
 // tsolvers includes
 #include <tsolvers/ad/linear_model/omp_based/tmp_solver.hpp>
+#include <tsolvers/ad/solver_utils/memory_bytes.hpp>
 
 // ==================================================================================
 
@@ -178,6 +179,15 @@ TMP_Solver::updateActiveSet(const std::vector<std::size_t>& new_vars) {
 void TMP_Solver::updateCorrelations() {
     // c^n = X^T r for ALL non-dropped variables (to allow re-selection)
     refreshAllCorrelations();
+}
+
+// ==================================================================================
+// Memory report
+// ==================================================================================
+
+std::size_t TMP_Solver::memoryBytes() const noexcept {
+    return TOMP_Solver::memoryBytes() +
+           solver_utils::memory_bytes::bytesOf(active_coefficients_);
 }
 
 // ==================================================================================

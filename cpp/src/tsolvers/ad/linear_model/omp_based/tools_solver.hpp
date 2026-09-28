@@ -93,6 +93,9 @@ public:
         return "TOOLS";
     }
 
+    /** @brief TOMP_Solver::memoryBytes() plus the projected norms of all columns. */
+    std::size_t memoryBytes() const noexcept override;
+
     // ==========================================================================
     // Serialization
     // ==========================================================================

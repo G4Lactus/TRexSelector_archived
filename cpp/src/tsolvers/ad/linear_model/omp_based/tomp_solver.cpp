@@ -10,6 +10,7 @@
 
 // tsolvers includes
 #include <tsolvers/ad/linear_model/omp_based/tomp_solver.hpp>
+#include <tsolvers/ad/solver_utils/memory_bytes.hpp>
 
 // utils includes
 #include <utils/openmp/utils_openmp.hpp>
@@ -203,6 +204,15 @@ void TOMP_Solver::updateResiduals() {
         std::size_t j = actives_[i];
         r_ -= getColumn(j) * runningBeta(j);
     }
+}
+
+
+// ==================================================================================
+// Memory report
+// ==================================================================================
+
+std::size_t TOMP_Solver::memoryBytes() const noexcept {
+    return TSolver_Base::memoryBytes() + solver_utils::memory_bytes::bytesOf(xty_active_);
 }
 
 

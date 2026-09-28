@@ -16,6 +16,7 @@
 
 // tsolvers includes
 #include <tsolvers/ad/linear_model/lars_based/tiknet_solver.hpp>
+#include <tsolvers/ad/solver_utils/memory_bytes.hpp>
 #include <tsolvers/ad/solver_utils/tikhonov_validation.hpp>
 
 // utils includes
@@ -548,6 +549,17 @@ void TIKNET_Solver::refreshDroppedCorrelation(std::size_t dropped_var) {
                        lambda2_ * ks_(static_cast<Eigen::Index>(
                            foldedBase(dropped_var)));
     correlation_compensation_(j) = 0.0;
+}
+
+
+// ============================================================================
+// Memory report
+// ============================================================================
+
+std::size_t TIKNET_Solver::memoryBytes() const noexcept {
+    using solver_utils::memory_bytes::bytesOf;
+    return TLARS_Solver::memoryBytes() + bytesOf(tikhonov_K_) + bytesOf(folded_s_) +
+           bytesOf(ks_) + bytesOf(tau_) + bytesOf(ktau_) + bytesOf(kcol_gather_);
 }
 
 

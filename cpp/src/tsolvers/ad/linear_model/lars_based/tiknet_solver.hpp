@@ -209,6 +209,10 @@ public:
     /** @brief Current folded coefficient sums s (valid after executeStep()). */
     const Eigen::VectorXd& getFoldedSums() const noexcept { return folded_s_; }
 
+    /** @brief TLARS_Solver::memoryBytes() plus the copy of K, the folded sums,
+     *  the coupling state and the direction and gather workspaces. */
+    std::size_t memoryBytes() const noexcept override;
+
     // ============================================================================
     // Serialization & State Management
     // ============================================================================

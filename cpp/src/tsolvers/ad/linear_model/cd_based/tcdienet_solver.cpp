@@ -15,6 +15,7 @@
 
 // tsolvers includes
 #include <tsolvers/ad/linear_model/cd_based/tcdienet_solver.hpp>
+#include <tsolvers/ad/solver_utils/memory_bytes.hpp>
 
 // ============================================================================
 
@@ -228,6 +229,16 @@ void TCDIENET_Solver::zeroPenaltyState() {
     TCDLASSO_Solver::zeroPenaltyState();
     std::fill(group_sums_.begin(), group_sums_.end(), 0.0);
     if (folded_s_.size() > 0) { folded_s_.setZero(); }
+}
+
+// ============================================================================
+// Memory report
+// ============================================================================
+
+std::size_t TCDIENET_Solver::memoryBytes() const noexcept {
+    using solver_utils::memory_bytes::bytesOf;
+    return TCDENET_Solver::memoryBytes() + bytesOf(group_of_) + bytesOf(group_size_) +
+           bytesOf(group_sums_) + bytesOf(lambda2_over_pm_) + bytesOf(folded_s_);
 }
 
 // ============================================================================

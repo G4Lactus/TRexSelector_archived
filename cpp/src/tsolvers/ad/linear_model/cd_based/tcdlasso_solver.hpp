@@ -92,7 +92,9 @@ enum class SolverTypeCdBased: int {
 
 /**
  * @brief Terminating Cyclic Coordinate Descent (T-CDLASSO) solver.
- * Supports in-memory and memory-mapped data over Eigen::Map.
+ * Supports in-memory and memory-mapped data over Eigen::Map. The Gram rows
+ * of the ever-active variables and the continuation cache stay allocated
+ * after executeStep(), so memoryBytes() counts them.
  */
 class TCDLASSO_Solver : public TSolver_Base {
 protected:
@@ -634,6 +636,11 @@ public:
     std::pair<std::vector<std::size_t>, std::vector<int>> getCertifiedSupport() const {
         return {frontier_top_.support, frontier_top_.sign};
     }
+
+    /** @brief TSolver_Base::memoryBytes() plus the lambda sequence, penalty and
+     *  CD state, the Gram rows, the certified frontier, the continuation cache
+     *  (both kept after executeStep(), not serialized) and the step records. */
+    std::size_t memoryBytes() const noexcept override;
 
     // ============================================================================
     // De-/Serialization
