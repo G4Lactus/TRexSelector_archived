@@ -35,10 +35,12 @@ TEST(OpenMPTest, CoreFunctionStubs) {
     int in_parallel = omp_in_parallel();
     EXPECT_GE(in_parallel, 0);
 
-    // Timers
+    // Timers: the epoch is arbitrary (the stub counts from its first call, so 0 is valid)
     double time = omp_get_wtime();
+    double later = omp_get_wtime();
     double tick = omp_get_wtick();
-    EXPECT_GT(time, 0.0);
+    EXPECT_GE(time, 0.0);
+    EXPECT_GE(later, time);
     EXPECT_GT(tick, 0.0);
 }
 
@@ -52,11 +54,25 @@ TEST(OpenMPTest, UtilsNamespace) {
     if (available) {
         EXPECT_EQ(status, "OpenMP enabled");
     } else {
-        EXPECT_EQ(status, "Disabled");
+        EXPECT_EQ(status, "Single-threaded (OpenMP disabled)");
     }
 
     // Should not crash
     trex::utils::openmp::print_info();
+}
+
+
+/** @brief Without OpenMP the stubs report one thread and ignore a requested count. */
+TEST(OpenMPTest, SingleThreadedStubs) {
+    if (trex::utils::openmp::is_available()) {
+        GTEST_SKIP() << "OpenMP is enabled in this build; the stubs are not compiled.";
+    }
+    EXPECT_EQ(omp_get_max_threads(), 1);
+    EXPECT_EQ(trex::utils::openmp::get_max_threads(), 1);
+    trex::utils::openmp::set_num_threads(4);
+    EXPECT_EQ(trex::utils::openmp::get_max_threads(), 1);
+    EXPECT_EQ(trex::utils::openmp::version(), 0);
+    std::cout << "single-threaded build: omp_get_max_threads() = " << omp_get_max_threads() << "\n";
 }
 
 // ========================================================================================

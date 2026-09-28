@@ -91,7 +91,8 @@ add_trex_test(test_trex_tikhonov test_trex_selector_methods/ad/test_trex_tikhono
 add_trex_test(test_tik_lambda2_power_rule test_trex_selector_methods/ad/test_tik_lambda2_power_rule.cpp)
 add_trex_test(test_ml_methods_agglomerative_guards test_ml_methods/test_ml_methods_agglomerative_guards.cpp)
 add_trex_test(test_utils_checked_arith test_utils/test_utils_checked_arith.cpp)
-# Thread hygiene: the OpenMP half runs in every build; the Eigen half is
+# Thread hygiene: the OpenMP half runs in every OpenMP build (skipped in the
+# single-threaded one, TREX_WITH_OPENMP=OFF); the Eigen half is
 # compiled in only without EIGEN_USE_BLAS (Eigen stubs its thread count
 # under a BLAS — see the file header), i.e. in TREX_USE_BLAS_LAPACK=OFF
 # builds: CI's cpp-tests job, the R package, the Python wheel, and locally
