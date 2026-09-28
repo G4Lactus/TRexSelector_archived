@@ -72,6 +72,10 @@ add_trex_test(test_tsolvers_polymorphic test_tsolvers/ad/test_tsolvers_polymorph
 add_trex_test(test_tsolvers_cd test_tsolvers/ad/test_tsolvers_cd.cpp)
 add_trex_test(test_tsolvers_tik test_tsolvers/ad/test_tsolvers_tik.cpp)
 add_trex_test(test_tsolvers_buffer_guard test_tsolvers/ad/test_tsolvers_buffer_guard.cpp)
+# memoryBytes(): hand counts, growth, exclusions; the peak test replaces
+# malloc / operator new in its own executable (macOS and glibc, else skipped).
+add_trex_test(test_tsolvers_memory test_tsolvers/ad/test_tsolvers_memory.cpp)
+add_trex_test(test_tsolvers_memory_peak test_tsolvers/ad/test_tsolvers_memory_peak.cpp)
 add_trex_test(test_trex_restore test_trex_selector_methods/ad/test_trex_restore.cpp)
 add_trex_test(test_sd_tsolvers test_tsolvers/sd/test_sd_tsolvers.cpp)
 
