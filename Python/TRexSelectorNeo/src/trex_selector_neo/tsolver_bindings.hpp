@@ -212,6 +212,10 @@ public:
     /** @brief Quantify the number of path steps successfully taken thus far. */
     std::size_t getNumSteps() const { return solver_->getNumSteps(); }
 
+    /** @brief Heap bytes the solver holds (TSolver_Base::memoryBytes(); the
+     *  borrowed X and D and the views of this wrapper are not counted). */
+    std::size_t getMemoryBytes() const { return solver_->memoryBytes(); }
+
     /** @brief Check whether the solver has mapped access to data predictors. */
     bool isConnected() const { return solver_->isConnected(); }
 
@@ -428,6 +432,11 @@ py::class_<PySolverWrapper<Solver>>& add_standard_tsolver_methods(
              "Find where dummy variables start within the merged predictor index space.")
         .def("getNumSteps", &PySolverWrapper<Solver>::getNumSteps,
              "Quantify the number of path steps successfully taken thus far.")
+        .def("getMemoryBytes", &PySolverWrapper<Solver>::getMemoryBytes,
+             "Heap bytes the solver holds: its copy of y, the residual, correlations, "
+             "Cholesky factor, coefficient path, diagnostics and reserved capacity. X and D "
+             "are borrowed and not counted, nor are the temporaries inside a step, so the "
+             "peak of a step is higher.")
         .def("isConnected", &PySolverWrapper<Solver>::isConnected,
              "Check whether the solver has mapped access to data predictors.")
         .def("setTolerance", &PySolverWrapper<Solver>::setTolerance, py::arg("tol"),

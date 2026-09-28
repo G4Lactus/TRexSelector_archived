@@ -74,6 +74,10 @@ class TAFS_Solver:
         """
         Retrieves the calculated model intercept for a specific step.
         """
+    def getMemoryBytes(self) -> int:
+        """
+        Heap bytes the solver holds: its copy of y, the residual, correlations, Cholesky factor, coefficient path, diagnostics and reserved capacity. X and D are borrowed and not counted, nor are the temporaries inside a step, so the peak of a step is higher.
+        """
     def getNumActives(self) -> int:
         """
         Calculate how many variables are currently active.

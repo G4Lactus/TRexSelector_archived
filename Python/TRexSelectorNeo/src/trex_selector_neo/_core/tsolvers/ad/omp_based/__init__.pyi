@@ -119,6 +119,10 @@ class TACGP_Solver:
         """
         Retrieves the calculated model intercept for a specific step.
         """
+    def getMemoryBytes(self) -> int:
+        """
+        Heap bytes the solver holds: its copy of y, the residual, correlations, Cholesky factor, coefficient path, diagnostics and reserved capacity. X and D are borrowed and not counted, nor are the temporaries inside a step, so the peak of a step is higher.
+        """
     def getNumActives(self) -> int:
         """
         Calculate how many variables are currently active.
@@ -245,6 +249,10 @@ class TGP_Solver:
     def getIntercept(self, step: typing.SupportsInt | typing.SupportsIndex = -1) -> float:
         """
         Retrieves the calculated model intercept for a specific step.
+        """
+    def getMemoryBytes(self) -> int:
+        """
+        Heap bytes the solver holds: its copy of y, the residual, correlations, Cholesky factor, coefficient path, diagnostics and reserved capacity. X and D are borrowed and not counted, nor are the temporaries inside a step, so the peak of a step is higher.
         """
     def getNumActives(self) -> int:
         """
@@ -377,6 +385,10 @@ class TIKOMP_Solver:
         """
         Get the quadratic penalty weight lambda2 used.
         """
+    def getMemoryBytes(self) -> int:
+        """
+        Heap bytes the solver holds: its copy of y, the residual, correlations, Cholesky factor, coefficient path, diagnostics and reserved capacity. X and D are borrowed and not counted, nor are the temporaries inside a step, so the peak of a step is higher.
+        """
     def getNumActives(self) -> int:
         """
         Calculate how many variables are currently active.
@@ -508,6 +520,10 @@ class TMP_Solver:
         """
         Retrieves the calculated model intercept for a specific step.
         """
+    def getMemoryBytes(self) -> int:
+        """
+        Heap bytes the solver holds: its copy of y, the residual, correlations, Cholesky factor, coefficient path, diagnostics and reserved capacity. X and D are borrowed and not counted, nor are the temporaries inside a step, so the peak of a step is higher.
+        """
     def getNumActives(self) -> int:
         """
         Calculate how many variables are currently active.
@@ -634,6 +650,10 @@ class TNCGMP_Solver:
     def getIntercept(self, step: typing.SupportsInt | typing.SupportsIndex = -1) -> float:
         """
         Retrieves the calculated model intercept for a specific step.
+        """
+    def getMemoryBytes(self) -> int:
+        """
+        Heap bytes the solver holds: its copy of y, the residual, correlations, Cholesky factor, coefficient path, diagnostics and reserved capacity. X and D are borrowed and not counted, nor are the temporaries inside a step, so the peak of a step is higher.
         """
     def getNumActives(self) -> int:
         """
@@ -762,6 +782,10 @@ class TOMP_Solver:
         """
         Retrieves the calculated model intercept for a specific step.
         """
+    def getMemoryBytes(self) -> int:
+        """
+        Heap bytes the solver holds: its copy of y, the residual, correlations, Cholesky factor, coefficient path, diagnostics and reserved capacity. X and D are borrowed and not counted, nor are the temporaries inside a step, so the peak of a step is higher.
+        """
     def getNumActives(self) -> int:
         """
         Calculate how many variables are currently active.
@@ -888,6 +912,10 @@ class TOOLS_Solver:
     def getIntercept(self, step: typing.SupportsInt | typing.SupportsIndex = -1) -> float:
         """
         Retrieves the calculated model intercept for a specific step.
+        """
+    def getMemoryBytes(self) -> int:
+        """
+        Heap bytes the solver holds: its copy of y, the residual, correlations, Cholesky factor, coefficient path, diagnostics and reserved capacity. X and D are borrowed and not counted, nor are the temporaries inside a step, so the peak of a step is higher.
         """
     def getNumActives(self) -> int:
         """

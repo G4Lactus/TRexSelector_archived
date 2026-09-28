@@ -90,6 +90,10 @@ class TCDENET_Solver:
         """
         Quadratic penalty weight lambda_2 (0 for TCDLASSO).
         """
+    def getMemoryBytes(self) -> int:
+        """
+        Heap bytes the solver holds: its copy of y, the residual, correlations, Cholesky factor, coefficient path, diagnostics and reserved capacity. X and D are borrowed and not counted, nor are the temporaries inside a step, so the peak of a step is higher.
+        """
     def getNumActives(self) -> int:
         """
         Calculate how many variables are currently active.
@@ -256,6 +260,10 @@ class TCDIENET_Solver:
     def getLambda2(self) -> float:
         """
         Quadratic penalty weight lambda_2 (0 for TCDLASSO).
+        """
+    def getMemoryBytes(self) -> int:
+        """
+        Heap bytes the solver holds: its copy of y, the residual, correlations, Cholesky factor, coefficient path, diagnostics and reserved capacity. X and D are borrowed and not counted, nor are the temporaries inside a step, so the peak of a step is higher.
         """
     def getNumActives(self) -> int:
         """
@@ -424,6 +432,10 @@ class TCDLASSO_Solver:
         """
         Quadratic penalty weight lambda_2 (0 for TCDLASSO).
         """
+    def getMemoryBytes(self) -> int:
+        """
+        Heap bytes the solver holds: its copy of y, the residual, correlations, Cholesky factor, coefficient path, diagnostics and reserved capacity. X and D are borrowed and not counted, nor are the temporaries inside a step, so the peak of a step is higher.
+        """
     def getNumActives(self) -> int:
         """
         Calculate how many variables are currently active.
@@ -586,6 +598,10 @@ class TCDTIKNET_Solver:
     def getLambda2(self) -> float:
         """
         Quadratic penalty weight lambda_2 (0 for TCDLASSO).
+        """
+    def getMemoryBytes(self) -> int:
+        """
+        Heap bytes the solver holds: its copy of y, the residual, correlations, Cholesky factor, coefficient path, diagnostics and reserved capacity. X and D are borrowed and not counted, nor are the temporaries inside a step, so the peak of a step is higher.
         """
     def getNumActives(self) -> int:
         """
