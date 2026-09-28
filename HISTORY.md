@@ -62,6 +62,46 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
 
 ### 2026-09-28
 
+#### OpenMP optional in every build; one OpenMP runtime in the R package on macOS
+
+- C++ and Python: OpenMP is optional, as in R. `find_package(OpenMP)` without
+  REQUIRED; when found, `trex_utils` and `trex_tsolvers` link `OpenMP::OpenMP_CXX`
+  as before, otherwise CMake reports "OpenMP not found: building single-threaded"
+  and the stubs in `utils/openmp/utils_openmp.hpp` take over (pragmas ignored,
+  `omp_get_max_threads()` 1). `-DTREX_WITH_OPENMP=OFF` (default ON) forces the
+  single-threaded build; Python takes it as `-C cmake.define.TREX_WITH_OPENMP=OFF`.
+  A single-threaded build adds `-Wno-unknown-pragmas` (MSVC `/wd4068`), so GCC's
+  one warning per inactive pragma is gone. The Homebrew LLVM libomp pin applies
+  only to Homebrew's clang and when that libomp exists; MSVC keeps `-openmp:llvm`.
+- Installed package config: `find_dependency(OpenMP)` only when the library was
+  built with OpenMP; `TRexSelector_WITH_OPENMP` tells consumers which. A
+  single-threaded install exports no OpenMP link. The same for BLAS/LAPACK:
+  `find_dependency(BLAS/LAPACK)` only for a `TREX_USE_BLAS_LAPACK=ON` build
+  (`TRexSelector_WITH_BLAS_LAPACK`); before, every install required them.
+- R on macOS: CRAN's R has no OpenMP flags, and configure linked Homebrew's
+  libomp by absolute path while `-lomp` resolved to R's bundled runtime, so two
+  OpenMP runtimes were mapped. configure now probes (1) R's flags, (2) on macOS
+  R's `lib/libomp.dylib` with an omp.h from Homebrew or from the mac.r-project.org
+  OpenMP package in /usr/local/include (`-Xpreprocessor -fopenmp`,
+  `-L${R_HOME}/lib -lomp`, the runtime data.table and RcppArmadillo load),
+  (3) Homebrew's runtime alone, (4) sequential. `TREX_OPENMP=no` forces the
+  sequential build and adds `-Wno-unknown-pragmas`; the automatic fallback does
+  not, since R CMD check lists that flag as non-portable. configure regenerated
+  with autoconf 2.73 (AC_INIT now names version 2.0.0, not 0.2.0); Makevars.win
+  unchanged.
+- Tests: two OpenMP stub tests failed without OpenMP (status string, the wtime
+  stub returns 0 on its first call) and are fixed; `OpenMPTest.SingleThreadedStubs`
+  checks the one-thread stubs. CI: `test-no-openmp` (ubuntu-24.04) builds and
+  tests with `TREX_WITH_OPENMP=OFF` and fails if any target compiles with -fopenmp,
+  then runs the install smoke test with OpenMP disabled for the consumer
+  (`TREX_SMOKE_CONSUMER_ARGS`, new in run_install_smoke.sh), so the config of a
+  single-threaded install is proven not to ask for OpenMP.
+- Verified: C++ 646 of 646 with OpenMP (22 skipped) and without (24 skipped, the
+  three OpenMP thread-hygiene tests; no build warnings); R 1,407 with R's runtime
+  (12 threads, one libomp mapped) and with TREX_OPENMP=no (1 thread); Python 635
+  with and without OpenMP; vendor check OK; install smoke tests OK without
+  OpenMP, and without OpenMP, BLAS and LAPACK (consumer with all three disabled).
+
 #### T-solvers: the held heap bytes as `memoryBytes()`, R `$get_memory_bytes()`, Python `getMemoryBytes()`
 
 - Found in the Examples memory demo (demo_ts_perf_03: p = L = 1,000, n up to
