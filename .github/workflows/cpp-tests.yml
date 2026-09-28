@@ -128,3 +128,54 @@ jobs:
 
       - name: Test
         run: ctest --test-dir cpp/build/ci -C Release --output-on-failure
+
+  # ---------------------------------------------------------------------------
+  # Single-threaded build: TREX_WITH_OPENMP=OFF keeps the path without OpenMP
+  # (utils_openmp.hpp stubs, ignored pragmas) compilable and tested. Tests
+  # that need several threads skip themselves.
+  # ---------------------------------------------------------------------------
+  test-no-openmp:
+    name: ubuntu-24.04 (no OpenMP)
+    runs-on: ubuntu-24.04
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libeigen3-dev \
+            libboost-all-dev \
+            libcereal-dev \
+            libgtest-dev \
+            libopenblas-dev \
+            liblapack-dev
+
+      - name: Configure
+        run: |
+          cmake -S cpp -B cpp/build/ci-no-openmp \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DTREX_PORTABLE_BUILD=ON \
+            -DTREX_WITH_OPENMP=OFF
+
+      # The switch must reach every target: no OpenMP flag in any compile command
+      - name: Check that no target compiles with OpenMP
+        run: |
+          if grep -q -e '-fopenmp' cpp/build/ci-no-openmp/compile_commands.json; then
+            echo "::error::TREX_WITH_OPENMP=OFF, but a target still compiles with -fopenmp"
+            exit 1
+          fi
+
+      - name: Build
+        run: cmake --build cpp/build/ci-no-openmp --parallel
+
+      - name: Test
+        run: ctest --test-dir cpp/build/ci-no-openmp --output-on-failure
+
+      # The installed package config of a single-threaded build must not ask
+      # for OpenMP: the consumer configures with OpenMP disabled
+      - name: Install smoke test without OpenMP
+        env:
+          TREX_SMOKE_CONSUMER_ARGS: -DCMAKE_DISABLE_FIND_PACKAGE_OpenMP=ON
+        run: bash cpp/tests/install_smoke/run_install_smoke.sh cpp/build/ci-no-openmp

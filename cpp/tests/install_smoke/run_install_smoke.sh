@@ -5,6 +5,9 @@
 #
 #   usage: cpp/tests/install_smoke/run_install_smoke.sh [build-dir]
 #          (default build dir: cpp/build/release)
+#   TREX_SMOKE_CONSUMER_ARGS: extra CMake arguments for the consumer, e.g.
+#          -DCMAKE_DISABLE_FIND_PACKAGE_OpenMP=ON to prove that the config of a
+#          single-threaded install asks for no OpenMP.
 #
 # Checks, in order: the headers land under the NAMESPACED root
 # include/TRexSelector/ and nowhere else; the stamp is written; a downstream
@@ -29,8 +32,10 @@ done
 test -f "$PREFIX/lib/cmake/TRexSelector/TRexSelectorConfig.cmake" || { echo "FAIL: package config missing"; exit 1; }
 
 echo "== build the find_package consumer"
+# shellcheck disable=SC2086  # the extra arguments split on purpose
 cmake -S "$CPP_ROOT/tests/install_smoke" -B "$SCRATCH/consumer" \
-      -DCMAKE_PREFIX_PATH="$PREFIX" -DCMAKE_BUILD_TYPE=Release > "$SCRATCH/consumer-configure.log" 2>&1 \
+      -DCMAKE_PREFIX_PATH="$PREFIX" -DCMAKE_BUILD_TYPE=Release ${TREX_SMOKE_CONSUMER_ARGS:-} \
+      > "$SCRATCH/consumer-configure.log" 2>&1 \
     || { cat "$SCRATCH/consumer-configure.log"; echo "FAIL: consumer configure"; exit 1; }
 grep -i -A3 'warning' "$SCRATCH/consumer-configure.log" || true
 cmake --build "$SCRATCH/consumer" -j4 > "$SCRATCH/consumer-build.log" 2>&1 \
