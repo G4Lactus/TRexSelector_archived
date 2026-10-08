@@ -57,6 +57,13 @@ namespace model_selection {
  *   **Public interface**:
  *   `fit()`, `cv_min()`, `cv_1se()`, `lambdas()`, `cv_mse()`, `cv_sem()`,
  *   `index_min()`, `index_1se()`.
+ *
+ *  References:
+ *  -----------
+ *   A. E. Hoerl and R. W. Kennard, "Ridge Regression: Biased Estimation for Nonorthogonal Problems,"
+ *     Technometrics, vol. 42, no. 1, pp. 80-86, 2000 (Reprint of the 1970 article in the Special 40th
+ *     Anniversary Issue).
+ *   G. Guennebaud, B. Jacob et al., Eigen v3, http://eigen.tuxfamily.org, 2010.
  */
 class ridge_cv_svd {
 

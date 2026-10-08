@@ -47,8 +47,15 @@ namespace trex::tsolvers::ad::linear_model::lars_based {
  * n + p_total (observation part first, penalty part after), not the
  * n-vector returned by the sibling solvers.
  *
- * References:
- *  - Zou & Hastie (2005). "Regularization and variable selection via the elastic net"
+ *  References:
+ *  -----------
+ *   H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R. Stat. Soc. Ser.
+ *     B Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+ *   B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann. Statist., vol. 32,
+ *     no. 2, pp. 407-499, 2004.
+ *   J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+ *     High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+ *     Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
  */
 class TENET_Solver: public TLARS_Solver {
 

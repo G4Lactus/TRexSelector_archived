@@ -52,6 +52,11 @@ namespace trex::ml_methods::clustering::hierarchical::agglomerative {
  * @tparam DistancePolicyType Distance metric policy type (currently unused; kept for interface
  *                           consistency with other update policy types).
  * @tparam SelectedMethod    Compile-time linkage method (Ward, Centroid, or Median).
+ *
+ *  References:
+ *  -----------
+ *   M. S. Charikar, "Similarity Estimation Techniques from Rounding Algorithms," in Proc. ACM Symp. Theory
+ *     Comput. (STOC), 2002.
  */
 template <typename MatrixType, typename DistancePolicyType, LinkageMethod SelectedMethod>
 class ProjectedGeometricUpdatePolicy {

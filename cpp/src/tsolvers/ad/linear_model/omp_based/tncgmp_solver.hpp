@@ -39,8 +39,7 @@ using trex::tsolvers::ad::NCGMPVariant;
 /**
  * @brief Terminating Norm-Corrective Generalized Matching Pursuit (T-NCGMP) solver.
  *
- * @details Implements Algorithm 4 of Locatello et al. (2017), "A Unified
- * Optimization View on Generalized Matching Pursuit and Frank-Wolfe".
+ * @details Implements Algorithm 4 of Locatello et al. (2017).
  *
  * @note EQUIVALENCE FOR LINEAR MODELS: Algorithm 4 updates through the
  * quadratic upper bound b = x - (1/L) * grad f(x). For the least-squares
@@ -53,6 +52,14 @@ using trex::tsolvers::ad::NCGMPVariant;
  * the GMP framing in anticipation of non-quadratic losses (e.g., the planned
  * logistic model), where the norm-corrective updates genuinely differ from
  * MP/OMP.
+ *
+ *  References:
+ *  -----------
+ *   F. Locatello, R. Khanna, M. Tschannen, and M. Jaggi, "A Unified Optimization View on Generalized Matching
+ *     Pursuit and Frank-Wolfe," in Proc. 20th Int. Conf. Artif. Intell. Statist. (AISTATS), JMLR: W&CP
+ *     vol. 54, 2017.
+ *   F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False Discovery Rate Control,"
+ *     in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026, pp. 2511-2515.
  */
 class TNCGMP_Solver : public TSolver_Base {
 protected:

@@ -70,8 +70,8 @@
  *      near-null space of X_A^T X_A + lambda2 K_AA.  Cyclic CD then zigzags
  *      through flat valleys for tens of thousands of (legitimately
  *      converging, `max_iter` never hit) sweeps per path point.  Measured on
- *      the demo_01 scenario-B design (n = 200, p = 500, three rho = 0.7
- *      blocks of 50 + 350 white singletons), one cold lambda1 path at
+ *      a design with n = 200, p = 500, three rho = 0.7 blocks of 50 + 350
+ *      white singletons, one cold lambda1 path at
  *      lambda2 = c_max costs 2.38 M sweeps / 64 s, of which 98.2 % fall past
  *      the cap frontier — while the held-out MSE minimum sits nine grid
  *      points BEFORE it and rises monotonically thereafter.  The capped tail
@@ -608,6 +608,19 @@ private:
  * @brief K-fold cross-validated lambda2 selection for the Informed Elastic
  *        Net via the CCD `ien_gaussian` engine: per lambda2 candidate the
  *        full lambda1 path is fitted per fold and profiled out.
+ *
+ *  References:
+ *  -----------
+ *   J. Machkour, M. Muma, and D. P. Palomar, "The Informed Elastic Net for Fast Grouped Variable Selection
+ *     and FDR Control in Genomics Research," in Proc. IEEE 9th Int. Workshop Comput. Adv. Multi-Sensor Adapt.
+ *     Process. (CAMSAP), 2023, pp. 466-470.
+ *   J. Friedman, T. Hastie, and R. Tibshirani, "Regularization Paths for Generalized Linear Models via
+ *     Coordinate Descent," J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010, doi: 10.18637/jss.v033.i01.
+ *   R. Tibshirani, J. Bien, J. Friedman, T. Hastie, N. Simon, J. Taylor, and R. J. Tibshirani, "Strong Rules
+ *     for Discarding Predictors in Lasso-Type Problems," J. R. Stat. Soc. Ser. B Stat. Methodol., vol. 74,
+ *     no. 2, pp. 245-266, 2012, doi: 10.1111/j.1467-9868.2011.01004.x.
+ *   L. Breiman, J. H. Friedman, R. A. Olshen, and C. J. Stone, Classification and Regression Trees.
+ *     Wadsworth, Belmont, CA, 1984.
  */
 class ienet_cv_ccd {
 

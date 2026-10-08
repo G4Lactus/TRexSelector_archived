@@ -153,6 +153,13 @@ inline std::mt19937 make_column_engine(std::uint64_t base_seed, std::uint64_t co
  *
  * @details Administration structure to specify distribution type and parameters.
  *
+ *  References:
+ *  -----------
+ *   J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+ *     High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+ *     Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+ *   E. Mammen, "Bootstrap and Wild Bootstrap for High Dimensional Linear Models," Ann. Statist., vol. 21,
+ *     no. 1, pp. 255-285, 1993, doi: 10.1214/aos/1176349025.
  */
 struct Distribution {
 
@@ -464,8 +471,6 @@ struct Distribution {
      *          Properties: Mean = 0, Variance = 1.
      *          These values are based on the golden ratio for which the distribution is
      *          also called the "golden ratio distribution".
-     *
-     * @see: https://en.wikipedia.org/wiki/Bootstrapping_(statistics)
      *
      * @param p1 Probability for value -(sqrt(5) - 1) / 2
      * @param p2 Probability for value +(sqrt(5) + 1) / 2

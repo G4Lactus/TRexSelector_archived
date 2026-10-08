@@ -14,13 +14,6 @@
  * The algorithm achieves the theoretical order-of-magnitude bounds for both
  * compactness of storage O(N) and speed of operation O(N^2).
  *
- * References:
- * -----------
- * Sibson, R., "SLINK: An optimally efficient algorithm for the
- *   single-link cluster method", The Computer Journal, 16(1), pp.30-34, 1973.
- * Müllner, D., "Modern hierarchical, agglomerative clustering algorithms",
- *   arXiv preprint arXiv:1109.2378v1, pp.1-29, 2011.
- *
  * Organization:
  * -------------
  * |- src/ml_methods/clustering/hierarchical/agglomerative/
@@ -99,6 +92,12 @@ struct TieAwareDistance {
  * efficiently without triggering deep copies, use Eigen::Map.
  * @tparam DistancePolicy The policy class determining how distances are computed
  * (e.g., Correlation, Euclidean). The requirement is that the method is implemented.
+ *
+ *  References:
+ *  -----------
+ *   R. Sibson, "SLINK: An Optimally Efficient Algorithm for the Single-Link Cluster Method," Comput. J.,
+ *     vol. 16, no. 1, pp. 30-34, 1973.
+ *   D. Müllner, "Modern Hierarchical, Agglomerative Clustering Algorithms," arXiv:1109.2378, 2011.
  */
 template <typename MatrixType, typename DistancePolicy>
 class SLINK {

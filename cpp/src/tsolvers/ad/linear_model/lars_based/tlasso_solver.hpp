@@ -71,6 +71,18 @@ namespace trex::tsolvers::ad::linear_model::lars_based {
  *   - Strong collinearity in design matrix
  *   - Numerical instability in updates/downdates
  *   - Need for regularization parameter tuning
+ *
+ *  References:
+ *  -----------
+ *   R. Tibshirani, "Regression Shrinkage and Selection via the Lasso," J. R. Stat. Soc. Ser. B Stat.
+ *     Methodol., vol. 58, no. 1, pp. 267-288, 1996.
+ *   B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann. Statist., vol. 32,
+ *     no. 2, pp. 407-499, 2004.
+ *   M. R. Osborne, B. Presnell, and B. A. Turlach, "On the LASSO and Its Dual," J. Comput. Graph. Statist.,
+ *     vol. 9, no. 2, pp. 319-337, 2000.
+ *   J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+ *     High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+ *     Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
  */
 class TLASSO_Solver: public TLARS_Solver {
 

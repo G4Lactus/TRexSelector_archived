@@ -77,6 +77,15 @@ enum class DistanceMetric {
  *
  * @tparam MatrixType The type of the input data matrix (e.g., Eigen::Map)
  * @tparam SelectedMetric Distance measure to compute.
+ *
+ *  References:
+ *  -----------
+ *   M. S. Charikar, "Similarity Estimation Techniques from Rounding Algorithms," in Proc. ACM Symp. Theory
+ *     Comput. (STOC), 2002.
+ *   P. Indyk and R. Motwani, "Approximate Nearest Neighbors: Towards Removing the Curse of Dimensionality,"
+ *     in Proc. 30th ACM Symp. Theory Comput. (STOC), 1998, pp. 604-613.
+ *   P. Li, T. J. Hastie, and K. W. Church, "Very Sparse Random Projections," in Proc. ACM SIGKDD Int. Conf.
+ *     Knowl. Discovery Data Mining (KDD), 2006.
  */
 template<typename MatrixType, DistanceMetric SelectedMetric>
 class DistancePolicy {

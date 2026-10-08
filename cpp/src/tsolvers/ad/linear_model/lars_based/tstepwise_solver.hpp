@@ -51,6 +51,14 @@ namespace trex::tsolvers::ad::linear_model::lars_based {
  * - Inherits Cholesky updates from TLARS_Solver (collinearity detection)
  * - Full correlation recomputation each step (no incremental drift)
  * - Orthogonal steps prevent accumulation of numerical errors
+ *
+ *  References:
+ *  -----------
+ *   B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann. Statist., vol. 32,
+ *     no. 2, pp. 407-499, 2004.
+ *   J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+ *     High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+ *     Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
  */
 class TSTEPWISE_Solver: public TLARS_Solver {
 

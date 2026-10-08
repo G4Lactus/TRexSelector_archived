@@ -289,6 +289,12 @@ struct TRexControlParameter {
  *    - Delegates dummy generation, solver dispatch, warm-start management,
  *      memory mapping, and experiment coordination to helper modules.
  *    - select() returns SelectionResult with all key outputs.
+ *
+ *  References:
+ *  -----------
+ *   J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+ *     High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+ *     Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
  */
 class TRexSelector {
 protected:

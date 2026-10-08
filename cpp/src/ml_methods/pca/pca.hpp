@@ -82,6 +82,10 @@ struct PCAResult {
  *   PCA pca(X_preprocessed, M, false, false);
  *   PCAResult result = pca.fit();
  * @endcode
+ *
+ *  References:
+ *  -----------
+ *   G. Guennebaud, B. Jacob et al., Eigen v3, http://eigen.tuxfamily.org, 2010.
  */
 class PCA {
 

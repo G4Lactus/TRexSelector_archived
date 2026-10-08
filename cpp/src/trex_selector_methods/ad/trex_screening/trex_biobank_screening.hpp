@@ -11,10 +11,6 @@
  *
  * @details Coordinates Screen-TRex and T-Rex selectors for efficient large-scale
  *          phenotype screening of genomics biobanks.
- *
- * Reference: Machkour J, Muma M, Palomar D
- * "False Discovery Rate Control for Fast Screening of Large-Scale Genomics Biobanks"
- * (IEEE SSP 2023)
  */
 // ===================================================================================
 
@@ -131,9 +127,16 @@ struct BiobankScreenTRexControl {
  * @note Algorithm 1 requires BOTH ordinary (α̂) and bootstrap-CI (α̂_C)  FDR estimates for its
  *       decision logic. Therefore, Screen-TRex is run twice per phenotype (once in each mode).
  *
- * Reference: Machkour J, Muma M, Palomar D
- * "False Discovery Rate Control for Fast Screening of Large-Scale Genomics Biobanks"
- * (IEEE SSP 2023)
+ *  References:
+ *  -----------
+ *   J. Machkour, M. Muma, and D. P. Palomar, "False Discovery Rate Control for Fast Screening of Large-Scale
+ *     Genomics Biobanks," in Proc. 22nd IEEE Statist. Signal Process. Workshop (SSP), 2023, pp. 666-670.
+ *   F. Scheidt, J. Machkour, and M. Muma, "Solving FDR-Controlled Sparse Regression Problems with Five
+ *     Million Variables on a Laptop," in Proc. IEEE 9th Int. Workshop Comput. Adv. Multi-Sensor Adapt.
+ *     Process. (CAMSAP), 2023, pp. 116-120.
+ *   J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+ *     High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+ *     Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
  */
 class BiobankScreenTRex {
 protected:

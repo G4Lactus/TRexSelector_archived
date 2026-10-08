@@ -147,6 +147,14 @@ struct ScreenTRexSelectionResult : public tc::TRexSelector::SelectionResult {
  *  2. Confidence-Based Screen-TRex: bootstrap CI on dummy betas.
  *  3. DA-AR1: adjusts Phi using a local AR(1) neighborhood window.
  *  4. DA-EQUI: adjusts Phi using a global equi-correlation comparison.
+ *
+ *  References:
+ *  -----------
+ *   J. Machkour, M. Muma, and D. P. Palomar, "False Discovery Rate Control for Fast Screening of Large-Scale
+ *     Genomics Biobanks," in Proc. 22nd IEEE Statist. Signal Process. Workshop (SSP), 2023, pp. 666-670.
+ *   J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+ *     High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+ *     Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
  */
 class ScreenTRexSelector : public tc::TRexSelector {
 
