@@ -68,6 +68,18 @@ documentation:
 * Huffman, J. E., et al. - *Examining the current standards for genetic discovery and replication in the era of mega-biobanks*, Nature Communications, 9(1), 5054 (2018). [DOI link](https://www.nature.com/articles/s41467-018-07348-x)
 * Harvey, C. R., Liu, Y., and Zhu, H. - *… and the Cross-Section of Expected Returns*, The Review of Financial Studies, 29(1), 5–68 (2016). [DOI link](https://academic.oup.com/rfs/article-abstract/29/1/5/1843824?redirectedFrom=fulltext)
 
+## Citing
+
+[CITATION.cff](CITATION.cff) carries the citation metadata of the repository, and the R package answers
+`citation("TRexSelectorNeo")`. Every paper the class documentation credits is listed in
+[references.bib](references.bib), the master file from which the reference blocks of the C++, R and Python
+documentation are rendered with the scripts in [tools/references/](tools/references/).
+
+## Acknowledgements
+
+The library builds on the Eigen linear algebra library: G. Guennebaud, B. Jacob et al., Eigen v3,
+<http://eigen.tuxfamily.org>, 2010.
+
 ---
 
 ## License

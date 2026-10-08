@@ -60,6 +60,52 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   T-Rex selectors are unchanged (seeded selectors derive per-experiment seeds,
   unseeded ones pass -1).
 
+### 2026-10-08
+
+#### Scientific references in the class documentation; master bibliography; citation files
+
+- `references.bib` at the repository root is the master list of every paper the
+  library credits (49 entries: the T-Rex method papers, the origin paper of each
+  solver algorithm, the clustering, hashing, cross-validation and ridge
+  references, Eigen). `tools/references/render_references.py` renders an entry
+  as one plain-text line (initials and surnames, title, venue, volume, pages,
+  year, DOI) wrapped for a Doxygen block, a roxygen block or a pybind11
+  docstring; `references_map.json` fixes which keys each class cites, the origin
+  papers first and the T-Rex paper (the greedy-pursuits paper for the greedy
+  solvers) for the terminating form. No citation machinery in the sources: no
+  Doxygen `\cite`, no Rdpack, no Sphinx roles.
+- C++: every selector (`TRexSelector`, DA, GVS, screening, biobank screening,
+  SPCA, Tikhonov), `MemoryMappedMatrix`, all 21 T-solvers, the clustering
+  classes (SLINK, NN-chain, generic linkage, the dispatcher, the Lance-Williams
+  coefficients, the LSH distance and update policies), the elastic-net, IEN,
+  ridge and Tikhonov cross-validation tuners, the EBIC criterion, PCA, the SVD
+  solver, the ridge solver and the dummy `Distribution` carry a `References:`
+  paragraph in their class block. The hand-written lists of the GVS, TENET,
+  TIENET, TIKNET, TMP, TGP, TACGP, SLINK, NN-chain and generic-linkage headers
+  and the `@note Reference` lines are replaced by it; TCDLASSO no longer points
+  to an internal note that is not in the repository, and two demo pointers are
+  gone. Vendored copy in the R package re-synced (`bundle_for_cran.sh --check`
+  passes).
+- R: `@references` on the seven selectors, `mem_matrix` / `mem_matrix_from`, the
+  21 T-solver classes, the six ML classes, the three clustering functions and
+  `trex_dummy_distribution`; 40 Rd files regenerated, NAMESPACE unchanged.
+  `inst/CITATION` names TRexSelectorNeo, keeps "TRexSelector Team" as the package
+  author and lists the eleven T-Rex method papers with text versions rendered
+  from the master file (`tools/references/make_inst_citation.py`);
+  `citation("TRexSelectorNeo")` prints them.
+- Python: the selectors, `DummyDistribution`, `MemoryMappedMatrix`, the T-solver
+  classes, the ML classes, the clustering enums and `agglomerative_cluster` end
+  their docstring with a numpy-style "References" section. The T-solver and ML
+  binding helpers now set a class docstring (the classes had none, only
+  `__init__` had one); stubs regenerated with pybind11-stubgen 2.5.5 against a
+  pybind11 3.1.0 build (an older pybind11 found by CMake drops the typed enum
+  `__eq__` / `__ne__` overloads of the committed stubs; point `pybind11_DIR` at
+  3.1.0 when regenerating).
+- Repository: `CITATION.cff` at the root for GitHub's "Cite this repository"
+  (preferred citation the T-Rex paper, the other method papers and Eigen as
+  references); the READMEs acknowledge Eigen and point to the citation files,
+  the Python and R READMEs link the journal DOI of the T-Rex paper.
+
 ### 2026-09-28
 
 #### OpenMP optional in every build; one OpenMP runtime in the R package on macOS
