@@ -190,7 +190,22 @@ inline void bind_trex_gvs(py::module& m) {
         .def_readonly("group_labels", &TRexGVSSelector::GVSSelectionResult::group_labels, "Unique group label integers.")
         .def_readonly("lambda2_cv", &TRexGVSSelector::GVSSelectionResult::lambda2_cv, "Health record of the lambda_2 tuner (Lambda2CVDiagnostics).");
 
-    py::class_<PyTRexGVSSelector, PyTRexSelector>(m, "TRexGVSSelector", "TRex Selector with Group Variable Selection support.")
+    py::class_<PyTRexGVSSelector, PyTRexSelector>(m, "TRexGVSSelector",
+        "TRex Selector with Group Variable Selection support.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"False Discovery Rate Control for Grouped\n"
+        "  Variable Selection in High-Dimensional Linear Models Using the T-Knock Filter,\" in\n"
+        "  Proc. 30th Eur. Signal Process. Conf. (EUSIPCO), 2022, pp. 892-896.\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"The Informed Elastic Net for Fast Grouped\n"
+        "  Variable Selection and FDR Control in Genomics Research,\" in Proc. IEEE 9th Int.\n"
+        "  Workshop Comput. Adv. Multi-Sensor Adapt. Process. (CAMSAP), 2023, pp. 466-470.\n"
+        "H. Zou and T. Hastie, \"Regularization and Variable Selection via the Elastic Net,\" J. R.\n"
+        "  Stat. Soc. Ser. B Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
+        "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
+        "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n")
         .def(py::init<Eigen::Ref<Eigen::MatrixXd>, Eigen::Ref<Eigen::VectorXd>, double, const TRexGVSControlParameter&, const TRexControlParameter&, int, bool>(),
              py::arg("X"), py::arg("y"), py::arg("tFDR") = 0.1,
              py::arg("gvs_control") = TRexGVSControlParameter(),

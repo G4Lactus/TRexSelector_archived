@@ -261,7 +261,15 @@ inline void bind_trex_core(py::module& m_tsm) {
 
     // Bind DummyDistribution (wraps C++ dummygen::Distribution)
     py::class_<dg::Distribution> dummy_dist(m_tsm, "DummyDistribution",
-        "Specification of the dummy variable distribution injected by T-Rex.");
+        "Specification of the dummy variable distribution injected by T-Rex.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
+        "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
+        "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n"
+        "E. Mammen, \"Bootstrap and Wild Bootstrap for High Dimensional Linear Models,\" Ann.\n"
+        "  Statist., vol. 21, no. 1, pp. 255-285, 1993, doi: 10.1214/aos/1176349025.\n");
 
     py::enum_<dg::Distribution::Type>(dummy_dist, "Type",
         "Dummy distribution type enumeration.")
@@ -364,7 +372,14 @@ inline void bind_trex_core(py::module& m_tsm) {
         .def_readonly("voting_grid", &TRexSelector::SelectionResult::voting_grid, "Voting grid: per-candidate vote totals across K experiments.");
 
     // Bind PyTRexSelector
-    py::class_<PyTRexSelector>(m_tsm, "TRexSelector", "T-Rex Selector: FDR-controlled variable selection via dummy comparison.")
+    py::class_<PyTRexSelector>(m_tsm, "TRexSelector",
+        "T-Rex Selector: FDR-controlled variable selection via dummy comparison.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
+        "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
+        "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n")
         .def(py::init<Eigen::Ref<Eigen::MatrixXd>, Eigen::Ref<Eigen::VectorXd>, double, const TRexControlParameter&, int, bool>(),
              py::arg("X"), py::arg("y"), py::arg("tFDR") = 0.1,
              py::arg("trex_control") = TRexControlParameter(),

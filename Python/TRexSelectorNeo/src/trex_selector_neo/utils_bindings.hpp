@@ -43,7 +43,16 @@ inline void bind_utils_module(py::module& m) {
         .value("ReadWrite", AccessMode::ReadWrite)
         .export_values();
 
-    py::class_<MemoryMappedMatrix<double>>(m, "MemoryMappedMatrix")
+    py::class_<MemoryMappedMatrix<double>>(m, "MemoryMappedMatrix",
+        "Column-major matrix of doubles backed by a memory-mapped file: elements and blocks are read\n"
+        "and written in place on disk, and to_numpy() gives a zero-copy view for the out-of-core\n"
+        "paths.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "F. Scheidt, J. Machkour, and M. Muma, \"Solving FDR-Controlled Sparse Regression Problems\n"
+        "  with Five Million Variables on a Laptop,\" in Proc. IEEE 9th Int. Workshop Comput. Adv.\n"
+        "  Multi-Sensor Adapt. Process. (CAMSAP), 2023, pp. 116-120.\n")
 
         .def(py::init<const std::string&, std::size_t, std::size_t, AccessMode>(),
              py::arg("filename"), py::arg("rows"), py::arg("cols"),

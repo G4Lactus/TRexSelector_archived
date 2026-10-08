@@ -299,7 +299,15 @@ inline void bind_ml_methods(py::module& m) {
      *          returning glmnet-style lambda.min / lambda.1se. Mirrors the R
      *          RidgeCV R6 class. Indices are 0-based (add 1 for R parity).
      */
-    py::class_<ridge_cv_svd>(m, "RidgeCV")
+    py::class_<ridge_cv_svd>(m, "RidgeCV",
+        "K-fold cross-validated ridge regression (SVD path per fold).\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "A. E. Hoerl and R. W. Kennard, \"Ridge Regression: Biased Estimation for Nonorthogonal\n"
+        "  Problems,\" Technometrics, vol. 42, no. 1, pp. 80-86, 2000 (Reprint of the 1970 article\n"
+        "  in the Special 40th Anniversary Issue).\n"
+        "G. Guennebaud, B. Jacob et al., Eigen v3, http://eigen.tuxfamily.org, 2010.\n")
         .def(py::init<>())
         .def(py::init<bool>(), py::arg("low_memory"),
              "low_memory=True: the dual (kernel) fold engine — n x n kernels accumulated "
@@ -342,7 +350,16 @@ inline void bind_ml_methods(py::module& m) {
      *          coefficients in the ORIGINAL predictor scale, intercepts, the
      *          deviance-ratio path, and predictions for new data.
      */
-    py::class_<enet_gaussian>(m, "ElasticNet")
+    py::class_<enet_gaussian>(m, "ElasticNet",
+        "Elastic-net coordinate-descent path (glmnet-equivalent).\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "H. Zou and T. Hastie, \"Regularization and Variable Selection via the Elastic Net,\" J. R.\n"
+        "  Stat. Soc. Ser. B Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.\n"
+        "J. Friedman, T. Hastie, and R. Tibshirani, \"Regularization Paths for Generalized Linear\n"
+        "  Models via Coordinate Descent,\" J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010,\n"
+        "  doi: 10.18637/jss.v033.i01.\n")
         .def(py::init<>())
         .def(py::init<bool>(), py::arg("low_memory"),
              "low_memory=False (default): the coordinate descent runs on a centered and "
@@ -414,7 +431,22 @@ inline void bind_ml_methods(py::module& m) {
      *          alpha defaults to 0 (ridge), matching the C++ default. Indices
      *          are 0-based (add 1 for R parity).
      */
-    py::class_<enet_cv_ccd>(m, "ElasticNetCV")
+    py::class_<enet_cv_ccd>(m, "ElasticNetCV",
+        "K-fold cross-validated elastic net (coordinate-descent per fold).\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "H. Zou and T. Hastie, \"Regularization and Variable Selection via the Elastic Net,\" J. R.\n"
+        "  Stat. Soc. Ser. B Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.\n"
+        "J. Friedman, T. Hastie, and R. Tibshirani, \"Regularization Paths for Generalized Linear\n"
+        "  Models via Coordinate Descent,\" J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010,\n"
+        "  doi: 10.18637/jss.v033.i01.\n"
+        "R. Tibshirani, J. Bien, J. Friedman, T. Hastie, N. Simon, J. Taylor, and R. J.\n"
+        "  Tibshirani, \"Strong Rules for Discarding Predictors in Lasso-Type Problems,\" J. R.\n"
+        "  Stat. Soc. Ser. B Stat. Methodol., vol. 74, no. 2, pp. 245-266, 2012,\n"
+        "  doi: 10.1111/j.1467-9868.2011.01004.x.\n"
+        "L. Breiman, J. H. Friedman, R. A. Olshen, and C. J. Stone, Classification and Regression\n"
+        "  Trees. Wadsworth, Belmont, CA, 1984.\n")
         .def(py::init<>())
         .def(py::init<bool>(), py::arg("low_memory"),
              "low_memory=True runs the full-data fit and every fold on X itself with a 0/1 "
@@ -476,7 +508,12 @@ inline void bind_ml_methods(py::module& m) {
      * @details Dispatches among direct (tall), Gram (wide), and randomized paths
      *          based on matrix shape.
      */
-    py::class_<SVDSolver>(m, "SVDSolver")
+    py::class_<SVDSolver>(m, "SVDSolver",
+        "Computes the top-M truncated SVD of a matrix.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "G. Guennebaud, B. Jacob et al., Eigen v3, http://eigen.tuxfamily.org, 2010.\n")
         .def(py::init<>())
         .def(py::init<Eigen::Index, Eigen::Index>(),
              py::arg("min_dim_thresh") = 10000, py::arg("block_size") = 1024,
@@ -517,7 +554,12 @@ inline void bind_ml_methods(py::module& m) {
      * @details When center=true, X is modified in-place during fit() and restored
      *          when restore() is called or the object is destroyed.
      */
-    py::class_<PyPCA>(m, "PCA")
+    py::class_<PyPCA>(m, "PCA",
+        "Fits PCA to a data matrix with optional in-place centering (RAII).\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "G. Guennebaud, B. Jacob et al., Eigen v3, http://eigen.tuxfamily.org, 2010.\n")
         .def(py::init<bool, bool>(), py::arg("center") = true, py::arg("normalize") = true)
         .def("fit",
             [](PyPCA& self, Eigen::Ref<Eigen::MatrixXd> X, Eigen::Index M) {
@@ -549,7 +591,14 @@ inline void bind_ml_methods(py::module& m) {
      *
      * @details Dispatches between primal (n >= p) and dual (n < p) Cholesky solvers.
      */
-    py::class_<RidgeSolver>(m, "RidgeSolver")
+    py::class_<RidgeSolver>(m, "RidgeSolver",
+        "Solves ridge regression for a single lambda value.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "A. E. Hoerl and R. W. Kennard, \"Ridge Regression: Biased Estimation for Nonorthogonal\n"
+        "  Problems,\" Technometrics, vol. 42, no. 1, pp. 80-86, 2000 (Reprint of the 1970 article\n"
+        "  in the Special 40th Anniversary Issue).\n")
         .def(py::init<>())
         .def_static("solve",
             [](Eigen::Ref<const Eigen::MatrixXd> X, // NOLINT(performance-unnecessary-value-param)

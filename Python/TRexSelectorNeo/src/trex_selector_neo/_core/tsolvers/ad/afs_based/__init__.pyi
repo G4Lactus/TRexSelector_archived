@@ -8,6 +8,17 @@ import trex_selector_neo._core.tsolvers.ad
 import typing
 __all__: list[str] = ['TAFS_Solver']
 class TAFS_Solver:
+    """
+    Terminating adaptive forward stepwise (T-AFS) solver.
+    
+    References
+    ----------
+    I. Zhang and R. Tibshirani, "Adaptive Forward Stepwise: A Method for High Sparsity
+      Regression," J. Mach. Learn. Res., vol. 27, pp. 1-24, 2026.
+    F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False
+      Discovery Rate Control," in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026,
+      pp. 2511-2515.
+    """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.ad.SolverOptions = ...) -> None:
         """
         Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). Reads options.rho_afs, the shrinkage step in (0, 1] (1: forward stepwise), and the exchangeable-tie fields.

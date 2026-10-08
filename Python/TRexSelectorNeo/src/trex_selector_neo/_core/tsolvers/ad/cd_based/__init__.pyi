@@ -8,6 +8,23 @@ import trex_selector_neo._core.tsolvers.ad
 import typing
 __all__: list[str] = ['TCDENET_Solver', 'TCDIENET_Solver', 'TCDLASSO_Solver', 'TCDTIKNET_Solver']
 class TCDENET_Solver:
+    """
+    Terminating cyclic coordinate descent elastic net (T-CDENET) solver.
+    
+    References
+    ----------
+    H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R.
+      Stat. Soc. Ser. B Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+    J. Friedman, T. Hastie, H. Höfling, and R. Tibshirani, "Pathwise Coordinate
+      Optimization," Ann. Appl. Stat., vol. 1, no. 2, pp. 302-332, 2007,
+      doi: 10.1214/07-AOAS131.
+    J. Friedman, T. Hastie, and R. Tibshirani, "Regularization Paths for Generalized Linear
+      Models via Coordinate Descent," J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010,
+      doi: 10.18637/jss.v033.i01.
+    J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector:
+      Fast High-Dimensional Variable Selection with False Discovery Rate Control," Signal
+      Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+    """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.ad.SolverOptions = ...) -> None:
         """
         Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). Reads options.lambda2 (diagonal ridge), options.kappa_dummy and the cd_* knobs.
@@ -175,6 +192,26 @@ class TCDENET_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TCDIENET_Solver:
+    """
+    Terminating cyclic coordinate descent informed elastic net (T-CDIENET) solver.
+    
+    References
+    ----------
+    J. Machkour, M. Muma, and D. P. Palomar, "The Informed Elastic Net for Fast Grouped
+      Variable Selection and FDR Control in Genomics Research," in Proc. IEEE 9th Int.
+      Workshop Comput. Adv. Multi-Sensor Adapt. Process. (CAMSAP), 2023, pp. 466-470.
+    H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R.
+      Stat. Soc. Ser. B Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+    J. Friedman, T. Hastie, H. Höfling, and R. Tibshirani, "Pathwise Coordinate
+      Optimization," Ann. Appl. Stat., vol. 1, no. 2, pp. 302-332, 2007,
+      doi: 10.1214/07-AOAS131.
+    J. Friedman, T. Hastie, and R. Tibshirani, "Regularization Paths for Generalized Linear
+      Models via Coordinate Descent," J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010,
+      doi: 10.18637/jss.v033.i01.
+    J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector:
+      Fast High-Dimensional Variable Selection with False Discovery Rate Control," Signal
+      Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+    """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], groups: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"], options: trex_selector_neo._core.tsolvers.ad.SolverOptions = ...) -> None:
         """
         Initializes the solver via zero-copy views of X, D and y with a 0-based group id per original variable (`groups`, length p); every other input comes from `options` (SolverOptions). Reads options.lambda2, options.group_penalty (MEAN or CENTERING) and the cd_* knobs.
@@ -350,6 +387,25 @@ class TCDIENET_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TCDLASSO_Solver:
+    """
+    Terminating cyclic coordinate descent LASSO (T-CDLASSO) solver.
+    
+    References
+    ----------
+    R. Tibshirani, "Regression Shrinkage and Selection via the Lasso," J. R. Stat. Soc. Ser.
+      B Stat. Methodol., vol. 58, no. 1, pp. 267-288, 1996.
+    J. Friedman, T. Hastie, H. Höfling, and R. Tibshirani, "Pathwise Coordinate
+      Optimization," Ann. Appl. Stat., vol. 1, no. 2, pp. 302-332, 2007,
+      doi: 10.1214/07-AOAS131.
+    J. Friedman, T. Hastie, and R. Tibshirani, "Regularization Paths for Generalized Linear
+      Models via Coordinate Descent," J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010,
+      doi: 10.18637/jss.v033.i01.
+    W. J. Fu, "Penalized Regression: The Bridge Versus the Lasso," J. Comput. Graph.
+      Statist., vol. 7, pp. 397-416, 1998.
+    J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector:
+      Fast High-Dimensional Variable Selection with False Discovery Rate Control," Signal
+      Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+    """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.ad.SolverOptions = ...) -> None:
         """
         Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). Exact penalized-lasso minimizers per dummy crossing; reads the options.cd_* knobs.
@@ -517,6 +573,27 @@ class TCDLASSO_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TCDTIKNET_Solver:
+    """
+    Terminating cyclic coordinate descent Tikhonov net (T-CDTIKNET) solver.
+    
+    References
+    ----------
+    A. N. Tikhonov, "Solution of Incorrectly Formulated Problems and the Regularization
+      Method," Soviet Math. Dokl., vol. 4, pp. 1035-1038, 1963 (English translation of Dokl.
+      Akad. Nauk SSSR 151 (1963), no. 3, 501-504).
+    Y. Park, L. Reichel, G. Rodriguez, and X. Yu, "Parameter Determination for Tikhonov
+      Regularization Problems in General Form," J. Comput. Appl. Math., vol. 343, pp. 12-25,
+      2018, doi: 10.1016/j.cam.2018.04.049.
+    J. Friedman, T. Hastie, H. Höfling, and R. Tibshirani, "Pathwise Coordinate
+      Optimization," Ann. Appl. Stat., vol. 1, no. 2, pp. 302-332, 2007,
+      doi: 10.1214/07-AOAS131.
+    J. Friedman, T. Hastie, and R. Tibshirani, "Regularization Paths for Generalized Linear
+      Models via Coordinate Descent," J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010,
+      doi: 10.18637/jss.v033.i01.
+    J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector:
+      Fast High-Dimensional Variable Selection with False Discovery Rate Control," Signal
+      Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+    """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], tikhonov_K: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"], options: trex_selector_neo._core.tsolvers.ad.SolverOptions = ...) -> None:
         """
         Initializes the solver via zero-copy views of X, D and y with the p x p PSD Tikhonov matrix K (a dense array; converted to sparse internally); every other input comes from `options` (SolverOptions). Reads options.lambda2, options.kappa_dummy, options.fold_dummies and the cd_* knobs.

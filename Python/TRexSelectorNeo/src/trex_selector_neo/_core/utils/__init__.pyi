@@ -53,6 +53,17 @@ class AccessMode:
     def value(self) -> int:
         ...
 class MemoryMappedMatrix:
+    """
+    Column-major matrix of doubles backed by a memory-mapped file: elements and blocks are read
+    and written in place on disk, and to_numpy() gives a zero-copy view for the out-of-core
+    paths.
+    
+    References
+    ----------
+    F. Scheidt, J. Machkour, and M. Muma, "Solving FDR-Controlled Sparse Regression Problems
+      with Five Million Variables on a Laptop," in Proc. IEEE 9th Int. Workshop Comput. Adv.
+      Multi-Sensor Adapt. Process. (CAMSAP), 2023, pp. 116-120.
+    """
     def __getitem__(self, idx: tuple[typing.SupportsInt | typing.SupportsIndex, typing.SupportsInt | typing.SupportsIndex]) -> float:
         """
         Read single element at (row, col) — 0-based indices.

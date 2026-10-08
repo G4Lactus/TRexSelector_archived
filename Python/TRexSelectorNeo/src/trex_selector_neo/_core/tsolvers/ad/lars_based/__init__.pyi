@@ -8,6 +8,22 @@ import trex_selector_neo._core.tsolvers.ad
 import typing
 __all__: list[str] = ['TENETAug_Solver', 'TENET_Solver', 'TIENETAug_Solver', 'TIENET_Solver', 'TIKNET_Solver', 'TLARS_Solver', 'TLASSO_Solver', 'TSTAGEWISE_Solver', 'TSTEPWISE_Solver']
 class TENETAug_Solver:
+    """
+    Terminating elastic net (T-ENETAug) solver via row augmentation around an inner T-LASSO.
+    
+    References
+    ----------
+    H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R.
+      Stat. Soc. Ser. B Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+    B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann.
+      Statist., vol. 32, no. 2, pp. 407-499, 2004.
+    J. Machkour, M. Muma, and D. P. Palomar, "False Discovery Rate Control for Grouped
+      Variable Selection in High-Dimensional Linear Models Using the T-Knock Filter," in
+      Proc. 30th Eur. Signal Process. Conf. (EUSIPCO), 2022, pp. 892-896.
+    J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector:
+      Fast High-Dimensional Variable Selection with False Discovery Rate Control," Signal
+      Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+    """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.ad.SolverOptions = ...) -> None:
         """
         Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). Reads options.lambda2 and options.tenet_aug_use_lars (pure-LARS inner path).
@@ -139,6 +155,19 @@ class TENETAug_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TENET_Solver:
+    """
+    Terminating elastic net (T-ENET) solver via the native T-LARS-EN path (L1 + L2 penalty).
+    
+    References
+    ----------
+    H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R.
+      Stat. Soc. Ser. B Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+    B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann.
+      Statist., vol. 32, no. 2, pp. 407-499, 2004.
+    J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector:
+      Fast High-Dimensional Variable Selection with False Discovery Rate Control," Signal
+      Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+    """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.ad.SolverOptions = ...) -> None:
         """
         Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). Reads options.lambda2, the secondary L2 penalty (default 0: the lasso path).
@@ -282,6 +311,23 @@ class TENET_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TIENETAug_Solver:
+    """
+    Terminating informed elastic net (T-IENETAug) solver via row augmentation around an inner
+    T-LASSO.
+    
+    References
+    ----------
+    J. Machkour, M. Muma, and D. P. Palomar, "The Informed Elastic Net for Fast Grouped
+      Variable Selection and FDR Control in Genomics Research," in Proc. IEEE 9th Int.
+      Workshop Comput. Adv. Multi-Sensor Adapt. Process. (CAMSAP), 2023, pp. 466-470.
+    H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R.
+      Stat. Soc. Ser. B Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+    B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann.
+      Statist., vol. 32, no. 2, pp. 407-499, 2004.
+    J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector:
+      Fast High-Dimensional Variable Selection with False Discovery Rate Control," Signal
+      Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+    """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], groups: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"], options: trex_selector_neo._core.tsolvers.ad.SolverOptions = ...) -> None:
         """
         Initializes the augmented-LASSO Informed Elastic Net solver with a 0-based group id per original variable (`groups`, length p); reads options.lambda2 (the group-ridge penalty) and options.tenet_aug_use_lars.
@@ -425,6 +471,22 @@ class TIENETAug_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TIENET_Solver:
+    """
+    Terminating informed elastic net (T-IENET) solver via the native pathwise LARS-IEN algorithm.
+    
+    References
+    ----------
+    J. Machkour, M. Muma, and D. P. Palomar, "The Informed Elastic Net for Fast Grouped
+      Variable Selection and FDR Control in Genomics Research," in Proc. IEEE 9th Int.
+      Workshop Comput. Adv. Multi-Sensor Adapt. Process. (CAMSAP), 2023, pp. 466-470.
+    H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R.
+      Stat. Soc. Ser. B Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+    B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann.
+      Statist., vol. 32, no. 2, pp. 407-499, 2004.
+    J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector:
+      Fast High-Dimensional Variable Selection with False Discovery Rate Control," Signal
+      Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+    """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], groups: typing.Annotated[numpy.typing.ArrayLike, numpy.int32, "[m, 1]"], options: trex_selector_neo._core.tsolvers.ad.SolverOptions = ...) -> None:
         """
         Initializes the solver via zero-copy views of X, D and y with a 0-based group id per original variable (`groups`, length p); every other input comes from `options` (SolverOptions). Reads options.lambda2, the group-ridge penalty.
@@ -572,6 +634,29 @@ class TIENET_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TIKNET_Solver:
+    """
+    Terminating Tikhonov net (T-TIKNET) solver via the native pathwise LARS-TIK algorithm.
+    
+    References
+    ----------
+    A. N. Tikhonov, "Solution of Incorrectly Formulated Problems and the Regularization
+      Method," Soviet Math. Dokl., vol. 4, pp. 1035-1038, 1963 (English translation of Dokl.
+      Akad. Nauk SSSR 151 (1963), no. 3, 501-504).
+    Y. Park, L. Reichel, G. Rodriguez, and X. Yu, "Parameter Determination for Tikhonov
+      Regularization Problems in General Form," J. Comput. Appl. Math., vol. 343, pp. 12-25,
+      2018, doi: 10.1016/j.cam.2018.04.049.
+    A. E. Hoerl and R. W. Kennard, "Ridge Regression: Biased Estimation for Nonorthogonal
+      Problems," Technometrics, vol. 42, no. 1, pp. 80-86, 2000 (Reprint of the 1970 article
+      in the Special 40th Anniversary Issue).
+    Y. Miche, M. van Heeswijk, P. Bas, O. Simula, and A. Lendasse, "TROP-ELM: A
+      Double-Regularized ELM Using LARS and Tikhonov Regularization," Neurocomputing,
+      vol. 74, pp. 2413-2421, 2011, doi: 10.1016/j.neucom.2010.12.042.
+    B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann.
+      Statist., vol. 32, no. 2, pp. 407-499, 2004.
+    J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector:
+      Fast High-Dimensional Variable Selection with False Discovery Rate Control," Signal
+      Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+    """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], tikhonov_K: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"], options: trex_selector_neo._core.tsolvers.ad.SolverOptions = ...) -> None:
         """
         Initializes the solver via zero-copy views of X, D and y with the p x p PSD Tikhonov matrix K (a dense array; converted to sparse internally); every other input comes from `options` (SolverOptions). Reads options.lambda2, the quadratic penalty weight; FOLDED dummy coupling only (D.cols() a multiple of X.cols() when lambda2 > 0).
@@ -715,6 +800,17 @@ class TIKNET_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TLARS_Solver:
+    """
+    Terminating least angle regression (T-LARS) solver.
+    
+    References
+    ----------
+    B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann.
+      Statist., vol. 32, no. 2, pp. 407-499, 2004.
+    J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector:
+      Fast High-Dimensional Variable Selection with False Discovery Rate Control," Signal
+      Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+    """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.ad.SolverOptions = ...) -> None:
         """
         Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). Plain T-LARS reads no family hyperparameter.
@@ -858,6 +954,21 @@ class TLARS_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TLASSO_Solver:
+    """
+    Terminating LASSO (T-LASSO) solver: the LARS-LASSO path with variable removals.
+    
+    References
+    ----------
+    R. Tibshirani, "Regression Shrinkage and Selection via the Lasso," J. R. Stat. Soc. Ser.
+      B Stat. Methodol., vol. 58, no. 1, pp. 267-288, 1996.
+    B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann.
+      Statist., vol. 32, no. 2, pp. 407-499, 2004.
+    M. R. Osborne, B. Presnell, and B. A. Turlach, "On the LASSO and Its Dual," J. Comput.
+      Graph. Statist., vol. 9, no. 2, pp. 319-337, 2000.
+    J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector:
+      Fast High-Dimensional Variable Selection with False Discovery Rate Control," Signal
+      Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+    """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.ad.SolverOptions = ...) -> None:
         """
         Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). 
@@ -997,6 +1108,22 @@ class TLASSO_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TSTAGEWISE_Solver:
+    """
+    Terminating incremental forward stagewise (T-Stagewise) solver via the LARS-stagewise path.
+    
+    References
+    ----------
+    B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann.
+      Statist., vol. 32, no. 2, pp. 407-499, 2004.
+    T. Hastie, J. Taylor, R. Tibshirani, and G. Walther, "Forward Stagewise Regression and
+      the Monotone Lasso," Electron. J. Stat., vol. 1, pp. 1-29, 2007,
+      doi: 10.1214/07-EJS004.
+    R. J. Tibshirani, "A General Framework for Fast Stagewise Algorithms," J. Mach. Learn.
+      Res., vol. 16, pp. 2543-2588, 2015.
+    J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector:
+      Fast High-Dimensional Variable Selection with False Discovery Rate Control," Signal
+      Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+    """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.ad.SolverOptions = ...) -> None:
         """
         Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). 
@@ -1136,6 +1263,17 @@ class TSTAGEWISE_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TSTEPWISE_Solver:
+    """
+    Terminating forward stepwise regression (T-Stepwise) solver.
+    
+    References
+    ----------
+    B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann.
+      Statist., vol. 32, no. 2, pp. 407-499, 2004.
+    J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector:
+      Fast High-Dimensional Variable Selection with False Discovery Rate Control," Signal
+      Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+    """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.ad.SolverOptions = ...) -> None:
         """
         Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). 

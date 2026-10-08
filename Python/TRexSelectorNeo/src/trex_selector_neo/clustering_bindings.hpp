@@ -260,7 +260,16 @@ inline std::vector<int> py_cut_tree(
  */
 inline void bind_clustering(py::module_& m) {
 
-    py::enum_<LinkageMethod>(m, "LinkageMethod")
+    py::enum_<LinkageMethod>(m, "LinkageMethod",
+        "Linkage criterion of the agglomerative clustering, applied through the Lance-Williams\n"
+        "update when two clusters merge.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "G. N. Lance and W. T. Williams, \"A General Theory of Classificatory Sorting Strategies:\n"
+        "  I. Hierarchical Systems,\" Comput. J., vol. 9, pp. 373-380, 1967.\n"
+        "D. Müllner, \"Modern Hierarchical, Agglomerative Clustering Algorithms,\" arXiv:1109.2378,\n"
+        "  2011.\n")
         .value("Ward", LinkageMethod::Ward)
         .value("Average", LinkageMethod::Average)
         .value("Complete", LinkageMethod::Complete)
@@ -270,7 +279,18 @@ inline void bind_clustering(py::module_& m) {
         .value("Centroid", LinkageMethod::Centroid)
         .export_values();
 
-    py::enum_<DistanceMetric>(m, "DistanceMetric")
+    py::enum_<DistanceMetric>(m, "DistanceMetric",
+        "Pairwise distance between data columns for the agglomerative clustering: exact metrics and\n"
+        "two locality-sensitive hashing (SimHash) approximations of the correlation distance.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "M. S. Charikar, \"Similarity Estimation Techniques from Rounding Algorithms,\" in Proc.\n"
+        "  ACM Symp. Theory Comput. (STOC), 2002.\n"
+        "P. Indyk and R. Motwani, \"Approximate Nearest Neighbors: Towards Removing the Curse of\n"
+        "  Dimensionality,\" in Proc. 30th ACM Symp. Theory Comput. (STOC), 1998, pp. 604-613.\n"
+        "P. Li, T. J. Hastie, and K. W. Church, \"Very Sparse Random Projections,\" in Proc. ACM\n"
+        "  SIGKDD Int. Conf. Knowl. Discovery Data Mining (KDD), 2006.\n")
         .value("Euclidean", DistanceMetric::Euclidean)
         .value("Correlation", DistanceMetric::Correlation)
         .value("Manhattan", DistanceMetric::Manhattan)
@@ -284,7 +304,28 @@ inline void bind_clustering(py::module_& m) {
           py::arg("metric") = DistanceMetric::Euclidean,
           py::arg("use_mmap") = false,
           "Perform hierarchical agglomerative clustering, returning a SciPy-style [N-1, 4] "
-          "linkage matrix.");
+          "linkage matrix.\n"
+          "\n"
+          "References\n"
+          "----------\n"
+          "R. Sibson, \"SLINK: An Optimally Efficient Algorithm for the Single-Link Cluster Method,\"\n"
+          "  Comput. J., vol. 16, no. 1, pp. 30-34, 1973.\n"
+          "J.-P. Benzécri, \"Construction d'une classification ascendante hiérarchique par la\n"
+          "  recherche en chaîne des voisins réciproques,\" Les Cahiers de l'Analyse des Données,\n"
+          "  vol. 7, no. 2, pp. 209-218, 1982.\n"
+          "J. Juan, \"Programme de classification hiérarchique par l'algorithme de la recherche en\n"
+          "  chaîne des voisins réciproques,\" Les Cahiers de l'Analyse des Données, vol. 7, no. 2,\n"
+          "  pp. 219-225, 1982.\n"
+          "G. N. Lance and W. T. Williams, \"A General Theory of Classificatory Sorting Strategies:\n"
+          "  I. Hierarchical Systems,\" Comput. J., vol. 9, pp. 373-380, 1967.\n"
+          "D. Müllner, \"Modern Hierarchical, Agglomerative Clustering Algorithms,\" arXiv:1109.2378,\n"
+          "  2011.\n"
+          "F. Murtagh and P. Contreras, \"Algorithms for Hierarchical Clustering: An Overview,\"\n"
+          "  Wiley Interdiscip. Rev. Data Min. Knowl. Discov., vol. 2, no. 1, pp. 86-97, 2012,\n"
+          "  doi: 10.1002/widm.53.\n"
+          "F. Murtagh and P. Contreras, \"Algorithms for Hierarchical Clustering: An Overview, II,\"\n"
+          "  Wiley Interdiscip. Rev. Data Min. Knowl. Discov., vol. 7, no. 6, Art. no. e1219, 2017,\n"
+          "  doi: 10.1002/widm.1219.\n");
 
     m.def("cut_tree", &py_cut_tree,
           py::arg("linkage"), py::arg("num_orig_objs"), py::arg("num_clusters"),

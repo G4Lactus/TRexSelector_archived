@@ -109,7 +109,17 @@ inline void bind_trex_screen(py::module& m) {
         .def_readonly("dummy_betas",            &ScreenTRexSelectionResult::dummy_betas,            "Non-zero dummy coefficients collected during screening.")
         .def_readonly("estimated_correlation",  &ScreenTRexSelectionResult::estimated_correlation,  "Estimated correlation used by DA-based screening variants.");
 
-    py::class_<PyScreenTRexSelector, PyTRexSelector>(m, "TRexScreeningSelector", "T-Rex Selector with fast variable screening via dummy comparison.")
+    py::class_<PyScreenTRexSelector, PyTRexSelector>(m, "TRexScreeningSelector",
+        "T-Rex Selector with fast variable screening via dummy comparison.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"False Discovery Rate Control for Fast\n"
+        "  Screening of Large-Scale Genomics Biobanks,\" in Proc. 22nd IEEE Statist. Signal\n"
+        "  Process. Workshop (SSP), 2023, pp. 666-670.\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
+        "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
+        "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n")
         .def(py::init<Eigen::Ref<Eigen::MatrixXd>, Eigen::Ref<Eigen::VectorXd>, const ScreenTRexControlParameter&, const TRexControlParameter&, int, bool>(),
              py::arg("X"), py::arg("y"),
              py::arg("screen_control") = ScreenTRexControlParameter(),

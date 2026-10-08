@@ -147,7 +147,21 @@ inline void bind_trex_screening_biobanks(py::module& m) {
         .def_readonly("selected_indices_screen_bootstrap", &BiobankScreenTRexResult::selected_indices_screen_bootstrap, "Selected indices from the bootstrap screening method (0-based).")
         .def_readonly("used_fallback_trex", &BiobankScreenTRexResult::used_fallback_trex, "True if the T-Rex fallback was used instead of screening.");
 
-    py::class_<PyBiobankScreenTRex>(m, "TRexBiobankScreeningSelector", "Biobank-scale T-Rex selector for FDR-controlled variable selection across one or many phenotypes.")
+    py::class_<PyBiobankScreenTRex>(m, "TRexBiobankScreeningSelector",
+        "Biobank-scale T-Rex selector for FDR-controlled variable selection across one or many "
+        "phenotypes.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"False Discovery Rate Control for Fast\n"
+        "  Screening of Large-Scale Genomics Biobanks,\" in Proc. 22nd IEEE Statist. Signal\n"
+        "  Process. Workshop (SSP), 2023, pp. 666-670.\n"
+        "F. Scheidt, J. Machkour, and M. Muma, \"Solving FDR-Controlled Sparse Regression Problems\n"
+        "  with Five Million Variables on a Laptop,\" in Proc. IEEE 9th Int. Workshop Comput. Adv.\n"
+        "  Multi-Sensor Adapt. Process. (CAMSAP), 2023, pp. 116-120.\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
+        "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
+        "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n")
         .def(py::init<Eigen::Ref<Eigen::MatrixXd>, Eigen::Ref<Eigen::VectorXd>, const BiobankScreenTRexControl&, int, bool>(),
              py::arg("X"), py::arg("y"),
              py::arg("bio_ctrl") = BiobankScreenTRexControl(),

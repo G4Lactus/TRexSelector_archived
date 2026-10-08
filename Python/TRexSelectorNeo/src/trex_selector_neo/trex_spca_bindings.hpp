@@ -148,7 +148,16 @@ inline void bind_trex_spca(py::module& m) {
     // =========================================================================
 
     py::class_<PyTRexSPCASelector>(m, "TRexSPCASelector",
-        "T-Rex Sparse PCA selector — instance wrapper (zero-copy Eigen::Map).")
+        "T-Rex Sparse PCA selector — instance wrapper (zero-copy Eigen::Map).\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "J. Machkour, A. Breloy, M. Muma, D. P. Palomar, and F. Pascal, \"Sparse PCA with False\n"
+        "  Discovery Rate Controlled Variable Selection,\" in Proc. IEEE 49th Int. Conf. Acoust.,\n"
+        "  Speech, Signal Process. (ICASSP), 2024, pp. 9716-9720.\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
+        "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
+        "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n")
         .def(py::init<Eigen::Ref<Eigen::MatrixXd>, Eigen::Index, double,
                       const TRexSPCAControlParameter&, int, bool>(),
              py::arg("X"),

@@ -118,7 +118,25 @@ inline void bind_trex_da(py::module& m) {
         .def_readonly("phi_array_bt",      &TRexDASelector::DASelectionResult::Phi_array_BT,      "Per-rho-level deflated Phi matrices (BT method only).")
         .def_readonly("r_array_bt",        &TRexDASelector::DASelectionResult::R_array_BT,        "Per-rho-level R matrices (BT method only).");
 
-    py::class_<PyTRexDASelector, PyTRexSelector>(m, "TRexDASelector", "TRex Selector with Data Augmentation support.")
+    py::class_<PyTRexDASelector, PyTRexSelector>(m, "TRexDASelector",
+        "Dependency-aware T-Rex selector (T-Rex+DA): FDR-controlled variable selection for dependent\n"
+        "variables, with a correlation-structure model (AR1, EQUI, BT, NN or PRIOR_GROUPS) that\n"
+        "accounts for the dependencies among the variables.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"High-Dimensional False Discovery Rate Control\n"
+        "  for Dependent Variables,\" Signal Process., vol. 234, Art. no. 109990, 2025,\n"
+        "  doi: 10.1016/j.sigpro.2025.109990.\n"
+        "J. Machkour, D. P. Palomar, and M. Muma, \"FDR-Controlled Portfolio Optimization for\n"
+        "  Sparse Financial Index Tracking,\" in Proc. IEEE Int. Conf. Acoust., Speech, Signal\n"
+        "  Process. (ICASSP), 2025, doi: 10.1109/ICASSP49660.2025.10890629.\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"FDR-Controlled Sparse Index Tracking with\n"
+        "  Autoregressive Stock Dependency Models,\" in Proc. Eur. Signal Process. Conf.\n"
+        "  (EUSIPCO), 2024, pp. 2662-2666.\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
+        "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
+        "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n")
         .def(py::init<Eigen::Ref<Eigen::MatrixXd>, Eigen::Ref<Eigen::VectorXd>, double, const TRexDAControlParameter&, const TRexControlParameter&, int, bool>(),
              py::arg("X"), py::arg("y"), py::arg("tFDR") = 0.1,
              py::arg("da_control") = TRexDAControlParameter(),

@@ -53,6 +53,17 @@ class NCGMPVariant:
     def value(self) -> int:
         ...
 class TACGP_Solver:
+    """
+    Terminating approximate conjugate gradient pursuit (T-ACGP) solver.
+    
+    References
+    ----------
+    T. Blumensath and M. E. Davies, "Gradient Pursuits," IEEE Trans. Signal Process.,
+      vol. 56, no. 6, pp. 2370-2382, 2008.
+    F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False
+      Discovery Rate Control," in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026,
+      pp. 2511-2515.
+    """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.ad.SolverOptions = ...) -> None:
         """
         Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). 
@@ -184,6 +195,17 @@ class TACGP_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TGP_Solver:
+    """
+    Terminating gradient pursuit (T-GP) solver.
+    
+    References
+    ----------
+    T. Blumensath and M. E. Davies, "Gradient Pursuits," IEEE Trans. Signal Process.,
+      vol. 56, no. 6, pp. 2370-2382, 2008.
+    F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False
+      Discovery Rate Control," in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026,
+      pp. 2511-2515.
+    """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.ad.SolverOptions = ...) -> None:
         """
         Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). 
@@ -315,6 +337,24 @@ class TGP_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TIKOMP_Solver:
+    """
+    Terminating Tikhonov-K OMP (T-TIKOMP) solver with generalized-ridge active-set refits.
+    
+    References
+    ----------
+    A. N. Tikhonov, "Solution of Incorrectly Formulated Problems and the Regularization
+      Method," Soviet Math. Dokl., vol. 4, pp. 1035-1038, 1963 (English translation of Dokl.
+      Akad. Nauk SSSR 151 (1963), no. 3, 501-504).
+    Y. Park, L. Reichel, G. Rodriguez, and X. Yu, "Parameter Determination for Tikhonov
+      Regularization Problems in General Form," J. Comput. Appl. Math., vol. 343, pp. 12-25,
+      2018, doi: 10.1016/j.cam.2018.04.049.
+    Y. C. Pati, R. Rezaiifar, and P. S. Krishnaprasad, "Orthogonal Matching Pursuit:
+      Recursive Function Approximation with Applications to Wavelet Decomposition," in Proc.
+      27th Asilomar Conf. Signals, Syst., Comput., 1993, pp. 40-44.
+    F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False
+      Discovery Rate Control," in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026,
+      pp. 2511-2515.
+    """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], tikhonov_K: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, "[m, n]"], options: trex_selector_neo._core.tsolvers.ad.SolverOptions = ...) -> None:
         """
         Initializes the solver via zero-copy views of X, D and y with the p x p PSD Tikhonov matrix K (a dense array; converted to sparse internally); every other input comes from `options` (SolverOptions). Reads options.lambda2 and the exchangeable-tie fields; FOLDED dummy coupling only.
@@ -454,6 +494,17 @@ class TIKOMP_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TMP_Solver:
+    """
+    Terminating matching pursuit (T-MP) solver.
+    
+    References
+    ----------
+    S. G. Mallat and Z. Zhang, "Matching Pursuits with Time-Frequency Dictionaries," IEEE
+      Trans. Signal Process., vol. 41, no. 12, pp. 3397-3415, 1993, doi: 10.1109/78.258082.
+    F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False
+      Discovery Rate Control," in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026,
+      pp. 2511-2515.
+    """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.ad.SolverOptions = ...) -> None:
         """
         Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). 
@@ -585,6 +636,18 @@ class TMP_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TNCGMP_Solver:
+    """
+    Terminating norm-corrective generalized matching pursuit (T-NCGMP) solver.
+    
+    References
+    ----------
+    F. Locatello, R. Khanna, M. Tschannen, and M. Jaggi, "A Unified Optimization View on
+      Generalized Matching Pursuit and Frank-Wolfe," in Proc. 20th Int. Conf. Artif. Intell.
+      Statist. (AISTATS), JMLR: W&CP vol. 54, 2017.
+    F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False
+      Discovery Rate Control," in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026,
+      pp. 2511-2515.
+    """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.ad.SolverOptions = ...) -> None:
         """
         Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). Reads options.ncgmp_variant (LineSearch or FullyCorrective).
@@ -716,6 +779,22 @@ class TNCGMP_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TOMP_Solver:
+    """
+    Terminating orthogonal matching pursuit (T-OMP) solver.
+    
+    References
+    ----------
+    Y. C. Pati, R. Rezaiifar, and P. S. Krishnaprasad, "Orthogonal Matching Pursuit:
+      Recursive Function Approximation with Applications to Wavelet Decomposition," in Proc.
+      27th Asilomar Conf. Signals, Syst., Comput., 1993, pp. 40-44.
+    J. A. Tropp, "Greed is Good: Algorithmic Results for Sparse Approximation," IEEE Trans.
+      Inf. Theory, vol. 50, no. 10, pp. 2231-2242, 2004, doi: 10.1109/TIT.2004.834793.
+    T. Blumensath and M. E. Davies, "On the Difference Between Orthogonal Matching Pursuit
+      and Orthogonal Least Squares," unpublished note, draft of March 29, 2007.
+    F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False
+      Discovery Rate Control," in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026,
+      pp. 2511-2515.
+    """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.ad.SolverOptions = ...) -> None:
         """
         Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). Greedy: reads options.exch_tie_alpha / exch_tie_floor.
@@ -847,6 +926,20 @@ class TOMP_Solver:
         Returns a string descriptor mapping for the underlying wrapped T-Solver.
         """
 class TOOLS_Solver:
+    """
+    Terminating orthogonal least squares (T-OLS) solver.
+    
+    References
+    ----------
+    S. Chen, S. A. Billings, and W. Luo, "Orthogonal Least Squares Methods and Their
+      Application to Non-Linear System Identification," Int. J. Control, vol. 50, no. 5,
+      pp. 1873-1896, 1989, doi: 10.1080/00207178908953472.
+    T. Blumensath and M. E. Davies, "On the Difference Between Orthogonal Matching Pursuit
+      and Orthogonal Least Squares," unpublished note, draft of March 29, 2007.
+    F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False
+      Discovery Rate Control," in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026,
+      pp. 2511-2515.
+    """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], D: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], options: trex_selector_neo._core.tsolvers.ad.SolverOptions = ...) -> None:
         """
         Initializes the solver via zero-copy views of X, D and y; every other input comes from `options` (SolverOptions). 

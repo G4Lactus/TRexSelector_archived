@@ -480,13 +480,16 @@ py::class_<PySolverWrapper<Solver>>& add_standard_tsolver_methods(
  *
  * @param m The Pybind11 sub-module where this solver will be exposed.
  * @param name The class name assigned in the Python wrapper space.
+ * @param class_doc The class docstring: a one-line brief of the solver and
+ *        its References section.
  * @param doc One sentence naming the SolverOptions fields this solver reads.
  */
 template<typename Solver>
 py::class_<PySolverWrapper<Solver>> bind_standard_tsolver(py::module& m, const std::string& name,
+                                                          const char* class_doc,
                                                           const std::string& doc = {}) {
     using trex::tsolvers::ad::SolverOptions;
-    py::class_<PySolverWrapper<Solver>> cls(m, name.c_str());
+    py::class_<PySolverWrapper<Solver>> cls(m, name.c_str(), class_doc);
     const std::string init_doc =
         "Initializes the solver via zero-copy views of X, D and y; every other input "
         "comes from `options` (SolverOptions). " + doc + kInPlaceContractDoc;
@@ -506,12 +509,14 @@ py::class_<PySolverWrapper<Solver>> bind_standard_tsolver(py::module& m, const s
 /**
  * @brief Registration for a solver whose constructor also takes the group
  *        vector (X, D, y, groups, options): TIENET, TIENETAug, TCDIENET.
+ *        `class_doc` is the class docstring, as in bind_standard_tsolver().
  */
 template<typename Solver>
 py::class_<PySolverWrapper<Solver>> bind_groups_tsolver(py::module& m, const std::string& name,
+                                                        const char* class_doc,
                                                         const std::string& doc = {}) {
     using trex::tsolvers::ad::SolverOptions;
-    py::class_<PySolverWrapper<Solver>> cls(m, name.c_str());
+    py::class_<PySolverWrapper<Solver>> cls(m, name.c_str(), class_doc);
     const std::string init_doc =
         "Initializes the solver via zero-copy views of X, D and y with a 0-based group id per "
         "original variable (`groups`, length p); every other input comes from `options` "
@@ -531,13 +536,15 @@ py::class_<PySolverWrapper<Solver>> bind_groups_tsolver(py::module& m, const std
  * @brief Registration for a solver whose constructor also takes the sparse
  *        Tikhonov matrix (X, D, y, tikhonov_K, options): TIKNET, TIKOMP,
  *        TCDTIKNET. K is passed as a dense p x p array and converted with
- *        sparseView() (no SciPy dependency).
+ *        sparseView() (no SciPy dependency). `class_doc` is the class
+ *        docstring, as in bind_standard_tsolver().
  */
 template<typename Solver>
 py::class_<PySolverWrapper<Solver>> bind_tikhonov_tsolver(py::module& m, const std::string& name,
+                                                          const char* class_doc,
                                                           const std::string& doc = {}) {
     using trex::tsolvers::ad::SolverOptions;
-    py::class_<PySolverWrapper<Solver>> cls(m, name.c_str());
+    py::class_<PySolverWrapper<Solver>> cls(m, name.c_str(), class_doc);
     const std::string init_doc =
         "Initializes the solver via zero-copy views of X, D and y with the p x p PSD Tikhonov "
         "matrix K (a dense array; converted to sparse internally); every other input comes "
@@ -727,6 +734,15 @@ inline void bind_tsolvers_module(py::module& m) {
     using namespace trex::tsolvers::ad::linear_model::lars_based;
 
     bind_standard_tsolver<TLARS_Solver>(m_lars, "TLARS_Solver",
+        "Terminating least angle regression (T-LARS) solver.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, \"Least Angle Regression,\" Ann.\n"
+        "  Statist., vol. 32, no. 2, pp. 407-499, 2004.\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
+        "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
+        "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n",
         "Plain T-LARS reads no family hyperparameter.")
         .def("getLambda", &PySolverWrapper<TLARS_Solver>::getLambda,
              "Get the regularization parameter sequence (max correlation per step).")
@@ -736,21 +752,68 @@ inline void bind_tsolvers_module(py::module& m) {
              py::arg("interval"),
              "Set the Kahan summation refresh interval (call before executeStep).");
 
-    bind_standard_tsolver<TLASSO_Solver>(m_lars, "TLASSO_Solver")
+    bind_standard_tsolver<TLASSO_Solver>(m_lars, "TLASSO_Solver",
+        "Terminating LASSO (T-LASSO) solver: the LARS-LASSO path with variable removals.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "R. Tibshirani, \"Regression Shrinkage and Selection via the Lasso,\" J. R. Stat. Soc. Ser.\n"
+        "  B Stat. Methodol., vol. 58, no. 1, pp. 267-288, 1996.\n"
+        "B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, \"Least Angle Regression,\" Ann.\n"
+        "  Statist., vol. 32, no. 2, pp. 407-499, 2004.\n"
+        "M. R. Osborne, B. Presnell, and B. A. Turlach, \"On the LASSO and Its Dual,\" J. Comput.\n"
+        "  Graph. Statist., vol. 9, no. 2, pp. 319-337, 2000.\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
+        "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
+        "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n")
         .def("getNumRemovals", &PySolverWrapper<TLASSO_Solver>::getNumRemovals,
              "Get the total number of variable removals during solution path.")
         .def("getCyclingRatio", &PySolverWrapper<TLASSO_Solver>::getCyclingRatio,
              "Get the cycling ratio (removals / additions).");
 
-    bind_standard_tsolver<TSTEPWISE_Solver>(m_lars, "TSTEPWISE_Solver");
+    bind_standard_tsolver<TSTEPWISE_Solver>(m_lars, "TSTEPWISE_Solver",
+        "Terminating forward stepwise regression (T-Stepwise) solver.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, \"Least Angle Regression,\" Ann.\n"
+        "  Statist., vol. 32, no. 2, pp. 407-499, 2004.\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
+        "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
+        "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n");
 
-    bind_standard_tsolver<TSTAGEWISE_Solver>(m_lars, "TSTAGEWISE_Solver")
+    bind_standard_tsolver<TSTAGEWISE_Solver>(m_lars, "TSTAGEWISE_Solver",
+        "Terminating incremental forward stagewise (T-Stagewise) solver via the LARS-stagewise path.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, \"Least Angle Regression,\" Ann.\n"
+        "  Statist., vol. 32, no. 2, pp. 407-499, 2004.\n"
+        "T. Hastie, J. Taylor, R. Tibshirani, and G. Walther, \"Forward Stagewise Regression and\n"
+        "  the Monotone Lasso,\" Electron. J. Stat., vol. 1, pp. 1-29, 2007,\n"
+        "  doi: 10.1214/07-EJS004.\n"
+        "R. J. Tibshirani, \"A General Framework for Fast Stagewise Algorithms,\" J. Mach. Learn.\n"
+        "  Res., vol. 16, pp. 2543-2588, 2015.\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
+        "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
+        "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n")
         .def("getNumRemovals", &PySolverWrapper<TSTAGEWISE_Solver>::getNumRemovals,
              "Get the total number of coefficient removals.")
         .def("getCyclingRatio", &PySolverWrapper<TSTAGEWISE_Solver>::getCyclingRatio,
              "Get the cycling ratio (removals / additions).");
 
     bind_standard_tsolver<TENET_Solver>(m_lars, "TENET_Solver",
+        "Terminating elastic net (T-ENET) solver via the native T-LARS-EN path (L1 + L2 penalty).\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "H. Zou and T. Hastie, \"Regularization and Variable Selection via the Elastic Net,\" J. R.\n"
+        "  Stat. Soc. Ser. B Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.\n"
+        "B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, \"Least Angle Regression,\" Ann.\n"
+        "  Statist., vol. 32, no. 2, pp. 407-499, 2004.\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
+        "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
+        "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n",
         "Reads options.lambda2, the secondary L2 penalty (default 0: the lasso path).")
         .def("getAlpha", &PySolverWrapper<TENET_Solver>::getAlpha,
              "Get the Elastic Net mixing parameter alpha implied by lambda2.")
@@ -760,11 +823,40 @@ inline void bind_tsolvers_module(py::module& m) {
              "Get the cycling ratio (removals / additions).");
 
     bind_standard_tsolver<TENETAug_Solver>(m_lars, "TENETAug_Solver",
+        "Terminating elastic net (T-ENETAug) solver via row augmentation around an inner T-LASSO.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "H. Zou and T. Hastie, \"Regularization and Variable Selection via the Elastic Net,\" J. R.\n"
+        "  Stat. Soc. Ser. B Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.\n"
+        "B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, \"Least Angle Regression,\" Ann.\n"
+        "  Statist., vol. 32, no. 2, pp. 407-499, 2004.\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"False Discovery Rate Control for Grouped\n"
+        "  Variable Selection in High-Dimensional Linear Models Using the T-Knock Filter,\" in\n"
+        "  Proc. 30th Eur. Signal Process. Conf. (EUSIPCO), 2022, pp. 892-896.\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
+        "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
+        "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n",
         "Reads options.lambda2 and options.tenet_aug_use_lars (pure-LARS inner path).");
 
     // TIENETAug: Informed Elastic Net via augmented LASSO (group-ridge penalty);
     // the group vector is data, not an option.
-    py::class_<PySolverWrapper<TIENETAug_Solver>> cls_tienet_aug(m_lars, "TIENETAug_Solver");
+    py::class_<PySolverWrapper<TIENETAug_Solver>> cls_tienet_aug(m_lars, "TIENETAug_Solver",
+        "Terminating informed elastic net (T-IENETAug) solver via row augmentation around an inner\n"
+        "T-LASSO.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"The Informed Elastic Net for Fast Grouped\n"
+        "  Variable Selection and FDR Control in Genomics Research,\" in Proc. IEEE 9th Int.\n"
+        "  Workshop Comput. Adv. Multi-Sensor Adapt. Process. (CAMSAP), 2023, pp. 466-470.\n"
+        "H. Zou and T. Hastie, \"Regularization and Variable Selection via the Elastic Net,\" J. R.\n"
+        "  Stat. Soc. Ser. B Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.\n"
+        "B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, \"Least Angle Regression,\" Ann.\n"
+        "  Statist., vol. 32, no. 2, pp. 407-499, 2004.\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
+        "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
+        "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n");
     cls_tienet_aug.def(py::init<Eigen::Ref<Eigen::MatrixXd>, Eigen::Ref<Eigen::MatrixXd>,
                                 Eigen::Ref<Eigen::VectorXd>, const Eigen::VectorXi&,
                                 const trex::tsolvers::ad::SolverOptions&>(),
@@ -788,6 +880,20 @@ inline void bind_tsolvers_module(py::module& m) {
 
     // TIENET: native pathwise LARS-IEN (no augmented copies); groups are data.
     bind_groups_tsolver<TIENET_Solver>(m_lars, "TIENET_Solver",
+        "Terminating informed elastic net (T-IENET) solver via the native pathwise LARS-IEN algorithm.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"The Informed Elastic Net for Fast Grouped\n"
+        "  Variable Selection and FDR Control in Genomics Research,\" in Proc. IEEE 9th Int.\n"
+        "  Workshop Comput. Adv. Multi-Sensor Adapt. Process. (CAMSAP), 2023, pp. 466-470.\n"
+        "H. Zou and T. Hastie, \"Regularization and Variable Selection via the Elastic Net,\" J. R.\n"
+        "  Stat. Soc. Ser. B Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.\n"
+        "B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, \"Least Angle Regression,\" Ann.\n"
+        "  Statist., vol. 32, no. 2, pp. 407-499, 2004.\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
+        "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
+        "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n",
         "Reads options.lambda2, the group-ridge penalty.")
         .def("getLambda", &PySolverWrapper<TIENET_Solver>::getLambda,
              "Get the regularization parameter sequence (max correlation per step).")
@@ -800,6 +906,27 @@ inline void bind_tsolvers_module(py::module& m) {
 
     // TIKNET: native LARS homotopy under lambda2 * beta' K beta (FOLDED dummies).
     bind_tikhonov_tsolver<TIKNET_Solver>(m_lars, "TIKNET_Solver",
+        "Terminating Tikhonov net (T-TIKNET) solver via the native pathwise LARS-TIK algorithm.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "A. N. Tikhonov, \"Solution of Incorrectly Formulated Problems and the Regularization\n"
+        "  Method,\" Soviet Math. Dokl., vol. 4, pp. 1035-1038, 1963 (English translation of Dokl.\n"
+        "  Akad. Nauk SSSR 151 (1963), no. 3, 501-504).\n"
+        "Y. Park, L. Reichel, G. Rodriguez, and X. Yu, \"Parameter Determination for Tikhonov\n"
+        "  Regularization Problems in General Form,\" J. Comput. Appl. Math., vol. 343, pp. 12-25,\n"
+        "  2018, doi: 10.1016/j.cam.2018.04.049.\n"
+        "A. E. Hoerl and R. W. Kennard, \"Ridge Regression: Biased Estimation for Nonorthogonal\n"
+        "  Problems,\" Technometrics, vol. 42, no. 1, pp. 80-86, 2000 (Reprint of the 1970 article\n"
+        "  in the Special 40th Anniversary Issue).\n"
+        "Y. Miche, M. van Heeswijk, P. Bas, O. Simula, and A. Lendasse, \"TROP-ELM: A\n"
+        "  Double-Regularized ELM Using LARS and Tikhonov Regularization,\" Neurocomputing,\n"
+        "  vol. 74, pp. 2413-2421, 2011, doi: 10.1016/j.neucom.2010.12.042.\n"
+        "B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, \"Least Angle Regression,\" Ann.\n"
+        "  Statist., vol. 32, no. 2, pp. 407-499, 2004.\n"
+        "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
+        "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
+        "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n",
         "Reads options.lambda2, the quadratic penalty weight; FOLDED dummy coupling only "
         "(D.cols() a multiple of X.cols() when lambda2 > 0).")
         .def("getLambda", &PySolverWrapper<TIKNET_Solver>::getLambda,
@@ -815,16 +942,95 @@ inline void bind_tsolvers_module(py::module& m) {
     using namespace trex::tsolvers::ad::linear_model::omp_based;
 
     bind_standard_tsolver<TOMP_Solver>(m_omp, "TOMP_Solver",
+        "Terminating orthogonal matching pursuit (T-OMP) solver.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "Y. C. Pati, R. Rezaiifar, and P. S. Krishnaprasad, \"Orthogonal Matching Pursuit:\n"
+        "  Recursive Function Approximation with Applications to Wavelet Decomposition,\" in Proc.\n"
+        "  27th Asilomar Conf. Signals, Syst., Comput., 1993, pp. 40-44.\n"
+        "J. A. Tropp, \"Greed is Good: Algorithmic Results for Sparse Approximation,\" IEEE Trans.\n"
+        "  Inf. Theory, vol. 50, no. 10, pp. 2231-2242, 2004, doi: 10.1109/TIT.2004.834793.\n"
+        "T. Blumensath and M. E. Davies, \"On the Difference Between Orthogonal Matching Pursuit\n"
+        "  and Orthogonal Least Squares,\" unpublished note, draft of March 29, 2007.\n"
+        "F. Scheidt and M. Muma, \"Terminating Greedy Pursuits for High-Dimensional False\n"
+        "  Discovery Rate Control,\" in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026,\n"
+        "  pp. 2511-2515.\n",
         "Greedy: reads options.exch_tie_alpha / exch_tie_floor.");
-    bind_standard_tsolver<TGP_Solver>(m_omp, "TGP_Solver");
-    bind_standard_tsolver<TACGP_Solver>(m_omp, "TACGP_Solver");
-    bind_standard_tsolver<TMP_Solver>(m_omp, "TMP_Solver");
-    bind_standard_tsolver<TOOLS_Solver>(m_omp, "TOOLS_Solver");
+    bind_standard_tsolver<TGP_Solver>(m_omp, "TGP_Solver",
+        "Terminating gradient pursuit (T-GP) solver.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "T. Blumensath and M. E. Davies, \"Gradient Pursuits,\" IEEE Trans. Signal Process.,\n"
+        "  vol. 56, no. 6, pp. 2370-2382, 2008.\n"
+        "F. Scheidt and M. Muma, \"Terminating Greedy Pursuits for High-Dimensional False\n"
+        "  Discovery Rate Control,\" in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026,\n"
+        "  pp. 2511-2515.\n");
+    bind_standard_tsolver<TACGP_Solver>(m_omp, "TACGP_Solver",
+        "Terminating approximate conjugate gradient pursuit (T-ACGP) solver.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "T. Blumensath and M. E. Davies, \"Gradient Pursuits,\" IEEE Trans. Signal Process.,\n"
+        "  vol. 56, no. 6, pp. 2370-2382, 2008.\n"
+        "F. Scheidt and M. Muma, \"Terminating Greedy Pursuits for High-Dimensional False\n"
+        "  Discovery Rate Control,\" in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026,\n"
+        "  pp. 2511-2515.\n");
+    bind_standard_tsolver<TMP_Solver>(m_omp, "TMP_Solver",
+        "Terminating matching pursuit (T-MP) solver.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "S. G. Mallat and Z. Zhang, \"Matching Pursuits with Time-Frequency Dictionaries,\" IEEE\n"
+        "  Trans. Signal Process., vol. 41, no. 12, pp. 3397-3415, 1993, doi: 10.1109/78.258082.\n"
+        "F. Scheidt and M. Muma, \"Terminating Greedy Pursuits for High-Dimensional False\n"
+        "  Discovery Rate Control,\" in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026,\n"
+        "  pp. 2511-2515.\n");
+    bind_standard_tsolver<TOOLS_Solver>(m_omp, "TOOLS_Solver",
+        "Terminating orthogonal least squares (T-OLS) solver.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "S. Chen, S. A. Billings, and W. Luo, \"Orthogonal Least Squares Methods and Their\n"
+        "  Application to Non-Linear System Identification,\" Int. J. Control, vol. 50, no. 5,\n"
+        "  pp. 1873-1896, 1989, doi: 10.1080/00207178908953472.\n"
+        "T. Blumensath and M. E. Davies, \"On the Difference Between Orthogonal Matching Pursuit\n"
+        "  and Orthogonal Least Squares,\" unpublished note, draft of March 29, 2007.\n"
+        "F. Scheidt and M. Muma, \"Terminating Greedy Pursuits for High-Dimensional False\n"
+        "  Discovery Rate Control,\" in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026,\n"
+        "  pp. 2511-2515.\n");
     bind_standard_tsolver<TNCGMP_Solver>(m_omp, "TNCGMP_Solver",
+        "Terminating norm-corrective generalized matching pursuit (T-NCGMP) solver.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "F. Locatello, R. Khanna, M. Tschannen, and M. Jaggi, \"A Unified Optimization View on\n"
+        "  Generalized Matching Pursuit and Frank-Wolfe,\" in Proc. 20th Int. Conf. Artif. Intell.\n"
+        "  Statist. (AISTATS), JMLR: W&CP vol. 54, 2017.\n"
+        "F. Scheidt and M. Muma, \"Terminating Greedy Pursuits for High-Dimensional False\n"
+        "  Discovery Rate Control,\" in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026,\n"
+        "  pp. 2511-2515.\n",
         "Reads options.ncgmp_variant (LineSearch or FullyCorrective).");
 
     // TIKOMP: greedy generalized-ridge OMP under lambda2 * beta' K beta (FOLDED dummies).
     bind_tikhonov_tsolver<TIKOMP_Solver>(m_omp, "TIKOMP_Solver",
+        "Terminating Tikhonov-K OMP (T-TIKOMP) solver with generalized-ridge active-set refits.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "A. N. Tikhonov, \"Solution of Incorrectly Formulated Problems and the Regularization\n"
+        "  Method,\" Soviet Math. Dokl., vol. 4, pp. 1035-1038, 1963 (English translation of Dokl.\n"
+        "  Akad. Nauk SSSR 151 (1963), no. 3, 501-504).\n"
+        "Y. Park, L. Reichel, G. Rodriguez, and X. Yu, \"Parameter Determination for Tikhonov\n"
+        "  Regularization Problems in General Form,\" J. Comput. Appl. Math., vol. 343, pp. 12-25,\n"
+        "  2018, doi: 10.1016/j.cam.2018.04.049.\n"
+        "Y. C. Pati, R. Rezaiifar, and P. S. Krishnaprasad, \"Orthogonal Matching Pursuit:\n"
+        "  Recursive Function Approximation with Applications to Wavelet Decomposition,\" in Proc.\n"
+        "  27th Asilomar Conf. Signals, Syst., Comput., 1993, pp. 40-44.\n"
+        "F. Scheidt and M. Muma, \"Terminating Greedy Pursuits for High-Dimensional False\n"
+        "  Discovery Rate Control,\" in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026,\n"
+        "  pp. 2511-2515.\n",
         "Reads options.lambda2 and the exchangeable-tie fields; FOLDED dummy coupling only.")
         .def("getLambda2", &PySolverWrapper<TIKOMP_Solver>::getLambda2,
              "Get the quadratic penalty weight lambda2 used.")
@@ -837,6 +1043,15 @@ inline void bind_tsolvers_module(py::module& m) {
     using namespace trex::tsolvers::ad::linear_model::afs_based;
 
     bind_standard_tsolver<TAFS_Solver>(m_afs, "TAFS_Solver",
+        "Terminating adaptive forward stepwise (T-AFS) solver.\n"
+        "\n"
+        "References\n"
+        "----------\n"
+        "I. Zhang and R. Tibshirani, \"Adaptive Forward Stepwise: A Method for High Sparsity\n"
+        "  Regression,\" J. Mach. Learn. Res., vol. 27, pp. 1-24, 2026.\n"
+        "F. Scheidt and M. Muma, \"Terminating Greedy Pursuits for High-Dimensional False\n"
+        "  Discovery Rate Control,\" in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026,\n"
+        "  pp. 2511-2515.\n",
         "Reads options.rho_afs, the shrinkage step in (0, 1] (1: forward stepwise), and the"
         " exchangeable-tie fields.");
 
@@ -847,16 +1062,66 @@ inline void bind_tsolvers_module(py::module& m) {
 
     {
         auto cls = bind_standard_tsolver<TCDLASSO_Solver>(m_cd, "TCDLASSO_Solver",
+            "Terminating cyclic coordinate descent LASSO (T-CDLASSO) solver.\n"
+            "\n"
+            "References\n"
+            "----------\n"
+            "R. Tibshirani, \"Regression Shrinkage and Selection via the Lasso,\" J. R. Stat. Soc. Ser.\n"
+            "  B Stat. Methodol., vol. 58, no. 1, pp. 267-288, 1996.\n"
+            "J. Friedman, T. Hastie, H. Höfling, and R. Tibshirani, \"Pathwise Coordinate\n"
+            "  Optimization,\" Ann. Appl. Stat., vol. 1, no. 2, pp. 302-332, 2007,\n"
+            "  doi: 10.1214/07-AOAS131.\n"
+            "J. Friedman, T. Hastie, and R. Tibshirani, \"Regularization Paths for Generalized Linear\n"
+            "  Models via Coordinate Descent,\" J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010,\n"
+            "  doi: 10.18637/jss.v033.i01.\n"
+            "W. J. Fu, \"Penalized Regression: The Bridge Versus the Lasso,\" J. Comput. Graph.\n"
+            "  Statist., vol. 7, pp. 397-416, 1998.\n"
+            "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
+            "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
+            "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n",
             "Exact penalized-lasso minimizers per dummy crossing; reads the options.cd_* knobs.");
         add_cd_tsolver_methods<TCDLASSO_Solver>(cls);
     }
     {
         auto cls = bind_standard_tsolver<TCDENET_Solver>(m_cd, "TCDENET_Solver",
+            "Terminating cyclic coordinate descent elastic net (T-CDENET) solver.\n"
+            "\n"
+            "References\n"
+            "----------\n"
+            "H. Zou and T. Hastie, \"Regularization and Variable Selection via the Elastic Net,\" J. R.\n"
+            "  Stat. Soc. Ser. B Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.\n"
+            "J. Friedman, T. Hastie, H. Höfling, and R. Tibshirani, \"Pathwise Coordinate\n"
+            "  Optimization,\" Ann. Appl. Stat., vol. 1, no. 2, pp. 302-332, 2007,\n"
+            "  doi: 10.1214/07-AOAS131.\n"
+            "J. Friedman, T. Hastie, and R. Tibshirani, \"Regularization Paths for Generalized Linear\n"
+            "  Models via Coordinate Descent,\" J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010,\n"
+            "  doi: 10.18637/jss.v033.i01.\n"
+            "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
+            "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
+            "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n",
             "Reads options.lambda2 (diagonal ridge), options.kappa_dummy and the cd_* knobs.");
         add_cd_tsolver_methods<TCDENET_Solver>(cls);
     }
     {
         auto cls = bind_groups_tsolver<TCDIENET_Solver>(m_cd, "TCDIENET_Solver",
+            "Terminating cyclic coordinate descent informed elastic net (T-CDIENET) solver.\n"
+            "\n"
+            "References\n"
+            "----------\n"
+            "J. Machkour, M. Muma, and D. P. Palomar, \"The Informed Elastic Net for Fast Grouped\n"
+            "  Variable Selection and FDR Control in Genomics Research,\" in Proc. IEEE 9th Int.\n"
+            "  Workshop Comput. Adv. Multi-Sensor Adapt. Process. (CAMSAP), 2023, pp. 466-470.\n"
+            "H. Zou and T. Hastie, \"Regularization and Variable Selection via the Elastic Net,\" J. R.\n"
+            "  Stat. Soc. Ser. B Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.\n"
+            "J. Friedman, T. Hastie, H. Höfling, and R. Tibshirani, \"Pathwise Coordinate\n"
+            "  Optimization,\" Ann. Appl. Stat., vol. 1, no. 2, pp. 302-332, 2007,\n"
+            "  doi: 10.1214/07-AOAS131.\n"
+            "J. Friedman, T. Hastie, and R. Tibshirani, \"Regularization Paths for Generalized Linear\n"
+            "  Models via Coordinate Descent,\" J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010,\n"
+            "  doi: 10.18637/jss.v033.i01.\n"
+            "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
+            "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
+            "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n",
             "Reads options.lambda2, options.group_penalty (MEAN or CENTERING) and the cd_* knobs.");
         add_cd_tsolver_methods<TCDIENET_Solver>(cls);
         cls.def("getGroups", &PySolverWrapper<TCDIENET_Solver>::getGroupOf,
@@ -866,6 +1131,25 @@ inline void bind_tsolvers_module(py::module& m) {
     }
     {
         auto cls = bind_tikhonov_tsolver<TCDTIKNET_Solver>(m_cd, "TCDTIKNET_Solver",
+            "Terminating cyclic coordinate descent Tikhonov net (T-CDTIKNET) solver.\n"
+            "\n"
+            "References\n"
+            "----------\n"
+            "A. N. Tikhonov, \"Solution of Incorrectly Formulated Problems and the Regularization\n"
+            "  Method,\" Soviet Math. Dokl., vol. 4, pp. 1035-1038, 1963 (English translation of Dokl.\n"
+            "  Akad. Nauk SSSR 151 (1963), no. 3, 501-504).\n"
+            "Y. Park, L. Reichel, G. Rodriguez, and X. Yu, \"Parameter Determination for Tikhonov\n"
+            "  Regularization Problems in General Form,\" J. Comput. Appl. Math., vol. 343, pp. 12-25,\n"
+            "  2018, doi: 10.1016/j.cam.2018.04.049.\n"
+            "J. Friedman, T. Hastie, H. Höfling, and R. Tibshirani, \"Pathwise Coordinate\n"
+            "  Optimization,\" Ann. Appl. Stat., vol. 1, no. 2, pp. 302-332, 2007,\n"
+            "  doi: 10.1214/07-AOAS131.\n"
+            "J. Friedman, T. Hastie, and R. Tibshirani, \"Regularization Paths for Generalized Linear\n"
+            "  Models via Coordinate Descent,\" J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010,\n"
+            "  doi: 10.18637/jss.v033.i01.\n"
+            "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
+            "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
+            "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n",
             "Reads options.lambda2, options.kappa_dummy, options.fold_dummies and the cd_* knobs.");
         add_cd_tsolver_methods<TCDTIKNET_Solver>(cls);
         cls.def("isFoldedDummyCoupling", &PySolverWrapper<TCDTIKNET_Solver>::isFoldedDummyCoupling,

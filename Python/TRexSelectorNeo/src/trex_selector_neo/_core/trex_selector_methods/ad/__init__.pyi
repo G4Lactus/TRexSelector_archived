@@ -239,6 +239,14 @@ class DASelectionResult(SelectionResult):
 class DummyDistribution:
     """
     Specification of the dummy variable distribution injected by T-Rex.
+    
+    References
+    ----------
+    J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector:
+      Fast High-Dimensional Variable Selection with False Discovery Rate Control," Signal
+      Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+    E. Mammen, "Bootstrap and Wild Bootstrap for High Dimensional Linear Models," Ann.
+      Statist., vol. 21, no. 1, pp. 255-285, 1993, doi: 10.1214/aos/1176349025.
     """
     class Type:
         """
@@ -1489,6 +1497,18 @@ class SolverTypeForTRex:
 class TRexBiobankScreeningSelector:
     """
     Biobank-scale T-Rex selector for FDR-controlled variable selection across one or many phenotypes.
+    
+    References
+    ----------
+    J. Machkour, M. Muma, and D. P. Palomar, "False Discovery Rate Control for Fast
+      Screening of Large-Scale Genomics Biobanks," in Proc. 22nd IEEE Statist. Signal
+      Process. Workshop (SSP), 2023, pp. 666-670.
+    F. Scheidt, J. Machkour, and M. Muma, "Solving FDR-Controlled Sparse Regression Problems
+      with Five Million Variables on a Laptop," in Proc. IEEE 9th Int. Workshop Comput. Adv.
+      Multi-Sensor Adapt. Process. (CAMSAP), 2023, pp. 116-120.
+    J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector:
+      Fast High-Dimensional Variable Selection with False Discovery Rate Control," Signal
+      Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
     """
     @typing.overload
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], bio_ctrl: BiobankScreenTRexControl = ..., seed: typing.SupportsInt | typing.SupportsIndex = -1, verbose: bool = False) -> None:
@@ -1706,7 +1726,24 @@ class TRexDAControlParameter:
         ...
 class TRexDASelector(TRexSelector):
     """
-    TRex Selector with Data Augmentation support.
+    Dependency-aware T-Rex selector (T-Rex+DA): FDR-controlled variable selection for dependent
+    variables, with a correlation-structure model (AR1, EQUI, BT, NN or PRIOR_GROUPS) that
+    accounts for the dependencies among the variables.
+    
+    References
+    ----------
+    J. Machkour, M. Muma, and D. P. Palomar, "High-Dimensional False Discovery Rate Control
+      for Dependent Variables," Signal Process., vol. 234, Art. no. 109990, 2025,
+      doi: 10.1016/j.sigpro.2025.109990.
+    J. Machkour, D. P. Palomar, and M. Muma, "FDR-Controlled Portfolio Optimization for
+      Sparse Financial Index Tracking," in Proc. IEEE Int. Conf. Acoust., Speech, Signal
+      Process. (ICASSP), 2025, doi: 10.1109/ICASSP49660.2025.10890629.
+    J. Machkour, M. Muma, and D. P. Palomar, "FDR-Controlled Sparse Index Tracking with
+      Autoregressive Stock Dependency Models," in Proc. Eur. Signal Process. Conf.
+      (EUSIPCO), 2024, pp. 2662-2666.
+    J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector:
+      Fast High-Dimensional Variable Selection with False Discovery Rate Control," Signal
+      Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
     """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], tFDR: typing.SupportsFloat | typing.SupportsIndex = 0.1, da_control: TRexDAControlParameter = ..., trex_control: TRexControlParameter = ..., seed: typing.SupportsInt | typing.SupportsIndex = -1, verbose: bool = True) -> None:
         """
@@ -1845,6 +1882,20 @@ class TRexGVSControlParameter:
 class TRexGVSSelector(TRexSelector):
     """
     TRex Selector with Group Variable Selection support.
+    
+    References
+    ----------
+    J. Machkour, M. Muma, and D. P. Palomar, "False Discovery Rate Control for Grouped
+      Variable Selection in High-Dimensional Linear Models Using the T-Knock Filter," in
+      Proc. 30th Eur. Signal Process. Conf. (EUSIPCO), 2022, pp. 892-896.
+    J. Machkour, M. Muma, and D. P. Palomar, "The Informed Elastic Net for Fast Grouped
+      Variable Selection and FDR Control in Genomics Research," in Proc. IEEE 9th Int.
+      Workshop Comput. Adv. Multi-Sensor Adapt. Process. (CAMSAP), 2023, pp. 466-470.
+    H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R.
+      Stat. Soc. Ser. B Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+    J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector:
+      Fast High-Dimensional Variable Selection with False Discovery Rate Control," Signal
+      Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
     """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], tFDR: typing.SupportsFloat | typing.SupportsIndex = 0.1, gvs_control: TRexGVSControlParameter = ..., trex_control: TRexControlParameter = ..., seed: typing.SupportsInt | typing.SupportsIndex = -1, verbose: bool = True) -> None:
         """
@@ -1945,6 +1996,15 @@ class TRexSPCAResult:
 class TRexSPCASelector:
     """
     T-Rex Sparse PCA selector — instance wrapper (zero-copy Eigen::Map).
+    
+    References
+    ----------
+    J. Machkour, A. Breloy, M. Muma, D. P. Palomar, and F. Pascal, "Sparse PCA with False
+      Discovery Rate Controlled Variable Selection," in Proc. IEEE 49th Int. Conf. Acoust.,
+      Speech, Signal Process. (ICASSP), 2024, pp. 9716-9720.
+    J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector:
+      Fast High-Dimensional Variable Selection with False Discovery Rate Control," Signal
+      Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
     """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], M: typing.SupportsInt | typing.SupportsIndex, tFDR: typing.SupportsFloat | typing.SupportsIndex, ctrl: TRexSPCAControlParameter = ..., seed: typing.SupportsInt | typing.SupportsIndex = -1, verbose: bool = False) -> None:
         """
@@ -1961,6 +2021,15 @@ class TRexSPCASelector:
 class TRexScreeningSelector(TRexSelector):
     """
     T-Rex Selector with fast variable screening via dummy comparison.
+    
+    References
+    ----------
+    J. Machkour, M. Muma, and D. P. Palomar, "False Discovery Rate Control for Fast
+      Screening of Large-Scale Genomics Biobanks," in Proc. 22nd IEEE Statist. Signal
+      Process. Workshop (SSP), 2023, pp. 666-670.
+    J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector:
+      Fast High-Dimensional Variable Selection with False Discovery Rate Control," Signal
+      Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
     """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], screen_control: ScreenTRexControlParameter = ..., trex_control: TRexControlParameter = ..., seed: typing.SupportsInt | typing.SupportsIndex = -1, verbose: bool = True) -> None:
         """
@@ -1973,6 +2042,12 @@ class TRexScreeningSelector(TRexSelector):
 class TRexSelector:
     """
     T-Rex Selector: FDR-controlled variable selection via dummy comparison.
+    
+    References
+    ----------
+    J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector:
+      Fast High-Dimensional Variable Selection with False Discovery Rate Control," Signal
+      Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
     """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], tFDR: typing.SupportsFloat | typing.SupportsIndex = 0.1, trex_control: TRexControlParameter = ..., seed: typing.SupportsInt | typing.SupportsIndex = -1, verbose: bool = True) -> None:
         """
@@ -2259,6 +2334,26 @@ class TRexTikhonovControlParameter:
 class TRexTikhonovSelector(TRexSelector):
     """
     T-Rex selector with a general Tikhonov penalty (TCDTIKNET / TIKNET / TIKOMP) and cluster-aware dummies.
+    
+    References
+    ----------
+    A. N. Tikhonov, "Solution of Incorrectly Formulated Problems and the Regularization
+      Method," Soviet Math. Dokl., vol. 4, pp. 1035-1038, 1963 (English translation of Dokl.
+      Akad. Nauk SSSR 151 (1963), no. 3, 501-504).
+    Y. Park, L. Reichel, G. Rodriguez, and X. Yu, "Parameter Determination for Tikhonov
+      Regularization Problems in General Form," J. Comput. Appl. Math., vol. 343, pp. 12-25,
+      2018, doi: 10.1016/j.cam.2018.04.049.
+    A. J. Smola and R. Kondor, "Kernels and Regularization on Graphs," in Learning Theory
+      and Kernel Machines (COLT/Kernel 2003), Lecture Notes in Artificial Intelligence
+      vol. 2777, 2003, pp. 144-158.
+    F. R. K. Chung, Spectral Graph Theory. CBMS Regional Conference Series in Mathematics,
+      no. 92. American Mathematical Society, 1997.
+    A. E. Hoerl and R. W. Kennard, "Ridge Regression: Biased Estimation for Nonorthogonal
+      Problems," Technometrics, vol. 42, no. 1, pp. 80-86, 2000 (Reprint of the 1970 article
+      in the Special 40th Anniversary Issue).
+    J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector:
+      Fast High-Dimensional Variable Selection with False Discovery Rate Control," Signal
+      Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
     """
     def __init__(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], tFDR: typing.SupportsFloat | typing.SupportsIndex = 0.1, tik_control: TRexTikhonovControlParameter = ..., trex_control: TRexControlParameter = ..., seed: typing.SupportsInt | typing.SupportsIndex = -1, verbose: bool = True) -> None:
         """

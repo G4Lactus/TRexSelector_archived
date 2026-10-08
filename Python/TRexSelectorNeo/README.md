@@ -86,11 +86,19 @@ construct → `select()` → inspect pattern.
 
 ## Links
 
-T-Rex paper: <https://doi.org/10.48550/arXiv.2110.06048>
+T-Rex paper: <https://doi.org/10.1016/j.sigpro.2025.109894>
 
 TRexSelector package: [GitHub](https://github.com/G4Lactus/TRexSelector)
 
 Bug reports: [GitHub Issues](https://github.com/G4Lactus/TRexSelector/issues)
+
+Citation metadata: [CITATION.cff](../../CITATION.cff) at the repository root. The docstring of every selector,
+T-solver and machine learning class ends with the papers it builds on.
+
+## Acknowledgements
+
+The library builds on the Eigen linear algebra library: G. Guennebaud, B. Jacob et al., Eigen v3,
+<http://eigen.tuxfamily.org>, 2010.
 
 ## License
 
