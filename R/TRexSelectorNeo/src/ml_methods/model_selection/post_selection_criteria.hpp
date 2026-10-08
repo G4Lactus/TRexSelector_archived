@@ -35,6 +35,11 @@
  *
  *   BIC / EBIC return +infinity for a saturated or degenerate fit
  *   (k >= n or RSS <= 0), which keeps such supports from winning an argmin.
+ *
+ *  References:
+ *  -----------
+ *   J. Chen and Z. Chen, "Extended Bayesian Information Criteria for Model Selection with Large Model
+ *     Spaces," Biometrika, vol. 95, no. 3, pp. 759-771, 2008, doi: 10.1093/biomet/asn034.
  */
 // ===================================================================================
 

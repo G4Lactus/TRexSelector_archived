@@ -24,6 +24,24 @@ solver$execute_step(T_stop = 3)
 solver$get_beta()
 
 }
+\references{
+J. Machkour, M. Muma, and D. P. Palomar, "The Informed Elastic Net for Fast Grouped Variable Selection and
+FDR Control in Genomics Research," in Proc. IEEE 9th Int. Workshop Comput. Adv. Multi-Sensor Adapt.
+Process. (CAMSAP), 2023, pp. 466-470.
+
+H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R. Stat. Soc. Ser. B
+Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+
+J. Friedman, T. Hastie, H. Höfling, and R. Tibshirani, "Pathwise Coordinate Optimization," Ann. Appl.
+Stat., vol. 1, no. 2, pp. 302-332, 2007, doi: 10.1214/07-AOAS131.
+
+J. Friedman, T. Hastie, and R. Tibshirani, "Regularization Paths for Generalized Linear Models via
+Coordinate Descent," J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010, doi: 10.18637/jss.v033.i01.
+
+J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+}
 \seealso{
 Other T-solvers:
 \code{\link{TACGP_Solver}},

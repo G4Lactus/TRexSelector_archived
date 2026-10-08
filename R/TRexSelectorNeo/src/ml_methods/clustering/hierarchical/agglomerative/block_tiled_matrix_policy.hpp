@@ -52,7 +52,14 @@ namespace trex::ml_methods::clustering::hierarchical::agglomerative {
 // Detail namespace for internal utilities
 namespace detail {
 
-    /** @brief Lance-Williams coefficients for hierarchical clustering */
+    /**
+     * @brief Lance-Williams coefficients for hierarchical clustering.
+     *
+     *  References:
+     *  -----------
+     *   G. N. Lance and W. T. Williams, "A General Theory of Classificatory Sorting Strategies: I.
+     *     Hierarchical Systems," Comput. J., vol. 9, pp. 373-380, 1967.
+     */
     struct LanceWilliamsCoefficients {
 
         /** @brief Coefficient for cluster c */

@@ -99,8 +99,7 @@
  *  independent of the pick; the pick itself depends on y and is outside
  *  the fixed-lambda_2 FDR proof — its cost was measured to be nil under the
  *  global null and within 0.01 of the oracle under the alternatives in the
- *  Tikhonov T-Rex workspace (demo_14). The record is in
- *  `getLambda2PilotResult()`.
+ *  Tikhonov T-Rex workspace. The record is in `getLambda2PilotResult()`.
  */
 // ===================================================================================
 
@@ -444,6 +443,25 @@ struct TRexTikhonovControlParameter {
  * @brief T-Rex variant driving the CCD Tikhonov-Net solver with a
  *        user-supplied general Tikhonov penalty matrix (see the file
  *        header).
+ *
+ *  References:
+ *  -----------
+ *   A. N. Tikhonov, "Solution of Incorrectly Formulated Problems and the Regularization Method," Soviet Math.
+ *     Dokl., vol. 4, pp. 1035-1038, 1963 (English translation of Dokl. Akad. Nauk SSSR 151 (1963), no. 3,
+ *     501-504).
+ *   Y. Park, L. Reichel, G. Rodriguez, and X. Yu, "Parameter Determination for Tikhonov Regularization
+ *     Problems in General Form," J. Comput. Appl. Math., vol. 343, pp. 12-25, 2018,
+ *     doi: 10.1016/j.cam.2018.04.049.
+ *   A. J. Smola and R. Kondor, "Kernels and Regularization on Graphs," in Learning Theory and Kernel Machines
+ *     (COLT/Kernel 2003), Lecture Notes in Artificial Intelligence vol. 2777, 2003, pp. 144-158.
+ *   F. R. K. Chung, Spectral Graph Theory. CBMS Regional Conference Series in Mathematics, no. 92. American
+ *     Mathematical Society, 1997.
+ *   A. E. Hoerl and R. W. Kennard, "Ridge Regression: Biased Estimation for Nonorthogonal Problems,"
+ *     Technometrics, vol. 42, no. 1, pp. 80-86, 2000 (Reprint of the 1970 article in the Special 40th
+ *     Anniversary Issue).
+ *   J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+ *     High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+ *     Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
  */
 class TRexTikhonovSelector : public tc::TRexSelector {
 

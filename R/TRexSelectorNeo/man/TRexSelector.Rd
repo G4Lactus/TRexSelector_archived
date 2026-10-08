@@ -16,6 +16,11 @@ sel$select()
 sel$selected_indices
 }
 }
+\references{
+J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+}
 \seealso{
 Other T-Rex selectors and controls:
 \code{\link{TRexBiobankScreeningSelector}},

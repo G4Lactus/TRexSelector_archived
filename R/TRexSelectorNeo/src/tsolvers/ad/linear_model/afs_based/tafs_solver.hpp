@@ -40,6 +40,13 @@ namespace trex::tsolvers::ad::linear_model::afs_based {
  * @note The reported DoF is |active set| + intercept; with rho < 1 the
  * effective degrees of freedom of the shrunken fit are smaller, so
  * Cp values based on it penalize conservatively.
+ *
+ *  References:
+ *  -----------
+ *   I. Zhang and R. Tibshirani, "Adaptive Forward Stepwise: A Method for High Sparsity Regression," J. Mach.
+ *     Learn. Res., vol. 27, pp. 1-24, 2026.
+ *   F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False Discovery Rate Control,"
+ *     in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026, pp. 2511-2515.
  */
 class TAFS_Solver : public TSolver_Base {
 protected:

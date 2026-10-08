@@ -460,6 +460,14 @@ TSolver_Base <- R6::R6Class(
 #' Terminating Least Angle Regression (T-LARS) solver.
 #' Inherits all common methods from \code{\link{TSolver_Base}}.
 #'
+#' @references
+#' B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann. Statist., vol. 32,
+#'   no. 2, pp. 407-499, 2004.
+#'
+#' J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+#'   High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+#'   Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+#'
 #' @examples
 #' set.seed(1)
 #' n <- 20; p <- 5
@@ -522,6 +530,20 @@ TLARS_Solver <- R6::R6Class(
 #' Terminating LASSO solver (T-LARS with variable removal).
 #' Inherits all common methods from \code{\link{TSolver_Base}}.
 #'
+#' @references
+#' R. Tibshirani, "Regression Shrinkage and Selection via the Lasso," J. R. Stat. Soc. Ser. B Stat. Methodol.,
+#'   vol. 58, no. 1, pp. 267-288, 1996.
+#'
+#' B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann. Statist., vol. 32,
+#'   no. 2, pp. 407-499, 2004.
+#'
+#' M. R. Osborne, B. Presnell, and B. A. Turlach, "On the LASSO and Its Dual," J. Comput. Graph. Statist.,
+#'   vol. 9, no. 2, pp. 319-337, 2000.
+#'
+#' J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+#'   High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+#'   Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+#'
 #' @examples
 #' set.seed(1)
 #' n <- 20; p <- 5
@@ -580,6 +602,14 @@ TLASSO_Solver <- R6::R6Class(
 #' Terminating Forward Stepwise Regression solver.
 #' Inherits all common methods from \code{\link{TSolver_Base}}.
 #'
+#' @references
+#' B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann. Statist., vol. 32,
+#'   no. 2, pp. 407-499, 2004.
+#'
+#' J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+#'   High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+#'   Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+#'
 #' @examples
 #' set.seed(1)
 #' n <- 20; p <- 5
@@ -625,6 +655,17 @@ TSTEPWISE_Solver <- R6::R6Class(
 #' @description
 #' Terminating Elastic Net solver (L1 + L2 regularization).
 #' Inherits all common methods from \code{\link{TSolver_Base}}.
+#'
+#' @references
+#' H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R. Stat. Soc. Ser. B
+#'   Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+#'
+#' B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann. Statist., vol. 32,
+#'   no. 2, pp. 407-499, 2004.
+#'
+#' J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+#'   High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+#'   Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
 #'
 #' @examples
 #' set.seed(1)
@@ -697,6 +738,21 @@ TENET_Solver <- R6::R6Class(
 #' (or pure T-LARS) path, matching the R reference implementation of
 #' \code{trex_GVS()}. Inherits all common methods from \code{\link{TSolver_Base}}.
 #'
+#' @references
+#' H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R. Stat. Soc. Ser. B
+#'   Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+#'
+#' B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann. Statist., vol. 32,
+#'   no. 2, pp. 407-499, 2004.
+#'
+#' J. Machkour, M. Muma, and D. P. Palomar, "False Discovery Rate Control for Grouped Variable Selection in
+#'   High-Dimensional Linear Models Using the T-Knock Filter," in Proc. 30th Eur. Signal Process. Conf.
+#'   (EUSIPCO), 2022, pp. 892-896.
+#'
+#' J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+#'   High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+#'   Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+#'
 #' @examples
 #' set.seed(1)
 #' n <- 20; p <- 5
@@ -743,6 +799,21 @@ TENETAug_Solver <- R6::R6Class(
 #' inner T-LASSO (or pure T-LARS) path. This is the solver used internally by
 #' \code{TRexGVSSelector} for \code{gvs_type = "IEN"}.
 #' Inherits all common methods from \code{\link{TSolver_Base}}.
+#'
+#' @references
+#' J. Machkour, M. Muma, and D. P. Palomar, "The Informed Elastic Net for Fast Grouped Variable Selection and
+#'   FDR Control in Genomics Research," in Proc. IEEE 9th Int. Workshop Comput. Adv. Multi-Sensor Adapt.
+#'   Process. (CAMSAP), 2023, pp. 466-470.
+#'
+#' H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R. Stat. Soc. Ser. B
+#'   Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+#'
+#' B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann. Statist., vol. 32,
+#'   no. 2, pp. 407-499, 2004.
+#'
+#' J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+#'   High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+#'   Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
 #'
 #' @examples
 #' set.seed(1)
@@ -812,6 +883,20 @@ TIENETAug_Solver <- R6::R6Class(
 #' Terminating Stagewise Regression solver.
 #' Inherits all common methods from \code{\link{TSolver_Base}}.
 #'
+#' @references
+#' B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann. Statist., vol. 32,
+#'   no. 2, pp. 407-499, 2004.
+#'
+#' T. Hastie, J. Taylor, R. Tibshirani, and G. Walther, "Forward Stagewise Regression and the Monotone Lasso,"
+#'   Electron. J. Stat., vol. 1, pp. 1-29, 2007, doi: 10.1214/07-EJS004.
+#'
+#' R. J. Tibshirani, "A General Framework for Fast Stagewise Algorithms," J. Mach. Learn. Res., vol. 16,
+#'   pp. 2543-2588, 2015.
+#'
+#' J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+#'   High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+#'   Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+#'
 #' @examples
 #' set.seed(1)
 #' n <- 20; p <- 5
@@ -875,6 +960,20 @@ TSTAGEWISE_Solver <- R6::R6Class(
 #' Terminating Orthogonal Matching Pursuit (T-OMP) solver.
 #' Inherits all common methods from \code{\link{TSolver_Base}}.
 #'
+#' @references
+#' Y. C. Pati, R. Rezaiifar, and P. S. Krishnaprasad, "Orthogonal Matching Pursuit: Recursive Function
+#'   Approximation with Applications to Wavelet Decomposition," in Proc. 27th Asilomar Conf. Signals, Syst.,
+#'   Comput., 1993, pp. 40-44.
+#'
+#' J. A. Tropp, "Greed is Good: Algorithmic Results for Sparse Approximation," IEEE Trans. Inf. Theory,
+#'   vol. 50, no. 10, pp. 2231-2242, 2004, doi: 10.1109/TIT.2004.834793.
+#'
+#' T. Blumensath and M. E. Davies, "On the Difference Between Orthogonal Matching Pursuit and Orthogonal Least
+#'   Squares," unpublished note, draft of March 29, 2007.
+#'
+#' F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False Discovery Rate Control," in
+#'   Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026, pp. 2511-2515.
+#'
 #' @examples
 #' set.seed(1)
 #' n <- 20; p <- 5
@@ -914,6 +1013,13 @@ TOMP_Solver <- R6::R6Class(
 #' @description
 #' Terminating Gradient Pursuit (T-GP) solver.
 #' Inherits all common methods from \code{\link{TSolver_Base}}.
+#'
+#' @references
+#' T. Blumensath and M. E. Davies, "Gradient Pursuits," IEEE Trans. Signal Process., vol. 56, no. 6,
+#'   pp. 2370-2382, 2008.
+#'
+#' F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False Discovery Rate Control," in
+#'   Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026, pp. 2511-2515.
 #'
 #' @examples
 #' set.seed(1)
@@ -956,6 +1062,13 @@ TGP_Solver <- R6::R6Class(
 #' Terminating Approximate Conjugate Gradient Pursuit (T-ACGP) solver.
 #' Inherits all common methods from \code{\link{TSolver_Base}}.
 #'
+#' @references
+#' T. Blumensath and M. E. Davies, "Gradient Pursuits," IEEE Trans. Signal Process., vol. 56, no. 6,
+#'   pp. 2370-2382, 2008.
+#'
+#' F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False Discovery Rate Control," in
+#'   Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026, pp. 2511-2515.
+#'
 #' @examples
 #' set.seed(1)
 #' n <- 20; p <- 5
@@ -996,6 +1109,13 @@ TACGP_Solver <- R6::R6Class(
 #' Terminating Matching Pursuit (T-MP) solver.
 #' Inherits all common methods from \code{\link{TSolver_Base}}.
 #'
+#' @references
+#' S. G. Mallat and Z. Zhang, "Matching Pursuits with Time-Frequency Dictionaries," IEEE Trans. Signal
+#'   Process., vol. 41, no. 12, pp. 3397-3415, 1993, doi: 10.1109/78.258082.
+#'
+#' F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False Discovery Rate Control," in
+#'   Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026, pp. 2511-2515.
+#'
 #' @examples
 #' set.seed(1)
 #' n <- 20; p <- 5
@@ -1035,6 +1155,17 @@ TMP_Solver <- R6::R6Class(
 #' @description
 #' Terminating Orthogonal Least Squares (T-OLS) solver.
 #' Inherits all common methods from \code{\link{TSolver_Base}}.
+#'
+#' @references
+#' S. Chen, S. A. Billings, and W. Luo, "Orthogonal Least Squares Methods and Their Application to Non-Linear
+#'   System Identification," Int. J. Control, vol. 50, no. 5, pp. 1873-1896, 1989,
+#'   doi: 10.1080/00207178908953472.
+#'
+#' T. Blumensath and M. E. Davies, "On the Difference Between Orthogonal Matching Pursuit and Orthogonal Least
+#'   Squares," unpublished note, draft of March 29, 2007.
+#'
+#' F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False Discovery Rate Control," in
+#'   Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026, pp. 2511-2515.
 #'
 #' @examples
 #' set.seed(1)
@@ -1077,6 +1208,14 @@ TOOLS_Solver <- R6::R6Class(
 #' Two variants are available: \code{"line_search"} (standard, 1-D projection)
 #' and \code{"fully_corrective"} (OMP-style least squares over the active set).
 #' Inherits all common methods from \code{\link{TSolver_Base}}.
+#'
+#' @references
+#' F. Locatello, R. Khanna, M. Tschannen, and M. Jaggi, "A Unified Optimization View on Generalized Matching
+#'   Pursuit and Frank-Wolfe," in Proc. 20th Int. Conf. Artif. Intell. Statist. (AISTATS), JMLR: W&CP vol. 54,
+#'   2017.
+#'
+#' F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False Discovery Rate Control," in
+#'   Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026, pp. 2511-2515.
 #'
 #' @examples
 #' set.seed(1)
@@ -1126,6 +1265,13 @@ TNCGMP_Solver <- R6::R6Class(
 #' (\code{rho = 1}) and LAR/LASSO (\code{rho -> 0}).
 #' Inherits all common methods from \code{\link{TSolver_Base}}.
 #'
+#' @references
+#' I. Zhang and R. Tibshirani, "Adaptive Forward Stepwise: A Method for High Sparsity Regression," J. Mach.
+#'   Learn. Res., vol. 27, pp. 1-24, 2026.
+#'
+#' F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False Discovery Rate Control," in
+#'   Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026, pp. 2511-2515.
+#'
 #' @examples
 #' set.seed(1)
 #' n <- 20; p <- 5
@@ -1174,6 +1320,21 @@ TAFS_Solver <- R6::R6Class(
 #' \code{TRexGVSSelector} for \code{gvs_type = "IEN"} with
 #' \code{solver = "TIENET"}. Inherits all common methods from
 #' \code{\link{TSolver_Base}}.
+#'
+#' @references
+#' J. Machkour, M. Muma, and D. P. Palomar, "The Informed Elastic Net for Fast Grouped Variable Selection and
+#'   FDR Control in Genomics Research," in Proc. IEEE 9th Int. Workshop Comput. Adv. Multi-Sensor Adapt.
+#'   Process. (CAMSAP), 2023, pp. 466-470.
+#'
+#' H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R. Stat. Soc. Ser. B
+#'   Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+#'
+#' B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann. Statist., vol. 32,
+#'   no. 2, pp. 407-499, 2004.
+#'
+#' J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+#'   High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+#'   Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
 #'
 #' @examples
 #' set.seed(1)
@@ -1241,6 +1402,29 @@ TIENET_Solver <- R6::R6Class(
 #' \code{TRexTikhonovSelector} for \code{solver = "TIKNET"}. Inherits all
 #' common methods from \code{\link{TSolver_Base}}.
 #'
+#' @references
+#' A. N. Tikhonov, "Solution of Incorrectly Formulated Problems and the Regularization Method," Soviet Math.
+#'   Dokl., vol. 4, pp. 1035-1038, 1963 (English translation of Dokl. Akad. Nauk SSSR 151 (1963), no. 3,
+#'   501-504).
+#'
+#' Y. Park, L. Reichel, G. Rodriguez, and X. Yu, "Parameter Determination for Tikhonov Regularization Problems
+#'   in General Form," J. Comput. Appl. Math., vol. 343, pp. 12-25, 2018, doi: 10.1016/j.cam.2018.04.049.
+#'
+#' A. E. Hoerl and R. W. Kennard, "Ridge Regression: Biased Estimation for Nonorthogonal Problems,"
+#'   Technometrics, vol. 42, no. 1, pp. 80-86, 2000 (Reprint of the 1970 article in the Special 40th
+#'   Anniversary Issue).
+#'
+#' Y. Miche, M. van Heeswijk, P. Bas, O. Simula, and A. Lendasse, "TROP-ELM: A Double-Regularized ELM Using
+#'   LARS and Tikhonov Regularization," Neurocomputing, vol. 74, pp. 2413-2421, 2011,
+#'   doi: 10.1016/j.neucom.2010.12.042.
+#'
+#' B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann. Statist., vol. 32,
+#'   no. 2, pp. 407-499, 2004.
+#'
+#' J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+#'   High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+#'   Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+#'
 #' @examples
 #' set.seed(1)
 #' n <- 20; p <- 4
@@ -1303,6 +1487,21 @@ TIKNET_Solver <- R6::R6Class(
 #' folded sums. FOLDED dummy coupling only. The solver used internally by
 #' \code{TRexTikhonovSelector} for \code{solver = "TIKOMP"}. Inherits all
 #' common methods from \code{\link{TSolver_Base}}.
+#'
+#' @references
+#' A. N. Tikhonov, "Solution of Incorrectly Formulated Problems and the Regularization Method," Soviet Math.
+#'   Dokl., vol. 4, pp. 1035-1038, 1963 (English translation of Dokl. Akad. Nauk SSSR 151 (1963), no. 3,
+#'   501-504).
+#'
+#' Y. Park, L. Reichel, G. Rodriguez, and X. Yu, "Parameter Determination for Tikhonov Regularization Problems
+#'   in General Form," J. Comput. Appl. Math., vol. 343, pp. 12-25, 2018, doi: 10.1016/j.cam.2018.04.049.
+#'
+#' Y. C. Pati, R. Rezaiifar, and P. S. Krishnaprasad, "Orthogonal Matching Pursuit: Recursive Function
+#'   Approximation with Applications to Wavelet Decomposition," in Proc. 27th Asilomar Conf. Signals, Syst.,
+#'   Comput., 1993, pp. 40-44.
+#'
+#' F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False Discovery Rate Control," in
+#'   Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026, pp. 2511-2515.
 #'
 #' @examples
 #' set.seed(1)
@@ -1430,6 +1629,23 @@ TCDSolver_Base <- R6::R6Class(
 #' inherit its getters). Inherits all common methods from
 #' \code{\link{TSolver_Base}}.
 #'
+#' @references
+#' R. Tibshirani, "Regression Shrinkage and Selection via the Lasso," J. R. Stat. Soc. Ser. B Stat. Methodol.,
+#'   vol. 58, no. 1, pp. 267-288, 1996.
+#'
+#' J. Friedman, T. Hastie, H. Höfling, and R. Tibshirani, "Pathwise Coordinate Optimization," Ann. Appl.
+#'   Stat., vol. 1, no. 2, pp. 302-332, 2007, doi: 10.1214/07-AOAS131.
+#'
+#' J. Friedman, T. Hastie, and R. Tibshirani, "Regularization Paths for Generalized Linear Models via
+#'   Coordinate Descent," J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010, doi: 10.18637/jss.v033.i01.
+#'
+#' W. J. Fu, "Penalized Regression: The Bridge Versus the Lasso," J. Comput. Graph. Statist., vol. 7,
+#'   pp. 397-416, 1998.
+#'
+#' J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+#'   High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+#'   Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+#'
 #' @examples
 #' set.seed(1)
 #' n <- 20; p <- 5
@@ -1473,6 +1689,20 @@ TCDLASSO_Solver <- R6::R6Class(
 #' by \code{TRexGVSSelector} for \code{en_solver = "TCDENET"}. Inherits the
 #' CD getters from \code{\link{TCDSolver_Base}} and all common methods from
 #' \code{\link{TSolver_Base}}.
+#'
+#' @references
+#' H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R. Stat. Soc. Ser. B
+#'   Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+#'
+#' J. Friedman, T. Hastie, H. Höfling, and R. Tibshirani, "Pathwise Coordinate Optimization," Ann. Appl.
+#'   Stat., vol. 1, no. 2, pp. 302-332, 2007, doi: 10.1214/07-AOAS131.
+#'
+#' J. Friedman, T. Hastie, and R. Tibshirani, "Regularization Paths for Generalized Linear Models via
+#'   Coordinate Descent," J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010, doi: 10.18637/jss.v033.i01.
+#'
+#' J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+#'   High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+#'   Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
 #'
 #' @examples
 #' set.seed(1)
@@ -1519,6 +1749,24 @@ TCDENET_Solver <- R6::R6Class(
 #' for \code{solver = "TCDIENET"}. Inherits the CD getters from
 #' \code{\link{TCDSolver_Base}} and all common methods from
 #' \code{\link{TSolver_Base}}.
+#'
+#' @references
+#' J. Machkour, M. Muma, and D. P. Palomar, "The Informed Elastic Net for Fast Grouped Variable Selection and
+#'   FDR Control in Genomics Research," in Proc. IEEE 9th Int. Workshop Comput. Adv. Multi-Sensor Adapt.
+#'   Process. (CAMSAP), 2023, pp. 466-470.
+#'
+#' H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R. Stat. Soc. Ser. B
+#'   Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+#'
+#' J. Friedman, T. Hastie, H. Höfling, and R. Tibshirani, "Pathwise Coordinate Optimization," Ann. Appl.
+#'   Stat., vol. 1, no. 2, pp. 302-332, 2007, doi: 10.1214/07-AOAS131.
+#'
+#' J. Friedman, T. Hastie, and R. Tibshirani, "Regularization Paths for Generalized Linear Models via
+#'   Coordinate Descent," J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010, doi: 10.18637/jss.v033.i01.
+#'
+#' J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+#'   High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+#'   Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
 #'
 #' @examples
 #' set.seed(1)
@@ -1580,6 +1828,24 @@ TCDIENET_Solver <- R6::R6Class(
 #' \code{solver = "TCDTIKNET"}. Inherits the CD getters from
 #' \code{\link{TCDSolver_Base}} and all common methods from
 #' \code{\link{TSolver_Base}}.
+#'
+#' @references
+#' A. N. Tikhonov, "Solution of Incorrectly Formulated Problems and the Regularization Method," Soviet Math.
+#'   Dokl., vol. 4, pp. 1035-1038, 1963 (English translation of Dokl. Akad. Nauk SSSR 151 (1963), no. 3,
+#'   501-504).
+#'
+#' Y. Park, L. Reichel, G. Rodriguez, and X. Yu, "Parameter Determination for Tikhonov Regularization Problems
+#'   in General Form," J. Comput. Appl. Math., vol. 343, pp. 12-25, 2018, doi: 10.1016/j.cam.2018.04.049.
+#'
+#' J. Friedman, T. Hastie, H. Höfling, and R. Tibshirani, "Pathwise Coordinate Optimization," Ann. Appl.
+#'   Stat., vol. 1, no. 2, pp. 302-332, 2007, doi: 10.1214/07-AOAS131.
+#'
+#' J. Friedman, T. Hastie, and R. Tibshirani, "Regularization Paths for Generalized Linear Models via
+#'   Coordinate Descent," J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010, doi: 10.18637/jss.v033.i01.
+#'
+#' J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+#'   High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+#'   Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
 #'
 #' @examples
 #' set.seed(1)

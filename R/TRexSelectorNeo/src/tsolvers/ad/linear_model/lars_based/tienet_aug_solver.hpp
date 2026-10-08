@@ -93,6 +93,22 @@ namespace trex::tsolvers::ad::linear_model::lars_based {
 
 // ============================================================================
 
+/**
+ * @brief Terminating Informed Elastic Net (T-IENET) solver via row augmentation, wrapping TLASSO_Solver.
+ *
+ *  References:
+ *  -----------
+ *   J. Machkour, M. Muma, and D. P. Palomar, "The Informed Elastic Net for Fast Grouped Variable Selection
+ *     and FDR Control in Genomics Research," in Proc. IEEE 9th Int. Workshop Comput. Adv. Multi-Sensor Adapt.
+ *     Process. (CAMSAP), 2023, pp. 466-470.
+ *   H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R. Stat. Soc. Ser.
+ *     B Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+ *   B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann. Statist., vol. 32,
+ *     no. 2, pp. 407-499, 2004.
+ *   J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+ *     High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+ *     Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+ */
 class TIENETAug_Solver : public TSolver_Base {
 
     // ========================================================================

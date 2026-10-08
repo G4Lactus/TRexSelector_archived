@@ -500,6 +500,14 @@ trex_biobank_control <- function(lower_bound_FDR = 0.05,
 #' @return A named list describing the dummy distribution, for use in
 #'   \code{\link{trex_control}}.
 #'
+#' @references
+#' J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+#'   High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+#'   Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+#'
+#' E. Mammen, "Bootstrap and Wild Bootstrap for High Dimensional Linear Models," Ann. Statist., vol. 21,
+#'   no. 1, pp. 255-285, 1993, doi: 10.1214/aos/1176349025.
+#'
 #' @examples
 #' # Standard Normal (default)
 #' trex_dummy_distribution()

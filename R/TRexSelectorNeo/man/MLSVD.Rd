@@ -19,6 +19,9 @@ res <- solver$compute(X, M = 3)
 dim(res$U)  # 50 x 3
 
 }
+\references{
+G. Guennebaud, B. Jacob et al., Eigen v3, http://eigen.tuxfamily.org, 2010.
+}
 \seealso{
 Other ML methods:
 \code{\link{MLElasticNet}},

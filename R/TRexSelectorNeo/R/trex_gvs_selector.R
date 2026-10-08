@@ -7,6 +7,22 @@
 #'
 #' @importFrom R6 R6Class
 #'
+#' @references
+#' J. Machkour, M. Muma, and D. P. Palomar, "False Discovery Rate Control for Grouped Variable Selection in
+#'   High-Dimensional Linear Models Using the T-Knock Filter," in Proc. 30th Eur. Signal Process. Conf.
+#'   (EUSIPCO), 2022, pp. 892-896.
+#'
+#' J. Machkour, M. Muma, and D. P. Palomar, "The Informed Elastic Net for Fast Grouped Variable Selection and
+#'   FDR Control in Genomics Research," in Proc. IEEE 9th Int. Workshop Comput. Adv. Multi-Sensor Adapt.
+#'   Process. (CAMSAP), 2023, pp. 466-470.
+#'
+#' H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R. Stat. Soc. Ser. B
+#'   Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+#'
+#' J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+#'   High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+#'   Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+#'
 #' @examples
 #' \donttest{
 #' data(Gauss_data)

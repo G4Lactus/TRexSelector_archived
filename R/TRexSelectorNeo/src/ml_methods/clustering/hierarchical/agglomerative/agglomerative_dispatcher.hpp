@@ -91,6 +91,26 @@ void reject_non_finite(const MatrixType& data) {
 
 // ===================================================================================
 
+/**
+ * @brief Agglomerative hierarchical clustering, dispatching to the SLINK, NN-chain or generic linkage engine.
+ *
+ *  References:
+ *  -----------
+ *   R. Sibson, "SLINK: An Optimally Efficient Algorithm for the Single-Link Cluster Method," Comput. J.,
+ *     vol. 16, no. 1, pp. 30-34, 1973.
+ *   J.-P. Benzécri, "Construction d'une classification ascendante hiérarchique par la recherche en chaîne des
+ *     voisins réciproques," Les Cahiers de l'Analyse des Données, vol. 7, no. 2, pp. 209-218, 1982.
+ *   J. Juan, "Programme de classification hiérarchique par l'algorithme de la recherche en chaîne des voisins
+ *     réciproques," Les Cahiers de l'Analyse des Données, vol. 7, no. 2, pp. 219-225, 1982.
+ *   G. N. Lance and W. T. Williams, "A General Theory of Classificatory Sorting Strategies: I. Hierarchical
+ *     Systems," Comput. J., vol. 9, pp. 373-380, 1967.
+ *   D. Müllner, "Modern Hierarchical, Agglomerative Clustering Algorithms," arXiv:1109.2378, 2011.
+ *   F. Murtagh and P. Contreras, "Algorithms for Hierarchical Clustering: An Overview," Wiley Interdiscip.
+ *     Rev. Data Min. Knowl. Discov., vol. 2, no. 1, pp. 86-97, 2012, doi: 10.1002/widm.53.
+ *   F. Murtagh and P. Contreras, "Algorithms for Hierarchical Clustering: An Overview, II," Wiley
+ *     Interdiscip. Rev. Data Min. Knowl. Discov., vol. 7, no. 6, Art. no. e1219, 2017,
+ *     doi: 10.1002/widm.1219.
+ */
 class AgglomerativeClustering {
 public:
     /**

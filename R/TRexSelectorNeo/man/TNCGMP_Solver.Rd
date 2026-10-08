@@ -21,6 +21,14 @@ solver$execute_step(T_stop = 3)
 solver$get_beta()
 
 }
+\references{
+F. Locatello, R. Khanna, M. Tschannen, and M. Jaggi, "A Unified Optimization View on Generalized Matching
+Pursuit and Frank-Wolfe," in Proc. 20th Int. Conf. Artif. Intell. Statist. (AISTATS), JMLR: W&CP vol. 54,
+2017.
+
+F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False Discovery Rate Control," in
+Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026, pp. 2511-2515.
+}
 \seealso{
 Other T-solvers:
 \code{\link{TACGP_Solver}},

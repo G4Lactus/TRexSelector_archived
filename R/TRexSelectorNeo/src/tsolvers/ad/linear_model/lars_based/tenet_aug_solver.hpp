@@ -74,6 +74,19 @@ namespace trex::tsolvers::ad::linear_model::lars_based {
  * getBetaPathSparse().  In-memory warm-starting is supported via the inner
  * solver. The augmented copies are owned, so memoryBytes() grows with
  * 8 (n + p + L)(p + L + 1) bytes for lambda2 > 0 (8 n (p + L + 1) at 0).
+ *
+ *  References:
+ *  -----------
+ *   H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R. Stat. Soc. Ser.
+ *     B Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+ *   B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann. Statist., vol. 32,
+ *     no. 2, pp. 407-499, 2004.
+ *   J. Machkour, M. Muma, and D. P. Palomar, "False Discovery Rate Control for Grouped Variable Selection in
+ *     High-Dimensional Linear Models Using the T-Knock Filter," in Proc. 30th Eur. Signal Process. Conf.
+ *     (EUSIPCO), 2022, pp. 892-896.
+ *   J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+ *     High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+ *     Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
  */
 class TENETAug_Solver : public TSolver_Base {
 

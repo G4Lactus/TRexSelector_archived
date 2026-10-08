@@ -22,6 +22,11 @@ solver <- MLRidge$new()
 beta_hat <- solver$solve(X, y, lambda = 0.01)
 
 }
+\references{
+A. E. Hoerl and R. W. Kennard, "Ridge Regression: Biased Estimation for Nonorthogonal Problems,"
+Technometrics, vol. 42, no. 1, pp. 80-86, 2000 (Reprint of the 1970 article in the Special 40th
+Anniversary Issue).
+}
 \seealso{
 Other ML methods:
 \code{\link{MLElasticNet}},

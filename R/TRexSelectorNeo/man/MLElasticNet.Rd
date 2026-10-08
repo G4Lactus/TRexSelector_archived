@@ -21,6 +21,13 @@ dim(en$get_coef())        # p x n_lambda
 en$predict(X[1:5, ])
 
 }
+\references{
+H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R. Stat. Soc. Ser. B
+Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+
+J. Friedman, T. Hastie, and R. Tibshirani, "Regularization Paths for Generalized Linear Models via
+Coordinate Descent," J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010, doi: 10.18637/jss.v033.i01.
+}
 \seealso{
 Other ML methods:
 \code{\link{MLElasticNetCV}},

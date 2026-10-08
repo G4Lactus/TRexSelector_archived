@@ -98,6 +98,19 @@ namespace model_selection {
  * @brief K-fold cross-validated generalized-Tikhonov ridge over a direct
  *        lambda2 grid (SVD-analytic per fold), with group-mean (IEN) and
  *        general sparse-K specializations.
+ *
+ *  References:
+ *  -----------
+ *   A. N. Tikhonov, "Solution of Incorrectly Formulated Problems and the Regularization Method," Soviet Math.
+ *     Dokl., vol. 4, pp. 1035-1038, 1963 (English translation of Dokl. Akad. Nauk SSSR 151 (1963), no. 3,
+ *     501-504).
+ *   Y. Park, L. Reichel, G. Rodriguez, and X. Yu, "Parameter Determination for Tikhonov Regularization
+ *     Problems in General Form," J. Comput. Appl. Math., vol. 343, pp. 12-25, 2018,
+ *     doi: 10.1016/j.cam.2018.04.049.
+ *   A. E. Hoerl and R. W. Kennard, "Ridge Regression: Biased Estimation for Nonorthogonal Problems,"
+ *     Technometrics, vol. 42, no. 1, pp. 80-86, 2000 (Reprint of the 1970 article in the Special 40th
+ *     Anniversary Issue).
+ *   G. Guennebaud, B. Jacob et al., Eigen v3, http://eigen.tuxfamily.org, 2010.
  */
 class tikhonov_cv_svd {
 

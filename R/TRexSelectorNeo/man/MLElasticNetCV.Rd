@@ -19,6 +19,20 @@ cv$fit(X, y, alpha = 0.5)
 cv$cv_min()
 
 }
+\references{
+H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R. Stat. Soc. Ser. B
+Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+
+J. Friedman, T. Hastie, and R. Tibshirani, "Regularization Paths for Generalized Linear Models via
+Coordinate Descent," J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010, doi: 10.18637/jss.v033.i01.
+
+R. Tibshirani, J. Bien, J. Friedman, T. Hastie, N. Simon, J. Taylor, and R. J. Tibshirani, "Strong Rules
+for Discarding Predictors in Lasso-Type Problems," J. R. Stat. Soc. Ser. B Stat. Methodol., vol. 74,
+no. 2, pp. 245-266, 2012, doi: 10.1111/j.1467-9868.2011.01004.x.
+
+L. Breiman, J. H. Friedman, R. A. Olshen, and C. J. Stone, Classification and Regression Trees. Wadsworth,
+Belmont, CA, 1984.
+}
 \seealso{
 Other ML methods:
 \code{\link{MLElasticNet}},

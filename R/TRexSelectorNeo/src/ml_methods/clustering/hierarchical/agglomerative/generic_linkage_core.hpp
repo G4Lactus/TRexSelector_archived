@@ -12,11 +12,6 @@
  * do not satisfy the reducibility property (such as Centroid and Median linkage),
  * avoiding the O(N^3) time penalty of naive AGNES implementations.
  *
- * References:
- * -----------
- * Müllner, D., "Modern hierarchical, agglomerative clustering algorithms",
- *   arXiv preprint arXiv:1109.2378v1, pp.1-29, 2011.
- *
  * Organization:
  * -------------
  * |- src/ml_methods/clustering/hierarchical/agglomerative/
@@ -55,6 +50,12 @@ namespace trex::ml_methods::clustering::hierarchical::agglomerative {
  * @tparam MatrixType The type of input data matrix. To handle massive datasets
  * efficiently without triggering deep copies, use Eigen::Map.
  * @tparam DistanceUpdater The type of the distance updater functor.
+ *
+ *  References:
+ *  -----------
+ *   G. N. Lance and W. T. Williams, "A General Theory of Classificatory Sorting Strategies: I. Hierarchical
+ *     Systems," Comput. J., vol. 9, pp. 373-380, 1967.
+ *   D. Müllner, "Modern Hierarchical, Agglomerative Clustering Algorithms," arXiv:1109.2378, 2011.
  */
 template <typename MatrixType, typename DistanceUpdater>
 class GenericLinkage {

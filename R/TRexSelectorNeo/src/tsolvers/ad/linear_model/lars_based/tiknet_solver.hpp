@@ -57,11 +57,6 @@
  *  TENET ridge). K = K_GC = blockdiag(I - J/p_m) walks the same path
  *  family as the CCD GROUP_CENTERING mode (crossing-support equivalence,
  *  opposite algorithmic sides).
- *
- * References:
- *  - Efron, Hastie, Johnstone, Tibshirani (2004). "Least Angle Regression".
- *  - Machkour, Muma, Palomar (2023). "The Informed Elastic Net for Fast
- *    Grouped Variable Selection and FDR Control in Genomics Research".
  */
 // ============================================================================
 
@@ -91,6 +86,26 @@ namespace trex::tsolvers::ad::linear_model::lars_based {
 /**
  * @brief Terminating Tikhonov Net (T-TIKNET) solver via the native pathwise
  * LARS-TIK algorithm with FOLDED dummy coupling.
+ *
+ *  References:
+ *  -----------
+ *   A. N. Tikhonov, "Solution of Incorrectly Formulated Problems and the Regularization Method," Soviet Math.
+ *     Dokl., vol. 4, pp. 1035-1038, 1963 (English translation of Dokl. Akad. Nauk SSSR 151 (1963), no. 3,
+ *     501-504).
+ *   Y. Park, L. Reichel, G. Rodriguez, and X. Yu, "Parameter Determination for Tikhonov Regularization
+ *     Problems in General Form," J. Comput. Appl. Math., vol. 343, pp. 12-25, 2018,
+ *     doi: 10.1016/j.cam.2018.04.049.
+ *   A. E. Hoerl and R. W. Kennard, "Ridge Regression: Biased Estimation for Nonorthogonal Problems,"
+ *     Technometrics, vol. 42, no. 1, pp. 80-86, 2000 (Reprint of the 1970 article in the Special 40th
+ *     Anniversary Issue).
+ *   Y. Miche, M. van Heeswijk, P. Bas, O. Simula, and A. Lendasse, "TROP-ELM: A Double-Regularized ELM Using
+ *     LARS and Tikhonov Regularization," Neurocomputing, vol. 74, pp. 2413-2421, 2011,
+ *     doi: 10.1016/j.neucom.2010.12.042.
+ *   B. Efron, T. Hastie, I. Johnstone, and R. Tibshirani, "Least Angle Regression," Ann. Statist., vol. 32,
+ *     no. 2, pp. 407-499, 2004.
+ *   J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+ *     High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+ *     Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
  */
 class TIKNET_Solver: public TLARS_Solver {
 

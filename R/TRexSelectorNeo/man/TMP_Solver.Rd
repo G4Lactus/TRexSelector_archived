@@ -18,6 +18,13 @@ solver$execute_step(T_stop = 3)
 solver$get_beta()
 
 }
+\references{
+S. G. Mallat and Z. Zhang, "Matching Pursuits with Time-Frequency Dictionaries," IEEE Trans. Signal
+Process., vol. 41, no. 12, pp. 3397-3415, 1993, doi: 10.1109/78.258082.
+
+F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False Discovery Rate Control," in
+Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026, pp. 2511-2515.
+}
 \seealso{
 Other T-solvers:
 \code{\link{TACGP_Solver}},

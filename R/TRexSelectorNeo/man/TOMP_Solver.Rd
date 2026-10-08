@@ -18,6 +18,20 @@ solver$execute_step(T_stop = 3)
 solver$get_beta()
 
 }
+\references{
+Y. C. Pati, R. Rezaiifar, and P. S. Krishnaprasad, "Orthogonal Matching Pursuit: Recursive Function
+Approximation with Applications to Wavelet Decomposition," in Proc. 27th Asilomar Conf. Signals, Syst.,
+Comput., 1993, pp. 40-44.
+
+J. A. Tropp, "Greed is Good: Algorithmic Results for Sparse Approximation," IEEE Trans. Inf. Theory,
+vol. 50, no. 10, pp. 2231-2242, 2004, doi: 10.1109/TIT.2004.834793.
+
+T. Blumensath and M. E. Davies, "On the Difference Between Orthogonal Matching Pursuit and Orthogonal Least
+Squares," unpublished note, draft of March 29, 2007.
+
+F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False Discovery Rate Control," in
+Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026, pp. 2511-2515.
+}
 \seealso{
 Other T-solvers:
 \code{\link{TACGP_Solver}},

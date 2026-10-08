@@ -18,6 +18,13 @@ solver$execute_step(T_stop = 3)
 solver$get_beta()
 
 }
+\references{
+T. Blumensath and M. E. Davies, "Gradient Pursuits," IEEE Trans. Signal Process., vol. 56, no. 6,
+pp. 2370-2382, 2008.
+
+F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False Discovery Rate Control," in
+Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026, pp. 2511-2515.
+}
 \seealso{
 Other T-solvers:
 \code{\link{TAFS_Solver}},

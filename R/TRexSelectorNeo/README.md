@@ -154,17 +154,25 @@ construct → `$select()` → inspect pattern.
 
 For more information and some examples, please check the package
 vignette in [`vignettes/`](vignettes/) (built on installation with
-`build_vignettes = TRUE`).
+`build_vignettes = TRUE`). The help page of every selector, T-solver and
+machine learning class ends with the papers it builds on, and
+`citation("TRexSelectorNeo")` lists the package entry and the T-Rex method
+papers.
 
 ## Links
 
-T-Rex paper: <https://doi.org/10.48550/arXiv.2110.06048>
+T-Rex paper: <https://doi.org/10.1016/j.sigpro.2025.109894>
 
 TRexSelector repository (C++ core, Python, and R packages):
 [GitHub-TRexSelector](https://github.com/G4Lactus/TRexSelector)
 
 Bug reports: [GitHub
 Issues](https://github.com/G4Lactus/TRexSelector/issues)
+
+## Acknowledgements
+
+The library builds on the Eigen linear algebra library: G. Guennebaud, B. Jacob et al., Eigen v3,
+<http://eigen.tuxfamily.org>, 2010.
 
 ## License
 

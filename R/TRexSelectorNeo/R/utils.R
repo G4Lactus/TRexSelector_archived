@@ -87,6 +87,11 @@ trex_normalize_design <- function(X, y, scaling_mode = c("L2", "ZSCORE", "NONE")
 #'
 #' @return A \code{MemoryMappedMatrix} / \code{mmap_matrix} object backed by \code{filename}.
 #'
+#' @references
+#' F. Scheidt, J. Machkour, and M. Muma, "Solving FDR-Controlled Sparse Regression Problems with Five Million
+#'   Variables on a Laptop," in Proc. IEEE 9th Int. Workshop Comput. Adv. Multi-Sensor Adapt. Process.
+#'   (CAMSAP), 2023, pp. 116-120.
+#'
 #' @examples
 #' \donttest{
 #' mat <- matrix(as.double(1:20), nrow = 4, ncol = 5)
@@ -124,6 +129,11 @@ mem_matrix_from <- function(mat, filename) {
 #' @param mode Access mode: 'readonly' or 'readwrite' (default)
 #'
 #' @return Object of classes \code{MemoryMappedMatrix} and \code{mmap_matrix} (S3 XPtr wrapper)
+#'
+#' @references
+#' F. Scheidt, J. Machkour, and M. Muma, "Solving FDR-Controlled Sparse Regression Problems with Five Million
+#'   Variables on a Laptop," in Proc. IEEE 9th Int. Workshop Comput. Adv. Multi-Sensor Adapt. Process.
+#'   (CAMSAP), 2023, pp. 116-120.
 #'
 #' @examples
 #' \donttest{

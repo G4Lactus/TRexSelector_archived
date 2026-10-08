@@ -10,6 +10,11 @@
 #'
 #' @importFrom R6 R6Class
 #'
+#' @references
+#' J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+#'   High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+#'   Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
+#'
 #' @examples
 #' \donttest{
 #' data(Gauss_data)

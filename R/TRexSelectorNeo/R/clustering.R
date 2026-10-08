@@ -22,6 +22,12 @@ NULL
 #'              - `Median`: Median linkage: codes as 5.
 #'              - `Centroid`: Centroid linkage: codes as 6.
 #'
+#' @references
+#' G. N. Lance and W. T. Williams, "A General Theory of Classificatory Sorting Strategies: I. Hierarchical
+#'   Systems," Comput. J., vol. 9, pp. 373-380, 1967.
+#'
+#' D. Müllner, "Modern Hierarchical, Agglomerative Clustering Algorithms," arXiv:1109.2378, 2011.
+#'
 #' @examples
 #' ml_linkage_method$Ward
 #' ml_linkage_method$Average
@@ -47,6 +53,16 @@ ml_linkage_method <- list(
 #'            - `Manhattan`: Manhattan (L1) distance: codes as 2.
 #'            - `Correlation_LSH_Filter`: Correlation distance with LSH-based filtering: codes as 3.
 #'            - `Correlation_LSH_Approx`: Approximate correlation distance using LSH: codes as 4.
+#'
+#' @references
+#' M. S. Charikar, "Similarity Estimation Techniques from Rounding Algorithms," in Proc. ACM Symp. Theory
+#'   Comput. (STOC), 2002.
+#'
+#' P. Indyk and R. Motwani, "Approximate Nearest Neighbors: Towards Removing the Curse of Dimensionality," in
+#'   Proc. 30th ACM Symp. Theory Comput. (STOC), 1998, pp. 604-613.
+#'
+#' P. Li, T. J. Hastie, and K. W. Church, "Very Sparse Random Projections," in Proc. ACM SIGKDD Int. Conf.
+#'   Knowl. Discovery Data Mining (KDD), 2006.
 #'
 #' @examples
 #' ml_distance_metric$Euclidean
@@ -75,6 +91,27 @@ ml_distance_metric <- list(
 #'                 Ignored when \code{data} is already an \code{mmap_matrix} (always \code{TRUE}).
 #'
 #' @return A numeric matrix representing the computed hierarchical linkage.
+#'
+#' @references
+#' R. Sibson, "SLINK: An Optimally Efficient Algorithm for the Single-Link Cluster Method," Comput. J.,
+#'   vol. 16, no. 1, pp. 30-34, 1973.
+#'
+#' J.-P. Benzécri, "Construction d'une classification ascendante hiérarchique par la recherche en chaîne des
+#'   voisins réciproques," Les Cahiers de l'Analyse des Données, vol. 7, no. 2, pp. 209-218, 1982.
+#'
+#' J. Juan, "Programme de classification hiérarchique par l'algorithme de la recherche en chaîne des voisins
+#'   réciproques," Les Cahiers de l'Analyse des Données, vol. 7, no. 2, pp. 219-225, 1982.
+#'
+#' G. N. Lance and W. T. Williams, "A General Theory of Classificatory Sorting Strategies: I. Hierarchical
+#'   Systems," Comput. J., vol. 9, pp. 373-380, 1967.
+#'
+#' D. Müllner, "Modern Hierarchical, Agglomerative Clustering Algorithms," arXiv:1109.2378, 2011.
+#'
+#' F. Murtagh and P. Contreras, "Algorithms for Hierarchical Clustering: An Overview," Wiley Interdiscip. Rev.
+#'   Data Min. Knowl. Discov., vol. 2, no. 1, pp. 86-97, 2012, doi: 10.1002/widm.53.
+#'
+#' F. Murtagh and P. Contreras, "Algorithms for Hierarchical Clustering: An Overview, II," Wiley Interdiscip.
+#'   Rev. Data Min. Knowl. Discov., vol. 7, no. 6, Art. no. e1219, 2017, doi: 10.1002/widm.1219.
 #'
 #' @examples
 #' set.seed(1)

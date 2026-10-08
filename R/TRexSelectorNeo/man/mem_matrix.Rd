@@ -31,6 +31,11 @@ mm <- mem_matrix(f, rows = 4, cols = 5)
 }
 
 }
+\references{
+F. Scheidt, J. Machkour, and M. Muma, "Solving FDR-Controlled Sparse Regression Problems with Five Million
+Variables on a Laptop," in Proc. IEEE 9th Int. Workshop Comput. Adv. Multi-Sensor Adapt. Process.
+(CAMSAP), 2023, pp. 116-120.
+}
 \seealso{
 Other memory-mapped matrices:
 \code{\link[=mem_matrix_from]{mem_matrix_from()}}

@@ -65,8 +65,12 @@ namespace trex::tsolvers::ad::linear_model::omp_based {
 *       unused. MP requires no matrix factorization — collinearity is handled
 *       implicitly via |alpha^n| < eps_ in the outer loop.
 *
-* @note Reference: Blumensath, T. and Davies, M.E. (2008). Gradient Pursuits.
-*       IEEE Transactions on Signal Processing, 56(6), pp.2370-2382.
+*  References:
+*  -----------
+*   S. G. Mallat and Z. Zhang, "Matching Pursuits with Time-Frequency Dictionaries," IEEE Trans. Signal
+*     Process., vol. 41, no. 12, pp. 3397-3415, 1993, doi: 10.1109/78.258082.
+*   F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False Discovery Rate Control,"
+*     in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026, pp. 2511-2515.
 */
 class TMP_Solver : public TOMP_Solver {
 

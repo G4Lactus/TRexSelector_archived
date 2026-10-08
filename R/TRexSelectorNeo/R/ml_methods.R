@@ -376,6 +376,13 @@ MLLpNormScaler <- R6::R6Class("MLLpNormScaler",
 #'
 #' @description Performs explicit K-Fold cross-validation for Ridge Regression model selection.
 #'
+#' @references
+#' A. E. Hoerl and R. W. Kennard, "Ridge Regression: Biased Estimation for Nonorthogonal Problems,"
+#'   Technometrics, vol. 42, no. 1, pp. 80-86, 2000 (Reprint of the 1970 article in the Special 40th
+#'   Anniversary Issue).
+#'
+#' G. Guennebaud, B. Jacob et al., Eigen v3, http://eigen.tuxfamily.org, 2010.
+#'
 #' @examples
 #' set.seed(1)
 #' X <- matrix(rnorm(50 * 5), 50, 5)
@@ -497,6 +504,13 @@ MLRidgeCV <- R6::R6Class("MLRidgeCV",
 #'   in the original predictor scale, intercepts, the deviance-ratio path, and
 #'   predictions for new data. The mixing parameter \code{alpha} interpolates
 #'   between lasso (\code{alpha = 1}) and ridge (\code{alpha = 0}).
+#'
+#' @references
+#' H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R. Stat. Soc. Ser. B
+#'   Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+#'
+#' J. Friedman, T. Hastie, and R. Tibshirani, "Regularization Paths for Generalized Linear Models via
+#'   Coordinate Descent," J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010, doi: 10.18637/jss.v033.i01.
 #'
 #' @examples
 #' set.seed(1)
@@ -653,6 +667,20 @@ MLElasticNet <- R6::R6Class("MLElasticNet",
 #'   \code{lambda.min} and \code{lambda.1se}. The mixing parameter \code{alpha}
 #'   interpolates between lasso (\code{alpha = 1}) and ridge (\code{alpha = 0}).
 #'
+#' @references
+#' H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R. Stat. Soc. Ser. B
+#'   Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+#'
+#' J. Friedman, T. Hastie, and R. Tibshirani, "Regularization Paths for Generalized Linear Models via
+#'   Coordinate Descent," J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010, doi: 10.18637/jss.v033.i01.
+#'
+#' R. Tibshirani, J. Bien, J. Friedman, T. Hastie, N. Simon, J. Taylor, and R. J. Tibshirani, "Strong Rules
+#'   for Discarding Predictors in Lasso-Type Problems," J. R. Stat. Soc. Ser. B Stat. Methodol., vol. 74,
+#'   no. 2, pp. 245-266, 2012, doi: 10.1111/j.1467-9868.2011.01004.x.
+#'
+#' L. Breiman, J. H. Friedman, R. A. Olshen, and C. J. Stone, Classification and Regression Trees. Wadsworth,
+#'   Belmont, CA, 1984.
+#'
 #' @examples
 #' set.seed(1)
 #' n <- 60; p <- 10
@@ -773,6 +801,9 @@ MLElasticNetCV <- R6::R6Class("MLElasticNetCV",
 #'
 #' @details Wraps the C++ \code{MLSVD::compute(X, M)} static method.
 #'
+#' @references
+#' G. Guennebaud, B. Jacob et al., Eigen v3, http://eigen.tuxfamily.org, 2010.
+#'
 #' @examples
 #' set.seed(42)
 #' X <- matrix(rnorm(50 * 10), 50, 10)
@@ -848,6 +879,9 @@ MLSVD <- R6::R6Class("MLSVD",
 #'   at creation (mirroring the C++ constructor); \code{fit()} is single-use.
 #'   The fit result is cached internally; use the \code{get_*()} accessors or
 #'   pass \code{X_new} to \code{transform()} for out-of-sample scoring.
+#'
+#' @references
+#' G. Guennebaud, B. Jacob et al., Eigen v3, http://eigen.tuxfamily.org, 2010.
 #'
 #' @examples
 #' set.seed(42)
@@ -979,6 +1013,11 @@ MLPCA <- R6::R6Class("MLPCA",
 #'   (\eqn{n \ge p}) and dual (\eqn{n < p}) Cholesky paths.
 #'
 #' @details Wraps the C++ \code{MLRidge::solve(X, y, lambda)} static method.
+#'
+#' @references
+#' A. E. Hoerl and R. W. Kennard, "Ridge Regression: Biased Estimation for Nonorthogonal Problems,"
+#'   Technometrics, vol. 42, no. 1, pp. 80-86, 2000 (Reprint of the 1970 article in the Special 40th
+#'   Anniversary Issue).
 #'
 #' @examples
 #' set.seed(42)

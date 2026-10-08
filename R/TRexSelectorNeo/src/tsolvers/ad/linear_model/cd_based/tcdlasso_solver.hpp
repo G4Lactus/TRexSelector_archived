@@ -21,9 +21,8 @@
  * one path step being recorded per dummy-count crossing (per lambda1 grid
  * point in full-path mode).
  *
- * Crossing localization (default CERTIFIED, see the T-CD theory note
- * `tccd_definitions_events_certificates.md`, Part II): every bracket endpoint
- * is a *certified point* — a fixed-lambda1 solve carrying a duality-gap
+ * Crossing localization (default CERTIFIED): every bracket endpoint is a
+ * *certified point* — a fixed-lambda1 solve carrying a duality-gap
  * certificate and coordinate-status certificates (certified OUT / IN with
  * sign) until the signed support is exact — and every stretch of the path
  * between consecutive certified points is covered by a bracket certificate:
@@ -95,6 +94,20 @@ enum class SolverTypeCdBased: int {
  * Supports in-memory and memory-mapped data over Eigen::Map. The Gram rows
  * of the ever-active variables and the continuation cache stay allocated
  * after executeStep(), so memoryBytes() counts them.
+ *
+ *  References:
+ *  -----------
+ *   R. Tibshirani, "Regression Shrinkage and Selection via the Lasso," J. R. Stat. Soc. Ser. B Stat.
+ *     Methodol., vol. 58, no. 1, pp. 267-288, 1996.
+ *   J. Friedman, T. Hastie, H. Höfling, and R. Tibshirani, "Pathwise Coordinate Optimization," Ann. Appl.
+ *     Stat., vol. 1, no. 2, pp. 302-332, 2007, doi: 10.1214/07-AOAS131.
+ *   J. Friedman, T. Hastie, and R. Tibshirani, "Regularization Paths for Generalized Linear Models via
+ *     Coordinate Descent," J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010, doi: 10.18637/jss.v033.i01.
+ *   W. J. Fu, "Penalized Regression: The Bridge Versus the Lasso," J. Comput. Graph. Statist., vol. 7,
+ *     pp. 397-416, 1998.
+ *   J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+ *     High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+ *     Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
  */
 class TCDLASSO_Solver : public TSolver_Base {
 protected:

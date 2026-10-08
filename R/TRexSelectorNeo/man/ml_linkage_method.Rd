@@ -21,6 +21,12 @@ Supported methods include:
 ml_linkage_method$Ward
 ml_linkage_method$Average
 }
+\references{
+G. N. Lance and W. T. Williams, "A General Theory of Classificatory Sorting Strategies: I. Hierarchical
+Systems," Comput. J., vol. 9, pp. 373-380, 1967.
+
+D. Müllner, "Modern Hierarchical, Agglomerative Clustering Algorithms," arXiv:1109.2378, 2011.
+}
 \seealso{
 Other ML methods:
 \code{\link{MLElasticNet}},

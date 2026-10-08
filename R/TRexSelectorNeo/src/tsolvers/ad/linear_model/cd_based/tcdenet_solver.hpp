@@ -49,6 +49,18 @@ namespace trex::tsolvers::ad::linear_model::cd_based {
  *  Coefficients are reported as raw minimizers of the objective above (no
  *  Zou-Hastie (1 + lambda2) rescaling; apply it downstream if the corrected
  *  elastic net convention is required).
+ *
+ *  References:
+ *  -----------
+ *   H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R. Stat. Soc. Ser.
+ *     B Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+ *   J. Friedman, T. Hastie, H. Höfling, and R. Tibshirani, "Pathwise Coordinate Optimization," Ann. Appl.
+ *     Stat., vol. 1, no. 2, pp. 302-332, 2007, doi: 10.1214/07-AOAS131.
+ *   J. Friedman, T. Hastie, and R. Tibshirani, "Regularization Paths for Generalized Linear Models via
+ *     Coordinate Descent," J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010, doi: 10.18637/jss.v033.i01.
+ *   J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast
+ *     High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231,
+ *     Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.
  */
 class TCDENET_Solver: public TCDLASSO_Solver {
 

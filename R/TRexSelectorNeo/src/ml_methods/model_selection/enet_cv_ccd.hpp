@@ -792,6 +792,18 @@ private:
  *  For ridge (@f$\alpha=0@f$) the returned lambdas are on glmnet's scale and the
  *  T-Rex conversion `lambda_2_lars = lambda.1se * p / 2` applies, exactly as for
  *  `ridge_cv_svd`.
+ *
+ *  References:
+ *  -----------
+ *   H. Zou and T. Hastie, "Regularization and Variable Selection via the Elastic Net," J. R. Stat. Soc. Ser.
+ *     B Stat. Methodol., vol. 67, no. 2, pp. 301-320, 2005.
+ *   J. Friedman, T. Hastie, and R. Tibshirani, "Regularization Paths for Generalized Linear Models via
+ *     Coordinate Descent," J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010, doi: 10.18637/jss.v033.i01.
+ *   R. Tibshirani, J. Bien, J. Friedman, T. Hastie, N. Simon, J. Taylor, and R. J. Tibshirani, "Strong Rules
+ *     for Discarding Predictors in Lasso-Type Problems," J. R. Stat. Soc. Ser. B Stat. Methodol., vol. 74,
+ *     no. 2, pp. 245-266, 2012, doi: 10.1111/j.1467-9868.2011.01004.x.
+ *   L. Breiman, J. H. Friedman, R. A. Olshen, and C. J. Stone, Classification and Regression Trees.
+ *     Wadsworth, Belmont, CA, 1984.
  */
 class enet_cv_ccd {
 

@@ -28,6 +28,15 @@ namespace ridge {
 
 // ===================================================================================
 
+/**
+ * @brief Single-lambda ridge regression solver via a Cholesky factorization.
+ *
+ *  References:
+ *  -----------
+ *   A. E. Hoerl and R. W. Kennard, "Ridge Regression: Biased Estimation for Nonorthogonal Problems,"
+ *     Technometrics, vol. 42, no. 1, pp. 80-86, 2000 (Reprint of the 1970 article in the Special 40th
+ *     Anniversary Issue).
+ */
 class RidgeSolver {
 public:
     /** @brief Default constructor */

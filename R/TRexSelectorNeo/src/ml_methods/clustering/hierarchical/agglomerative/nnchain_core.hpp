@@ -15,17 +15,6 @@
  * The time complexity of the algorithm scales as O(N^2) and avoids computing the
  * full distance matrix if updating centroids iteratively. The space complexity is O(N).
  *
- * References:
- * -----------
- * - Murtagh, F., "A Survey of Recent Advances in Hierarchical Clustering Algorithms".
- *   The Computer Journal, 26(4), pp.354-359, 1983.
- * - Murtagh, F., "Algorithms for hierarchical clustering I: an overview".
- *   John Wiley & Sons, Vol. 00, pp.1-4, 2011.
- * - Murtagh, F. "Algorithms for hierarchical clustering II: an overview".
- *   John Wiley & Sons, Vol. 07, pp.1-16, 2017.
- * - Benzécri, J. P., "Construction d'une classification ascendante hiérarchique par
- *   la recherche en chaîne des voisins", Les Cahiers de l'Analyse des Données, 1982.
- *
  * Organization:
  * -------------
  * |- src/ml_methods/clustering/hierarchical/agglomerative/
@@ -64,6 +53,19 @@ namespace trex::ml_methods::clustering::hierarchical::agglomerative {
  * @tparam MatrixType The type of input data matrix. To handle massive datasets
  * efficiently without triggering deep copies, use Eigen::Map.
  * @tparam DistancePolicy The type of the distance updater functor.
+ *
+ *  References:
+ *  -----------
+ *   J.-P. Benzécri, "Construction d'une classification ascendante hiérarchique par la recherche en chaîne des
+ *     voisins réciproques," Les Cahiers de l'Analyse des Données, vol. 7, no. 2, pp. 209-218, 1982.
+ *   J. Juan, "Programme de classification hiérarchique par l'algorithme de la recherche en chaîne des voisins
+ *     réciproques," Les Cahiers de l'Analyse des Données, vol. 7, no. 2, pp. 219-225, 1982.
+ *   F. Murtagh and P. Contreras, "Algorithms for Hierarchical Clustering: An Overview," Wiley Interdiscip.
+ *     Rev. Data Min. Knowl. Discov., vol. 2, no. 1, pp. 86-97, 2012, doi: 10.1002/widm.53.
+ *   F. Murtagh and P. Contreras, "Algorithms for Hierarchical Clustering: An Overview, II," Wiley
+ *     Interdiscip. Rev. Data Min. Knowl. Discov., vol. 7, no. 6, Art. no. e1219, 2017,
+ *     doi: 10.1002/widm.1219.
+ *   D. Müllner, "Modern Hierarchical, Agglomerative Clustering Algorithms," arXiv:1109.2378, 2011.
  */
 template <typename MatrixType, typename DistancePolicy>
 class NNChain {

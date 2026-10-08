@@ -48,6 +48,11 @@ enum class AccessMode {
  * @tparam Scalar The scalar type of the matrix elements
  *         (e.g., float, double, std::complex<double>).
  *
+ *  References:
+ *  -----------
+ *   F. Scheidt, J. Machkour, and M. Muma, "Solving FDR-Controlled Sparse Regression Problems with Five
+ *     Million Variables on a Laptop," in Proc. IEEE 9th Int. Workshop Comput. Adv. Multi-Sensor Adapt.
+ *     Process. (CAMSAP), 2023, pp. 116-120.
  */
 template<typename Scalar>
 class MemoryMappedMatrix {

@@ -19,6 +19,16 @@ Supported metrics include:
 ml_distance_metric$Euclidean
 ml_distance_metric$Correlation
 }
+\references{
+M. S. Charikar, "Similarity Estimation Techniques from Rounding Algorithms," in Proc. ACM Symp. Theory
+Comput. (STOC), 2002.
+
+P. Indyk and R. Motwani, "Approximate Nearest Neighbors: Towards Removing the Curse of Dimensionality," in
+Proc. 30th ACM Symp. Theory Comput. (STOC), 1998, pp. 604-613.
+
+P. Li, T. J. Hastie, and K. W. Church, "Very Sparse Random Projections," in Proc. ACM SIGKDD Int. Conf.
+Knowl. Discovery Data Mining (KDD), 2006.
+}
 \seealso{
 Other ML methods:
 \code{\link{MLElasticNet}},

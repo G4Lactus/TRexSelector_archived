@@ -18,6 +18,17 @@ solver$execute_step(T_stop = 3)
 solver$get_beta()
 
 }
+\references{
+S. Chen, S. A. Billings, and W. Luo, "Orthogonal Least Squares Methods and Their Application to Non-Linear
+System Identification," Int. J. Control, vol. 50, no. 5, pp. 1873-1896, 1989,
+doi: 10.1080/00207178908953472.
+
+T. Blumensath and M. E. Davies, "On the Difference Between Orthogonal Matching Pursuit and Orthogonal Least
+Squares," unpublished note, draft of March 29, 2007.
+
+F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False Discovery Rate Control," in
+Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026, pp. 2511-2515.
+}
 \seealso{
 Other T-solvers:
 \code{\link{TACGP_Solver}},

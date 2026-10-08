@@ -53,6 +53,10 @@ struct SVDResult {
  *  - Randomized SVD (RedSVD) for massive n and p with small M.
  *  - Gram / kernel trick for the wide (p >> n) regime.
  *  - Thin Jacobi SVD as the general fallback.
+ *
+ *  References:
+ *  -----------
+ *   G. Guennebaud, B. Jacob et al., Eigen v3, http://eigen.tuxfamily.org, 2010.
  */
 class SVDSolver {
 public:

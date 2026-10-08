@@ -64,8 +64,12 @@ namespace trex::tsolvers::ad::linear_model::omp_based {
  *       On the first iteration d^{n-1} is zero, so b_1 = 0 and the method
  *       falls back to pure GP.
  *
- * @note Reference: Blumensath, T. and Davies, M.E. (2008). Gradient Pursuits.
- *       IEEE Transactions on Signal Processing, 56(6), pp.2370-2382.
+ *  References:
+ *  -----------
+ *   T. Blumensath and M. E. Davies, "Gradient Pursuits," IEEE Trans. Signal Process., vol. 56, no. 6,
+ *     pp. 2370-2382, 2008.
+ *   F. Scheidt and M. Muma, "Terminating Greedy Pursuits for High-Dimensional False Discovery Rate Control,"
+ *     in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026, pp. 2511-2515.
  */
 class TACGP_Solver : public TGP_Solver {
 

@@ -29,6 +29,9 @@ pca$transform(X_new)
 pca$restore()
 
 }
+\references{
+G. Guennebaud, B. Jacob et al., Eigen v3, http://eigen.tuxfamily.org, 2010.
+}
 \seealso{
 Other ML methods:
 \code{\link{MLElasticNet}},
