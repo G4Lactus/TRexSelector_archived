@@ -60,6 +60,33 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   T-Rex selectors are unchanged (seeded selectors derive per-experiment seeds,
   unseeded ones pass -1).
 
+### 2026-10-20
+
+#### Free-space check before memory-mapped files are created
+
+- Memory-mapped files are created sparse, so a full disk only showed at a later
+  mapped write and ended the process with SIGBUS (no error, no cleanup). The
+  new `utils/disk_space.hpp` compares the bytes a mapping may write with the
+  free space of its volume and throws `std::runtime_error` with the required
+  and free GiB, the directory and a remedy instead; a volume that cannot be
+  queried passes.
+- `MemmapManager::initialize()` (the dummy matrices of every T-Rex selector with
+  `use_memory_mapping`) checks the worst case before it creates anything: all
+  files filled up to the dummy cap, K files (one if shared) of
+  n x `max_dummy_multiplier` x p doubles (`requiredBytes()`). The message names
+  `max_dummy_multiplier`, K and the temporary directory (TMPDIR; R sets
+  `tempdir()` at load; `TempDirManager::setCustomTempDir` in C++).
+- `MemoryMappedMatrix` in ReadWrite mode checks the growth of a new or enlarged
+  file at its own location before creating it, so user-created designs (R
+  `mem_matrix`, Python `MemoryMappedMatrix`) are covered as well.
+- `TempDirManager::create` takes the description and the remedy for this
+  message, `TempDirManager::baseDir()` returns the directory it creates in; the
+  warm-start checkpoints keep their 5 GiB minimum with the new message.
+- Test `test_utils_disk_space` (7 cases: helpers, matrix, temp dir and manager
+  refuse an unfulfillable size before creating a file or directory, small sizes
+  still work). R vendored copy re-synced (`bundle_for_cran.sh --check` passes).
+  No result changes.
+
 ### 2026-10-08
 
 #### Scientific references in the class documentation; master bibliography; citation files

@@ -140,7 +140,9 @@ public:
         constexpr std::uintmax_t MIN_SPACE_REQUIRED = 5ULL * 1024 * 1024 * 1024;
 
         temp_dir_ = txfs::TempDirManager::create(
-            "trex_warmstart_", MIN_SPACE_REQUIRED
+            "trex_warmstart_", MIN_SPACE_REQUIRED,
+            "WarmStartManager: the serialized solver checkpoints",
+            "Free disk space or point the temporary directory to a larger volume."
         );
 
         initialized_ = true;

@@ -100,6 +100,7 @@ target_sources(trex_utils PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/eval_metrics/utils_eval_rates.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/fp_classify/fp_classify.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/checked_arith.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/disk_space.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/global_temp_dir.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/logging/logger.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/memmap/memory_mapped_matrix.hpp

@@ -23,6 +23,7 @@
 #include <trex_selector_methods/ad/trex_utils/trex_temp_dir_manager.hpp>
 
 // utils includes
+#include <utils/checked_arith.hpp>
 #include <utils/memmap/memory_mapped_matrix.hpp>
 
 // =========================================================================
@@ -97,16 +98,36 @@ public:
     const std::string& getTempDir() const { return temp_dir_; }
 
     /**
+     * @brief Bytes the dummy files may occupy at most: every file filled up to
+     *        the dummy cap (n x max_dummies doubles per file).
+     */
+    std::size_t requiredBytes() const {
+        namespace ca = trex::utils::checked_arith;
+        const std::size_t num_files = shared_ ? 1 : K_;
+        return ca::checked_mul(ca::checked_bytes(n_, max_dummies_, sizeof(double), "MemmapManager"),
+                               num_files, "MemmapManager");
+    }
+
+    /**
      * @brief Creates the temp directory and instantiates the MemoryMappedMatrix objects.
+     *
+     * @throws std::runtime_error if the temp volume cannot hold the dummy files
+     *         at the dummy cap (checked before anything is created).
      */
     void initialize() {
         if (initialized_) return;
 
-        // 1. Create a safe temporary directory
-        temp_dir_ = txfs::TempDirManager::create("trex_memmap_");
+        // 1. Create a safe temporary directory once the worst case fits on its volume
+        std::size_t num_files = shared_ ? 1 : K_;
+        temp_dir_ = txfs::TempDirManager::create(
+            "trex_memmap_", requiredBytes(),
+            "MemmapManager: the memory-mapped dummy matrices (" + std::to_string(num_files) +
+                " file(s) of " + std::to_string(n_) + " x " + std::to_string(max_dummies_) +
+                " doubles at the dummy cap)",
+            "Free disk space, point the temporary directory to a larger volume (TMPDIR; "
+            "TempDirManager::setCustomTempDir in C++), or lower max_dummy_multiplier or K.");
 
         // 2. Initialize memory-mapped files on disk
-        std::size_t num_files = shared_ ? 1 : K_;
         namespace fs = std::filesystem;
 
         for (std::size_t i = 0; i < num_files; ++i) {

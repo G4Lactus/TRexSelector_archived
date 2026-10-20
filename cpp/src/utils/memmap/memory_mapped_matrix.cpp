@@ -19,6 +19,7 @@
 // utils includes
 #include "utils/memmap/memory_mapped_matrix.hpp"
 #include "utils/checked_arith.hpp"
+#include "utils/disk_space.hpp"
 
 // OS-Specific headers for optimization hints
 #if defined(_WIN32) || defined(_WIN64)
@@ -75,6 +76,20 @@ void MemoryMappedMatrix<Scalar>::initialize() {
 
     // 1. Handle File Creation / Resizing Explicitly
     if (mode_ == AccessMode::ReadWrite) {
+        // The file is sparse, so a full disk only shows at a mapped write (SIGBUS);
+        // check the growth against the free space of its volume first
+        std::error_code ec_size;
+        const std::uintmax_t existing_bytes =
+            fs::exists(filename_) ? fs::file_size(filename_, ec_size) : 0;
+        if (!ec_size && required_bytes > existing_bytes) {
+            trex::utils::disk_space::requireFreeSpace(
+                fs::path(filename_).parent_path(), required_bytes - existing_bytes,
+                "MemoryMappedMatrix: the file '" + filename_ + "' (" + std::to_string(rows_) +
+                    " x " + std::to_string(cols_) + " elements of " +
+                    std::to_string(sizeof(Scalar)) + " bytes)",
+                "Free disk space or place the file on a larger volume.");
+        }
+
         if (!fs::exists(filename_)) {
             // Create empty file if it doesn't exist
             std::ofstream ofs(filename_, std::ios::binary | std::ios::out);
