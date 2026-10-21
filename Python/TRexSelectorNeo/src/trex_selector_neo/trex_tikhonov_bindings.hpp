@@ -189,6 +189,7 @@ inline void bind_trex_tikhonov(py::module& m) {
         .def_readwrite("cv_n_folds",      &tik::TRexTikhonovControlParameter::cv_n_folds,      "Folds of the CV tuners.")
         .def_readwrite("cv_n_lambda",     &tik::TRexTikhonovControlParameter::cv_n_lambda,     "SVD tuners: points on the lambda_2 grid.")
         .def_readwrite("cv_n_lambda1",    &tik::TRexTikhonovControlParameter::cv_n_lambda1,    "IEN-geometry CD tuners: points on the profiled lambda_1 path per lambda_2 value.")
+        .def_readwrite("cv_dfmax_ratio",  &tik::TRexTikhonovControlParameter::cv_dfmax_ratio,  "IEN-geometry CD tuners: support cap as a fraction of the smallest fold's training size (default 0.8; <= 0 disables the cap; larger values allow larger supports at a higher tuner cost; must be finite).")
         .def_readwrite("cv_n_lambda2",    &tik::TRexTikhonovControlParameter::cv_n_lambda2,    "IEN-geometry CD tuners: points on the lambda_2 grid.")
         .def_readwrite("cv_seed",         &tik::TRexTikhonovControlParameter::cv_seed,         "Seed for the CV fold permutation (-1 = derive from the T-Rex seed).")
         .def_readwrite("pilot_grid",      &tik::TRexTikhonovControlParameter::pilot_grid,      "lambda_2 grid of the PILOT_* rules.")

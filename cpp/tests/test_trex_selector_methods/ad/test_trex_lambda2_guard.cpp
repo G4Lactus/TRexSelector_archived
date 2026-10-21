@@ -20,6 +20,10 @@
  *   - The Tikhonov selector's IEN tuner warns the same way.
  *   - A fixed lambda_2 never warns and leaves the guard fields at their
  *     defaults.
+ *   - cv_dfmax_ratio reaches the IEN tuner of both selectors: the default
+ *     0.8 is bit-identical to passing 0.8, a larger ratio raises the
+ *     recorded support cap, the ratio rides in the diagnostics, and a
+ *     non-finite value is rejected at construction.
  */
 // ========================================================================================
 
@@ -32,9 +36,12 @@
 
 // std includes
 #include <cmath>
+#include <limits>
 #include <map>
 #include <random>
+#include <stdexcept>
 #include <string>
+#include <utility>
 #include <vector>
 
 // project trex includes
@@ -276,6 +283,135 @@ TEST(Lambda2Guard, TikhonovIenPureNoiseIsABoundaryPickAndWarnsOnce) {
     EXPECT_NE(err.find("TRexTikhonovSelector::computeLambda2: CV_1SE_IEN_CCD"),
               std::string::npos) << err;
     EXPECT_GT(sel.getLambda2Used(), 0.0);
+#else
+    SUCCEED();
+#endif
+}
+
+
+// ----- cv_dfmax_ratio: the support cap of the IEN-geometry tuner ------------
+// n = 60 with 10 folds: n_test_max = 6, n_train_min = 54, so the cap is
+// floor(0.8 * 54) = 43 by default and floor(0.95 * 54) = 51 at 0.95; p = 80
+// exceeds both, so the cap can bind (not low-dimensional). Each run gets a
+// fresh design from the same seed (the selector normalizes X in place).
+
+TEST(Lambda2Guard, GvsDfmaxRatioDefaultIsExplicitPointEightAndLargerRaisesTheCap) {
+#ifndef CRAN_BUILD
+    const Eigen::Index n = 60, p = 80;
+    auto ctrl = gvsIenControl(LambdaSelectionMethod::CV_1SE_IEN_CCD);
+    EXPECT_DOUBLE_EQ(ctrl.cv_dfmax_ratio, 0.8);
+
+    Design d_default(n, p, 0.75, /*signal=*/true, 11);
+    const GvsRun r_default = runGvs(d_default, ctrl);
+
+    auto ctrl_08 = ctrl;
+    ctrl_08.cv_dfmax_ratio = 0.8;
+    Design d_08(n, p, 0.75, /*signal=*/true, 11);
+    const GvsRun r_08 = runGvs(d_08, ctrl_08);
+
+    // Bit-identical: same lambda_2, same cap, same pick, ratio recorded.
+    EXPECT_TRUE(r_default.diag.ran);
+    EXPECT_EQ(r_default.lambda2_used, r_08.lambda2_used);
+    EXPECT_EQ(r_default.diag.support_cap, 43);
+    EXPECT_EQ(r_default.diag.support_cap, r_08.diag.support_cap);
+    EXPECT_EQ(r_default.diag.grid_index, r_08.diag.grid_index);
+    EXPECT_EQ(r_default.diag.n_profile_at_edge, r_08.diag.n_profile_at_edge);
+    EXPECT_DOUBLE_EQ(r_default.diag.dfmax_ratio, 0.8);
+    EXPECT_FALSE(r_default.diag.low_dimensional);
+    EXPECT_DOUBLE_EQ(r_default.result_diag.dfmax_ratio, 0.8);   // carried in the result
+
+    auto ctrl_095 = ctrl;
+    ctrl_095.cv_dfmax_ratio = 0.95;
+    Design d_095(n, p, 0.75, /*signal=*/true, 11);
+    const GvsRun r_095 = runGvs(d_095, ctrl_095);
+    EXPECT_TRUE(r_095.diag.ran);
+    EXPECT_EQ(r_095.diag.support_cap, 51);
+    EXPECT_GT(r_095.diag.support_cap, r_default.diag.support_cap);
+    EXPECT_DOUBLE_EQ(r_095.diag.dfmax_ratio, 0.95);
+    EXPECT_FALSE(r_095.diag.low_dimensional);
+    EXPECT_GT(r_095.lambda2_used, 0.0);
+#else
+    SUCCEED();
+#endif
+}
+
+
+TEST(Lambda2Guard, GvsNonFiniteDfmaxRatioThrows) {
+    for (const double bad : {std::numeric_limits<double>::quiet_NaN(),
+                             std::numeric_limits<double>::infinity(),
+                             -std::numeric_limits<double>::infinity()}) {
+        Design d(60, 20, 0.75, /*signal=*/true, 11);
+        Eigen::Map<Eigen::MatrixXd> Xm(d.X.data(), d.X.rows(), d.X.cols());
+        Eigen::Map<Eigen::VectorXd> ym(d.y.data(), d.y.size());
+        auto ctrl = gvsIenControl(LambdaSelectionMethod::CV_1SE_IEN_CCD);
+        ctrl.cv_dfmax_ratio = bad;
+        EXPECT_THROW({ TRexGVSSelector sel(Xm, ym, 0.2, ctrl, 42, false); },
+                     std::invalid_argument) << "cv_dfmax_ratio = " << bad;
+    }
+    // A non-positive value is valid: it disables the cap.
+    Design d(60, 20, 0.75, /*signal=*/true, 11);
+    Eigen::Map<Eigen::MatrixXd> Xm(d.X.data(), d.X.rows(), d.X.cols());
+    Eigen::Map<Eigen::VectorXd> ym(d.y.data(), d.y.size());
+    auto ctrl = gvsIenControl(LambdaSelectionMethod::CV_1SE_IEN_CCD);
+    ctrl.cv_dfmax_ratio = -1.0;
+    EXPECT_NO_THROW({ TRexGVSSelector sel(Xm, ym, 0.2, ctrl, 42, false); });
+}
+
+
+TEST(Lambda2Guard, TikhonovDfmaxRatioReachesTheTunerAndNonFiniteThrows) {
+#ifndef CRAN_BUILD
+    const Eigen::Index n = 60, p = 80;
+    std::vector<Eigen::Index> groups(static_cast<std::size_t>(p));
+    for (Eigen::Index j = 0; j < p; ++j) { groups[static_cast<std::size_t>(j)] = j / 5; }
+
+    TRexTikhonovControlParameter ctrl;
+    ctrl.penalty_structure = TikPenaltyStructure::SPARSE_GENERAL;
+    ctrl.tikhonov_K        = groupMeanK(groups);
+    ctrl.prior_groups      = groups;
+    ctrl.cluster_dummies   = true;
+    ctrl.lambda_2          = -1.0;
+    ctrl.lambda2_method    = TikLambda2Method::CV_1SE_IEN_CCD;
+    ctrl.cv_n_lambda2      = 10;
+    ctrl.cv_n_lambda1      = 20;
+    ctrl.trex_ctrl.solver_type = SolverTypeForTRex::TCDTIKNET;
+    ctrl.trex_ctrl.K = 3;
+    ctrl.trex_ctrl.max_dummy_multiplier = 2;
+    EXPECT_DOUBLE_EQ(ctrl.cv_dfmax_ratio, 0.8);
+
+    auto runTik = [&](double ratio) {
+        Design d(n, p, 0.75, /*signal=*/true, 11);
+        Eigen::Map<Eigen::MatrixXd> Xm(d.X.data(), d.X.rows(), d.X.cols());
+        Eigen::Map<Eigen::VectorXd> ym(d.y.data(), d.y.size());
+        auto c = ctrl;
+        c.cv_dfmax_ratio = ratio;
+        testing::internal::CaptureStderr();
+        TRexTikhonovSelector sel(Xm, ym, 0.2, c, 42, false);
+        sel.select();
+        (void)testing::internal::GetCapturedStderr();
+        return std::make_pair(sel.getLambda2CVDiagnostics(), sel.getLambda2Used());
+    };
+
+    const auto [diag_08, l2_08] = runTik(0.8);
+    EXPECT_TRUE(diag_08.ran);
+    EXPECT_EQ(diag_08.support_cap, 43);
+    EXPECT_DOUBLE_EQ(diag_08.dfmax_ratio, 0.8);
+    EXPECT_GT(l2_08, 0.0);
+
+    const auto [diag_095, l2_095] = runTik(0.95);
+    EXPECT_EQ(diag_095.support_cap, 51);
+    EXPECT_DOUBLE_EQ(diag_095.dfmax_ratio, 0.95);
+    EXPECT_GT(l2_095, 0.0);
+
+    for (const double bad : {std::numeric_limits<double>::quiet_NaN(),
+                             std::numeric_limits<double>::infinity()}) {
+        Design d(n, p, 0.75, /*signal=*/true, 11);
+        Eigen::Map<Eigen::MatrixXd> Xm(d.X.data(), d.X.rows(), d.X.cols());
+        Eigen::Map<Eigen::VectorXd> ym(d.y.data(), d.y.size());
+        auto c = ctrl;
+        c.cv_dfmax_ratio = bad;
+        EXPECT_THROW({ TRexTikhonovSelector sel(Xm, ym, 0.2, c, 42, false); },
+                     std::invalid_argument) << "cv_dfmax_ratio = " << bad;
+    }
 #else
     SUCCEED();
 #endif

@@ -698,6 +698,11 @@ class Lambda2CVDiagnostics:
         at_grid_edge or profile_at_edge: the selector warned once and returned the pick unchanged.
         """
     @property
+    def dfmax_ratio(self) -> float:
+        """
+        IEN tuner: the support-cap ratio it was called with (cv_dfmax_ratio, as passed; <= 0 disabled the cap). 0 when no IEN-geometry tuner ran.
+        """
+    @property
     def grid_index(self) -> int:
         """
         0-based index of the returned lambda_2 on the tuner's grid (-1: no tuner ran).
@@ -721,6 +726,11 @@ class Lambda2CVDiagnostics:
     def profile_at_edge(self) -> bool:
         """
         IEN tuner: the profiled lambda_1 optimum of the chosen lambda_2 sat on the truncation edge of the lambda_1 path.
+        """
+    @property
+    def profile_at_support_cap(self) -> bool:
+        """
+        IEN tuner: profile_at_edge, and that edge is the support cap (raise cv_dfmax_ratio to move it).
         """
     @property
     def ran(self) -> bool:
@@ -1768,6 +1778,14 @@ class TRexGVSControlParameter:
     def corr_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
     @property
+    def cv_dfmax_ratio(self) -> float:
+        """
+        IEN-geometry CD tuners (CV_*_IEN_CCD): support cap as a fraction of the smallest fold's training size (default 0.8; <= 0 disables the cap; larger values allow larger supports at a higher tuner cost; must be finite).
+        """
+    @cv_dfmax_ratio.setter
+    def cv_dfmax_ratio(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
     def cv_n_folds(self) -> int:
         """
         Number of folds for cross-validated lambda_2 selection.
@@ -2162,6 +2180,14 @@ class TRexTikhonovControlParameter:
         """
     @corr_max.setter
     def corr_max(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
+        ...
+    @property
+    def cv_dfmax_ratio(self) -> float:
+        """
+        IEN-geometry CD tuners: support cap as a fraction of the smallest fold's training size (default 0.8; <= 0 disables the cap; larger values allow larger supports at a higher tuner cost; must be finite).
+        """
+    @cv_dfmax_ratio.setter
+    def cv_dfmax_ratio(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
     @property
     def cv_n_folds(self) -> int:

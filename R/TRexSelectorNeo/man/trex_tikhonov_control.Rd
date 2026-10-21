@@ -13,6 +13,7 @@ trex_tikhonov_control(
   cv_n_lambda = 100,
   cv_n_lambda1 = 40,
   cv_n_lambda2 = 100,
+  cv_dfmax_ratio = 0.8,
   cv_seed = -1,
   pilot_grid = c(0, 1, 3, 10, 30, 100, 300, 1000, 3000),
   pilot_K = 10,
@@ -70,6 +71,13 @@ profiled lambda_1 path per lambda_2 value (default: 40).}
 
 \item{cv_n_lambda2}{IEN-geometry coordinate-descent rules: points on the
 lambda_2 grid (default: 100).}
+
+\item{cv_dfmax_ratio}{IEN-geometry coordinate-descent rules: support cap
+as a fraction of the smallest fold's training size; each lambda_1 path
+stops once more than \code{floor(cv_dfmax_ratio * n_train)}
+coefficients are nonzero (default: 0.8). A value \code{<= 0} disables
+the cap. Larger values allow larger supports at a higher tuner cost.
+Must be finite.}
 
 \item{cv_seed}{Seed for the CV fold permutation; \code{-1} (default)
 derives it from the selector seed, \code{>= 0} overrides it for CV

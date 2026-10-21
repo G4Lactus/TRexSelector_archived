@@ -104,6 +104,9 @@ TRexGVSControlParameter parse_gvs_parameter(const Rcpp::List& control) {
         params.cv_n_lambda2 =
             static_cast<Eigen::Index>(Rcpp::as<int>(control["cv_n_lambda2"]));
     }
+    if (control.containsElementNamed("cv_dfmax_ratio")) {
+        params.cv_dfmax_ratio = Rcpp::as<double>(control["cv_dfmax_ratio"]);
+    }
     if (control.containsElementNamed("cv_seed")) {
         params.cv_seed = Rcpp::as<int>(control["cv_seed"]);
     }
@@ -123,12 +126,14 @@ Rcpp::List lambda2_cv_diagnostics_to_list(
         Rcpp::Named("seconds")           = d.seconds,
         Rcpp::Named("n_profile_at_edge") = static_cast<int>(d.n_profile_at_edge),
         Rcpp::Named("support_cap")       = static_cast<int>(d.support_cap),
+        Rcpp::Named("dfmax_ratio")       = d.dfmax_ratio,
         Rcpp::Named("low_dimensional")   = d.low_dimensional,
         // Boundary-pick guard: the chosen pick on its grid.
         Rcpp::Named("grid_index")        = static_cast<int>(d.grid_index),
         Rcpp::Named("grid_size")         = static_cast<int>(d.grid_size),
         Rcpp::Named("at_grid_edge")      = d.at_grid_edge,
         Rcpp::Named("profile_at_edge")   = d.profile_at_edge,
+        Rcpp::Named("profile_at_support_cap") = d.profile_at_support_cap,
         Rcpp::Named("boundary_pick")     = d.boundary_pick
     );
 }

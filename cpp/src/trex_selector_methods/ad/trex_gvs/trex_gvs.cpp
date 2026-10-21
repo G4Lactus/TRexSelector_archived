@@ -244,6 +244,14 @@ void TRexGVSSelector::validateGVSParameters() const {
     // valid input, so it is not rejected here. lambda_2 == 0 is the degenerate
     // (pure-TLASSO) case; lambda_2 > 0 is a fixed ridge penalty.
 
+    // Support cap of the IEN-geometry tuner: any finite value (<= 0 disables).
+    if (!std::isfinite(trex_gvs_ctrl_.cv_dfmax_ratio)) {
+        throw std::invalid_argument(
+            "TRexGVSSelector: cv_dfmax_ratio must be finite (<= 0 disables "
+            "the support cap). Got: " +
+            std::to_string(trex_gvs_ctrl_.cv_dfmax_ratio));
+    }
+
     // Validate prior_groups (length p, 0-based, contiguous in [0, M-1]).
     if (!trex_gvs_ctrl_.prior_groups.empty()) {
         if (trex_gvs_ctrl_.prior_groups.size() != p_) {
@@ -525,7 +533,8 @@ double TRexGVSSelector::computeLambda2() const {
                 // ctrl.cv_n_lambda1. The scan is warm-started across
                 // lambda_2 with the glmnet fdev/devmax/dfmax truncation of a
                 // full-data reference scan (cv.glmnet grid-once semantics);
-                // the dfmax support cap is what makes it affordable.
+                // the dfmax support cap (ctrl.cv_dfmax_ratio) is what makes
+                // it affordable. max_iter / tol are the tuner's defaults.
                 ms::ienet_cv_ccd cv;
                 cv.fit(*X_, y_, gvs_setup_.groups_vec,
                        trex_gvs_ctrl_.cv_n_folds,
@@ -533,7 +542,10 @@ double TRexGVSSelector::computeLambda2() const {
                        /*lambda2_ratio=*/1e4,
                        trex_gvs_ctrl_.cv_n_lambda1,
                        /*lambda1_min_ratio=*/-1.0,
-                       resolved_cv_seed_);
+                       resolved_cv_seed_,
+                       /*max_iter=*/100000,
+                       /*tol=*/1e-4,
+                       trex_gvs_ctrl_.cv_dfmax_ratio);
                 const bool one_se =
                     (trex_gvs_ctrl_.lambda2_method ==
                      LambdaSelectionMethod::CV_1SE_IEN_CCD);

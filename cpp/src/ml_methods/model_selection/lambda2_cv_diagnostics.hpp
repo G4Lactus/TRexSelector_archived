@@ -19,7 +19,9 @@
  *  optimum of that chosen lambda_2 sits on the truncation edge of the
  *  lambda_1 path (`profile_at_edge`). Either
  *  makes `boundary_pick` true; the selectors then emit one warning built by
- *  `boundary_pick_message()` and return the pick unchanged. The two modes
+ *  `boundary_pick_message()` and return the pick unchanged. When that edge
+ *  is the support cap (`profile_at_support_cap`), the warning also names
+ *  the selectors' `cv_dfmax_ratio` as a remedy. The two modes
  *  were established on the demo designs in August 2026: a truncation edge
  *  is counted by `n_profile_at_edge`, while a flat CV curve at low SNR
  *  lands on the lambda_2 grid ceiling with that counter at zero, so a
@@ -45,10 +47,10 @@ namespace model_selection {
  * @brief What a lambda_2 CV tuner did.
  *
  * `ran == false` means lambda_2 was user-supplied and no tuner executed.
- * The structural fields `n_profile_at_edge`, `support_cap`,
- * `low_dimensional` and `profile_at_edge` are specific to the 2D
- * IEN-geometry tuner (`ienet_cv_ccd`); every CV method fills `ran`,
- * `seconds` and the grid-pick fields.
+ * The structural fields `n_profile_at_edge`, `support_cap`, `dfmax_ratio`,
+ * `low_dimensional`, `profile_at_edge` and `profile_at_support_cap` are
+ * specific to the 2D IEN-geometry tuner (`ienet_cv_ccd`); every CV method
+ * fills `ran`, `seconds` and the grid-pick fields.
  */
 struct lambda2_cv_diagnostics {
 
@@ -66,6 +68,12 @@ struct lambda2_cv_diagnostics {
 
     /** @brief Support cap (glmnet `dfmax`) applied, or -1 when disabled. */
     Eigen::Index support_cap = -1;
+
+    /** @brief Support-cap ratio the IEN tuner was called with (the
+     *  selectors' `cv_dfmax_ratio`), recorded as passed: the cap is
+     *  floor(dfmax_ratio * n_train_min), and a value <= 0 disabled it
+     *  (`support_cap == -1`). 0 when no IEN-geometry tuner ran. */
+    double dfmax_ratio = 0.0;
 
     /** @brief p <= `support_cap`: the cap cannot bind, so the run pays the
      *  full cost of the deviance rules alone. Explains an expensive tuner
@@ -95,6 +103,12 @@ struct lambda2_cv_diagnostics {
      *  cap, deviance rule or end of the path) — a boundary solution in the
      *  nuisance dimension. */
     bool profile_at_edge = false;
+
+    /** @brief IEN tuner only: `profile_at_edge`, and that edge is the
+     *  support cap (the reference lambda_1 path of the chosen lambda_2
+     *  stopped on `support_cap`, not on a deviance rule or the end of the
+     *  path). Raising `dfmax_ratio` moves this edge. */
+    bool profile_at_support_cap = false;
 
     /** @brief `at_grid_edge || profile_at_edge`: the guard condition. The
      *  selectors warn once when it holds and return the pick unchanged. */
@@ -157,11 +171,19 @@ inline std::string boundary_pick_message(const lambda2_cv_diagnostics& d,
         os << (d.at_grid_edge ? "; and" : ":")
            << " the profiled lambda_1 optimum of this lambda_2 sits on the "
               "truncation edge of the lambda_1 path (support cap, deviance "
-              "rule or end of the path), so the tuner would have preferred "
-              "a smaller lambda_1";
+              "rule or end of the path)";
+        if (d.profile_at_support_cap) {
+            os << ", here the support cap (more than " << d.support_cap
+               << " nonzero coefficients, cv_dfmax_ratio = " << d.dfmax_ratio
+               << ")";
+        }
+        os << ", so the tuner would have preferred a smaller lambda_1";
     }
     os << ". The pick is returned unchanged. Remedies: prefer the 1SE rule "
           "over MIN, supply a fixed lambda_2";
+    if (d.profile_at_support_cap) {
+        os << ", raise the support cap (cv_dfmax_ratio)";
+    }
     if (d.profile_at_edge) {
         os << ", lengthen the lambda_1 path (cv_n_lambda1)";
     }

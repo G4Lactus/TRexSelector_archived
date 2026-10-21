@@ -74,6 +74,7 @@ def test_control_fields_roundtrip():
     assert ctrl.fold_dummy_coupling is True
     assert ctrl.trex_ctrl.solver_type == tsn.SolverTypeForTRex.TCDTIKNET
     assert ctrl.tikhonov_K.shape == (0, 0)
+    assert ctrl.cv_dfmax_ratio == pytest.approx(0.8)
 
     K = _group_mean_k([0, 0, 1, 1])
     ctrl.tikhonov_K = K
@@ -86,6 +87,7 @@ def test_control_fields_roundtrip():
     ctrl.cv_n_lambda1 = 15
     ctrl.cv_n_lambda2 = 25
     ctrl.cv_seed = 3
+    ctrl.cv_dfmax_ratio = 0.95
     ctrl.pilot_grid = [0.0, 1.0, 10.0]
     ctrl.pilot_K = 4
     ctrl.pilot_T = 2
@@ -101,6 +103,7 @@ def test_control_fields_roundtrip():
     assert ctrl.lambda2_method == tsn.TikLambda2Method.PILOT_KNEE
     assert ctrl.pilot_statistic == tsn.PilotStatistic.GROUP_MAJORITY
     assert (ctrl.cv_n_folds, ctrl.cv_n_lambda1, ctrl.cv_n_lambda2, ctrl.cv_seed) == (5, 15, 25, 3)
+    assert ctrl.cv_dfmax_ratio == pytest.approx(0.95)
     assert list(ctrl.pilot_grid) == [0.0, 1.0, 10.0]
     assert (ctrl.pilot_K, ctrl.pilot_T, ctrl.pilot_L_multiplier) == (4, 2, 1)
     assert ctrl.pilot_knee_tolerance == pytest.approx(2.0)
@@ -259,7 +262,8 @@ def test_build_group_centering_k():
 def test_lambda2_resolves_via_the_ien_tuner():
     X, y, groups = _grouped_data(seed=3)
     tik = _tik_control(_group_mean_k(groups), -1.0, prior_groups=groups,
-                       cv_n_folds=5, cv_n_lambda1=15, cv_n_lambda2=12, cv_seed=1)
+                       cv_n_folds=5, cv_n_lambda1=15, cv_n_lambda2=12, cv_seed=1,
+                       cv_dfmax_ratio=0.9)
     sel = tsn.TRexTikhonovSelector(X, y, tik_control=tik,
                                    trex_control=_base_control(), seed=1, verbose=False)
     with warnings.catch_warnings():
@@ -271,6 +275,18 @@ def test_lambda2_resolves_via_the_ien_tuner():
     assert 0 <= diag.grid_index < 12
     assert sel.lambda2_used >= 0.0
     assert sel.lambda2_pilot.ran is False
+    # The support-cap ratio reached the tuner and is recorded as passed.
+    assert diag.dfmax_ratio == pytest.approx(0.9)
+    assert diag.profile_at_edge or not diag.profile_at_support_cap
+
+
+def test_non_finite_cv_dfmax_ratio_raises():
+    X, y, groups = _grouped_data()
+    tik = _tik_control(_group_mean_k(groups), -1.0, prior_groups=groups,
+                       cv_dfmax_ratio=float("nan"))
+    with pytest.raises(ValueError, match="cv_dfmax_ratio must be finite"):
+        tsn.TRexTikhonovSelector(X, y, tik_control=tik,
+                                 trex_control=_base_control(), seed=1, verbose=False)
 
 
 def test_lambda2_resolves_via_the_pilot_rule():

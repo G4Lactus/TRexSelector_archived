@@ -14,10 +14,12 @@
 // std includes
 #include <algorithm>
 #include <chrono>
+#include <cmath>
 #include <cstdint>
 #include <random>
 #include <sstream>
 #include <stdexcept>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -201,6 +203,15 @@ TRexTikhonovSelector::TRexTikhonovSelector(
                 "block to share under the PERMUTATION family; use the "
                 "independent pilot dummies (default).");
         }
+    }
+
+    // ---- CV tuner gates ---------------------------------------------------
+    // Support cap of the IEN-geometry tuner: any finite value (<= 0 disables).
+    if (!std::isfinite(trex_tik_ctrl_.cv_dfmax_ratio)) {
+        throw std::invalid_argument(
+            "TRexTikhonovSelector: cv_dfmax_ratio must be finite (<= 0 "
+            "disables the support cap). Got: " +
+            std::to_string(trex_tik_ctrl_.cv_dfmax_ratio));
     }
 
     // ---- CV fold seed (mirrors TRexGVSSelector) ---------------------------
@@ -422,7 +433,8 @@ double TRexTikhonovSelector::computeLambda2() const {
             // ctrl.cv_n_lambda2; the nuisance lambda_1 path length is
             // ctrl.cv_n_lambda1. Warm-started across lambda_2 with the
             // glmnet fdev/devmax/dfmax truncation of a full-data reference
-            // scan; the dfmax support cap is what makes it affordable.
+            // scan; the dfmax support cap (ctrl.cv_dfmax_ratio) is what makes
+            // it affordable. max_iter / tol are the tuner's defaults.
             ms::ienet_cv_ccd cv;
             cv.fit(*X_, y_, trex_tik_ctrl_.tikhonov_K,
                    trex_tik_ctrl_.cv_n_folds,
@@ -430,7 +442,10 @@ double TRexTikhonovSelector::computeLambda2() const {
                    /*lambda2_ratio=*/1e4,
                    trex_tik_ctrl_.cv_n_lambda1,
                    /*lambda1_min_ratio=*/-1.0,
-                   resolved_cv_seed_);
+                   resolved_cv_seed_,
+                   /*max_iter=*/100000,
+                   /*tol=*/1e-4,
+                   trex_tik_ctrl_.cv_dfmax_ratio);
             const bool one_se =
                 (trex_tik_ctrl_.lambda2_method ==
                  TikLambda2Method::CV_1SE_IEN_CCD);

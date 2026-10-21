@@ -556,11 +556,18 @@ test_that("the IEN tuner grids pass through and the tuner diagnostics are expose
   sel_fixed$select()
   expect_false(sel_fixed$lambda2_cv_diagnostics$ran)
 
+  # Support cap of the IEN tuner: default 0.8, a double, finite only.
+  expect_identical(trex_gvs_control()$cv_dfmax_ratio, 0.8)
+  expect_error(trex_gvs_control(cv_dfmax_ratio = NA), "cv_dfmax_ratio")
+  expect_error(trex_gvs_control(cv_dfmax_ratio = Inf), "cv_dfmax_ratio")
+
   # IEN-geometry CV with reduced grids: the tuner ran and is reported.
   ctrl <- trex_gvs_control(gvs_type = "IEN", lambda_2 = -1, groups = groups,
-                           cv_n_lambda1 = 20, cv_n_lambda2 = 10)
+                           cv_n_lambda1 = 20, cv_n_lambda2 = 10,
+                           cv_dfmax_ratio = 0.9)
   expect_identical(ctrl$cv_n_lambda1, 20L)
   expect_identical(ctrl$cv_n_lambda2, 10L)
+  expect_identical(ctrl$cv_dfmax_ratio, 0.9)
   sel_cv <- TRexGVSSelector$new(
     X + 0, y, tFDR = 0.2, seed = 42, verbose = FALSE,
     gvs_control = ctrl, control = trex_control(K = 5))
@@ -570,6 +577,10 @@ test_that("the IEN tuner grids pass through and the tuner diagnostics are expose
   expect_gte(diag$seconds, 0)
   expect_true(is.numeric(diag$n_profile_at_edge))
   expect_gt(sel_cv$lambda2_used, 0)
+  # The ratio reached the tuner and is recorded as passed.
+  expect_identical(diag$dfmax_ratio, 0.9)
+  expect_type(diag$profile_at_support_cap, "logical")
+  expect_true(diag$profile_at_edge || !diag$profile_at_support_cap)
 
   # Boundary-pick guard fields: the chosen pick on its grid.
   expect_identical(diag$grid_size, 10L)
@@ -584,4 +595,5 @@ test_that("the IEN tuner grids pass through and the tuner diagnostics are expose
   expect_identical(d0$grid_index, -1L)
   expect_identical(d0$grid_size, 0L)
   expect_false(d0$boundary_pick)
+  expect_identical(d0$dfmax_ratio, 0)
 })

@@ -325,6 +325,15 @@ struct TRexTikhonovControlParameter {
      *  100-point grid's lambda_2 picks exactly. Default: 40. */
     Eigen::Index cv_n_lambda1 = 40;
 
+    /** @brief Support cap of the CV_*_IEN_CCD 2D tuner as a fraction of the
+     *  smallest CV fold's training size n_train_min: the full-data
+     *  reference scan stops each lambda_1 path at the first point with more
+     *  than floor(cv_dfmax_ratio * n_train_min) nonzero coefficients
+     *  (glmnet `dfmax`). `<= 0` disables the cap. Larger values allow larger
+     *  supports at a higher tuner cost (past nnz ~ n_train the coordinate
+     *  descent slows sharply). Must be finite. Default: 0.8. */
+    double cv_dfmax_ratio = 0.8;
+
     /** @brief Seed for the deterministic CV fold-permutation RNG.
      *  - `-1` (default): derived from the T-Rex `seed` parameter.
      *  - `>= 0`: explicit fold seed; overrides `seed` for CV only. */

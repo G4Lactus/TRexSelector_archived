@@ -17,6 +17,7 @@ trex_gvs_control(
   cv_n_lambda = 1000,
   cv_n_lambda1 = 40,
   cv_n_lambda2 = 100,
+  cv_dfmax_ratio = 0.8,
   cv_seed = -1
 )
 }
@@ -82,6 +83,14 @@ in this number). Ignored by the other rules and when
 \item{cv_n_lambda2}{IEN-geometry coordinate-descent tuners only: points
 on the lambda_2 grid (default: 100). Ignored by the other rules and
 when \code{lambda_2 >= 0}.}
+
+\item{cv_dfmax_ratio}{IEN-geometry coordinate-descent tuners only: support
+cap as a fraction of the smallest fold's training size; each lambda_1
+path stops once more than \code{floor(cv_dfmax_ratio * n_train)}
+coefficients are nonzero (default: 0.8). A value \code{<= 0} disables
+the cap. Larger values allow larger supports at a higher tuner cost.
+Must be finite. Ignored by the other rules and when
+\code{lambda_2 >= 0}.}
 
 \item{cv_seed}{Seed for the deterministic fold-permutation RNG used by the CV
 \code{lambda2_method} paths. \code{-1} (default) derives it from the T-Rex

@@ -51,6 +51,13 @@ test_that("trex_tikhonov_control validates its arguments", {
   expect_true(ctrl$cluster_dummies)
   expect_identical(ctrl$cv_n_lambda1, 40L)
   expect_identical(ctrl$cv_n_lambda2, 100L)
+  expect_identical(ctrl$cv_dfmax_ratio, 0.8)
+  wide <- trex_tikhonov_control(tikhonov_K = diag(4), cv_dfmax_ratio = 1)
+  expect_identical(wide$cv_dfmax_ratio, 1)
+  expect_error(
+    trex_tikhonov_control(tikhonov_K = diag(4), cv_dfmax_ratio = NaN),
+    "cv_dfmax_ratio"
+  )
 
   # GROUP_CENTERING builds K itself: no tikhonov_K needed.
   gc <- trex_tikhonov_control(penalty_structure = "GROUP_CENTERING",
@@ -265,7 +272,7 @@ test_that("lambda_2 auto-resolves via the IEN-geometry tuner", {
     tik_control = trex_tikhonov_control(
       tikhonov_K = .group_mean_k(d$p), lambda_2 = -1,
       prior_groups = d$groups,
-      cv_n_lambda1 = 20, cv_n_lambda2 = 10),
+      cv_n_lambda1 = 20, cv_n_lambda2 = 10, cv_dfmax_ratio = 0.9),
     control = trex_control(K = 5, max_dummy_multiplier = 2))
   sel$select()
 
@@ -275,6 +282,9 @@ test_that("lambda_2 auto-resolves via the IEN-geometry tuner", {
   expect_gte(diag$seconds, 0)
   expect_gte(diag$n_profile_at_edge, 0)
   expect_false(sel$lambda2_pilot$ran)
+  # The support-cap ratio reached the tuner and is recorded as passed.
+  expect_identical(diag$dfmax_ratio, 0.9)
+  expect_true(diag$profile_at_edge || !diag$profile_at_support_cap)
 
   # Boundary-pick guard fields.
   expect_identical(diag$grid_size, 10L)

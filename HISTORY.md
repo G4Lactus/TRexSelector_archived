@@ -60,6 +60,46 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   T-Rex selectors are unchanged (seeded selectors derive per-experiment seeds,
   unseeded ones pass -1).
 
+### 2026-10-21
+
+#### Settable support cap of the IEN-geometry lambda_2 tuners (`cv_dfmax_ratio`)
+
+- The IEN-geometry tuner `ienet_cv_ccd` (`CV_1SE_IEN_CCD` / `CV_MIN_IEN_CCD`)
+  stops each lambda_1 path of its reference scan once more than
+  floor(`dfmax_ratio` x n_train_min) coefficients are nonzero. `TRexGVSSelector`
+  and `TRexTikhonovSelector` called it without the ratio, so the cap was fixed at
+  0.8 of the smallest fold's training size. The new control field
+  `cv_dfmax_ratio` (default 0.8) sets it: `<= 0` disables the cap, larger values
+  allow larger supports at a higher tuner cost, and a non-finite value throws
+  `std::invalid_argument` at construction. The selectors now pass the tuner's
+  own defaults for `max_iter` (100000) and `tol` (1e-4) explicitly, so the
+  default 0.8 gives the same results as before.
+- C++: `TRexGVSControlParameter::cv_dfmax_ratio` and
+  `TRexTikhonovControlParameter::cv_dfmax_ratio`. Python: the same field on both
+  control classes (stubs updated by hand). R: argument `cv_dfmax_ratio` of
+  `trex_gvs_control()` and `trex_tikhonov_control()`, which reject a non-finite
+  value as well; Rd files updated by hand.
+- `lambda2_cv_diagnostics` gains `dfmax_ratio` (the ratio the IEN tuner was
+  called with, as passed; 0 when no IEN-geometry tuner ran; `support_cap == -1`
+  still marks a disabled cap) and `profile_at_support_cap` (the profiled
+  lambda_1 optimum of the chosen lambda_2 sits on the truncation edge, and the
+  reference path of that lambda_2 stopped on the support cap rather than on a
+  deviance rule or the end of the path). Both are exposed in Python
+  (`Lambda2CVDiagnostics`) and in the R `lambda2_cv_diagnostics` list.
+- Boundary-pick warning: when the edge is the support cap it says so ("here the
+  support cap (more than N nonzero coefficients, cv_dfmax_ratio = r)") and adds
+  the remedy "raise the support cap (cv_dfmax_ratio)"; the other wording is
+  unchanged.
+- Tests: `test_trex_lambda2_guard` (GVS default and explicit 0.8 bit-identical,
+  0.95 raises the cap from 43 to 51 at n = 60 with 10 folds, the ratio rides in
+  the diagnostics and the GVS result, non-finite values throw; the same
+  forwarding for the Tikhonov selector), `test_ml_methods_model_selection` (a
+  binding cap is flagged and named in the warning, a disabled cap is not; the
+  message contract), Python and R control round trips and diagnostics fields.
+  All pass: the full C++ suite (657 tests), the Python GVS/Tikhonov tests (40)
+  and the R GVS/Tikhonov testthat files (29 blocks).
+- R vendored copy re-synced (`bundle_for_cran.sh --check` passes).
+
 ### 2026-10-20
 
 #### Free-space check before memory-mapped files are created

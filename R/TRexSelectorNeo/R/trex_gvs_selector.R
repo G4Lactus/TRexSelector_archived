@@ -143,14 +143,18 @@ TRexGVSSelector <- R6::R6Class("TRexGVSSelector",
     #'   the last \code{select()}: a list with \code{ran}, \code{seconds},
     #'   \code{n_profile_at_edge} (lambda_2 values whose profiled lambda_1
     #'   optimum sat on a truncation edge; 0 is healthy), \code{support_cap}
-    #'   (-1 = disabled), \code{low_dimensional}, and the boundary-pick
-    #'   guard fields: \code{grid_index} / \code{grid_size} (0-based
-    #'   position of the returned lambda_2 on the tuner's grid),
-    #'   \code{at_grid_edge} (the pick is the first or last grid point, so
-    #'   the grid boundary rather than a CV optimum), \code{profile_at_edge}
-    #'   (IEN tuner: the profiled lambda_1 optimum of the chosen lambda_2 sat
-    #'   on the truncation edge) and \code{boundary_pick} (either; the
-    #'   selector warned once and returned the pick unchanged).
+    #'   (-1 = disabled), \code{dfmax_ratio} (IEN tuner: the
+    #'   \code{cv_dfmax_ratio} it was called with; 0 when no IEN-geometry
+    #'   tuner ran), \code{low_dimensional}, and the boundary-pick guard
+    #'   fields: \code{grid_index} / \code{grid_size} (0-based position of
+    #'   the returned lambda_2 on the tuner's grid), \code{at_grid_edge} (the
+    #'   pick is the first or last grid point, so the grid boundary rather
+    #'   than a CV optimum), \code{profile_at_edge} (IEN tuner: the profiled
+    #'   lambda_1 optimum of the chosen lambda_2 sat on the truncation edge),
+    #'   \code{profile_at_support_cap} (that edge is the support cap; raise
+    #'   \code{cv_dfmax_ratio} to move it) and \code{boundary_pick}
+    #'   (\code{at_grid_edge} or \code{profile_at_edge}; the selector warned
+    #'   once and returned the pick unchanged).
     lambda2_cv_diagnostics = function(value) {
       if (!missing(value)) {
         stop("Field is read-only.")

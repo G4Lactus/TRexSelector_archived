@@ -144,12 +144,14 @@ inline void bind_trex_gvs(py::module& m) {
         .def_readonly("seconds", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::seconds, "Wall-clock seconds spent resolving lambda_2.")
         .def_readonly("n_profile_at_edge", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::n_profile_at_edge, "lambda_2 values whose profiled lambda_1 optimum landed on a truncation edge (0 = healthy).")
         .def_readonly("support_cap", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::support_cap, "Support cap (glmnet dfmax) applied, or -1 when disabled.")
+        .def_readonly("dfmax_ratio", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::dfmax_ratio, "IEN tuner: the support-cap ratio it was called with (cv_dfmax_ratio, as passed; <= 0 disabled the cap). 0 when no IEN-geometry tuner ran.")
         .def_readonly("low_dimensional", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::low_dimensional, "p <= cap: the cap was inert.")
         // Boundary-pick guard: the chosen pick on its grid.
         .def_readonly("grid_index", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::grid_index, "0-based index of the returned lambda_2 on the tuner's grid (-1: no tuner ran).")
         .def_readonly("grid_size", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::grid_size, "Number of lambda_2 grid points searched (0: no tuner ran).")
         .def_readonly("at_grid_edge", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::at_grid_edge, "The returned lambda_2 is the first or last grid point: the grid boundary, not a CV optimum.")
         .def_readonly("profile_at_edge", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::profile_at_edge, "IEN tuner: the profiled lambda_1 optimum of the chosen lambda_2 sat on the truncation edge of the lambda_1 path.")
+        .def_readonly("profile_at_support_cap", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::profile_at_support_cap, "IEN tuner: profile_at_edge, and that edge is the support cap (raise cv_dfmax_ratio to move it).")
         .def_readonly("boundary_pick", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::boundary_pick, "at_grid_edge or profile_at_edge: the selector warned once and returned the pick unchanged.");
 
     py::enum_<LambdaSelectionMethod>(m, "LambdaSelectionMethod", "Rule for auto-selecting the ridge parameter lambda_2 when lambda_2 < 0.")
@@ -174,6 +176,7 @@ inline void bind_trex_gvs(py::module& m) {
         .def_readwrite("cv_n_folds", &TRexGVSControlParameter::cv_n_folds, "Number of folds for cross-validated lambda_2 selection.")
         .def_readwrite("cv_n_lambda", &TRexGVSControlParameter::cv_n_lambda, "Number of points on the lambda grid searched during CV (EN-shaped rules).")
         .def_readwrite("cv_n_lambda1", &TRexGVSControlParameter::cv_n_lambda1, "IEN-geometry CD tuners (CV_*_IEN_CCD): points on the profiled lambda_1 path per lambda_2 value (default 40).")
+        .def_readwrite("cv_dfmax_ratio", &TRexGVSControlParameter::cv_dfmax_ratio, "IEN-geometry CD tuners (CV_*_IEN_CCD): support cap as a fraction of the smallest fold's training size (default 0.8; <= 0 disables the cap; larger values allow larger supports at a higher tuner cost; must be finite).")
         .def_readwrite("cv_n_lambda2", &TRexGVSControlParameter::cv_n_lambda2, "IEN-geometry CD tuners: points on the lambda_2 grid (default 100).")
         .def_readwrite("cv_seed", &TRexGVSControlParameter::cv_seed, "Seed for the CV fold-permutation RNG (-1 = derive from the T-Rex seed).")
         .def_readwrite("prior_groups", &TRexGVSControlParameter::prior_groups, "Manually specified group assignments (0-based; empty = auto-cluster).")

@@ -267,6 +267,16 @@ def test_lambda2_method_ien_tuner_rejected_on_en_track(signal_data):
         trex_selector_neo.TRexGVSSelector(X, y, gvs_control=gvs_ctrl, verbose=False)
 
 
+@pytest.mark.parametrize("bad", [float("nan"), float("inf")])
+def test_gvs_non_finite_cv_dfmax_ratio_raises(signal_data, bad):
+    X, y, n, p = signal_data
+    gvs_ctrl = trex_selector_neo.TRexGVSControlParameter()
+    gvs_ctrl.gvs_type = trex_selector_neo.GVSType.IEN
+    gvs_ctrl.cv_dfmax_ratio = bad
+    with pytest.raises(ValueError, match="cv_dfmax_ratio must be finite"):
+        trex_selector_neo.TRexGVSSelector(X, y, gvs_control=gvs_ctrl, verbose=False)
+
+
 def test_gvs_en_tcdenet_runs(signal_data):
     X, y, n, p = signal_data
     ctrl = trex_selector_neo.TRexControlParameter()
@@ -308,6 +318,7 @@ def test_gvs_ien_tuner_grids_and_diagnostics(signal_data):
     res = sel.select()
     assert res.lambda2_cv.ran is False
     assert sel.getLambda2CVDiagnostics().ran is False
+    assert res.lambda2_cv.dfmax_ratio == 0.0     # no IEN-geometry tuner ran
 
     # IEN-geometry CV with reduced grids: the tuner ran and is reported.
     gvs_ctrl = trex_selector_neo.TRexGVSControlParameter()
@@ -316,6 +327,9 @@ def test_gvs_ien_tuner_grids_and_diagnostics(signal_data):
     gvs_ctrl.cv_n_lambda1 = 20
     gvs_ctrl.cv_n_lambda2 = 10
     assert gvs_ctrl.cv_n_lambda1 == 20 and gvs_ctrl.cv_n_lambda2 == 10
+    assert gvs_ctrl.cv_dfmax_ratio == pytest.approx(0.8)   # default
+    gvs_ctrl.cv_dfmax_ratio = 0.9
+    assert gvs_ctrl.cv_dfmax_ratio == pytest.approx(0.9)
     sel = trex_selector_neo.TRexGVSSelector(X, y, gvs_control=gvs_ctrl,
                                             trex_control=ctrl, verbose=False)
     res = sel.select()
@@ -324,6 +338,11 @@ def test_gvs_ien_tuner_grids_and_diagnostics(signal_data):
     assert diag.seconds >= 0.0
     assert diag.n_profile_at_edge >= 0
     assert res.lambda2_used > 0
+
+    # The support-cap ratio reached the tuner and is recorded as passed.
+    assert diag.dfmax_ratio == pytest.approx(0.9)
+    assert isinstance(diag.profile_at_support_cap, bool)
+    assert diag.profile_at_edge or not diag.profile_at_support_cap
 
     # Boundary-pick guard fields: the chosen pick on its grid.
     assert diag.grid_size == 10

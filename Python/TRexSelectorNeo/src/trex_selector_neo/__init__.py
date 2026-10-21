@@ -321,14 +321,18 @@ class TRexGVSSelector(TRexSelector):
         lambda_2 came from the caller), ``seconds``, ``n_profile_at_edge``
         (lambda_2 values whose profiled lambda_1 optimum sat on a
         truncation edge; 0 is healthy), ``support_cap`` (-1 = disabled),
-        ``low_dimensional``, and the boundary-pick guard fields
-        ``grid_index`` / ``grid_size`` (0-based position of the returned
-        lambda_2 on the tuner's grid), ``at_grid_edge`` (first or last grid
-        point: the grid boundary, not a CV optimum), ``profile_at_edge``
-        (IEN tuner: the chosen lambda_2's profiled lambda_1 optimum sat on
-        the truncation edge) and ``boundary_pick`` (either; the selector
-        warned once and returned the pick unchanged). The same record is
-        carried in ``GVSSelectionResult.lambda2_cv``.
+        ``dfmax_ratio`` (IEN tuner: the ``cv_dfmax_ratio`` it was called
+        with; 0 when no IEN-geometry tuner ran), ``low_dimensional``, and
+        the boundary-pick guard fields ``grid_index`` / ``grid_size``
+        (0-based position of the returned lambda_2 on the tuner's grid),
+        ``at_grid_edge`` (first or last grid point: the grid boundary, not a
+        CV optimum), ``profile_at_edge`` (IEN tuner: the chosen lambda_2's
+        profiled lambda_1 optimum sat on the truncation edge),
+        ``profile_at_support_cap`` (that edge is the support cap; raise
+        ``cv_dfmax_ratio`` to move it) and ``boundary_pick`` (at_grid_edge
+        or profile_at_edge; the selector warned once and returned the pick
+        unchanged). The same record is carried in
+        ``GVSSelectionResult.lambda2_cv``.
         """
         return self._selector.getLambda2CVDiagnostics()
 

@@ -742,6 +742,9 @@ TEST(IenetCvCcdTest, DiagnosticsDescribeTheChosenPick) {
         EXPECT_EQ(d.profile_at_edge, cv.profile_at_edge(idx));
         EXPECT_EQ(d.boundary_pick, d.at_grid_edge || d.profile_at_edge);
         EXPECT_EQ(d.n_profile_at_edge, cv.n_profile_at_edge());
+        EXPECT_EQ(d.support_cap, cv.support_cap());
+        EXPECT_DOUBLE_EQ(d.dfmax_ratio, 0.8);   // the fit() default, as passed
+        EXPECT_TRUE(d.profile_at_edge || !d.profile_at_support_cap);
         const std::string msg = boundary_pick_message(d, "Tag", "M", 1.0);
         EXPECT_EQ(msg.empty(), !d.boundary_pick) << msg;
     }
@@ -758,8 +761,9 @@ TEST(IenetCvCcdTest, DiagnosticsDescribeTheChosenPick) {
 
 
 /** @brief record_grid_pick / boundary_pick_message contract: lower edge,
- *  upper edge, the benign truncated upper edge (EN CCD), interior, and the
- *  profile-only mode; the message names the mode and the remedies. */
+ *  upper edge, the benign truncated upper edge (EN CCD), interior, the
+ *  profile-only mode, and its support-cap case; the message names the mode
+ *  and the remedies. */
 TEST(Lambda2CvDiagnosticsTest, GridPickRecordAndMessage) {
     lambda2_cv_diagnostics d;
     record_grid_pick(d, 0, 10);
@@ -774,6 +778,7 @@ TEST(Lambda2CvDiagnosticsTest, GridPickRecordAndMessage) {
     EXPECT_NE(upper.find("S::computeLambda2: CV_1SE_CCD"), std::string::npos);
     EXPECT_NE(upper.find("returned unchanged"), std::string::npos);
     EXPECT_EQ(upper.find("cv_n_lambda1"), std::string::npos);  // no profile mode
+    EXPECT_EQ(upper.find("cv_dfmax_ratio"), std::string::npos);
 
     record_grid_pick(d, 9, 10, /*upper_edge_benign=*/true);
     EXPECT_FALSE(d.at_grid_edge); EXPECT_FALSE(d.boundary_pick);
@@ -789,6 +794,17 @@ TEST(Lambda2CvDiagnosticsTest, GridPickRecordAndMessage) {
     EXPECT_NE(prof.find("truncation edge"), std::string::npos);
     EXPECT_NE(prof.find("cv_n_lambda1"), std::string::npos);
     EXPECT_EQ(prof.find("last point"), std::string::npos);
+    EXPECT_EQ(prof.find("cv_dfmax_ratio"), std::string::npos);  // edge not the cap
+
+    // The edge is the support cap: the cap and its ratio are named as well.
+    d.profile_at_support_cap = true;
+    d.support_cap = 43;
+    d.dfmax_ratio = 0.8;
+    const std::string cap = boundary_pick_message(d, "S", "CV_MIN_IEN_CCD", 2.0);
+    EXPECT_NE(cap.find("truncation edge"), std::string::npos);
+    EXPECT_NE(cap.find("more than 43 nonzero coefficients"), std::string::npos) << cap;
+    EXPECT_NE(cap.find("raise the support cap (cv_dfmax_ratio)"), std::string::npos) << cap;
+    EXPECT_NE(cap.find("cv_n_lambda1"), std::string::npos);
 }
 
 
@@ -895,6 +911,50 @@ TEST(IenetCvCcdTest, SupportCapPreservesPicks) {
     EXPECT_TRUE(capped.cv_mse().isApprox(uncapped.cv_mse(), 1e-12));
     EXPECT_TRUE(capped.lambda1_profile().isApprox(
         uncapped.lambda1_profile(), 1e-12));
+}
+
+
+/** @brief A cap far below the support the signal needs is binding: every
+ *  reference path stops on it while the CV-MSE still falls, so the chosen
+ *  pick's profiled optimum sits on the support-cap edge. The diagnostics
+ *  record the ratio as passed and flag the cap edge, and the warning names
+ *  cv_dfmax_ratio; with the cap disabled neither appears. */
+TEST(IenetCvCcdTest, BindingSupportCapIsReportedAndNamed) {
+    const Eigen::Index n = 60, p = 24;
+    Eigen::MatrixXd X = random_matrix(n, p, 141);
+    Eigen::VectorXd y = 0.5 * random_vector(n, 142);
+    for (Eigen::Index j = 0; j < 12; ++j) { y += X.col(j); }
+    Eigen::VectorXi groups(p);
+    for (Eigen::Index j = 0; j < p; ++j) groups(j) = static_cast<int>(j / 3);
+
+    // 5 folds -> n_train_min = 48; ratio 0.05 -> cap = floor(2.4) = 2.
+    ienet_cv_ccd capped;
+    capped.fit(X, y, groups, 5, 6, 1e3, 20, -1.0, 9, 100000, 1e-4, 0.05);
+    ASSERT_EQ(capped.support_cap(), 2);
+    EXPECT_GT(capped.n_profile_at_edge(), 0);
+    for (const bool one_se : {false, true}) {
+        const auto d = capped.diagnostics(one_se);
+        EXPECT_DOUBLE_EQ(d.dfmax_ratio, 0.05);
+        EXPECT_EQ(d.support_cap, 2);
+        EXPECT_TRUE(d.profile_at_edge);
+        EXPECT_TRUE(d.profile_at_support_cap);
+        EXPECT_TRUE(d.boundary_pick);
+        const std::string msg = boundary_pick_message(d, "S", "CV_MIN_IEN_CCD", 1.0);
+        EXPECT_NE(msg.find("raise the support cap (cv_dfmax_ratio)"), std::string::npos) << msg;
+        EXPECT_NE(msg.find("more than 2 nonzero coefficients"), std::string::npos) << msg;
+    }
+
+    // Cap disabled: recorded as passed, no support-cap edge, no cap remedy.
+    ienet_cv_ccd uncapped;
+    uncapped.fit(X, y, groups, 5, 6, 1e3, 20, -1.0, 9, 100000, 1e-4, -1.0);
+    for (const bool one_se : {false, true}) {
+        const auto d = uncapped.diagnostics(one_se);
+        EXPECT_DOUBLE_EQ(d.dfmax_ratio, -1.0);
+        EXPECT_LT(d.support_cap, 0);
+        EXPECT_FALSE(d.profile_at_support_cap);
+        EXPECT_EQ(boundary_pick_message(d, "S", "CV_MIN_IEN_CCD", 1.0).find("cv_dfmax_ratio"),
+                  std::string::npos);
+    }
 }
 
 

@@ -101,6 +101,9 @@ TRexTikhonovControlParameter parse_tikhonov_parameter(const Rcpp::List& control)
         params.cv_n_lambda2 =
             static_cast<Eigen::Index>(Rcpp::as<int>(control["cv_n_lambda2"]));
     }
+    if (control.containsElementNamed("cv_dfmax_ratio")) {
+        params.cv_dfmax_ratio = Rcpp::as<double>(control["cv_dfmax_ratio"]);
+    }
     if (control.containsElementNamed("cv_seed")) {
         params.cv_seed = Rcpp::as<int>(control["cv_seed"]);
     }

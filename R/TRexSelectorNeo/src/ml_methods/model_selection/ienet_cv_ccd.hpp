@@ -847,16 +847,21 @@ public:
      *
      * @param one_se True when the caller returns `cv_1se()`, false for
      *        `cv_min()`: the grid-pick fields (`grid_index`, `at_grid_edge`,
-     *        `profile_at_edge`, `boundary_pick`) describe THAT pick. */
+     *        `profile_at_edge`, `profile_at_support_cap`, `boundary_pick`)
+     *        describe THAT pick. */
     lambda2_cv_diagnostics diagnostics(bool one_se) const {
         check_fitted();
         lambda2_cv_diagnostics d;
         d.ran               = true;
         d.n_profile_at_edge = n_profile_at_edge_;
         d.support_cap       = support_cap_;
+        d.dfmax_ratio       = dfmax_ratio_;
         d.low_dimensional   = low_dimensional_;
         const Eigen::Index idx = one_se ? idx_1se_ : idx_min_;
         d.profile_at_edge   = profile_at_edge(idx);
+        d.profile_at_support_cap =
+            d.profile_at_edge &&
+            stopped_on_cap_[static_cast<std::size_t>(idx)] != 0;
         record_grid_pick(d, idx, lambdas_.size());
         return d;
     }
@@ -943,6 +948,7 @@ private:
         // opposite boundary; reported here by is_low_dimensional().
         low_dimensional_ = (dfmax < 0) || (p <= dfmax);
         support_cap_     = dfmax;
+        dfmax_ratio_     = dfmax_ratio;
 
         // lambda1 range: DELIBERATELY NOT glmnet's rule (n < p ? 1e-2 : 1e-4).
         // glmnet descends to 1e-4 when n > p because there the nearly
@@ -1004,6 +1010,7 @@ private:
         // — no per-fold stopping decisions, full fold comparability.
         path_lengths_.resize(K2);
         std::vector<Eigen::Index> k1_len(static_cast<std::size_t>(K2), K1);
+        stopped_on_cap_.assign(static_cast<std::size_t>(K2), 0);
         {
             Eigen::MatrixXd warm_ref;
             for (Eigen::Index k2 = 0; k2 < K2; ++k2) {
@@ -1017,6 +1024,8 @@ private:
                             max_iter, tol, kPathFdev, kPathDevMax, dfmax);
                 k1_len[static_cast<std::size_t>(k2)] = ref.n_computed();
                 path_lengths_(k2) = static_cast<int>(ref.n_computed());
+                stopped_on_cap_[static_cast<std::size_t>(k2)] =
+                    ref.stopped_on_dfmax() ? 1 : 0;
                 warm_ref = ref.coef_std();
             }
         }
@@ -1181,7 +1190,9 @@ private:
     Eigen::Index    idx_1se_ = 0;
     Eigen::Index    n_profile_at_edge_ = 0;
     std::vector<char> profile_at_edge_; ///< per lambda2: profiled optimum on the truncation edge
+    std::vector<char> stopped_on_cap_;  ///< per lambda2: reference path stopped on the support cap
     Eigen::Index    support_cap_       = -1;
+    double          dfmax_ratio_       = 0.0;   ///< ratio passed to fit()
     bool            low_dimensional_   = false;
 };
 
