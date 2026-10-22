@@ -26,8 +26,8 @@ PCA loadings.}
 assembly (default: \code{1e-6}).}
 
 \item{gvs_type}{Character, GVS variant used internally for per-PC variable
-selection: \code{"EN"} (default, Elastic Net via TENET solver) or
-\code{"IEN"} (Informed Elastic Net via TIENET_AUG solver).}
+selection. Only \code{"EN"} (default, elastic net) is allowed: T-Rex SPCA
+is defined on the elastic net, and \code{"IEN"} is rejected.}
 
 \item{lambda_2}{Numeric, L2/Elastic Net penalty forwarded to the internal
 TRexGVSSelector, in LARS units. A negative value (default \code{-1})
@@ -65,7 +65,7 @@ Build a control list for the T-Rex Sparse PCA selector.
 \examples{
 trex_spca_control()
 trex_spca_control(mode = "Thresholded", K = 10)
-trex_spca_control(gvs_type = "IEN", lambda_2 = 0.01)
+trex_spca_control(lambda_2 = 0.01)
 
 }
 \seealso{

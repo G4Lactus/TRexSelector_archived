@@ -170,7 +170,11 @@ TEST(MLMemory, ElasticNetCVLowMemory) {
         enet_cv_ccd cv(/*low_memory=*/true);
         cv.fit(d.X, d.y, 0.5, 5, 20, -1.0, 2u, true, true, 1000, 1e-5);
     });
-    EXPECT_LT(g, 0.2) << "low-memory elastic net CV allocated more than its budget of 0.2 x X";
+    // One fit needs about 0.1 X (the p x K paths, 0.095 X in ElasticNetPathLowMemory).
+    // The six fits of a 5-fold CV run one after another, and whether the allocator
+    // reuses the freed paths varies between runs: measured 0.12-0.23 X on macOS /
+    // Eigen 5.0 for identical input. A copy of X would add 1.0 X.
+    EXPECT_LT(g, 0.3) << "low-memory elastic net CV allocated more than its budget of 0.3 x X";
 }
 
 /** @brief ElasticNetCV: full-data Xs_, then per fold X_tr + X_te + the fold's Xs_. */

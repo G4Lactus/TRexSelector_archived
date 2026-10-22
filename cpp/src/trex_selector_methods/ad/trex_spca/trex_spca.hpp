@@ -123,10 +123,11 @@ struct TRexSPCAControlParameter {
 
     /** @brief GVS-specific control parameters forwarded to each per-PC TRexGVSSelector run.
      *
-     *  gvs_ctrl.gvs_type is always overridden to EN, and both
-     *  gvs_ctrl.en_solver and gvs_ctrl.trex_ctrl.solver_type are overridden
-     *  internally to match the top-level `en_solver` knob
-     *  (TENET / TENET_AUG / TCDENET). (IEN is not used by TRexSPCA.)
+     *  gvs_ctrl.gvs_type must be EN (the default): TRex-SPCA is defined on
+     *  the elastic net, and the constructor throws std::invalid_argument for
+     *  IEN. Both gvs_ctrl.en_solver and gvs_ctrl.trex_ctrl.solver_type are
+     *  overridden internally to match the top-level `en_solver` knob
+     *  (TENET / TENET_AUG / TCDENET).
      *
      *  The GVS ridge penalty is controlled via:
      *    - gvs_ctrl.lambda_2       : < 0 (default -1.0) is the "not supplied"

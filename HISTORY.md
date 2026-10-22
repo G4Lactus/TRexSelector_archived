@@ -60,6 +60,33 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   T-Rex selectors are unchanged (seeded selectors derive per-experiment seeds,
   unseeded ones pass -1).
 
+### 2026-10-22
+
+#### TRex-SPCA accepts the elastic net only; flaky low-memory CV budget
+
+- `TRexSPCASelector` is defined on the elastic net, but the R control
+  `trex_spca_control(gvs_type = "IEN")` and the Python docstring offered the
+  informed elastic net, and the C++ core silently ran EN instead. An IEN request
+  is now an error: the C++ constructor throws `std::invalid_argument` when
+  `gvs_ctrl.gvs_type` is not EN (Python raises `ValueError` in `select()`), and
+  `trex_spca_control()` stops for any `gvs_type` other than `"EN"`. The IEN
+  example of `trex_spca_control()` is gone, the Python docstrings (binding,
+  stub, wrapper) say EN only, and the Python test that ran "IEN" as EN now
+  checks the error. `cv_dfmax_ratio` stays unexposed in the SPCA controls: it
+  only acts on the IEN-geometry tuners, which the EN track rejects.
+- `MLMemory.ElasticNetCVLowMemory`: budget 0.3 x X instead of 0.2. One
+  low-memory fit needs 0.095 x X in every run, but the six sequential fits of a
+  5-fold CV measured 0.12-0.23 x X for identical input (whether the allocator
+  reuses the freed paths varies), so about one run in four failed. A copy of X
+  would still add 1.0 x X.
+- Tests: `test_trex_spca` gains `Exceptions_IENRejected` (16 tests pass),
+  `test_ml_methods_memory` passes 12 of 12 repeated runs of the CV case. The R
+  test that ran "IEN" as EN now checks that a hand-built IEN control list fails
+  in the C++ constructor, next to a check of `trex_spca_control()`. The Python
+  SPCA tests (23), the R SPCA testthat file (25 blocks) and the full C++ suite
+  (658 tests) pass.
+- R vendored copy re-synced (`bundle_for_cran.sh --check` passes).
+
 ### 2026-10-21
 
 #### Settable support cap of the IEN-geometry lambda_2 tuners (`cv_dfmax_ratio`)

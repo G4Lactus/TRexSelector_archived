@@ -15,8 +15,8 @@
 #' @param lambda2_ridge_loadings Numeric, Ridge penalty for ActiveSet loading
 #'   assembly (default: \code{1e-6}).
 #' @param gvs_type Character, GVS variant used internally for per-PC variable
-#'   selection: \code{"EN"} (default, Elastic Net via TENET solver) or
-#'   \code{"IEN"} (Informed Elastic Net via TIENET_AUG solver).
+#'   selection. Only \code{"EN"} (default, elastic net) is allowed: T-Rex SPCA
+#'   is defined on the elastic net, and \code{"IEN"} is rejected.
 #' @param lambda_2 Numeric, L2/Elastic Net penalty forwarded to the internal
 #'   TRexGVSSelector, in LARS units. A negative value (default \code{-1})
 #'   triggers automatic determination (method selected by
@@ -44,7 +44,7 @@
 #' @examples
 #' trex_spca_control()
 #' trex_spca_control(mode = "Thresholded", K = 10)
-#' trex_spca_control(gvs_type = "IEN", lambda_2 = 0.01)
+#' trex_spca_control(lambda_2 = 0.01)
 #'
 #' @family T-Rex selectors and controls
 #' @export
@@ -58,7 +58,11 @@ trex_spca_control <- function(mode                   = "ActiveSet",
                               K                      = 20L,
                               max_dummy_multiplier   = 10L) {
   mode          <- match.arg(mode,          c("ActiveSet", "Thresholded"))
-  gvs_type      <- match.arg(gvs_type,      c("EN", "IEN"))
+  # T-Rex SPCA is defined on the elastic net; an IEN request is an error
+  if (!identical(gvs_type, "EN"))
+    stop("trex_spca_control: gvs_type must be \"EN\". T-Rex SPCA is ",
+         "defined on the elastic net; the informed elastic net (IEN) is ",
+         "not supported. Got: ", format(gvs_type))
   lambda2_method <- match.arg(lambda2_method,
                               c("CV_1SE_CCD", "CV_MIN_CCD",
                                 "CV_1SE_SVD", "CV_MIN_SVD"))

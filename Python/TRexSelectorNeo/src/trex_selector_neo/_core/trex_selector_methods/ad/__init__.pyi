@@ -1944,7 +1944,7 @@ class TRexSPCAControlParameter:
     @property
     def gvs_ctrl(self) -> TRexGVSControlParameter:
         """
-        TRexGVSControlParameter forwarded to each per-PC GVS run. Set gvs_ctrl.gvs_type = GVSType.EN or IEN. Set gvs_ctrl.lambda_2 > 0 to bypass auto-determination. The base T-Rex parameters are configured via gvs_ctrl.trex_ctrl.
+        TRexGVSControlParameter forwarded to each per-PC GVS run. gvs_ctrl.gvs_type must stay GVSType.EN (T-Rex SPCA is defined on the elastic net, IEN raises ValueError). Set gvs_ctrl.lambda_2 > 0 to bypass auto-determination. The base T-Rex parameters are configured via gvs_ctrl.trex_ctrl.
         """
     @gvs_ctrl.setter
     def gvs_ctrl(self, arg0: TRexGVSControlParameter) -> None:

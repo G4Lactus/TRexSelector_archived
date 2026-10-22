@@ -90,11 +90,13 @@ def test_spca_select_runs_thresholded_en(spca_fixture):
     sel.select(M, TFDR)  # must not raise
 
 
-def test_spca_select_runs_activeset_ien(spca_fixture):
+def test_spca_rejects_ien(spca_fixture):
+    # T-Rex SPCA is defined on the elastic net: IEN raises instead of running EN
     X, _, _ = spca_fixture
     ctrl = make_ctrl(gvs_type=GVSType.IEN)
     sel = TRexSPCASelector(X, ctrl, seed=1)
-    sel.select(M, TFDR)  # must not raise
+    with pytest.raises(ValueError, match="gvs_type must be EN"):
+        sel.select(M, TFDR)
 
 
 def test_spca_select_runs_with_lambda_2_bypass(spca_fixture):

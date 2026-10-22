@@ -57,6 +57,10 @@ test_that("trex_spca_control rejects invalid gvs_type", {
   expect_error(trex_spca_control(gvs_type = "unknown"))
 })
 
+test_that("trex_spca_control rejects IEN (T-Rex SPCA is EN only)", {
+  expect_error(trex_spca_control(gvs_type = "IEN"), "must be \"EN\"")
+})
+
 test_that("trex_spca_control rejects negative lambda2_ridge_loadings", {
   expect_error(trex_spca_control(lambda2_ridge_loadings = -1))
 })
@@ -86,12 +90,16 @@ test_that("TRexSPCASelector select() runs to completion (Thresholded + EN)", {
   expect_no_error(sel$select())
 })
 
-test_that("TRexSPCASelector select() runs to completion (ActiveSet + IEN)", {
+test_that("TRexSPCASelector rejects IEN in a hand-built control list", {
+  # T-Rex SPCA is EN only; the C++ constructor guards a list that bypasses
+  # trex_spca_control()
   d <- local_fixture()
-  sel <- TRexSPCASelector$new(d$X, M, tFDR, control = trex_spca_control(
-    mode = "ActiveSet", gvs_type = "IEN", K = 3L, max_dummy_multiplier = 3L),
-    seed = 1L)
-  expect_no_error(sel$select())
+  ctrl <- trex_spca_control(mode = "ActiveSet", K = 3L, max_dummy_multiplier = 3L)
+  ctrl$gvs_type <- "IEN"
+  expect_error({
+    sel <- TRexSPCASelector$new(d$X, M, tFDR, control = ctrl, seed = 1L)
+    sel$select()
+  }, "gvs_type must be EN")
 })
 
 test_that("TRexSPCASelector select() accepts a fixed lambda_2 bypass value", {

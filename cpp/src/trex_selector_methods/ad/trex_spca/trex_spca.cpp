@@ -61,6 +61,14 @@ TRexSPCA::TRexSPCA(Eigen::Map<Eigen::MatrixXd>& X,
             "TRexSPCA: M must not exceed min(n, p).");
     }
 
+    // TRex-SPCA is defined on the elastic net. An IEN request would change the
+    // algorithm, so it is rejected rather than silently run as EN.
+    if (spca_ctrl_.gvs_ctrl.gvs_type != tg::GVSType::EN) {
+        throw std::invalid_argument(
+            "TRexSPCA: gvs_ctrl.gvs_type must be EN. TRex-SPCA is defined on "
+            "the elastic net; the informed elastic net (IEN) is not supported.");
+    }
+
     // Fail fast on strategies the per-PC GVS runs will reject anyway:
     // without this pre-check the error only surfaces at PC 0 INSIDE
     // select(), after the (potentially expensive) ordinary PCA has already
@@ -134,13 +142,11 @@ const TRexSPCAResult& TRexSPCA::select() {
 
         tg::TRexGVSControlParameter gvs_ctrl = spca_ctrl_.gvs_ctrl;
 
-        // EN is always forced (IEN is not used by TRexSPCA). The solver
-        // variant is user-selectable via spca_ctrl_.en_solver
-        // (TENET / TENET_AUG / TCDENET — all equivalent for lambda2 > 0);
-        // solver_type is set to the matching enumerator so a conflicting
-        // value in the forwarded gvs_ctrl can never reach GVS's derivation
-        // check.
-        gvs_ctrl.gvs_type              = tg::GVSType::EN;
+        // gvs_type is EN (checked in the constructor). The solver variant is
+        // user-selectable via spca_ctrl_.en_solver (TENET / TENET_AUG /
+        // TCDENET — all equivalent for lambda2 > 0); solver_type is set to
+        // the matching enumerator so a conflicting value in the forwarded
+        // gvs_ctrl can never reach GVS's derivation check.
         gvs_ctrl.en_solver             = spca_ctrl_.en_solver;
         gvs_ctrl.trex_ctrl.solver_type = tg::toSolverType(spca_ctrl_.en_solver);
 

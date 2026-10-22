@@ -353,5 +353,16 @@ TEST_F(TRexSPCATest, Exceptions_InvalidM) {
     );
 }
 
+/** @brief TRex-SPCA is defined on the elastic net: an IEN request is rejected
+ *         at construction instead of being run as EN. */
+TEST_F(TRexSPCATest, Exceptions_IENRejected) {
+    TRexSPCAControlParameter ctrl = fast_ctrl();
+    ctrl.gvs_ctrl.gvs_type = tg::GVSType::IEN;
+    EXPECT_THROW((TRexSPCA(X_map, M, 0.2, ctrl, seed)), std::invalid_argument);
+
+    ctrl.gvs_ctrl.gvs_type = tg::GVSType::EN;
+    EXPECT_NO_THROW((TRexSPCA(X_map, M, 0.2, ctrl, seed)));
+}
+
 // ========================================================================================
 } /* End of namespace trex::test::trex_selector_methods::ad::trex_spca */

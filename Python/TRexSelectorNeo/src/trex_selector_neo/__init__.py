@@ -507,10 +507,10 @@ class TRexSPCASelector:
             ``select()`` and restored on return.
         spca_ctrl : TRexSPCAControlParameter, optional
             Algorithmic control. Defaults to ``TRexSPCAControlParameter()``.
-            The GVS sub-selector always runs the EN variant
-            (``gvs_ctrl.gvs_type`` is overridden internally; IEN is not used
-            by T-Rex SPCA) — the EN solver flavour is chosen via
-            ``spca_ctrl.en_solver``. The GVS ridge penalty follows
+            ``gvs_ctrl.gvs_type`` must stay ``GVSType.EN`` (the default):
+            T-Rex SPCA is defined on the elastic net, and ``GVSType.IEN``
+            raises ``ValueError`` in ``select()``. The EN solver flavour is
+            chosen via ``spca_ctrl.en_solver``. The GVS ridge penalty follows
             ``gvs_ctrl.lambda_2``: ``< 0`` (default) auto-determines it via
             ``gvs_ctrl.lambda2_method``, ``0`` is the degenerate pure T-LASSO
             case, and ``> 0`` fixes it in LARS units.
