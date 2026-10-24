@@ -162,7 +162,7 @@ TEST_F(TRexVDTest, EndToEndCalibrateTRecoversSupport) {
     EXPECT_EQ(result.FDP_hat_mat.rows(), result.T_stop);
 }
 
-TEST_F(TRexVDTest, PhiPrimeIsClampedToUnitInterval) {
+TEST_F(TRexVDTest, PhiPrimeIsCappedAtOne) {
     TRexVDOptions opt;
     opt.tFDR = 0.2;
     opt.K = 10;
@@ -175,10 +175,12 @@ TEST_F(TRexVDTest, PhiPrimeIsClampedToUnitInterval) {
     TRexVDResult result = selector.run(X_, y_);
 
     // Deliberate deviation from the vd_selectors reference (kept in line with
-    // trex_core::computePhiPrime): Phi_prime must stay inside [0, 1].
+    // trex_core::computePhiPrime): Phi_prime is capped at 1, and the FDP
+    // estimates stay inside [0, 1].
     ASSERT_GT(result.Phi_prime.size(), 0);
-    EXPECT_GE(result.Phi_prime.minCoeff(), 0.0);
     EXPECT_LE(result.Phi_prime.maxCoeff(), 1.0);
+    EXPECT_GE(result.FDP_hat_mat.minCoeff(), 0.0);
+    EXPECT_LE(result.FDP_hat_mat.maxCoeff(), 1.0);
 }
 
 TEST_F(TRexVDTest, EndToEndIsDeterministicForFixedSeed) {

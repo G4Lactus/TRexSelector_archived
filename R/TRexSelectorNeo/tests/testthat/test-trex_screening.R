@@ -165,7 +165,7 @@ test_that("TRexScreeningSelector selected_var and selected_indices are consisten
 })
 
 
-test_that("TRexScreeningSelector phi_prime is in [0, 1] and phi_mat has correct dimensions", {
+test_that("TRexScreeningSelector phi_prime has length p and phi_mat has correct dimensions", {
   set.seed(42)
   n <- 50
   p <- 20

@@ -60,6 +60,39 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   T-Rex selectors are unchanged (seeded selectors derive per-experiment seeds,
   unseeded ones pass -1).
 
+### 2026-10-24
+
+#### FDP estimate: `Phi_prime` keeps negative values (lower clamp removed)
+
+- `TRexSelector::computePhiPrime` clamped `Phi_prime` to [0, 1]. The upper clamp
+  (Phi' > 1 -> 1) prevents a negative false-discovery mass 1 - Phi' and can only
+  raise FDP_hat. The lower clamp (Phi' < 0 -> 0) capped a selected variable's
+  false-discovery mass at one, where the T-Rex paper and the R reference let it
+  exceed one, and made FDP_hat anti-conservative in long T-loops. In demo 09 of
+  the Examples (n 300, p 1,000, 10 unit coefficients, Normal predictors and noise,
+  K 20), TLARS at SNR 5 reached an FDR of 0.530 at tFDR 0.5 and 0.415 at tFDR 0.4
+  (no stagnation stop, T-loop to T ~ 38), and FDP_hat at fixed T and v -> 1 fell
+  below the realized FDP from T = 10 on (0.408 against 0.444 at T = 20). Replaying
+  the final selection on the same 200 data sets with the unclipped Phi_prime gives
+  0.462 and 0.362. Only the upper clamp remains, together with the [0, 1] clamp of
+  `computeFDPHat`, which guards against the negative FDP estimates seen in
+  trex_da (they come from Phi' > 1).
+- The same change in `TRexSD::Phi_prime_fun_` and `TRexVD::Phi_prime_fun_`.
+  trex_da, trex_gvs, trex_screening, trex_tikhonov and trex_spca reuse
+  `computePhiPrime` and follow. FDP_hat can only rise, so the L-loop may calibrate
+  a larger L, the T-loop may stop earlier and selections can only shrink in size.
+  Results move where a selected variable had Phi' < 0, which the replay found at
+  tFDR >= 0.3 and not at tFDR 0.1 in the tested cells (TLARS and TOMP, SNR 1
+  and 5); the L-loop and T-loop effects need full runs.
+- Tests: `TRexCoreTest.PhiPrimeKeepsNegativeValues` builds a Phi history with a
+  negative Phi_prime and checks it and FDP_hat against the paper's formula. The
+  Phi_prime bound checks of the core, Tikhonov, GVS and VD tests and of the R
+  testthat files keep only Phi' <= 1 (`TRexVDTest.PhiPrimeIsCappedAtOne` also
+  checks FDP_hat in [0, 1]). The full C++ suite (659 tests), the Python
+  selector tests (172) and the R testthat files of the selector, DA, GVS,
+  screening and scaling paths pass.
+- R vendored copy re-synced (`bundle_for_cran.sh --check` passes).
+
 ### 2026-10-22
 
 #### TRex-SPCA accepts the elastic net only; flaky low-memory CV budget

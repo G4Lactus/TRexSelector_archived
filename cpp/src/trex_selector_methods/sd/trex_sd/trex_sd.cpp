@@ -96,7 +96,7 @@ Eigen::VectorXd TRexSD::make_V_(int K, double eps) const {
 }
 
 // ========================================================================
-// Phi_prime (verbatim parity with trex_vd, incl. the [0, 1] clamp)
+// Phi_prime (verbatim parity with trex_vd, incl. the upper clamp at 1)
 // ========================================================================
 Eigen::VectorXd TRexSD::Phi_prime_fun_(
     int p, int T_stop, int num_dummies,
@@ -125,7 +125,8 @@ Eigen::VectorXd TRexSD::Phi_prime_fun_(
             phi_scale(t) = 1.0 - (numer / denom) / delta_mod(t);
         }
     }
-    return (phi_mod * phi_scale).cwiseMax(0.0).cwiseMin(1.0);
+    // Upper clamp only, as trex_core::TRexSelector::computePhiPrime (see there)
+    return (phi_mod * phi_scale).cwiseMin(1.0);
 }
 
 // ========================================================================

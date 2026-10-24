@@ -286,7 +286,7 @@ test_that("TRexGVSSelector selected_var and selected_indices are consistent (1-b
 })
 
 
-test_that("TRexGVSSelector phi_prime is in [0, 1] and phi_mat has correct dimensions", {
+test_that("TRexGVSSelector phi_prime is at most 1 and phi_mat has correct dimensions", {
   set.seed(42)
   n <- 50
   p <- 20
@@ -300,7 +300,7 @@ test_that("TRexGVSSelector phi_prime is in [0, 1] and phi_mat has correct dimens
 
   phi_p <- selector$phi_prime
   expect_length(phi_p, p)
-  expect_true(all(phi_p >= 0.0 & phi_p <= 1.0))
+  expect_true(all(phi_p <= 1.0))  # capped at 1, may be negative
 
   ts <- selector$T_stop
   pm <- selector$phi_mat

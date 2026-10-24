@@ -13,8 +13,8 @@
  * @details Ported from the virtual-dummies project (Koka, Machkour, Muma).
  *          The calibration logic is kept verbatim for parity with the
  *          reference implementation, with one deliberate deviation: Phi_prime
- *          is clamped to [0, 1] like in trex_core (see computePhiPrime there
- *          for the rationale).
+ *          is capped at 1 like in trex_core (see computePhiPrime there for
+ *          the rationale).
  *
  * Solver dispatch: SolverType selects LARS / OMP / AFS via VD_Base.
  *

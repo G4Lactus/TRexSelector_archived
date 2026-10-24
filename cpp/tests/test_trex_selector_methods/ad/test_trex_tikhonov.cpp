@@ -263,7 +263,6 @@ TEST_F(TRexTikhonovTest, EndToEnd_GroupMeanKRecoversPlanted) {
     ASSERT_EQ(result.selected_var.size(), p);
     EXPECT_DOUBLE_EQ(trex.getLambda2Used(), 1.0);
     for (Eigen::Index j = 0; j < result.Phi_prime.size(); ++j) {
-        EXPECT_GE(result.Phi_prime(j), 0.0);
         EXPECT_LE(result.Phi_prime(j), 1.0);
     }
 
@@ -1045,7 +1044,6 @@ TEST_F(TRexTikhonovTest, EndToEnd_TikompKgcRecoversPlanted) {
 
     ASSERT_EQ(result.selected_var.size(), p);
     for (Eigen::Index j = 0; j < result.Phi_prime.size(); ++j) {
-        EXPECT_GE(result.Phi_prime(j), 0.0);
         EXPECT_LE(result.Phi_prime(j), 1.0);
     }
     int hits = 0, false_sel = 0;

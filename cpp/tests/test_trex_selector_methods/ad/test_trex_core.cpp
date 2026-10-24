@@ -91,9 +91,8 @@ void run_trex_core_test(Eigen::Index n,
         EXPECT_EQ(result.Phi_mat.rows(), result.T_stop);
     }
 
-    // Assert bounds on Phi_prime
+    // Phi_prime is capped at 1 and may be negative (no lower clamp, see computePhiPrime)
     for (Eigen::Index j = 0; j < p; ++j) {
-        EXPECT_GE(result.Phi_prime(j), 0.0);
         EXPECT_LE(result.Phi_prime(j), 1.0);
     }
 }
@@ -759,6 +758,57 @@ TEST(TRexCoreTest, SharedBufferClaim_DistinctBuffersOk) {
     TRexSelector s1(Xam, y_map, 0.1, ctrl, 42, false);
     EXPECT_NO_THROW(
         { TRexSelector s2(Xbm, y_map, 0.1, ctrl, 42, false); });
+}
+
+// ========================================================================================
+// FDP estimator: Phi_prime keeps negative values
+// ========================================================================================
+
+/** @brief Exposes the protected FDP estimator of the selector. */
+class FdpEstimatorProbe : public TRexSelector {
+public:
+    using TRexSelector::TRexSelector;
+    using TRexSelector::computePhiPrime;
+    using TRexSelector::computeFDPHat;
+};
+
+/** @brief A step in which the variables above Phi = 0.5 gain less mass than the
+ *         expected number of null entries gives a negative Phi_prime. It stays
+ *         negative, as in the T-Rex paper, so the variable carries more than one
+ *         expected false discovery (a clamp at 0 lowered FDP_hat).
+ */
+TEST(TRexCoreTest, PhiPrimeKeepsNegativeValues) {
+    SyntheticData data(20, 10, {0, 1, 2}, {5.0, -3.0, 2.0}, 1.0, 42);
+    auto X = data.getX();
+    auto y = data.getY();
+    Eigen::Map<Eigen::MatrixXd> X_map(X.data(), X.rows(), X.cols());
+    Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
+    TRexControlParameter ctrl;
+    ctrl.K = 5;
+    FdpEstimatorProbe trex(X_map, y_map, 0.1, ctrl, 42, false);
+
+    // p x T occurrences: variables 0-2 in every experiment from T = 1, variable 3
+    // joins at T = 2 in 60 % of the experiments, variables 4-9 in 10 %
+    Eigen::MatrixXd phi_T = Eigen::MatrixXd::Zero(10, 2);
+    phi_T.topRows(3).setOnes();
+    phi_T(3, 1) = 0.6;
+    phi_T.block(4, 1, 6, 1).setConstant(0.1);
+    const Eigen::VectorXd Phi = phi_T.col(1);
+
+    const Eigen::VectorXd phi_prime = trex.computePhiPrime(phi_T, Phi, /*num_dummies=*/10);
+
+    // scale_t = 1 - ((p - sum Phi_t) / (num_dummies - (t - 1))) / delta_t
+    const double scale1 = 1.0 - ((10.0 - 3.0) / 10.0) / 3.0;
+    const double scale2 = 1.0 - ((10.0 - 4.2) / 9.0) / 0.6;
+    EXPECT_NEAR(phi_prime(0), scale1, 1e-12);
+    EXPECT_NEAR(phi_prime(3), 0.6 * scale2, 1e-12);
+    EXPECT_LT(phi_prime(3), 0.0);
+
+    // At v = 0.5 variables 0-3 are selected, and variable 3 counts 1 - Phi' > 1
+    Eigen::VectorXd grid(1);
+    grid << 0.5;
+    const double expected = (3.0 * (1.0 - scale1) + (1.0 - 0.6 * scale2)) / 4.0;
+    EXPECT_NEAR(trex.computeFDPHat(grid, Phi, phi_prime)(0), expected, 1e-12);
 }
 
 // ========================================================================================

@@ -326,7 +326,6 @@ void run_gvs_select_e2e(GVSType gvs_type,
     EXPECT_GE(g.max_clusters, 2u);
     EXPECT_EQ(g.groups_vec.size(), p);
     for (Eigen::Index j = 0; j < result.Phi_prime.size(); ++j) {
-        EXPECT_GE(result.Phi_prime(j), 0.0);
         EXPECT_LE(result.Phi_prime(j), 1.0);
     }
 

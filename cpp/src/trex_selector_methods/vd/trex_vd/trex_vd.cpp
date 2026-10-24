@@ -116,11 +116,11 @@ Vec TRexVD::Phi_prime_fun_(
             phi_scale(t) = 1.0 - (numer / denom) / delta_mod(t);
         }
     }
-    // Clamp to [0, 1]: deliberate deviation from the virtual-dummies reference,
-    // matching trex_core::TRexSelector::computePhiPrime (see the rationale
-    // there). Parity tests against the vd_selectors Python package must
-    // account for this wherever the unclipped Phi_prime leaves [0, 1].
-    return (phi_mod * phi_scale).cwiseMax(0.0).cwiseMin(1.0);
+    // Upper clamp only (Phi' > 1 -> 1): deliberate deviation from the
+    // virtual-dummies reference, matching trex_core::TRexSelector::computePhiPrime
+    // (see the rationale there). Parity tests against the vd_selectors Python
+    // package must account for this wherever the unclipped Phi_prime exceeds 1.
+    return (phi_mod * phi_scale).cwiseMin(1.0);
 }
 
 // ========================================================================

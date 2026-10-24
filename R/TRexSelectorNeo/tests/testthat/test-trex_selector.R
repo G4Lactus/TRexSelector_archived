@@ -102,7 +102,7 @@ test_that("TRexSelector selected_var and selected_indices are consistent", {
 })
 
 
-test_that("TRexSelector phi_prime is in [0, 1] with length p", {
+test_that("TRexSelector phi_prime is at most 1 with length p", {
   n <- 50
   p <- 10
   set.seed(42)
@@ -114,7 +114,7 @@ test_that("TRexSelector phi_prime is in [0, 1] with length p", {
 
   phi_p <- selector$phi_prime
   expect_length(phi_p, p)
-  expect_true(all(phi_p >= 0.0 & phi_p <= 1.0))
+  expect_true(all(phi_p <= 1.0))  # capped at 1, may be negative
 })
 
 
