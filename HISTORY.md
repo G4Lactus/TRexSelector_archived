@@ -60,6 +60,17 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   T-Rex selectors are unchanged (seeded selectors derive per-experiment seeds,
   unseeded ones pass -1).
 
+### 2026-10-26
+
+#### R documentation of the TRexSelector result fields
+
+- The field texts of `T_stop`, `L`, `voting_grid`, `fdp_hat_mat`, `phi_mat`, `r_mat` and `phi_prime` in
+  `trex_selector.R` and `TRexSelector.Rd` described the wrong quantities ("probability mass function
+  evaluations", "empirical CDF computations", "grid of voters over trials and variables"). They now name the
+  relative occurrences after each T step, the number of selected variables and the FDP estimate per T step and
+  voting level, the voting levels, the calibrated occurrences (at most 1, possibly negative), the stopping time and
+  the dummy multiplier. Documentation only.
+
 ### 2026-10-24
 
 #### FDP estimate: `Phi_prime` keeps negative values (lower clamp removed)

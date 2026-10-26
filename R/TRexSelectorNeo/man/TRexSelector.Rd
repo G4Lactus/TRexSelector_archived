@@ -60,19 +60,19 @@ Other T-Rex selectors and controls:
 
     \item{\code{v_thresh}}{The chosen voting threshold.}
 
-    \item{\code{T_stop}}{The length of the path / maximum number of included variables.}
+    \item{\code{T_stop}}{Stopping time: the number of included dummies at which the T-loop stopped.}
 
-    \item{\code{L}}{The number of dummy replications used.}
+    \item{\code{L}}{Calibrated dummy multiplier L (the selector uses L * p dummies).}
 
-    \item{\code{voting_grid}}{The grid of voters over trials and variables.}
+    \item{\code{voting_grid}}{Voting levels 0.5, 0.5 + 1/K, ..., 1 - eps that the selection searches.}
 
-    \item{\code{fdp_hat_mat}}{estimated false discovery proportions}
+    \item{\code{fdp_hat_mat}}{Estimated false discovery proportion per T step (rows) and voting level (columns).}
 
-    \item{\code{phi_mat}}{probability mass function evaluations}
+    \item{\code{phi_mat}}{Relative occurrences of the original variables over the K random experiments after each T step (rows).}
 
-    \item{\code{r_mat}}{empirical CDF computations}
+    \item{\code{r_mat}}{Number of selected variables per T step (rows) and voting level (columns).}
 
-    \item{\code{phi_prime}}{smoothed probability masses}
+    \item{\code{phi_prime}}{Calibrated relative occurrences used by the FDP estimate (length p), at most 1 and possibly negative.}
 
     \item{\code{x_means}}{computed means of the predictor variables}
 

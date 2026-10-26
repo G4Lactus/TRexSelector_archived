@@ -109,43 +109,50 @@ TRexSelector <- R6::R6Class("TRexSelector",
       trex_selector_get_voting_threshold(private$ptr)
     },
 
-    #' @field T_stop The length of the path / maximum number of included variables.
+    #' @field T_stop Stopping time: the number of included dummies at which
+    #'   the T-loop stopped.
     T_stop = function(value) {
       if (!missing(value)) stop("T_stop is read-only.")
       trex_selector_get_t_stop(private$ptr)
     },
 
-    #' @field L The number of dummy replications used.
+    #' @field L Calibrated dummy multiplier L (the selector uses
+    #'   L * p dummies).
     L = function(value) {
       if (!missing(value)) stop("L is read-only.")
       trex_selector_get_dummy_multiplier_l(private$ptr)
     },
 
-    #' @field voting_grid The grid of voters over trials and variables.
+    #' @field voting_grid Voting levels 0.5, 0.5 + 1/K, ..., 1 - eps that the
+    #'   selection searches.
     voting_grid = function(value) {
       if (!missing(value)) stop("voting_grid is read-only.")
       trex_selector_get_voting_grid(private$ptr)
     },
 
-    #' @field fdp_hat_mat estimated false discovery proportions
+    #' @field fdp_hat_mat Estimated false discovery proportion per T step
+    #'   (rows) and voting level (columns).
     fdp_hat_mat = function(value) {
       if (!missing(value)) stop("fdp_hat_mat is read-only")
       trex_selector_get_fdp_hat_mat(private$ptr)
     },
 
-    #' @field phi_mat probability mass function evaluations
+    #' @field phi_mat Relative occurrences of the original variables over
+    #'   the K random experiments after each T step (rows).
     phi_mat = function(value) {
       if (!missing(value)) stop("phi_mat is read-only")
       trex_selector_get_phi_mat(private$ptr)
     },
 
-    #' @field r_mat empirical CDF computations
+    #' @field r_mat Number of selected variables per T step (rows) and
+    #'   voting level (columns).
     r_mat = function(value) {
       if (!missing(value)) stop("r_mat is read-only")
       trex_selector_get_r_mat(private$ptr)
     },
 
-    #' @field phi_prime smoothed probability masses
+    #' @field phi_prime Calibrated relative occurrences used by the FDP
+    #'   estimate (length p), at most 1 and possibly negative.
     phi_prime = function(value) {
       if (!missing(value)) stop("phi_prime is read-only")
       trex_selector_get_phi_prime(private$ptr)
