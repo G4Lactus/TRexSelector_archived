@@ -72,7 +72,7 @@ public:
         // The C++ constructor takes a single control struct that nests the
         // base algorithmic parameters as `trex_ctrl`. Merge the separately-
         // supplied `trex_control`, then keep only a Tikhonov-family solver
-        // (TCDTIKNET / TIKNET / TIKOMP, the general-K trio): the caller-facing
+        // (TCDTIKNET / TIKNET, the general-K pair): the caller-facing
         // default (TLARS) is neutral and becomes TCDTIKNET, mirroring the R
         // glue (the Python wrapper warns first on an explicit mismatch).
         tik::TRexTikhonovControlParameter tik_ctrl = tik_control;
@@ -80,8 +80,7 @@ public:
         const auto st = tik_ctrl.trex_ctrl.solver_type;
         const bool tik_family =
             st == tik_sd::SolverTypeForTRex::TCDTIKNET ||
-            st == tik_sd::SolverTypeForTRex::TIKNET ||
-            st == tik_sd::SolverTypeForTRex::TIKOMP;
+            st == tik_sd::SolverTypeForTRex::TIKNET;
         if (!tik_family) {
             tik_ctrl.trex_ctrl.solver_type = tik_sd::SolverTypeForTRex::TCDTIKNET;
         }
@@ -222,7 +221,7 @@ inline void bind_trex_tikhonov(py::module& m) {
           "Build the GROUP_CENTERING penalty K = blockdiag(I - J/p_m) from a 0-based group assignment (dense out).");
 
     py::class_<PyTRexTikhonovSelector, PyTRexSelector>(m, "TRexTikhonovSelector",
-        "T-Rex selector with a general Tikhonov penalty (TCDTIKNET / TIKNET / TIKOMP) and "
+        "T-Rex selector with a general Tikhonov penalty (TCDTIKNET / TIKNET) and "
         "cluster-aware dummies.\n"
         "\n"
         "References\n"

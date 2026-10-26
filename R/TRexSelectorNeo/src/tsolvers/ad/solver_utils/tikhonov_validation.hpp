@@ -8,8 +8,8 @@
  * @file tikhonov_validation.hpp
  *
  * @brief Content validation of a user-supplied sparse Tikhonov penalty
- * matrix K = Gamma^T Gamma, shared by the sparse-K solver trio
- * (TIKNET / TIKOMP / TCDTIKNET).
+ * matrix K = Gamma^T Gamma, shared by the sparse-K solvers
+ * (TIKNET / TCDTIKNET).
  */
  // ============================================================================
 

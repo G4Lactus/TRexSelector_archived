@@ -13,7 +13,6 @@ target_sources(trex_tsolvers PRIVATE
     ${CMAKE_CURRENT_LIST_DIR}/tmp_solver.cpp
     ${CMAKE_CURRENT_LIST_DIR}/tncgmp_solver.cpp
     ${CMAKE_CURRENT_LIST_DIR}/tools_solver.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/tikomp_solver.cpp
 )
 # ==============================================================================
 
@@ -34,6 +33,5 @@ target_sources(trex_tsolvers PUBLIC
         ${CMAKE_CURRENT_LIST_DIR}/tmp_solver.hpp
         ${CMAKE_CURRENT_LIST_DIR}/tncgmp_solver.hpp
         ${CMAKE_CURRENT_LIST_DIR}/tools_solver.hpp
-        ${CMAKE_CURRENT_LIST_DIR}/tikomp_solver.hpp
 )
 # ==============================================================================

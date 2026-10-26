@@ -122,7 +122,7 @@ struct SolverOptions {
     // --- Family hyperparameters --------------------------------------------
 
     /** @brief L2 (ridge / group-ridge / Tikhonov) penalty weight, >= 0.
-     *  Read by TENET, TENETAug, TIENET, TIENETAug, TIKNET, TIKOMP, TCDENET,
+     *  Read by TENET, TENETAug, TIENET, TIENETAug, TIKNET, TCDENET,
      *  TCDIENET, TCDTIKNET. Default 0 (no quadratic penalty: the elastic
      *  nets reduce to their lasso). */
     double lambda2 = 0.0;
@@ -148,7 +148,7 @@ struct SolverOptions {
      *  the dummies get a decoupled kappa_dummy * I ridge; true FOLDED —
      *  dummy copy t joins variable (t - p) mod p in the K-coupling (GVS
      *  layered convention; requires D.cols() to be a multiple of X.cols()).
-     *  TIKNET and TIKOMP implement FOLDED exclusively and ignore this. */
+     *  TIKNET implements FOLDED exclusively and ignores this. */
     bool fold_dummies = false;
 
     /** @brief TCDIENET structured penalty. Default MEAN. */

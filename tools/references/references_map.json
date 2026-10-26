@@ -19,7 +19,6 @@
   "TIENET": ["machkour2023ien", "zou2005elasticnet", "efron2004lars", "machkour2025trex"],
   "TIENETAug": ["machkour2023ien", "zou2005elasticnet", "efron2004lars", "machkour2025trex"],
   "TIKNET": ["tikhonov1963regularization", "park2018tikhonov", "hoerl2000ridge", "miche2011tropelm", "efron2004lars", "machkour2025trex"],
-  "TIKOMP": ["tikhonov1963regularization", "park2018tikhonov", "pati1993omp", "scheidt2026greedy"],
   "TCDLASSO": ["tibshirani1996lasso", "friedman2007pathwise", "friedman2010glmnet", "fu1998bridge", "machkour2025trex"],
   "TCDENET": ["zou2005elasticnet", "friedman2007pathwise", "friedman2010glmnet", "machkour2025trex"],
   "TCDIENET": ["machkour2023ien", "zou2005elasticnet", "friedman2007pathwise", "friedman2010glmnet", "machkour2025trex"],

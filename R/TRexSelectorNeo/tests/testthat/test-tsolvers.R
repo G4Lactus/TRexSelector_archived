@@ -9,10 +9,10 @@
 #
 # Test groups
 #   1. Input validation
-#   2. Polymorphic execution test (all 22 factory entries)
+#   2. Polymorphic execution test (all 21 factory entries)
 #   3. Getter return-type and contract checks (TLARS_Solver reference)
 #   4. Solver-specific getter checks (lambda, num_removals, cycling_ratio)
-#   5. Warm-start / serialization (all 22 factory entries)
+#   5. Warm-start / serialization (all 21 factory entries)
 # =============================================================================
 
 # ---------------------------------------------------------------------------
@@ -28,7 +28,7 @@ D <- matrix(rnorm(n * d), n, d)
 y <- X[, 5] * 4.0 + X[, 15] * (-2.5) + X[, 25] * 3.1 + rnorm(n)
 
 # ---------------------------------------------------------------------------
-# Solver factory (22 entries: 21 solver types, TNCGMP counted for both variants)
+# Solver factory (21 entries: 20 solver types, TNCGMP counted for both variants)
 #
 # In-place contract: the R6 solvers map X and D without copying.
 # A factory call with the defaults builds a WRITER that preprocesses X and D in
@@ -73,8 +73,6 @@ y <- X[, 5] * 4.0 + X[, 15] * (-2.5) + X[, 25] * 3.1 + rnorm(n)
                                             options = tsolver_options(normalize = nrm, intercept = ic, lambda2 = 0.5)),
   TIKNET     = function(nrm = TRUE, ic = TRUE) TIKNET_Solver$new(X, D, y, tikhonov_K = .group_mean_k_30,
                                             options = tsolver_options(normalize = nrm, intercept = ic, lambda2 = 0.5)),
-  TIKOMP     = function(nrm = TRUE, ic = TRUE) TIKOMP_Solver$new(X, D, y, tikhonov_K = .group_mean_k_30,
-                                            options = tsolver_options(normalize = nrm, intercept = ic, lambda2 = 0.5)),
   TCDLASSO   = function(nrm = TRUE, ic = TRUE) TCDLASSO_Solver$new(X, D, y, options = tsolver_options(normalize = nrm, intercept = ic)),
   TCDENET    = function(nrm = TRUE, ic = TRUE) TCDENET_Solver$new(X, D, y, options = tsolver_options(normalize = nrm, intercept = ic, lambda2 = 0.5)),
   TCDIENET   = function(nrm = TRUE, ic = TRUE) TCDIENET_Solver$new(X, D, y, groups = .tienet_groups,
@@ -111,7 +109,7 @@ test_that("TNCGMP_Solver rejects unknown variant string", {
 
 
 # =============================================================================
-# Group 2: Polymorphic execution test (all 22 factory entries)
+# Group 2: Polymorphic execution test (all 21 factory entries)
 # Mirrors test_tsolvers_polymorphic.cpp :: ExecutionSmokeTest
 # =============================================================================
 
@@ -330,7 +328,7 @@ test_that("TIENETAug_Solver: get_lambda2, get_groups (1-based), get_num_groups",
 
 
 # =============================================================================
-# Group 5: Warm-start / serialization — all 22 factory entries
+# Group 5: Warm-start / serialization — all 21 factory entries
 # Mirrors test_tsolvers_polymorphic.cpp :: SerializationEquivalence and the
 # C++ buffer-guard round trip: X and D are pre-scaled ONCE (the statistics
 # live in the scalers), and the reference, checkpoint and resumed solvers are
@@ -435,7 +433,7 @@ test_that("Sparse-K solvers accept a dense K or a dgCMatrix and report lambda2",
   on.exit({ sx$inverse_transform_inplace(X); sd$inverse_transform_inplace(D) }, add = TRUE)
   reader <- tsolver_options(lambda2 = 0.5, fold_dummies = TRUE,
                             normalize = FALSE, intercept = FALSE)
-  for (cls in list(TIKNET_Solver, TIKOMP_Solver, TCDTIKNET_Solver)) {
+  for (cls in list(TIKNET_Solver, TCDTIKNET_Solver)) {
     dense  <- cls$new(X, D, y, tikhonov_K = .group_mean_k_30, options = reader)
     sparse <- cls$new(X, D, y, tikhonov_K = K_sparse, options = reader)
     dense$execute_step(T_stop = 6)

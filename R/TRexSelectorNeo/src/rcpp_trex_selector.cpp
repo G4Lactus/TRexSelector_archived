@@ -136,8 +136,7 @@ TRexControlParameter parse_control_parameter(const Rcpp::List& control) {
             // Tikhonov family: needs a penalty matrix K, dispatchable only
             // inside TRexTikhonovSelector (same gate).
             {"TCDTIKNET", SolverTypeForTRex::TCDTIKNET},
-            {"TIKNET",    SolverTypeForTRex::TIKNET},
-            {"TIKOMP",    SolverTypeForTRex::TIKOMP}
+            {"TIKNET",    SolverTypeForTRex::TIKNET}
         };
 
         auto it = solver_map.find(solver);
@@ -291,9 +290,6 @@ void validate_core_solver_type(const TRexControlParameter& params) {
                        "matrix; use TRexTikhonovSelector.");
         case SolverTypeForTRex::TIKNET:
             Rcpp::stop("solver = \"TIKNET\" needs a Tikhonov penalty "
-                       "matrix; use TRexTikhonovSelector.");
-        case SolverTypeForTRex::TIKOMP:
-            Rcpp::stop("solver = \"TIKOMP\" needs a Tikhonov penalty "
                        "matrix; use TRexTikhonovSelector.");
         default:
             break;

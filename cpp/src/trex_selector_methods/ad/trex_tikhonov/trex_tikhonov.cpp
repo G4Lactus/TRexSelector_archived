@@ -110,25 +110,23 @@ TRexTikhonovSelector::TRexTikhonovSelector(
     trex_tik_ctrl_.tikhonov_K.makeCompressed();
 
     // ---- Solver gate ------------------------------------------------------
-    // Three solvers implement the general sparse-K mode: TCDTIKNET (CCD,
+    // Two solvers implement the general sparse-K mode: TCDTIKNET (CCD,
     // exact fixed-lambda1 minimizers; FOLDED or INDEPENDENT_RIDGE dummy
-    // coupling), TIKNET (native LARS homotopy), and TIKOMP (greedy
-    // generalized-ridge OMP) — the latter two FOLDED-only. The shared
+    // coupling) and TIKNET (native LARS homotopy, FOLDED-only). The shared
     // dispatch would reject anything K-aware for other enumerators anyway,
     // so fail fast with a precise message.
     if (trex_ctrl_.solver_type != disp::SolverTypeForTRex::TCDTIKNET &&
-        trex_ctrl_.solver_type != disp::SolverTypeForTRex::TIKNET &&
-        trex_ctrl_.solver_type != disp::SolverTypeForTRex::TIKOMP) {
+        trex_ctrl_.solver_type != disp::SolverTypeForTRex::TIKNET) {
         throw std::invalid_argument(
-            "TRexTikhonovSelector: solver_type must be TCDTIKNET, TIKNET, "
-            "or TIKOMP (the only solvers with a general Tikhonov-K mode).");
+            "TRexTikhonovSelector: solver_type must be TCDTIKNET or TIKNET "
+            "(the only solvers with a general Tikhonov-K mode).");
     }
     if (!trex_tik_ctrl_.fold_dummy_coupling &&
         trex_ctrl_.solver_type != disp::SolverTypeForTRex::TCDTIKNET) {
         throw std::invalid_argument(
             "TRexTikhonovSelector: fold_dummy_coupling = false "
             "(INDEPENDENT_RIDGE) exists only on the TCDTIKNET path; TIKNET "
-            "and TIKOMP implement FOLDED coupling exclusively.");
+            "implements FOLDED coupling exclusively.");
     }
 
     // ---- Cluster-aware dummy gates ----------------------------------------

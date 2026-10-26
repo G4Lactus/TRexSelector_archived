@@ -21,7 +21,6 @@
 #include <tsolvers/ad/linear_model/afs_based/tafs_solver.hpp>
 #include <tsolvers/ad/linear_model/lars_based/tienet_solver.hpp>
 #include <tsolvers/ad/linear_model/lars_based/tiknet_solver.hpp>
-#include <tsolvers/ad/linear_model/omp_based/tikomp_solver.hpp>
 #include <tsolvers/ad/linear_model/cd_based/tcdlasso_solver.hpp>
 #include <tsolvers/ad/linear_model/cd_based/tcdenet_solver.hpp>
 #include <tsolvers/ad/linear_model/cd_based/tcdienet_solver.hpp>
@@ -70,7 +69,7 @@ static Eigen::Map<Eigen::VectorXd> map_of(Rcpp::NumericVector& v) {
 //
 // Every solver is constructed as (X, D, y, options) — plus the 1-based group
 // vector of the IEN solvers (TIENETAug, TIENET, TCDIENET) or the Tikhonov
-// matrix of the sparse-K solvers (TIKNET, TIKOMP, TCDTIKNET) — where
+// matrix of the sparse-K solvers (TIKNET, TCDTIKNET) — where
 // `options` is the R list built by tsolver_options().
 // parse_solver_options() maps it onto the C++ SolverOptions; absent fields
 // keep the C++ defaults.
@@ -520,33 +519,6 @@ XPtr<TSolverRcpp> tsolver_tncgmp_create(
     const SolverOptions opts = parse_solver_options(options);
     auto h = std::make_unique<TSolverRcpp>(map_of(X), map_of(D), map_of(y));
     h->solver_ = new TNCGMP_Solver(h->X_map_, h->D_map_, h->y_map_, opts);
-    // The protection slot pins X, D and y until the finalizer has run (a
-    // writer's restore() writes back through the maps).
-    return XPtr<TSolverRcpp>(h.release(), true, R_NilValue,
-                             Rcpp::List::create(X, D, y));
-}
-
-//' @title Create TIKOMP_Solver
-//'
-//' @param X Design matrix
-//' @param D Dummy matrix
-//' @param y Response vector
-//' @param tikhonov_K p x p PSD Tikhonov matrix (dgCMatrix or dense)
-//' @param options List from tsolver_options()
-//'
-//' @return XPtr to TSolverRcpp
-//' @noRd
-// [[Rcpp::export]]
-XPtr<TSolverRcpp> tsolver_tikomp_create(
-    Rcpp::NumericMatrix X,
-    Rcpp::NumericMatrix D,
-    Rcpp::NumericVector y,
-    SEXP tikhonov_K,
-    Rcpp::List options
-) {
-    const SolverOptions opts = parse_solver_options(options);
-    auto h = std::make_unique<TSolverRcpp>(map_of(X), map_of(D), map_of(y));
-    h->solver_ = new TIKOMP_Solver(h->X_map_, h->D_map_, h->y_map_, tsolver_as_sparse_matrix(tikhonov_K), opts);
     // The protection slot pins X, D and y until the finalizer has run (a
     // writer's restore() writes back through the maps).
     return XPtr<TSolverRcpp>(h.release(), true, R_NilValue,
@@ -1082,33 +1054,6 @@ XPtr<TSolverRcpp> tsolver_tncgmp_mmap_create(
                              Rcpp::List::create(X_ptr, D, y));
 }
 
-//' @title Create TIKOMP_Solver (memory-mapped X)
-//'
-//' @param X_ptr XPtr to a MemoryMappedMatrix
-//' @param D Dummy matrix
-//' @param y Response vector
-//' @param tikhonov_K p x p PSD Tikhonov matrix (dgCMatrix or dense)
-//' @param options List from tsolver_options()
-//'
-//' @return XPtr to TSolverRcpp
-//' @noRd
-// [[Rcpp::export]]
-XPtr<TSolverRcpp> tsolver_tikomp_mmap_create(
-    XPtr<MemoryMappedMatrix<double>> X_ptr, // NOLINT(performance-unnecessary-value-param)
-    Rcpp::NumericMatrix D,
-    Rcpp::NumericVector y,
-    SEXP tikhonov_K,
-    Rcpp::List options
-) {
-    auto X_map = X_ptr->getMap();
-    const SolverOptions opts = parse_solver_options(options);
-    auto h = std::make_unique<TSolverRcpp>(X_map, map_of(D), map_of(y));
-    h->solver_ = new TIKOMP_Solver(h->X_map_, h->D_map_, h->y_map_, tsolver_as_sparse_matrix(tikhonov_K), opts);
-    // The protection slot pins the mmap holder, D and y until the finalizer
-    // has run (a writer's restore() writes back through the maps).
-    return XPtr<TSolverRcpp>(h.release(), true, R_NilValue,
-                             Rcpp::List::create(X_ptr, D, y));
-}
 
 //' @title Create TAFS_Solver (memory-mapped X)
 //'
@@ -1546,8 +1491,6 @@ void tsolver_save(
         archive(*p);
     } else if (auto* p = dynamic_cast<TOOLS_Solver*>(s)) {
         archive(*p);
-    } else if (auto* p = dynamic_cast<TIKOMP_Solver*>(s)) {
-        archive(*p);
     } else if (auto* p = dynamic_cast<TOMP_Solver*>(s)) {
         archive(*p);
     // CD family
@@ -1629,8 +1572,6 @@ void tsolver_load(
     } else if (auto* p = dynamic_cast<TMP_Solver*>(s)) {
         archive(*p);
     } else if (auto* p = dynamic_cast<TOOLS_Solver*>(s)) {
-        archive(*p);
-    } else if (auto* p = dynamic_cast<TIKOMP_Solver*>(s)) {
         archive(*p);
     } else if (auto* p = dynamic_cast<TOMP_Solver*>(s)) {
         archive(*p);
@@ -1766,7 +1707,6 @@ NumericVector tsolver_cd_get_record_kkt_violations(XPtr<TSolverRcpp> ptr) { // N
 // [[Rcpp::export]]
 double tsolver_tik_get_lambda2(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-unnecessary-value-param)
     if (auto* p = dynamic_cast<TIKNET_Solver*>(ptr->solver_))    return p->getLambda2();
-    if (auto* p = dynamic_cast<TIKOMP_Solver*>(ptr->solver_))    return p->getLambda2();
     if (auto* p = dynamic_cast<TCDTIKNET_Solver*>(ptr->solver_)) return p->getLambda2();
     stop("tsolver_tik_get_lambda2: Solver is not a sparse-K solver.");
 }
@@ -1904,8 +1844,7 @@ double tsolver_tenet_get_alpha(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-un
 // [[Rcpp::export]]
 Eigen::SparseMatrix<double> tsolver_tik_get_tikhonov_k(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-unnecessary-value-param)
     if (auto* a = dynamic_cast<TIKNET_Solver*>(ptr->solver_)) return a->getTikhonovK();
-    if (auto* b = dynamic_cast<TIKOMP_Solver*>(ptr->solver_)) return b->getTikhonovK();
-    stop("get_tikhonov_k: not a TIKNET / TIKOMP solver.");
+    stop("get_tikhonov_k: not a TIKNET solver.");
 }
 
 //' @noRd

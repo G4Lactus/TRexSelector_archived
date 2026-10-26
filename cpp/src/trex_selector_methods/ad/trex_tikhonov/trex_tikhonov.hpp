@@ -425,11 +425,10 @@ struct TRexTikhonovControlParameter {
 
     /** @brief Base T-Rex algorithmic control parameters (nested).
      *  `solver_type` must be one of the general-K solvers: TCDTIKNET (CCD,
-     *  default), TIKNET (native LARS homotopy), or TIKOMP (greedy
-     *  generalized-ridge OMP); TIKNET/TIKOMP are FOLDED-coupling only.
+     *  default) or TIKNET (native LARS homotopy, FOLDED-coupling only).
      *  With penalty_structure = GROUP_CENTERING, the TCDTIKNET dispatch
-     *  routes to TCDIENET's O(1) group-centering hooks, while TIKNET/TIKOMP
-     *  consume the internally built K_GC on their sparse path (the O(1)
+     *  routes to TCDIENET's O(1) group-centering hooks, while TIKNET
+     *  consumes the internally built K_GC on its sparse path (the O(1)
      *  fast-path hooks are CCD-only). The default here overrides the base
      *  class's own default (TLARS) accordingly. All other base knobs (K,
      *  L-loop strategy, warm starts, memory mapping, CD hyperparameters,
@@ -489,8 +488,8 @@ public:
      * @param verbose Progress output.
      *
      * @throws std::invalid_argument on an empty or mis-dimensioned
-     *         `tikhonov_K`, a `solver_type` other than TCDTIKNET / TIKNET /
-     *         TIKOMP, malformed `prior_groups` / `corr_max`, or — with
+     *         `tikhonov_K`, a `solver_type` other than TCDTIKNET / TIKNET,
+     *         malformed `prior_groups` / `corr_max`, or — with
      *         `cluster_dummies` on — a PERMUTATION-family L-loop strategy.
      */
     TRexTikhonovSelector(Eigen::Map<Eigen::MatrixXd>& X,

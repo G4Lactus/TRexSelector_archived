@@ -45,7 +45,6 @@
 #include <tsolvers/ad/linear_model/omp_based/tmp_solver.hpp>
 #include <tsolvers/ad/linear_model/omp_based/tncgmp_solver.hpp>
 #include <tsolvers/ad/linear_model/omp_based/tools_solver.hpp>
-#include <tsolvers/ad/linear_model/omp_based/tikomp_solver.hpp>
 
 // AFS- and CD-based solvers
 #include <tsolvers/ad/linear_model/afs_based/tafs_solver.hpp>
@@ -355,7 +354,7 @@ typedef ::testing::Types<
     TLARS_Solver, TLASSO_Solver, TSTEPWISE_Solver, TSTAGEWISE_Solver, TENET_Solver,
     TENETAug_Solver, TIENET_Solver, TIENETAug_Solver, TIKNET_Solver,
     TOMP_Solver, TGP_Solver, TACGP_Solver, TMP_Solver, TNCGMP_Solver, TOOLS_Solver,
-    TIKOMP_Solver, TAFS_Solver,
+    TAFS_Solver,
     TCDLASSO_Solver, TCDENET_Solver, TCDIENET_Solver, TCDTIKNET_Solver
 > AllSolvers;
 
@@ -370,8 +369,7 @@ std::unique_ptr<T> makeSolver(Maps& m, SolverOptions options) {
         const Eigen::VectorXi groups =
             Eigen::VectorXi::LinSpaced(p, 0, static_cast<int>(p) - 1);
         return std::make_unique<T>(m.X, m.D, m.y, groups, options);
-    } else if constexpr (std::is_same_v<T, TIKNET_Solver> || std::is_same_v<T, TIKOMP_Solver> ||
-                         std::is_same_v<T, TCDTIKNET_Solver>) {
+    } else if constexpr (std::is_same_v<T, TIKNET_Solver> || std::is_same_v<T, TCDTIKNET_Solver>) {
         Eigen::SparseMatrix<double> K(p, p);
         K.setIdentity();
         return std::make_unique<T>(m.X, m.D, m.y, K, options);

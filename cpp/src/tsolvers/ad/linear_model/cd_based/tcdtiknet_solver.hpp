@@ -46,8 +46,8 @@ namespace trex::tsolvers::ad::linear_model::cd_based {
  *
  *  for an arbitrary user-supplied sparse PSD matrix K = Gamma^T Gamma
  *  (p x p) over the real block as a terminating pathwise coordinate
- *  descent — the CCD analog of the native LARS homotopy TIKNET_Solver and
- *  the greedy TIKOMP_Solver. K is passed as data (matrix-passing T-CDLASSO
+ *  descent — the CCD analog of the native LARS homotopy TIKNET_Solver.
+ *  K is passed as data (matrix-passing T-CDLASSO
  *  core): it enters only through the coordinate denominator, the
  *  incrementally maintained lambda2 * K * beta vector (O(nnz(K col)) per
  *  coordinate change), and the penalized KKT conditions. Dummy coupling is

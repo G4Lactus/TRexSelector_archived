@@ -25,7 +25,7 @@ using namespace trex::trex_selector_methods::ad::trex_core;
  *
  * Maps R objects to the C++ structures for the sparse-K selector. The nested
  * base control is merged from the separately-supplied trex_control; a
- * Tikhonov-family solver_type (TCDTIKNET / TIKNET / TIKOMP — the only
+ * Tikhonov-family solver_type (TCDTIKNET / TIKNET — the only
  * solvers with a general-K mode) is honored, anything else becomes the
  * TCDTIKNET default (the R level warns first on an explicit mismatch).
  */
@@ -51,8 +51,7 @@ public:
         const auto st = tik_ctrl.trex_ctrl.solver_type;
         const bool tik_family =
             st == tik_sd::SolverTypeForTRex::TCDTIKNET ||
-            st == tik_sd::SolverTypeForTRex::TIKNET ||
-            st == tik_sd::SolverTypeForTRex::TIKOMP;
+            st == tik_sd::SolverTypeForTRex::TIKNET;
         if (!tik_family) {
             tik_ctrl.trex_ctrl.solver_type =
                 tik_sd::SolverTypeForTRex::TCDTIKNET;

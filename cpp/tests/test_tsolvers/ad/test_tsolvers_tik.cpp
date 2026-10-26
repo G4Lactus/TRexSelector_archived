@@ -4,11 +4,10 @@
 /**
  * @file test_tsolvers_tik.cpp
  *
- * @brief Unit tests for the native sparse-K Tikhonov solvers (TIKNET,
- * TIKOMP): degenerate anchors (lambda2 = 0 collapses, group-mean K ==
- * native TIENET, K = I == singleton-group TIENET), crossing-support
- * equivalence against the CCD GROUP_CENTERING reference, the augmented-data
- * OMP cross-check, the generalized-ridge refit closed form,
+ * @brief Unit tests for the native sparse-K Tikhonov solver (TIKNET):
+ * degenerate anchors (lambda2 = 0 collapses, group-mean K == native
+ * TIENET, K = I == singleton-group TIENET), crossing-support equivalence
+ * against the CCD GROUP_CENTERING reference,
  * save/load/continue round trips, drop-recovery semantics (parity, re-entry,
  * knot monotonicity, mid-recovery checkpoints), rank-bound continuation,
  * and penalty-matrix content validation across the sparse-K trio.
@@ -36,7 +35,6 @@
 #include <tsolvers/ad/linear_model/lars_based/tiknet_solver.hpp>
 #include <tsolvers/ad/linear_model/lars_based/tienet_solver.hpp>
 #include <tsolvers/ad/linear_model/lars_based/tlasso_solver.hpp>
-#include <tsolvers/ad/linear_model/omp_based/tikomp_solver.hpp>
 #include <tsolvers/ad/linear_model/omp_based/tomp_solver.hpp>
 
 // utils includes
@@ -436,120 +434,6 @@ TEST_F(TSolverTikTest, TiknetKgcCrossingSupportsMatchCcdGroupCentering) {
 
 
 // ========================================================================================
-// TIKOMP degenerate anchors
-// ========================================================================================
-
-/** @brief lambda2 == 0 collapses T-TIKOMP exactly onto T-OMP. */
-TEST_F(TSolverTikTest, TikompLambda2ZeroReducesToTomp) {
-    Mapped mt(X, D, y);
-    TIKOMP_Solver tik(mt.Xm, mt.Dm, mt.ym, groupCenteringK(X.cols(), 5));
-    tik.executeStep(5, true);
-
-    Mapped mo(X, D, y);
-    TOMP_Solver omp_ref(mo.Xm, mo.Dm, mo.ym);
-    omp_ref.executeStep(5, true);
-
-    EXPECT_EQ(tik.getActions(), omp_ref.getActions());
-    EXPECT_TRUE(tik.getBeta(-1).isApprox(omp_ref.getBeta(-1), 1e-9));
-}
-
-
-/** @brief Augmented-data cross-check (Theorem-1 pattern): plain T-OMP on
- *  X_aug = [X; sqrt(l2) Gamma], y_aug = [y; 0],
- *  D_aug = [D; sqrt(l2) Gamma] (one layer) with Gamma = K_GC (idempotent
- *  projector: Gamma^T Gamma = K_GC) must walk the same greedy path as the
- *  native generalized-ridge TIKOMP. Both sides standardize the DATA blocks
- *  only, so the augmented run gets externally standardized inputs and
- *  normalize = false. */
-TEST_F(TSolverTikTest, TikompNativeMatchesAugmentedTomp) {
-    const double lambda2 = 2.0;
-    const Eigen::Index n = X.rows();
-    const Eigen::Index p = X.cols();
-    const double sq = std::sqrt(lambda2);
-
-    // Shared standardized data blocks.
-    Eigen::MatrixXd Xs = X, Ds = D;
-    Eigen::VectorXd ys = y;
-    standardizeInPlace(Xs, Ds, ys);
-
-    const Eigen::MatrixXd Gamma =
-        Eigen::MatrixXd(groupCenteringK(p, 5));
-
-    // Native TIKOMP on the standardized blocks.
-    Eigen::MatrixXd Xn = Xs, Dn = Ds;
-    Eigen::VectorXd yn = ys;
-    Eigen::Map<Eigen::MatrixXd> Xn_m(Xn.data(), Xn.rows(), Xn.cols());
-    Eigen::Map<Eigen::MatrixXd> Dn_m(Dn.data(), Dn.rows(), Dn.cols());
-    Eigen::Map<Eigen::VectorXd> yn_m(yn.data(), yn.size());
-    TIKOMP_Solver tik(Xn_m, Dn_m, yn_m, groupCenteringK(p, 5), trex::tsolvers::ad::SolverOptions{.normalize = false, .intercept = false, .lambda2 = lambda2});
-    tik.executeStep(5, true);
-
-    // Augmented system (penalty rows raw, no re-normalization).
-    Eigen::MatrixXd X_aug(n + p, p);
-    X_aug.topRows(n) = Xs;
-    X_aug.bottomRows(p) = sq * Gamma;
-    Eigen::MatrixXd D_aug(n + p, p);   // one dummy layer: Gamma tiled once
-    D_aug.topRows(n) = Ds;
-    D_aug.bottomRows(p) = sq * Gamma;
-    Eigen::VectorXd y_aug = Eigen::VectorXd::Zero(n + p);
-    y_aug.head(n) = ys;
-
-    Eigen::Map<Eigen::MatrixXd> Xa_m(X_aug.data(), X_aug.rows(), X_aug.cols());
-    Eigen::Map<Eigen::MatrixXd> Da_m(D_aug.data(), D_aug.rows(), D_aug.cols());
-    Eigen::Map<Eigen::VectorXd> ya_m(y_aug.data(), y_aug.size());
-    TOMP_Solver aug(Xa_m, Da_m, ya_m, trex::tsolvers::ad::SolverOptions{.normalize = false, .intercept = false});
-    aug.executeStep(5, true);
-
-    EXPECT_EQ(tik.getActions(), aug.getActions());
-    EXPECT_TRUE(tik.getBeta(-1).isApprox(aug.getBeta(-1), 1e-8));
-}
-
-
-/** @brief K = I ridge-OMP closed-form sanity (no dummies): the final
- *  active-set refit must equal (X_A^T X_A + lambda2 I)^{-1} X_A^T y
- *  computed directly. */
-TEST_F(TSolverTikTest, TikompIdentityKRidgeRefitClosedForm) {
-    const double lambda2 = 3.0;
-    const Eigen::Index p = X.cols();
-
-    Eigen::MatrixXd Xs = X;
-    Eigen::MatrixXd D_empty(X.rows(), 0);
-    Eigen::VectorXd ys = y;
-    standardizeInPlace(Xs, D_empty, ys);
-
-    Eigen::Map<Eigen::MatrixXd> Xm(Xs.data(), Xs.rows(), Xs.cols());
-    Eigen::Map<Eigen::MatrixXd> Dm(D_empty.data(), D_empty.rows(), 0);
-    Eigen::Map<Eigen::VectorXd> ym(ys.data(), ys.size());
-
-    TIKOMP_Solver tik(Xm, Dm, ym, identityK(p), trex::tsolvers::ad::SolverOptions{.normalize = false, .intercept = false, .lambda2 = lambda2});
-    tik.executeStep(0, true);   // full path (no dummies to terminate on)
-    ASSERT_GT(tik.getNumSteps(), 0u);
-
-    const auto& actives = tik.getActives();
-    ASSERT_FALSE(actives.empty());
-
-    Eigen::MatrixXd XA(Xs.rows(), static_cast<Eigen::Index>(actives.size()));
-    for (std::size_t k = 0; k < actives.size(); ++k) {
-        XA.col(static_cast<Eigen::Index>(k)) =
-            Xs.col(static_cast<Eigen::Index>(actives[k]));
-    }
-    const Eigen::MatrixXd G =
-        XA.transpose() * XA +
-        lambda2 * Eigen::MatrixXd::Identity(
-            static_cast<Eigen::Index>(actives.size()),
-            static_cast<Eigen::Index>(actives.size()));
-    const Eigen::VectorXd beta_ref = G.ldlt().solve(XA.transpose() * ys);
-
-    const Eigen::VectorXd beta = tik.getBeta(-1);
-    for (std::size_t k = 0; k < actives.size(); ++k) {
-        EXPECT_NEAR(beta(static_cast<Eigen::Index>(actives[k])),
-                    beta_ref(static_cast<Eigen::Index>(k)), 1e-8)
-            << "refit mismatch at active variable " << actives[k];
-    }
-}
-
-
-// ========================================================================================
 // Serialization: save -> load -> continue
 // ========================================================================================
 
@@ -562,18 +446,6 @@ TEST_F(TSolverTikTest, SerializeLoadContinueMatchesContinuous_TIKNET) {
             return TIKNET_Solver(m.Xm, m.Dm, m.ym, groupCenteringK(p, 5), trex::tsolvers::ad::SolverOptions{.lambda2 = 2.0});
         },
         "tiknet");
-}
-
-
-/** @brief T-TIKOMP round trip: K travels as triplets; the coupling state
- *  is transient and rebuilt from the refit coefficients. */
-TEST_F(TSolverTikTest, SerializeLoadContinueMatchesContinuous_TIKOMP) {
-    const Eigen::Index p = X.cols();
-    expectRoundTripMatchesContinuous<TIKOMP_Solver>(
-        [p](Mapped& m) {
-            return TIKOMP_Solver(m.Xm, m.Dm, m.ym, groupCenteringK(p, 5), trex::tsolvers::ad::SolverOptions{.lambda2 = 2.0});
-        },
-        "tikomp");
 }
 
 
@@ -965,40 +837,6 @@ TEST_F(TSolverTikTest, TiknetAcceptsValidTikhonovK) {
     {
         Mapped m(X, D, y);
         EXPECT_NO_THROW(TIKNET_Solver(m.Xm, m.Dm, m.ym, groupCenteringK(p, 5), trex::tsolvers::ad::SolverOptions{.lambda2 = 1.0}));
-    }
-}
-
-
-/** @brief TIKOMP shares the trio validation contract. */
-TEST_F(TSolverTikTest, TikompRejectsInvalidTikhonovK) {
-    const Eigen::Index p = X.cols();
-    {
-        Eigen::SparseMatrix<double> K = identityK(p);
-        K.coeffRef(3, 7) = std::numeric_limits<double>::quiet_NaN();
-        K.coeffRef(7, 3) = std::numeric_limits<double>::quiet_NaN();
-        Mapped m(X, D, y);
-        EXPECT_THROW(
-            TIKOMP_Solver(m.Xm, m.Dm, m.ym, K, trex::tsolvers::ad::SolverOptions{.lambda2 = 1.0}),
-            std::invalid_argument);
-    }
-    {
-        Eigen::SparseMatrix<double> K = identityK(p);
-        K.coeffRef(0, 1) = 0.5;
-        Mapped m(X, D, y);
-        EXPECT_THROW(
-            TIKOMP_Solver(m.Xm, m.Dm, m.ym, K, trex::tsolvers::ad::SolverOptions{.lambda2 = 1.0}),
-            std::invalid_argument);
-    }
-    {
-        Eigen::SparseMatrix<double> K = -1.0 * identityK(p);
-        Mapped m(X, D, y);
-        EXPECT_THROW(
-            TIKOMP_Solver(m.Xm, m.Dm, m.ym, K, trex::tsolvers::ad::SolverOptions{.lambda2 = 1.0}),
-            std::invalid_argument);
-    }
-    {
-        Mapped m(X, D, y);
-        EXPECT_NO_THROW(TIKOMP_Solver(m.Xm, m.Dm, m.ym, groupCenteringK(p, 5), trex::tsolvers::ad::SolverOptions{.lambda2 = 1.0}));
     }
 }
 

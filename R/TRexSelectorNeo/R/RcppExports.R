@@ -1478,20 +1478,6 @@ tsolver_tncgmp_create <- function(X, D, y, options) {
     .Call(`_TRexSelectorNeo_tsolver_tncgmp_create`, X, D, y, options)
 }
 
-#' @title Create TIKOMP_Solver
-#'
-#' @param X Design matrix
-#' @param D Dummy matrix
-#' @param y Response vector
-#' @param tikhonov_K p x p PSD Tikhonov matrix (dgCMatrix or dense)
-#' @param options List from tsolver_options()
-#'
-#' @return XPtr to TSolverRcpp
-#' @noRd
-tsolver_tikomp_create <- function(X, D, y, tikhonov_K, options) {
-    .Call(`_TRexSelectorNeo_tsolver_tikomp_create`, X, D, y, tikhonov_K, options)
-}
-
 #' @title Create TAFS_Solver
 #'
 #' @param X Design matrix
@@ -1755,20 +1741,6 @@ tsolver_tools_mmap_create <- function(X_ptr, D, y, options) {
 #' @noRd
 tsolver_tncgmp_mmap_create <- function(X_ptr, D, y, options) {
     .Call(`_TRexSelectorNeo_tsolver_tncgmp_mmap_create`, X_ptr, D, y, options)
-}
-
-#' @title Create TIKOMP_Solver (memory-mapped X)
-#'
-#' @param X_ptr XPtr to a MemoryMappedMatrix
-#' @param D Dummy matrix
-#' @param y Response vector
-#' @param tikhonov_K p x p PSD Tikhonov matrix (dgCMatrix or dense)
-#' @param options List from tsolver_options()
-#'
-#' @return XPtr to TSolverRcpp
-#' @noRd
-tsolver_tikomp_mmap_create <- function(X_ptr, D, y, tikhonov_K, options) {
-    .Call(`_TRexSelectorNeo_tsolver_tikomp_mmap_create`, X_ptr, D, y, tikhonov_K, options)
 }
 
 #' @title Create TAFS_Solver (memory-mapped X)

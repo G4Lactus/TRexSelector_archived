@@ -60,19 +60,26 @@ Other T-Rex selectors and controls:
 
     \item{\code{v_thresh}}{The chosen voting threshold.}
 
-    \item{\code{T_stop}}{Stopping time: the number of included dummies at which the T-loop stopped.}
+    \item{\code{T_stop}}{Stopping time: the number of included dummies at which
+the T-loop stopped.}
 
-    \item{\code{L}}{Calibrated dummy multiplier L (the selector uses L * p dummies).}
+    \item{\code{L}}{Calibrated dummy multiplier L (the selector uses
+L * p dummies).}
 
-    \item{\code{voting_grid}}{Voting levels 0.5, 0.5 + 1/K, ..., 1 - eps that the selection searches.}
+    \item{\code{voting_grid}}{Voting levels 0.5, 0.5 + 1/K, ..., 1 - eps that the
+selection searches.}
 
-    \item{\code{fdp_hat_mat}}{Estimated false discovery proportion per T step (rows) and voting level (columns).}
+    \item{\code{fdp_hat_mat}}{Estimated false discovery proportion per T step
+(rows) and voting level (columns).}
 
-    \item{\code{phi_mat}}{Relative occurrences of the original variables over the K random experiments after each T step (rows).}
+    \item{\code{phi_mat}}{Relative occurrences of the original variables over
+the K random experiments after each T step (rows).}
 
-    \item{\code{r_mat}}{Number of selected variables per T step (rows) and voting level (columns).}
+    \item{\code{r_mat}}{Number of selected variables per T step (rows) and
+voting level (columns).}
 
-    \item{\code{phi_prime}}{Calibrated relative occurrences used by the FDP estimate (length p), at most 1 and possibly negative.}
+    \item{\code{phi_prime}}{Calibrated relative occurrences used by the FDP
+estimate (length p), at most 1 and possibly negative.}
 
     \item{\code{x_means}}{computed means of the predictor variables}
 

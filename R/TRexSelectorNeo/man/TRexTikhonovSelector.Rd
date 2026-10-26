@@ -6,7 +6,7 @@
 \description{
 FDR-controlled variable selection with a Tikhonov penalty
 matrix \code{K = t(Gamma) \%*\% Gamma} driving the Tikhonov-net solvers
-(TCDTIKNET by default, or TIKNET / TIKOMP). \code{K = I} collapses to
+(TCDTIKNET by default, or TIKNET). \code{K = I} collapses to
 the plain elastic net; a group-mean K reproduces the GVS-IEN penalty;
 banded / Laplacian K encode smoothness-informed selection;
 \code{penalty_structure = "GROUP_CENTERING"} builds the centering
@@ -160,8 +160,8 @@ penalty matrix K).}
 (default: \code{trex_control()}). The \code{solver} field selects
 the Tikhonov-family solver: \code{"TCDTIKNET"} (default; the
 neutral \code{trex_control()} default \code{"TLARS"} maps to it),
-\code{"TIKNET"} (native pathwise), or \code{"TIKOMP"}; any other
-value warns and falls back to \code{"TCDTIKNET"}.}
+or \code{"TIKNET"} (native pathwise); any other value warns and
+falls back to \code{"TCDTIKNET"}.}
     }
     \if{html}{\out{</div>}}
   }

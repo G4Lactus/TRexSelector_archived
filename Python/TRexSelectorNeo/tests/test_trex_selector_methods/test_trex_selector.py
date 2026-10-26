@@ -391,7 +391,7 @@ def test_ien_family_gated_at_construction(signal_data, solver):
         trex_selector_neo.TRexSelector(X, y, trex_control=ctrl, verbose=False)
 
 
-@pytest.mark.parametrize("solver", ["TCDTIKNET", "TIKNET", "TIKOMP"])
+@pytest.mark.parametrize("solver", ["TCDTIKNET", "TIKNET"])
 def test_tikhonov_family_gated_at_construction(signal_data, solver):
     X, y, n, p = signal_data
     ctrl = trex_selector_neo.TRexControlParameter()

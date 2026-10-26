@@ -160,9 +160,8 @@ def test_tsolver_symbols_importable():
     from trex_selector_neo.tsolvers.ad.cd_based import (
         TCDLASSO_Solver, TCDENET_Solver, TCDIENET_Solver, TCDTIKNET_Solver)
     from trex_selector_neo.tsolvers.ad.lars_based import TIENET_Solver, TIKNET_Solver
-    from trex_selector_neo.tsolvers.ad.omp_based import TIKOMP_Solver
     for cls in (TCDLASSO_Solver, TCDENET_Solver, TCDIENET_Solver, TCDTIKNET_Solver,
-                TIENET_Solver, TIKNET_Solver, TIKOMP_Solver):
+                TIENET_Solver, TIKNET_Solver):
         assert callable(cls)
     assert SolverOptions().lambda2 == 0.0
     assert GroupPenaltyVariant.MEAN is not None

@@ -29,7 +29,6 @@ from trex_selector_neo.tsolvers.ad.lars_based import (
 from trex_selector_neo.tsolvers.ad.omp_based import (
     TACGP_Solver,
     TGP_Solver,
-    TIKOMP_Solver,
     TMP_Solver,
     TNCGMP_Solver,
     TOMP_Solver,
@@ -82,7 +81,6 @@ FACTORIES = {
     "TMP": lambda X, D, y: TMP_Solver(X, D, y, _reader()),
     "TNCGMP": lambda X, D, y: TNCGMP_Solver(X, D, y, _reader()),
     "TOOLS": lambda X, D, y: TOOLS_Solver(X, D, y, _reader()),
-    "TIKOMP": lambda X, D, y: TIKOMP_Solver(X, D, y, _K, _reader(lambda2=0.5)),
     "TAFS": lambda X, D, y: TAFS_Solver(X, D, y, _reader(rho_afs=0.5)),
     "TCDLASSO": lambda X, D, y: TCDLASSO_Solver(X, D, y, _reader()),
     "TCDENET": lambda X, D, y: TCDENET_Solver(X, D, y, _reader(lambda2=0.5)),

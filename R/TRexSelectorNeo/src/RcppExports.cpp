@@ -2138,21 +2138,6 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// tsolver_tikomp_create
-XPtr<TSolverRcpp> tsolver_tikomp_create(Rcpp::NumericMatrix X, Rcpp::NumericMatrix D, Rcpp::NumericVector y, SEXP tikhonov_K, Rcpp::List options);
-RcppExport SEXP _TRexSelectorNeo_tsolver_tikomp_create(SEXP XSEXP, SEXP DSEXP, SEXP ySEXP, SEXP tikhonov_KSEXP, SEXP optionsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type X(XSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type D(DSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type y(ySEXP);
-    Rcpp::traits::input_parameter< SEXP >::type tikhonov_K(tikhonov_KSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List >::type options(optionsSEXP);
-    rcpp_result_gen = Rcpp::wrap(tsolver_tikomp_create(X, D, y, tikhonov_K, options));
-    return rcpp_result_gen;
-END_RCPP
-}
 // tsolver_tafs_create
 XPtr<TSolverRcpp> tsolver_tafs_create(Rcpp::NumericMatrix X, Rcpp::NumericMatrix D, Rcpp::NumericVector y, Rcpp::List options);
 RcppExport SEXP _TRexSelectorNeo_tsolver_tafs_create(SEXP XSEXP, SEXP DSEXP, SEXP ySEXP, SEXP optionsSEXP) {
@@ -2435,21 +2420,6 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Rcpp::NumericVector >::type y(ySEXP);
     Rcpp::traits::input_parameter< Rcpp::List >::type options(optionsSEXP);
     rcpp_result_gen = Rcpp::wrap(tsolver_tncgmp_mmap_create(X_ptr, D, y, options));
-    return rcpp_result_gen;
-END_RCPP
-}
-// tsolver_tikomp_mmap_create
-XPtr<TSolverRcpp> tsolver_tikomp_mmap_create(XPtr<MemoryMappedMatrix<double>> X_ptr, Rcpp::NumericMatrix D, Rcpp::NumericVector y, SEXP tikhonov_K, Rcpp::List options);
-RcppExport SEXP _TRexSelectorNeo_tsolver_tikomp_mmap_create(SEXP X_ptrSEXP, SEXP DSEXP, SEXP ySEXP, SEXP tikhonov_KSEXP, SEXP optionsSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< XPtr<MemoryMappedMatrix<double>> >::type X_ptr(X_ptrSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type D(DSEXP);
-    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type y(ySEXP);
-    Rcpp::traits::input_parameter< SEXP >::type tikhonov_K(tikhonov_KSEXP);
-    Rcpp::traits::input_parameter< Rcpp::List >::type options(optionsSEXP);
-    rcpp_result_gen = Rcpp::wrap(tsolver_tikomp_mmap_create(X_ptr, D, y, tikhonov_K, options));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -3540,7 +3510,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_TRexSelectorNeo_tsolver_tmp_create", (DL_FUNC) &_TRexSelectorNeo_tsolver_tmp_create, 4},
     {"_TRexSelectorNeo_tsolver_tools_create", (DL_FUNC) &_TRexSelectorNeo_tsolver_tools_create, 4},
     {"_TRexSelectorNeo_tsolver_tncgmp_create", (DL_FUNC) &_TRexSelectorNeo_tsolver_tncgmp_create, 4},
-    {"_TRexSelectorNeo_tsolver_tikomp_create", (DL_FUNC) &_TRexSelectorNeo_tsolver_tikomp_create, 5},
     {"_TRexSelectorNeo_tsolver_tafs_create", (DL_FUNC) &_TRexSelectorNeo_tsolver_tafs_create, 4},
     {"_TRexSelectorNeo_tsolver_tcdlasso_create", (DL_FUNC) &_TRexSelectorNeo_tsolver_tcdlasso_create, 4},
     {"_TRexSelectorNeo_tsolver_tcdenet_create", (DL_FUNC) &_TRexSelectorNeo_tsolver_tcdenet_create, 4},
@@ -3561,7 +3530,6 @@ static const R_CallMethodDef CallEntries[] = {
     {"_TRexSelectorNeo_tsolver_tmp_mmap_create", (DL_FUNC) &_TRexSelectorNeo_tsolver_tmp_mmap_create, 4},
     {"_TRexSelectorNeo_tsolver_tools_mmap_create", (DL_FUNC) &_TRexSelectorNeo_tsolver_tools_mmap_create, 4},
     {"_TRexSelectorNeo_tsolver_tncgmp_mmap_create", (DL_FUNC) &_TRexSelectorNeo_tsolver_tncgmp_mmap_create, 4},
-    {"_TRexSelectorNeo_tsolver_tikomp_mmap_create", (DL_FUNC) &_TRexSelectorNeo_tsolver_tikomp_mmap_create, 5},
     {"_TRexSelectorNeo_tsolver_tafs_mmap_create", (DL_FUNC) &_TRexSelectorNeo_tsolver_tafs_mmap_create, 4},
     {"_TRexSelectorNeo_tsolver_tcdlasso_mmap_create", (DL_FUNC) &_TRexSelectorNeo_tsolver_tcdlasso_mmap_create, 4},
     {"_TRexSelectorNeo_tsolver_tcdenet_mmap_create", (DL_FUNC) &_TRexSelectorNeo_tsolver_tcdenet_mmap_create, 4},

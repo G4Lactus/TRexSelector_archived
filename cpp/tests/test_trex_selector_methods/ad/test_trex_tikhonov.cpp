@@ -126,7 +126,7 @@ protected:
 // ========================================================================================
 
 /** @brief An empty or mis-dimensioned K, or a solver_type outside the
- *  general-K trio (TCDTIKNET / TIKNET / TIKOMP), must throw at
+ *  general-K pair (TCDTIKNET / TIKNET), must throw at
  *  construction. */
 TEST_F(TRexTikhonovTest, Validation_ThrowsOnBadKOrSolver) {
 
@@ -941,12 +941,12 @@ TEST_F(TRexTikhonovTest, Equivalence_GroupCenteringFastPathMatchesSparse) {
 
 
 // ========================================================================================
-// TIKNET / TIKOMP solver routing (native sparse-K LARS and OMP)
+// TIKNET solver routing (native sparse-K LARS)
 // ========================================================================================
 
-/** @brief The solver gate accepts the three general-K solvers and rejects
- *  the INDEPENDENT_RIDGE escape for the FOLDED-only TIKNET/TIKOMP paths. */
-TEST_F(TRexTikhonovTest, SolverGate_TiknetTikompFoldedOnly) {
+/** @brief The solver gate accepts the two general-K solvers and rejects
+ *  the INDEPENDENT_RIDGE escape for the FOLDED-only TIKNET path. */
+TEST_F(TRexTikhonovTest, SolverGate_TiknetFoldedOnly) {
 
     TRexTikhonovControlParameter base;
     base.tikhonov_K = identityK(10);
@@ -956,21 +956,9 @@ TEST_F(TRexTikhonovTest, SolverGate_TiknetTikompFoldedOnly) {
         ctrl.trex_ctrl.solver_type = disp::SolverTypeForTRex::TIKNET;
         EXPECT_NO_THROW(TRexTikhonovSelector(X_map, y_map, 0.1, ctrl));
     }
-    {   // TIKOMP likewise.
-        auto ctrl = base;
-        ctrl.trex_ctrl.solver_type = disp::SolverTypeForTRex::TIKOMP;
-        EXPECT_NO_THROW(TRexTikhonovSelector(X_map, y_map, 0.1, ctrl));
-    }
     {   // INDEPENDENT_RIDGE exists only on the TCDTIKNET path.
         auto ctrl = base;
         ctrl.trex_ctrl.solver_type = disp::SolverTypeForTRex::TIKNET;
-        ctrl.fold_dummy_coupling   = false;
-        EXPECT_THROW(TRexTikhonovSelector(X_map, y_map, 0.1, ctrl),
-                     std::invalid_argument);
-    }
-    {   // Same for TIKOMP.
-        auto ctrl = base;
-        ctrl.trex_ctrl.solver_type = disp::SolverTypeForTRex::TIKOMP;
         ctrl.fold_dummy_coupling   = false;
         EXPECT_THROW(TRexTikhonovSelector(X_map, y_map, 0.1, ctrl),
                      std::invalid_argument);
@@ -1016,47 +1004,6 @@ TEST_F(TRexTikhonovTest, EndToEnd_TiknetKgcRecoversPlanted) {
         << "TIKNET + K_GC selected too many null variables.";
 }
 
-
-/** @brief End-to-end with the greedy path solver (TIKOMP) on the K_GC
- *  penalty: selection completes with calibrated Phi and recovers most of
- *  the planted actives (greedy refits; thresholds mirror the LARS test). */
-TEST_F(TRexTikhonovTest, EndToEnd_TikompKgcRecoversPlanted) {
-    const Eigen::Index n = 150, p = 40;
-    GroupedData d(n, p, 0.75, 1.0, 7);
-    Eigen::Map<Eigen::MatrixXd> Xm(d.X.data(), d.X.rows(), d.X.cols());
-    Eigen::Map<Eigen::VectorXd> ym(d.y.data(), d.y.size());
-
-    std::vector<Eigen::Index> prior_groups(static_cast<std::size_t>(p));
-    for (Eigen::Index j = 0; j < p; ++j) {
-        prior_groups[static_cast<std::size_t>(j)] = j / 5;
-    }
-
-    TRexTikhonovControlParameter ctrl;
-    ctrl.penalty_structure = TikPenaltyStructure::GROUP_CENTERING;
-    ctrl.prior_groups      = prior_groups;
-    ctrl.lambda_2          = 2.0;
-    ctrl.trex_ctrl.solver_type = disp::SolverTypeForTRex::TIKOMP;
-    ctrl.trex_ctrl.K = 5;
-    ctrl.trex_ctrl.max_dummy_multiplier = 2;
-
-    TRexTikhonovSelector trex(Xm, ym, 0.2, ctrl, 42, false);
-    auto result = trex.select();
-
-    ASSERT_EQ(result.selected_var.size(), p);
-    for (Eigen::Index j = 0; j < result.Phi_prime.size(); ++j) {
-        EXPECT_LE(result.Phi_prime(j), 1.0);
-    }
-    int hits = 0, false_sel = 0;
-    for (Eigen::Index j = 0; j < p; ++j) {
-        if (result.selected_var(j) == 1) {
-            if (j < 6) { ++hits; } else { ++false_sel; }
-        }
-    }
-    EXPECT_GE(hits, 3)
-        << "TIKOMP + K_GC failed to recover the planted actives.";
-    EXPECT_LE(false_sel, 4)
-        << "TIKOMP + K_GC selected too many null variables.";
-}
 
 // ========================================================================================
 } /* End of namespace trex::test::trex_selector_methods::ad::trex_tikhonov */

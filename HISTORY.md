@@ -59,8 +59,41 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   reproducibly; a negative seed keeps the former std::random_device behavior. The
   T-Rex selectors are unchanged (seeded selectors derive per-experiment seeds,
   unseeded ones pass -1).
+- `TIKOMP`, the Tikhonov-K orthogonal matching pursuit, is removed from the
+  C++, R and Python surfaces before the release: the class and its
+  `SolverTypeOMPBased` value, `SolverTypeForTRex::TIKOMP`, the R6 class
+  `TIKOMP_Solver` and the `"TIKOMP"` solver name, the Python class and enum
+  member. The `SolverTypeForTRex` enumerators after it (TGP to TAFS) shift
+  down by one, and TIKOMP checkpoints are unreadable. See the 2026-10-26
+  entry.
 
 ### 2026-10-26
+
+#### TIKOMP removed: a greedy pursuit cannot give the Tikhonov net's grouping
+
+- The Tikhonov-K OMP was the greedy counterpart of TIKNET and TCDTIKNET under a
+  general penalty K. A study on a grouped design (30 equicorrelated groups of 10,
+  three active, n = 150, p = 300, the group-centering K of the true groups,
+  within-group correlation 0.5 and 0.9, lambda_2 1 and 10, 20 trials; the tool and
+  its tables sit in the Examples under notes/tools/tikomp_grouping) shows why it
+  cannot work as intended. At the first dummy TIKNET and TCDTIKNET have the active
+  groups complete with equal coefficients (the elastic-net grouping), TIKOMP has 7
+  to 10 of the 30 true members: its penalized correlation pulls the mates of an
+  active variable in at large lambda_2, but the pursuit admits one member per step
+  against an orthogonalized residual while the dummies compete at every step. In
+  `TRexTikhonovSelector` it reached a TPR of 0.04 to 0.17 at an FDR of 0 (the L-loop
+  ran toward its cap) against 0.95 to 1.00 for the other two solvers.
+- Removed: `tikomp_solver.hpp` / `.cpp` (archived with the study and pre-removal
+  snapshots of the touched files in TRex_Research), the `SolverTypeOMPBased` and
+  `SolverTypeForTRex` enumerators, the dispatch case, the Tikhonov selector's gate
+  (TCDTIKNET or TIKNET now), the R6 class with its Rcpp creators and getter
+  branches, the Python binding and the omp_based re-export, the tests of the solver
+  (anchors, augmented cross-check, refit closed form, round trip, validation), the
+  selector gate and end-to-end tests, the memory and polymorphic type lists, and the
+  references map entry. No demo uses TIKOMP.
+- Breaking, see the release block: the R package drops `TIKOMP_Solver` and the
+  `"TIKOMP"` value of `trex_control(solver = )`, Python drops
+  `tsolvers.ad.omp_based.TIKOMP_Solver` and `SolverTypeForTRex.TIKOMP`.
 
 #### T-solvers: the augmented wrappers forward seed and tolerance to the inner solver; small items
 

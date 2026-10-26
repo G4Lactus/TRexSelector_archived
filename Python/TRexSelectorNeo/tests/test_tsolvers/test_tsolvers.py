@@ -23,7 +23,6 @@ from trex_selector_neo.tsolvers.ad.omp_based import (
 from trex_selector_neo.tsolvers.ad.afs_based import TAFS_Solver
 from trex_selector_neo.tsolvers.ad import SolverOptions
 from trex_selector_neo.tsolvers.ad.lars_based import TIENET_Solver, TIKNET_Solver
-from trex_selector_neo.tsolvers.ad.omp_based import TIKOMP_Solver
 from trex_selector_neo.tsolvers.ad.cd_based import (
     TCDLASSO_Solver, TCDENET_Solver, TCDIENET_Solver, TCDTIKNET_Solver)
 
@@ -92,9 +91,6 @@ def make_tienet(X, D, y):
 def make_tiknet(X, D, y):
     return TIKNET_Solver(X, D, y, _group_mean_k(X.shape[1]), SolverOptions(lambda2=0.5))
 
-def make_tikomp(X, D, y):
-    return TIKOMP_Solver(X, D, y, _group_mean_k(X.shape[1]), SolverOptions(lambda2=0.5))
-
 def make_tcdlasso(X, D, y):
     return TCDLASSO_Solver(X, D, y)
 
@@ -124,7 +120,6 @@ STANDARD_SOLVER_FACTORIES = [
     make_tafs,
     make_tienet,
     make_tiknet,
-    make_tikomp,
     make_tcdlasso,
     make_tcdenet,
     make_tcdienet,
@@ -506,7 +501,7 @@ def test_cd_family_certified_getters(solver_data):
 def test_tikhonov_solvers_take_a_dense_k(solver_data):
     X, D, y, n, p = solver_data
     K = _group_mean_k(p)
-    for cls in (TIKNET_Solver, TIKOMP_Solver, TCDTIKNET_Solver):
+    for cls in (TIKNET_Solver, TCDTIKNET_Solver):
         s = cls(X, D, y, K, SolverOptions(lambda2=0.5, fold_dummies=True))
         s.executeStep(3)
         assert s.getLambda2() == pytest.approx(0.5)

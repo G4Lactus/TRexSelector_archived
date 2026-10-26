@@ -153,7 +153,7 @@ A named list for use in TRexTikhonovSelector.
 Build a control list for \code{\link{TRexTikhonovSelector}},
 the general-Tikhonov T-Rex: a penalty matrix
 \code{K = t(Gamma) \%*\% Gamma} drives the Tikhonov-net solvers
-(TCDTIKNET by default; TIKNET / TIKOMP through the \code{solver} field
+(TCDTIKNET by default; TIKNET through the \code{solver} field
 of \code{\link{trex_control}}). \code{K = I} collapses to the plain
 elastic net; a group-mean K reproduces the GVS-IEN penalty;
 banded/Laplacian K encode smoothness. With

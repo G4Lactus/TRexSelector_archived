@@ -6,7 +6,7 @@ import collections.abc
 import numpy
 import numpy.typing
 import typing
-__all__: list[str] = ['AR1', 'ActiveSet', 'BT', 'BTSelectionMode', 'BiobankScreenTRexControl', 'BiobankScreenTRexResult', 'CALIBRATED', 'CV_1SE_CCD', 'CV_1SE_IEN_CCD', 'CV_1SE_SVD', 'CV_1SE_TIK_SVD', 'CV_MIN_CCD', 'CV_MIN_IEN_CCD', 'CV_MIN_SVD', 'CV_MIN_TIK_SVD', 'DAMethod', 'DASelectionResult', 'DummyDistribution', 'EN', 'ENSolverType', 'EQUI', 'FeasibleOnly', 'GROUP_CENTERING', 'GROUP_MAJORITY', 'GVSSelectionResult', 'GVSType', 'HCONCAT', 'IEN', 'L2', 'LLoopStrategy', 'Lambda2CVDiagnostics', 'Lambda2PickInfo', 'Lambda2PilotResult', 'LambdaSelectionMethod', 'MAJORITY', 'NN', 'NONE', 'PERMUTATION', 'PERMUTATION_SEEDED', 'PILOT_KNEE', 'PILOT_MAX', 'PRIOR_GROUPS', 'PilotStatistic', 'RFaithful', 'SEEDED', 'SKIPL', 'SPARSE_GENERAL', 'SPCAMode', 'STANDARD', 'ScalingMode', 'ScreenTRexControlParameter', 'ScreenTRexMethod', 'ScreenTRexSelectionResult', 'SelectionResult', 'SolverHyperparameters', 'SolverTypeForTRex', 'TACGP', 'TAFS', 'TCDENET', 'TCDIENET', 'TCDLASSO', 'TCDTIKNET', 'TENET', 'TENET_AUG', 'TGP', 'TIENET', 'TIENET_AUG', 'TIKNET', 'TIKOMP', 'TLARS', 'TLASSO', 'TMP', 'TNCGMP', 'TOMP', 'TOOLS', 'TREX', 'TREX_DA_AR1', 'TREX_DA_BLOCK_EQUI', 'TREX_DA_EQUI', 'TRexBiobankScreeningSelector', 'TRexControlParameter', 'TRexDAControlParameter', 'TRexDASelector', 'TRexGVSControlParameter', 'TRexGVSSelector', 'TRexSPCAControlParameter', 'TRexSPCAResult', 'TRexSPCASelector', 'TRexScreeningSelector', 'TRexSelector', 'TRexTikhonovControlParameter', 'TRexTikhonovSelector', 'TSTAGEWISE', 'TSTEPWISE', 'Thresholded', 'TikLambda2Method', 'TikPenaltyStructure', 'ZSCORE', 'build_group_centering_k', 'gamma_to_k', 'normalize_design']
+__all__: list[str] = ['AR1', 'ActiveSet', 'BT', 'BTSelectionMode', 'BiobankScreenTRexControl', 'BiobankScreenTRexResult', 'CALIBRATED', 'CV_1SE_CCD', 'CV_1SE_IEN_CCD', 'CV_1SE_SVD', 'CV_1SE_TIK_SVD', 'CV_MIN_CCD', 'CV_MIN_IEN_CCD', 'CV_MIN_SVD', 'CV_MIN_TIK_SVD', 'DAMethod', 'DASelectionResult', 'DummyDistribution', 'EN', 'ENSolverType', 'EQUI', 'FeasibleOnly', 'GROUP_CENTERING', 'GROUP_MAJORITY', 'GVSSelectionResult', 'GVSType', 'HCONCAT', 'IEN', 'L2', 'LLoopStrategy', 'Lambda2CVDiagnostics', 'Lambda2PickInfo', 'Lambda2PilotResult', 'LambdaSelectionMethod', 'MAJORITY', 'NN', 'NONE', 'PERMUTATION', 'PERMUTATION_SEEDED', 'PILOT_KNEE', 'PILOT_MAX', 'PRIOR_GROUPS', 'PilotStatistic', 'RFaithful', 'SEEDED', 'SKIPL', 'SPARSE_GENERAL', 'SPCAMode', 'STANDARD', 'ScalingMode', 'ScreenTRexControlParameter', 'ScreenTRexMethod', 'ScreenTRexSelectionResult', 'SelectionResult', 'SolverHyperparameters', 'SolverTypeForTRex', 'TACGP', 'TAFS', 'TCDENET', 'TCDIENET', 'TCDLASSO', 'TCDTIKNET', 'TENET', 'TENET_AUG', 'TGP', 'TIENET', 'TIENET_AUG', 'TIKNET', 'TLARS', 'TLASSO', 'TMP', 'TNCGMP', 'TOMP', 'TOOLS', 'TREX', 'TREX_DA_AR1', 'TREX_DA_BLOCK_EQUI', 'TREX_DA_EQUI', 'TRexBiobankScreeningSelector', 'TRexControlParameter', 'TRexDAControlParameter', 'TRexDASelector', 'TRexGVSControlParameter', 'TRexGVSSelector', 'TRexSPCAControlParameter', 'TRexSPCAResult', 'TRexSPCASelector', 'TRexScreeningSelector', 'TRexSelector', 'TRexTikhonovControlParameter', 'TRexTikhonovSelector', 'TSTAGEWISE', 'TSTEPWISE', 'Thresholded', 'TikLambda2Method', 'TikPenaltyStructure', 'ZSCORE', 'build_group_centering_k', 'gamma_to_k', 'normalize_design']
 class BTSelectionMode:
     """
     Cell-selection policy for the BT (binary-tree) DA method.
@@ -1445,31 +1445,28 @@ class SolverTypeForTRex:
       TCDTIKNET : Terminating coordinate-descent Tikhonov Net (sparse-K; needs a penalty matrix, TRexTikhonovSelector only — not yet bound in Python).
     
       TIKNET : Terminating Tikhonov Net, native pathwise (sparse-K, FOLDED; TRexTikhonovSelector only).
-    
-      TIKOMP : Terminating Tikhonov-K OMP (sparse-K, FOLDED; TRexTikhonovSelector only).
     """
-    TACGP: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TACGP: 16>
-    TAFS: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TAFS: 20>
+    TACGP: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TACGP: 15>
+    TAFS: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TAFS: 19>
     TCDENET: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TCDENET: 10>
     TCDIENET: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TCDIENET: 11>
     TCDLASSO: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TCDLASSO: 9>
     TCDTIKNET: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TCDTIKNET: 12>
     TENET: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TENET: 2>
     TENET_AUG: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TENET_AUG: 3>
-    TGP: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TGP: 15>
+    TGP: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TGP: 14>
     TIENET: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TIENET: 4>
     TIENET_AUG: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TIENET_AUG: 5>
     TIKNET: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TIKNET: 6>
-    TIKOMP: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TIKOMP: 14>
     TLARS: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TLARS: 0>
     TLASSO: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TLASSO: 1>
-    TMP: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TMP: 17>
-    TNCGMP: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TNCGMP: 18>
+    TMP: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TMP: 16>
+    TNCGMP: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TNCGMP: 17>
     TOMP: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TOMP: 13>
-    TOOLS: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TOOLS: 19>
+    TOOLS: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TOOLS: 18>
     TSTAGEWISE: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TSTAGEWISE: 8>
     TSTEPWISE: typing.ClassVar[SolverTypeForTRex]  # value = <SolverTypeForTRex.TSTEPWISE: 7>
-    __members__: typing.ClassVar[dict[str, SolverTypeForTRex]]  # value = {'TLARS': <SolverTypeForTRex.TLARS: 0>, 'TLASSO': <SolverTypeForTRex.TLASSO: 1>, 'TENET': <SolverTypeForTRex.TENET: 2>, 'TSTEPWISE': <SolverTypeForTRex.TSTEPWISE: 7>, 'TSTAGEWISE': <SolverTypeForTRex.TSTAGEWISE: 8>, 'TOMP': <SolverTypeForTRex.TOMP: 13>, 'TGP': <SolverTypeForTRex.TGP: 15>, 'TACGP': <SolverTypeForTRex.TACGP: 16>, 'TMP': <SolverTypeForTRex.TMP: 17>, 'TNCGMP': <SolverTypeForTRex.TNCGMP: 18>, 'TOOLS': <SolverTypeForTRex.TOOLS: 19>, 'TAFS': <SolverTypeForTRex.TAFS: 20>, 'TENET_AUG': <SolverTypeForTRex.TENET_AUG: 3>, 'TCDLASSO': <SolverTypeForTRex.TCDLASSO: 9>, 'TCDENET': <SolverTypeForTRex.TCDENET: 10>, 'TIENET': <SolverTypeForTRex.TIENET: 4>, 'TIENET_AUG': <SolverTypeForTRex.TIENET_AUG: 5>, 'TCDIENET': <SolverTypeForTRex.TCDIENET: 11>, 'TCDTIKNET': <SolverTypeForTRex.TCDTIKNET: 12>, 'TIKNET': <SolverTypeForTRex.TIKNET: 6>, 'TIKOMP': <SolverTypeForTRex.TIKOMP: 14>}
+    __members__: typing.ClassVar[dict[str, SolverTypeForTRex]]  # value = {'TLARS': <SolverTypeForTRex.TLARS: 0>, 'TLASSO': <SolverTypeForTRex.TLASSO: 1>, 'TENET': <SolverTypeForTRex.TENET: 2>, 'TSTEPWISE': <SolverTypeForTRex.TSTEPWISE: 7>, 'TSTAGEWISE': <SolverTypeForTRex.TSTAGEWISE: 8>, 'TOMP': <SolverTypeForTRex.TOMP: 13>, 'TGP': <SolverTypeForTRex.TGP: 14>, 'TACGP': <SolverTypeForTRex.TACGP: 15>, 'TMP': <SolverTypeForTRex.TMP: 16>, 'TNCGMP': <SolverTypeForTRex.TNCGMP: 17>, 'TOOLS': <SolverTypeForTRex.TOOLS: 18>, 'TAFS': <SolverTypeForTRex.TAFS: 19>, 'TENET_AUG': <SolverTypeForTRex.TENET_AUG: 3>, 'TCDLASSO': <SolverTypeForTRex.TCDLASSO: 9>, 'TCDENET': <SolverTypeForTRex.TCDENET: 10>, 'TIENET': <SolverTypeForTRex.TIENET: 4>, 'TIENET_AUG': <SolverTypeForTRex.TIENET_AUG: 5>, 'TCDIENET': <SolverTypeForTRex.TCDIENET: 11>, 'TCDTIKNET': <SolverTypeForTRex.TCDTIKNET: 12>, 'TIKNET': <SolverTypeForTRex.TIKNET: 6>}
     @typing.overload
     def __eq__(self, other: SolverTypeForTRex) -> bool:
         ...
@@ -2359,7 +2356,7 @@ class TRexTikhonovControlParameter:
         ...
 class TRexTikhonovSelector(TRexSelector):
     """
-    T-Rex selector with a general Tikhonov penalty (TCDTIKNET / TIKNET / TIKOMP) and cluster-aware dummies.
+    T-Rex selector with a general Tikhonov penalty (TCDTIKNET / TIKNET) and cluster-aware dummies.
     
     References
     ----------
@@ -2548,25 +2545,24 @@ SEEDED: LLoopStrategy  # value = <LLoopStrategy.SEEDED: 5>
 SKIPL: LLoopStrategy  # value = <LLoopStrategy.SKIPL: 0>
 SPARSE_GENERAL: TikPenaltyStructure  # value = <TikPenaltyStructure.SPARSE_GENERAL: 0>
 STANDARD: LLoopStrategy  # value = <LLoopStrategy.STANDARD: 1>
-TACGP: SolverTypeForTRex  # value = <SolverTypeForTRex.TACGP: 16>
-TAFS: SolverTypeForTRex  # value = <SolverTypeForTRex.TAFS: 20>
+TACGP: SolverTypeForTRex  # value = <SolverTypeForTRex.TACGP: 15>
+TAFS: SolverTypeForTRex  # value = <SolverTypeForTRex.TAFS: 19>
 TCDENET: ENSolverType  # value = <ENSolverType.TCDENET: 2>
 TCDIENET: SolverTypeForTRex  # value = <SolverTypeForTRex.TCDIENET: 11>
 TCDLASSO: SolverTypeForTRex  # value = <SolverTypeForTRex.TCDLASSO: 9>
 TCDTIKNET: SolverTypeForTRex  # value = <SolverTypeForTRex.TCDTIKNET: 12>
 TENET: ENSolverType  # value = <ENSolverType.TENET: 0>
 TENET_AUG: ENSolverType  # value = <ENSolverType.TENET_AUG: 1>
-TGP: SolverTypeForTRex  # value = <SolverTypeForTRex.TGP: 15>
+TGP: SolverTypeForTRex  # value = <SolverTypeForTRex.TGP: 14>
 TIENET: SolverTypeForTRex  # value = <SolverTypeForTRex.TIENET: 4>
 TIENET_AUG: SolverTypeForTRex  # value = <SolverTypeForTRex.TIENET_AUG: 5>
 TIKNET: SolverTypeForTRex  # value = <SolverTypeForTRex.TIKNET: 6>
-TIKOMP: SolverTypeForTRex  # value = <SolverTypeForTRex.TIKOMP: 14>
 TLARS: SolverTypeForTRex  # value = <SolverTypeForTRex.TLARS: 0>
 TLASSO: SolverTypeForTRex  # value = <SolverTypeForTRex.TLASSO: 1>
-TMP: SolverTypeForTRex  # value = <SolverTypeForTRex.TMP: 17>
-TNCGMP: SolverTypeForTRex  # value = <SolverTypeForTRex.TNCGMP: 18>
+TMP: SolverTypeForTRex  # value = <SolverTypeForTRex.TMP: 16>
+TNCGMP: SolverTypeForTRex  # value = <SolverTypeForTRex.TNCGMP: 17>
 TOMP: SolverTypeForTRex  # value = <SolverTypeForTRex.TOMP: 13>
-TOOLS: SolverTypeForTRex  # value = <SolverTypeForTRex.TOOLS: 19>
+TOOLS: SolverTypeForTRex  # value = <SolverTypeForTRex.TOOLS: 18>
 TREX: ScreenTRexMethod  # value = <ScreenTRexMethod.TREX: 0>
 TREX_DA_AR1: ScreenTRexMethod  # value = <ScreenTRexMethod.TREX_DA_AR1: 1>
 TREX_DA_BLOCK_EQUI: ScreenTRexMethod  # value = <ScreenTRexMethod.TREX_DA_BLOCK_EQUI: 3>

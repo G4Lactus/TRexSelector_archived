@@ -48,7 +48,6 @@ Other T-solvers:
 \code{\link{TIENETAug_Solver}},
 \code{\link{TIENET_Solver}},
 \code{\link{TIKNET_Solver}},
-\code{\link{TIKOMP_Solver}},
 \code{\link{TLARS_Solver}},
 \code{\link{TLASSO_Solver}},
 \code{\link{TMP_Solver}},

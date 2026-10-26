@@ -174,7 +174,7 @@ struct ExperimentRunnerConfig {
     int max_outer_threads = 1;
     int max_inner_threads = 1;
 
-    // --- General-Tikhonov penalty (TCDTIKNET / TIKNET / TIKOMP dispatch) ---
+    // --- General-Tikhonov penalty (TCDTIKNET / TIKNET dispatch) ---
     /** @brief Non-owning pointer to the Tikhonov matrix K (nullptr = none).
      *  Set by TRexTikhonovSelector::buildRunnerConfig(); forwarded verbatim
      *  into SolverConfig::tikhonov_K. Must outlive the run() call. */

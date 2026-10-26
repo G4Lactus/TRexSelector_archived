@@ -46,7 +46,7 @@ runs; it solves with the standard LASSO inner path unless the optional
 crossing. The IEN-family names "TIENET", "TIENET_AUG", and "TCDIENET"
 are accepted by the parser but only dispatchable inside
 \code{TRexGVSSelector} with \code{gvs_type = "IEN"}; the
-Tikhonov-family names "TCDTIKNET", "TIKNET", and "TIKOMP" need a
+Tikhonov-family names "TCDTIKNET" and "TIKNET" need a
 penalty matrix and are dispatchable only inside
 \code{TRexTikhonovSelector}. The plain selector rejects both families
 with an informative error.}

@@ -45,7 +45,6 @@
 #include <tsolvers/ad/linear_model/omp_based/tmp_solver.hpp>
 #include <tsolvers/ad/linear_model/omp_based/tncgmp_solver.hpp>
 #include <tsolvers/ad/linear_model/omp_based/tools_solver.hpp>
-#include <tsolvers/ad/linear_model/omp_based/tikomp_solver.hpp>
 
 // AFS- and CD-based solvers
 #include <tsolvers/ad/linear_model/afs_based/tafs_solver.hpp>
@@ -279,8 +278,7 @@ std::unique_ptr<T> makeSolver(Eigen::Map<Eigen::MatrixXd>& X, Eigen::Map<Eigen::
         Eigen::VectorXi groups(p);
         for (Eigen::Index j = 0; j < p; ++j) { groups(j) = static_cast<int>(j / 5); }
         return std::make_unique<T>(X, D, y, groups, o);
-    } else if constexpr (std::is_same_v<T, TIKNET_Solver> || std::is_same_v<T, TIKOMP_Solver> ||
-                         std::is_same_v<T, TCDTIKNET_Solver>) {
+    } else if constexpr (std::is_same_v<T, TIKNET_Solver> || std::is_same_v<T, TCDTIKNET_Solver>) {
         Eigen::SparseMatrix<double> K(p, p);
         K.setIdentity();
         return std::make_unique<T>(X, D, y, K, o);
@@ -322,7 +320,7 @@ typedef ::testing::Types<
     TLARS_Solver, TLASSO_Solver, TSTEPWISE_Solver, TSTAGEWISE_Solver, TENET_Solver,
     TENETAug_Solver, TIENET_Solver, TIENETAug_Solver, TIKNET_Solver,
     TOMP_Solver, TGP_Solver, TACGP_Solver, TMP_Solver, TNCGMP_Solver, TOOLS_Solver,
-    TIKOMP_Solver, TAFS_Solver,
+    TAFS_Solver,
     TCDLASSO_Solver, TCDENET_Solver, TCDIENET_Solver, TCDTIKNET_Solver
 > AllSolvers;
 

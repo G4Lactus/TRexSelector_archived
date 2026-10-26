@@ -24,7 +24,7 @@
 #' [TSTAGEWISE_Solver], [TENET_Solver], [TENETAug_Solver], [TIENET_Solver],
 #' [TIENETAug_Solver], [TIKNET_Solver]), the OMP family ([TOMP_Solver],
 #' [TGP_Solver], [TACGP_Solver], [TMP_Solver], [TOOLS_Solver],
-#' [TNCGMP_Solver], [TIKOMP_Solver]), the AFS solver [TAFS_Solver], and the
+#' [TNCGMP_Solver]), the AFS solver [TAFS_Solver], and the
 #' coordinate-descent family ([TCDLASSO_Solver], [TCDENET_Solver],
 #' [TCDIENET_Solver], [TCDTIKNET_Solver]). The solvers work on the caller's
 #' matrices without copying and may preprocess them in place; the

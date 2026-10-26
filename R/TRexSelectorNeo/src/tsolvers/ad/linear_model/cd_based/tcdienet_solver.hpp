@@ -86,7 +86,7 @@ using trex::tsolvers::ad::GroupPenaltyVariant;
  *  Generalized Tikhonov penalties (arbitrary sparse PSD K = Gamma^T Gamma
  *  with selectable FOLDED / INDEPENDENT_RIDGE dummy coupling) live in the
  *  dedicated TCDTIKNET_Solver (tcdtiknet_solver.hpp) — the CCD analog of
- *  TIKNET / TIKOMP. This class owns the structured GROUP-family
+ *  TIKNET. This class owns the structured GROUP-family
  *  specializations, which are the O(1)-per-update fast paths of that
  *  general form (FOLDED coupling by construction).
  *

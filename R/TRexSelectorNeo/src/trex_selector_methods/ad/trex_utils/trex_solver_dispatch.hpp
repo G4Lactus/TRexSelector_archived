@@ -93,7 +93,6 @@ enum class SolverTypeForTRex {
     // OMP-based solvers
     // -------------------------------
     TOMP,       // Terminating OMP
-    TIKOMP,     // Terminating Tikhonov-K OMP (sparse-K, FOLDED)
     TGP,        // Terminating Gradient Pursuit
     TACGP,      // Terminating Approximate Conjugate Gradient Pursuit
     TMP,        // Terminating Matching Pursuit
@@ -284,11 +283,11 @@ struct SolverConfig {
      *  solver is retained. */
     std::unique_ptr<tsolvers::ad::TSolver_Base>* retain_sink = nullptr;
 
-    // --- General-Tikhonov penalty (TCDTIKNET / TIKNET / TIKOMP dispatch) ---
+    // --- General-Tikhonov penalty (TCDTIKNET / TIKNET dispatch) ---
 
     /** @brief Non-owning pointer to a general Tikhonov matrix K = Gamma^T
      *  Gamma (p x p, PSD; nullptr = none). Required by the general-K
-     *  solvers TCDTIKNET / TIKNET / TIKOMP (used by TRexTikhonovSelector).
+     *  solvers TCDTIKNET / TIKNET (used by TRexTikhonovSelector).
      *  Must outlive the dispatch call; on serialized warm starts K travels
      *  inside the solver state instead. */
     const Eigen::SparseMatrix<double>* tikhonov_K = nullptr;
@@ -298,7 +297,7 @@ struct SolverConfig {
      *  the K = I ≡ TCDENET collapse), true = FOLDED (dummy copies join
      *  their originating variable's K-coupling — GVS layered convention;
      *  restores dummy/null exchangeability for arbitrary K). Ignored
-     *  when tikhonov_K is nullptr; TIKNET / TIKOMP are FOLDED-only. */
+     *  when tikhonov_K is nullptr; TIKNET is FOLDED-only. */
     bool tikhonov_fold_dummies = false;
 
     /** @brief Structured fast path: when set (with tikhonov_groups), the
@@ -411,8 +410,8 @@ inline trex::tsolvers::ad::SolverOptions toSolverOptions(const SolverConfig& cfg
  * @details Every solver takes (X, D, y, options) plus, for the structured
  *          families, the data that is not an option: the group vector of
  *          the IEN solvers (TCDIENET, TIENET, TIENETAug) or the sparse
- *          Tikhonov matrix of the sparse-K solvers (TCDTIKNET, TIKNET,
- *          TIKOMP). The options come from toSolverOptions(); the tolerance,
+ *          Tikhonov matrix of the sparse-K solvers (TCDTIKNET, TIKNET).
+ *          The options come from toSolverOptions(); the tolerance,
  *          the tie-break seed, the exchangeable-tie configuration and the
  *          CD knobs are applied at construction, so no post-construction
  *          setter is needed on this path (the warm-start paths still apply
@@ -433,21 +432,20 @@ std::unique_ptr<TSolver> makeSolverForConfig(const SolverConfig& cfg) {
         return std::make_unique<TSolver>(
             cfg.X, cfg.D, cfg.y, *cfg.tikhonov_groups, options);
     } else if constexpr (std::is_same_v<TSolver, cd::TCDTIKNET_Solver> ||
-                         std::is_same_v<TSolver, lars::TIKNET_Solver> ||
-                         std::is_same_v<TSolver, omp::TIKOMP_Solver>) {
+                         std::is_same_v<TSolver, lars::TIKNET_Solver>) {
         if (cfg.tikhonov_K == nullptr) {
             throw std::invalid_argument(
                 "trex_solver_dispatch: the sparse-K solvers require a "
                 "Tikhonov matrix (SolverConfig::tikhonov_K).");
         }
         if constexpr (!std::is_same_v<TSolver, cd::TCDTIKNET_Solver>) {
-            // Native sparse-K solvers (LARS homotopy / greedy OMP) implement
-            // the FOLDED dummy convention EXCLUSIVELY (dummy copy t couples
-            // as its base (t - p) mod p); there is no INDEPENDENT_RIDGE
-            // escape on these paths.
+            // The native sparse-K LARS homotopy implements the FOLDED dummy
+            // convention EXCLUSIVELY (dummy copy t couples as its base
+            // (t - p) mod p); there is no INDEPENDENT_RIDGE escape on that
+            // path.
             if (!cfg.tikhonov_fold_dummies) {
                 throw std::invalid_argument(
-                    "trex_solver_dispatch: TIKNET/TIKOMP implement FOLDED dummy "
+                    "trex_solver_dispatch: TIKNET implements FOLDED dummy "
                     "coupling only; set tikhonov_fold_dummies = true (the "
                     "INDEPENDENT_RIDGE escape exists only on the TCDTIKNET path).");
             }
@@ -596,14 +594,6 @@ inline SparseBetaPath dispatchByType(SolverTypeForTRex solver_type, const Solver
 
         // OMP family
         case SolverTypeForTRex::TOMP:       return dispatchSolver<omp::TOMP_Solver>(cfg);
-        case SolverTypeForTRex::TIKOMP:
-            // Same K contract as TIKNET (see above).
-            if (cfg.tikhonov_K != nullptr) {
-                return dispatchSolver<omp::TIKOMP_Solver>(cfg);
-            }
-            throw std::invalid_argument(
-                "trex_solver_dispatch: TIKOMP needs a Tikhonov matrix "
-                "(TRexTikhonovSelector / SolverConfig::tikhonov_K).");
         case SolverTypeForTRex::TGP:        return dispatchSolver<omp::TGP_Solver>(cfg);
         case SolverTypeForTRex::TACGP:      return dispatchSolver<omp::TACGP_Solver>(cfg);
         case SolverTypeForTRex::TMP:        return dispatchSolver<omp::TMP_Solver>(cfg);

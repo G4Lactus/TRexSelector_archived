@@ -37,7 +37,6 @@ test_that("trex_control validates the CD knobs", {
     expect_false(trex_control(solver = s)$tloop_stagnation_stop)
   }
   expect_true(trex_control(solver = "TOMP")$tloop_stagnation_stop)
-  expect_true(trex_control(solver = "TIKOMP")$tloop_stagnation_stop)
 
   # Certified crossing localization is the CD default; the flag is carried.
   expect_true(trex_control()$cd_certified_localization)
@@ -108,7 +107,6 @@ test_that("GVS-only solvers are rejected by the plain selector with guidance", {
   # The Tikhonov family needs a penalty matrix: TRexTikhonovSelector only.
   expect_error(run_with("TCDTIKNET"), "Tikhonov penalty matrix")
   expect_error(run_with("TIKNET"), "Tikhonov penalty matrix")
-  expect_error(run_with("TIKOMP"), "Tikhonov penalty matrix")
 })
 
 

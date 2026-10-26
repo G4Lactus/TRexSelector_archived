@@ -65,8 +65,7 @@ def _validate_core_solver_type(trex_control: "TRexControlParameter") -> None:
         raise ValueError(
             'solver_type = TCDIENET needs a group assignment; use '
             'TRexGVSSelector with gvs_type = IEN.')
-    if st in (SolverTypeForTRex.TCDTIKNET, SolverTypeForTRex.TIKNET,
-              SolverTypeForTRex.TIKOMP):
+    if st in (SolverTypeForTRex.TCDTIKNET, SolverTypeForTRex.TIKNET):
         raise ValueError(
             f'solver_type = {st.name} needs a Tikhonov penalty matrix; use '
             'TRexTikhonovSelector.')
@@ -346,7 +345,7 @@ class TRexTikhonovSelector(TRexSelector):
     internally) or ``GROUP_CENTERING`` built from the groups. lambda_2 < 0
     resolves by ``tik_control.lambda2_method`` (CV tuners or the pilot power
     rules); the dummies are cluster-aware by default. Solver: TCDTIKNET
-    (default), TIKNET or TIKOMP, chosen through ``trex_control.solver_type``.
+    (default) or TIKNET, chosen through ``trex_control.solver_type``.
     """
     def __init__(self, X: np.ndarray, y: np.ndarray, tFDR: float = 0.1,
                  tik_control: TRexTikhonovControlParameter | None = None,
@@ -367,13 +366,12 @@ class TRexTikhonovSelector(TRexSelector):
         # TRexControlParameter default and cannot be distinguished from an
         # explicit choice, so it never warns; the C++ glue maps it to
         # TCDTIKNET. Mirrors the R surface.
-        _tik_family = (SolverTypeForTRex.TCDTIKNET, SolverTypeForTRex.TIKNET,
-                       SolverTypeForTRex.TIKOMP)
+        _tik_family = (SolverTypeForTRex.TCDTIKNET, SolverTypeForTRex.TIKNET)
         if trex_control.solver_type not in (SolverTypeForTRex.TLARS,) + _tik_family:
             warnings.warn(
                 f"trex_control.solver_type = {trex_control.solver_type.name} "
                 f"is not a Tikhonov-family solver; TRexTikhonovSelector accepts "
-                f"TCDTIKNET, TIKNET, or TIKOMP. Using TCDTIKNET.",
+                f"TCDTIKNET or TIKNET. Using TCDTIKNET.",
                 UserWarning,
                 stacklevel=2,
             )

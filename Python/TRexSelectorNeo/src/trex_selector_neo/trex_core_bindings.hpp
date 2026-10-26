@@ -239,7 +239,6 @@ inline void bind_trex_core(py::module& m_tsm) {
         .value("TCDIENET",   disp::SolverTypeForTRex::TCDIENET,   "Terminating coordinate-descent Informed Elastic Net (GVS-only, gvs_type=IEN).")
         .value("TCDTIKNET",  disp::SolverTypeForTRex::TCDTIKNET,  "Terminating coordinate-descent Tikhonov Net (sparse-K; needs a penalty matrix, TRexTikhonovSelector only — not yet bound in Python).")
         .value("TIKNET",     disp::SolverTypeForTRex::TIKNET,     "Terminating Tikhonov Net, native pathwise (sparse-K, FOLDED; TRexTikhonovSelector only).")
-        .value("TIKOMP",     disp::SolverTypeForTRex::TIKOMP,     "Terminating Tikhonov-K OMP (sparse-K, FOLDED; TRexTikhonovSelector only).")
         .export_values();
 
     // Bind SolverHyperparameters struct

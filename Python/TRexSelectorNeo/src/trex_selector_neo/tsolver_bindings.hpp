@@ -39,7 +39,6 @@
 // Native IEN and the sparse-K solvers
 #include <tsolvers/ad/linear_model/lars_based/tienet_solver.hpp>
 #include <tsolvers/ad/linear_model/lars_based/tiknet_solver.hpp>
-#include <tsolvers/ad/linear_model/omp_based/tikomp_solver.hpp>
 // CD-based solvers
 #include <tsolvers/ad/linear_model/cd_based/tcdlasso_solver.hpp>
 #include <tsolvers/ad/linear_model/cd_based/tcdenet_solver.hpp>
@@ -534,7 +533,7 @@ py::class_<PySolverWrapper<Solver>> bind_groups_tsolver(py::module& m, const std
 
 /**
  * @brief Registration for a solver whose constructor also takes the sparse
- *        Tikhonov matrix (X, D, y, tikhonov_K, options): TIKNET, TIKOMP,
+ *        Tikhonov matrix (X, D, y, tikhonov_K, options): TIKNET and
  *        TCDTIKNET. K is passed as a dense p x p array and converted with
  *        sparseView() (no SciPy dependency). `class_doc` is the class
  *        docstring, as in bind_standard_tsolver().
@@ -1012,30 +1011,6 @@ inline void bind_tsolvers_module(py::module& m) {
         "  Discovery Rate Control,\" in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026,\n"
         "  pp. 2511-2515.\n",
         "Reads options.ncgmp_variant (LineSearch or FullyCorrective).");
-
-    // TIKOMP: greedy generalized-ridge OMP under lambda2 * beta' K beta (FOLDED dummies).
-    bind_tikhonov_tsolver<TIKOMP_Solver>(m_omp, "TIKOMP_Solver",
-        "Terminating Tikhonov-K OMP (T-TIKOMP) solver with generalized-ridge active-set refits.\n"
-        "\n"
-        "References\n"
-        "----------\n"
-        "A. N. Tikhonov, \"Solution of Incorrectly Formulated Problems and the Regularization\n"
-        "  Method,\" Soviet Math. Dokl., vol. 4, pp. 1035-1038, 1963 (English translation of Dokl.\n"
-        "  Akad. Nauk SSSR 151 (1963), no. 3, 501-504).\n"
-        "Y. Park, L. Reichel, G. Rodriguez, and X. Yu, \"Parameter Determination for Tikhonov\n"
-        "  Regularization Problems in General Form,\" J. Comput. Appl. Math., vol. 343, pp. 12-25,\n"
-        "  2018, doi: 10.1016/j.cam.2018.04.049.\n"
-        "Y. C. Pati, R. Rezaiifar, and P. S. Krishnaprasad, \"Orthogonal Matching Pursuit:\n"
-        "  Recursive Function Approximation with Applications to Wavelet Decomposition,\" in Proc.\n"
-        "  27th Asilomar Conf. Signals, Syst., Comput., 1993, pp. 40-44.\n"
-        "F. Scheidt and M. Muma, \"Terminating Greedy Pursuits for High-Dimensional False\n"
-        "  Discovery Rate Control,\" in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2026,\n"
-        "  pp. 2511-2515.\n",
-        "Reads options.lambda2 and the exchangeable-tie fields; FOLDED dummy coupling only.")
-        .def("getLambda2", &PySolverWrapper<TIKOMP_Solver>::getLambda2,
-             "Get the quadratic penalty weight lambda2 used.")
-        .def("getTikhonovK", &PySolverWrapper<TIKOMP_Solver>::getTikhonovK,
-             "The Tikhonov matrix K as a dense p x p array.");
 
     // -------------------------------------------------------------------------
     // AFS-based sub-module
