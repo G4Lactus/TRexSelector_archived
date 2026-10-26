@@ -37,3 +37,12 @@ mm[2, 3] <- 99.0
 mm[1:2, 1:3] <- matrix(as.double(1:6), nrow = 2, ncol = 3)
 }
 }
+\seealso{
+Other memory-mapped matrices:
+\code{\link[=as.matrix.mmap_matrix]{as.matrix.mmap_matrix()}},
+\code{\link[=dim.mmap_matrix]{dim.mmap_matrix()}},
+\code{\link[=mem_matrix]{mem_matrix()}},
+\code{\link[=mem_matrix_from]{mem_matrix_from()}},
+\code{\link[=print.mmap_matrix]{print.mmap_matrix()}}
+}
+\concept{memory-mapped matrices}

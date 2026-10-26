@@ -56,7 +56,7 @@ documentation:
   `trex_selector_neo`.
 * **R package** — [`R/TRexSelectorNeo/`](R/TRexSelectorNeo/), documented in
   [R/TRexSelectorNeo/README.md](R/TRexSelectorNeo/README.md): installation, quick start, and
-  vignette.
+  the twelve vignettes.
 
 ---
 

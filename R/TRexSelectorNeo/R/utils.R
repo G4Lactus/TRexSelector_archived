@@ -205,6 +205,7 @@ get_ptr.mmap_matrix <- function(x, ...) x
 #' print(mm)
 #' }
 #'
+#' @family memory-mapped matrices
 #' @export
 print.mmap_matrix <- function(x, ...) {
   cat(sprintf("MemoryMappedMatrix [%d x %d]\n",
@@ -230,6 +231,7 @@ print.mmap_matrix <- function(x, ...) {
 #' mm <- mem_matrix(f, rows = 4, cols = 5)
 #' dim(mm)
 #' }
+#' @family memory-mapped matrices
 #' @export
 dim.mmap_matrix <- function(x) {
   c(mmap_matrix_rows(x), mmap_matrix_cols(x))
@@ -261,6 +263,7 @@ dim.mmap_matrix <- function(x) {
 #' mm[1:2, 1:3] <- matrix(as.double(1:6), nrow = 2, ncol = 3)
 #' }
 #' @usage \method{[}{mmap_matrix}(x, i, j, ..., drop = FALSE)
+#' @family memory-mapped matrices
 #' @export
 `[.mmap_matrix` <- function(x, i, j, ..., drop = FALSE) {
   rows <- mmap_matrix_rows(x)
@@ -394,6 +397,7 @@ dim.mmap_matrix <- function(x) {
 #' as.matrix(mm)
 #' }
 #'
+#' @family memory-mapped matrices
 #' @export
 as.matrix.mmap_matrix <- function(x, ...) {
   args <- list(...)
@@ -548,6 +552,7 @@ trex_tpp_dense <- function(beta_hat, beta, eps = 1e-15) {
 #' old <- trex_set_num_threads(2)
 #' trex_get_max_threads()
 #' trex_set_num_threads(old)
+#' @family T-Rex selectors and controls
 #' @export
 trex_get_max_threads <- function() {
   rcpp_get_max_threads()

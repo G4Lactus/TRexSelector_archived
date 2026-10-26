@@ -28,3 +28,31 @@ old <- trex_set_num_threads(2)
 trex_get_max_threads()
 trex_set_num_threads(old)
 }
+\seealso{
+Other T-Rex selectors and controls:
+\code{\link{Gauss_data}},
+\code{\link{TRexBiobankScreeningSelector}},
+\code{\link{TRexDASelector}},
+\code{\link{TRexGVSSelector}},
+\code{\link{TRexSPCASelector}},
+\code{\link{TRexScreeningSelector}},
+\code{\link{TRexSelector}},
+\code{\link{TRexTikhonovSelector}},
+\code{\link[=trex_biobank_control]{trex_biobank_control()}},
+\code{\link[=trex_control]{trex_control()}},
+\code{\link[=trex_da_control]{trex_da_control()}},
+\code{\link[=trex_dummy_distribution]{trex_dummy_distribution()}},
+\code{\link[=trex_fdp]{trex_fdp()}},
+\code{\link[=trex_fdp_dense]{trex_fdp_dense()}},
+\code{\link[=trex_gamma_to_k]{trex_gamma_to_k()}},
+\code{\link[=trex_gvs_control]{trex_gvs_control()}},
+\code{\link[=trex_normalize_design]{trex_normalize_design()}},
+\code{\link[=trex_precision]{trex_precision()}},
+\code{\link[=trex_recall]{trex_recall()}},
+\code{\link[=trex_screen_control]{trex_screen_control()}},
+\code{\link[=trex_spca_control]{trex_spca_control()}},
+\code{\link[=trex_tikhonov_control]{trex_tikhonov_control()}},
+\code{\link[=trex_tpp]{trex_tpp()}},
+\code{\link[=trex_tpp_dense]{trex_tpp_dense()}}
+}
+\concept{T-Rex selectors and controls}

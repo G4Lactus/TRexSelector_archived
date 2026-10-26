@@ -24,6 +24,7 @@ trex_fdp_dense(c(1.5, 0, 0.8, 0, 0), c(2.0, 0, 1.0, 0, 0))
 }
 \seealso{
 Other T-Rex selectors and controls:
+\code{\link{Gauss_data}},
 \code{\link{TRexBiobankScreeningSelector}},
 \code{\link{TRexDASelector}},
 \code{\link{TRexGVSSelector}},
@@ -37,6 +38,7 @@ Other T-Rex selectors and controls:
 \code{\link[=trex_dummy_distribution]{trex_dummy_distribution()}},
 \code{\link[=trex_fdp]{trex_fdp()}},
 \code{\link[=trex_gamma_to_k]{trex_gamma_to_k()}},
+\code{\link[=trex_get_max_threads]{trex_get_max_threads()}},
 \code{\link[=trex_gvs_control]{trex_gvs_control()}},
 \code{\link[=trex_normalize_design]{trex_normalize_design()}},
 \code{\link[=trex_precision]{trex_precision()}},

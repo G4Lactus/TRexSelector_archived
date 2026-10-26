@@ -23,6 +23,7 @@ trex_fdp(c(1L, 3L, 5L), c(1L, 2L, 3L))
 }
 \seealso{
 Other T-Rex selectors and controls:
+\code{\link{Gauss_data}},
 \code{\link{TRexBiobankScreeningSelector}},
 \code{\link{TRexDASelector}},
 \code{\link{TRexGVSSelector}},
@@ -36,6 +37,7 @@ Other T-Rex selectors and controls:
 \code{\link[=trex_dummy_distribution]{trex_dummy_distribution()}},
 \code{\link[=trex_fdp_dense]{trex_fdp_dense()}},
 \code{\link[=trex_gamma_to_k]{trex_gamma_to_k()}},
+\code{\link[=trex_get_max_threads]{trex_get_max_threads()}},
 \code{\link[=trex_gvs_control]{trex_gvs_control()}},
 \code{\link[=trex_normalize_design]{trex_normalize_design()}},
 \code{\link[=trex_precision]{trex_precision()}},

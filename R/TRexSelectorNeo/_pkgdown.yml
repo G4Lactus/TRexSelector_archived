@@ -19,3 +19,29 @@ reference:
   desc: Disk-backed matrices accepted everywhere a matrix is.
   contents:
   - has_concept("memory-mapped matrices")
+
+articles:
+- title: Get started
+  navbar: Get started
+  contents:
+  - v01-getting-started
+  - v02-trex-selector
+- title: The T-Rex selectors
+  navbar: Selectors
+  contents:
+  - v03-trex-da
+  - v04-trex-gvs
+  - v05-screening
+  - v06-trex-spca
+  - v07-trex-tikhonov
+- title: Solvers and methods
+  navbar: Solvers and methods
+  contents:
+  - v08-tsolvers
+  - v09-ml-methods
+- title: Memory and threads
+  navbar: Memory and threads
+  contents:
+  - v10-memory-mapping
+  - v11-no-copies
+  - v12-parallelism

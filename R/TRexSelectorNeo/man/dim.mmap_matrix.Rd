@@ -25,3 +25,12 @@ mm <- mem_matrix(f, rows = 4, cols = 5)
 dim(mm)
 }
 }
+\seealso{
+Other memory-mapped matrices:
+\code{\link[=[.mmap_matrix]{[.mmap_matrix()}},
+\code{\link[=as.matrix.mmap_matrix]{as.matrix.mmap_matrix()}},
+\code{\link[=mem_matrix]{mem_matrix()}},
+\code{\link[=mem_matrix_from]{mem_matrix_from()}},
+\code{\link[=print.mmap_matrix]{print.mmap_matrix()}}
+}
+\concept{memory-mapped matrices}

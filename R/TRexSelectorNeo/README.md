@@ -152,10 +152,13 @@ construct → `$select()` → inspect pattern.
 
 ## Documentation
 
-For more information and some examples, please check the package
-vignette in [`vignettes/`](vignettes/) (built on installation with
-`build_vignettes = TRUE`). The help page of every selector, T-solver and
-machine learning class ends with the papers it builds on, and
+The package has twelve vignettes in [`vignettes/`](vignettes/) (built on
+installation with `build_vignettes = TRUE`, listed by
+`browseVignettes("TRexSelectorNeo")`): getting started, the T-Rex
+selector, T-Rex+DA, T-Rex GVS, screening, T-Rex SPCA, T-Rex Tikhonov, the
+T-solvers, the ML methods, memory mapping, working without data copies,
+and parallelism. The help page of every selector, T-solver and machine
+learning class ends with the papers it builds on, and
 `citation("TRexSelectorNeo")` lists the package entry and the T-Rex method
 papers.
 

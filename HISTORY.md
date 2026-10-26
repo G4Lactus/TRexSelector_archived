@@ -74,6 +74,33 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
 
 ### 2026-10-26
 
+#### R: twelve vignettes replace the usage-and-simulations vignette (WP16)
+
+- `vignettes/` holds twelve pages, each a CRAN vignette in `rmarkdown::html_vignette`
+  format, seeded, small (every page renders in about one second) and capped at two
+  threads by its setup chunk: getting started, the T-Rex selector, T-Rex+DA, T-Rex GVS,
+  screening (Screen-T-Rex and the biobank screening), T-Rex SPCA, T-Rex Tikhonov, the
+  T-solvers, the ML methods, memory mapping, working without data copies, parallelism.
+  The file names carry a `v` and two digits for the order (a name under `inst/doc` must
+  start with a letter, or `R CMD build` drops the file), and `_pkgdown.yml` groups them as
+  articles.
+- The Rd pages of `trex_get_max_threads`, `Gauss_data` and the four `mmap_matrix` S3
+  methods carry a `\concept`, so the pkgdown reference groups cover every topic.
+- The old `TRexSelector_usage_and_simulations.Rmd` (html_document with a CDN MathJax, a
+  prettydoc output outside Suggests, unconditional ggplot2 / patchwork, an unseeded
+  selector, the 100-trial simulation at build time) is gone, together with
+  `vignettes/debug.R` (a devtools script that shipped in the tarball) and the stale
+  `refs.bib`. The pages cite the master `references.bib` of the repository, copied into
+  `vignettes/`, with the IEEE style. The plots are base graphics, so ggplot2 and
+  patchwork leave Suggests.
+- The T-Rex selector page carries the fresh-against-grown dummy comparison of the
+  L-loop strategies (the 500-trial study behind decision D3) and the cross-platform note
+  on seeded runs. The parallelism page describes the current knobs
+  (`trex_control(use_openmp, max_outer_threads, max_inner_threads)`,
+  `trex_set_num_threads()`); it is updated when the selector-level thread options land.
+- Known cosmetic: pandoc 3.12 prints a deprecation notice for `--mathjax` during the
+  build, from rmarkdown, harmless.
+
 #### R CI: a sequential build job; the gate variables of the regions are `[[maybe_unused]]`
 
 - The R workflow gains a fourth matrix entry, Ubuntu with `TREX_OPENMP=no`, the

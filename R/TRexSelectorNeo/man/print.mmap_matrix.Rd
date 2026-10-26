@@ -28,3 +28,12 @@ print(mm)
 }
 
 }
+\seealso{
+Other memory-mapped matrices:
+\code{\link[=[.mmap_matrix]{[.mmap_matrix()}},
+\code{\link[=as.matrix.mmap_matrix]{as.matrix.mmap_matrix()}},
+\code{\link[=dim.mmap_matrix]{dim.mmap_matrix()}},
+\code{\link[=mem_matrix]{mem_matrix()}},
+\code{\link[=mem_matrix_from]{mem_matrix_from()}}
+}
+\concept{memory-mapped matrices}

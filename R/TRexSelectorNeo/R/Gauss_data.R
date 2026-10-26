@@ -29,4 +29,5 @@
 #'   beta = beta,
 #'   support = support
 #' )
+#' @family T-Rex selectors and controls
 "Gauss_data"

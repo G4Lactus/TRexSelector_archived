@@ -35,6 +35,10 @@ Variables on a Laptop," in Proc. IEEE 9th Int. Workshop Comput. Adv. Multi-Senso
 }
 \seealso{
 Other memory-mapped matrices:
-\code{\link[=mem_matrix]{mem_matrix()}}
+\code{\link[=[.mmap_matrix]{[.mmap_matrix()}},
+\code{\link[=as.matrix.mmap_matrix]{as.matrix.mmap_matrix()}},
+\code{\link[=dim.mmap_matrix]{dim.mmap_matrix()}},
+\code{\link[=mem_matrix]{mem_matrix()}},
+\code{\link[=print.mmap_matrix]{print.mmap_matrix()}}
 }
 \concept{memory-mapped matrices}

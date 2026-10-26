@@ -54,6 +54,7 @@ sqrt(colSums(d$X^2))     # 1
 }
 \seealso{
 Other T-Rex selectors and controls:
+\code{\link{Gauss_data}},
 \code{\link{TRexBiobankScreeningSelector}},
 \code{\link{TRexDASelector}},
 \code{\link{TRexGVSSelector}},
@@ -68,6 +69,7 @@ Other T-Rex selectors and controls:
 \code{\link[=trex_fdp]{trex_fdp()}},
 \code{\link[=trex_fdp_dense]{trex_fdp_dense()}},
 \code{\link[=trex_gamma_to_k]{trex_gamma_to_k()}},
+\code{\link[=trex_get_max_threads]{trex_get_max_threads()}},
 \code{\link[=trex_gvs_control]{trex_gvs_control()}},
 \code{\link[=trex_precision]{trex_precision()}},
 \code{\link[=trex_recall]{trex_recall()}},

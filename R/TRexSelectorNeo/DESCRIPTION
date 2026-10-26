@@ -35,9 +35,7 @@ Suggests:
     Matrix,
     testthat (>= 3.0.0),
     knitr,
-    rmarkdown,
-    ggplot2,
-    patchwork
+    rmarkdown
 VignetteBuilder: knitr
 SystemRequirements: C++20
 Config/roxygen2/version: 8.1.0

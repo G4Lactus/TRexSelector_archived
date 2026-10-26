@@ -1,0 +1,132 @@
+---
+title: "Parallelism: who owns the cores"
+output:
+  rmarkdown::html_vignette:
+    toc: true
+    css: vignette_styles.css
+bibliography: references.bib
+csl: ieee.csl
+link-citations: true
+vignette: >
+  %\VignetteIndexEntry{Parallelism: who owns the cores}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", fig.align = "center",
+                      fig.width = 6, fig.height = 4)
+options(width = 80)
+library(TRexSelectorNeo)
+old_threads <- trex_set_num_threads(min(2L, trex_get_max_threads()))
+```
+
+# Two layers of work
+
+A T-Rex run has two layers that could use several cores. The outer layer is the $K$ random experiments,
+which are independent of each other and share the design. The inner layer is the work inside one
+T-solver: the passes over the design that refresh the correlations, the search for the next knot of the
+path, the standardization. The rule of the package is that one layer owns the cores at a time. Either
+the experiments run in parallel and every solver runs serially, or the experiments run in sequence and a
+solver may split its passes. Nested teams of threads are never formed.
+
+The default is serial. A selector runs its experiments one after the other, and a T-solver used on its
+own runs serially. Parallel work is opt-in.
+
+# The thread count of the package
+
+`trex_get_max_threads()` reads the OpenMP thread count of the backend and `trex_set_num_threads()` sets
+it for the session, returning the previous value. In a build without OpenMP both report one thread and
+every setting is a no-op.
+
+```{r threads}
+trex_get_max_threads()
+```
+
+This count is the budget of the one-shot kernels (the scalers, the dummy generation, the clustering) and
+of the solvers' own passes when the experiments run in sequence. A pass is split only when it touches at
+least a million entries of the design, because the cost of forming a team of threads exceeds the gain
+below that. Small problems therefore run serially whatever the count says.
+
+# Parallel random experiments
+
+`trex_control(use_openmp = TRUE, max_outer_threads = m)` runs the random experiments on `m` threads
+(at most $K$). Inside the parallel experiments every solver runs serially, so the number of threads in
+use is `max_outer_threads` and nothing more.
+
+```{r data}
+set.seed(12)
+n <- 100
+p <- 150
+beta <- c(rep(1, 5), rep(0, p - 5))
+X <- matrix(rnorm(n * p), n, p)
+y <- as.numeric(X %*% beta + rnorm(n))
+```
+
+```{r parallel}
+serial <- TRexSelector$new(X, y, tFDR = 0.1, seed = 42, verbose = FALSE,
+                           control = trex_control(K = 10))
+serial$select()
+parallel <- TRexSelector$new(X, y, tFDR = 0.1, seed = 42, verbose = FALSE,
+                             control = trex_control(K = 10, use_openmp = TRUE,
+                                                    max_outer_threads = 2))
+parallel$select()
+identical(serial$selected_indices, parallel$selected_indices)
+```
+
+# Determinism
+
+A seeded selector derives one seed per random experiment from `seed` and the experiment index, so the
+dummies of experiment $k$ do not depend on which thread draws them or on how many threads there are.
+The selection of a seeded run is therefore the same with experiments in sequence and in parallel, and the
+same for any thread count of the inner passes. Every reduction inside the solvers is summed in a fixed
+order for the same reason.
+
+# Combining with your own parallel loops
+
+A Monte Carlo study usually parallelizes over trials. Then the trials own the cores, and the package
+should run serially inside every worker, which is the default. Two details matter.
+
+- With `parallel::mclapply()` the workers are forks of the session and inherit its thread count. Keep the
+  count at one in the workers, or set it there with `trex_set_num_threads(1)`, so that the forks do not
+  oversubscribe the machine.
+- With `parallel::parLapply()` or the future framework the workers are separate R processes with the
+  default count of a fresh session. Load the package in the workers and keep the defaults.
+
+```{r mc, eval = FALSE}
+trials <- parallel::mclapply(seq_len(40), function(mc) {
+  trex_set_num_threads(1)
+  set.seed(mc)
+  X <- matrix(rnorm(n * p), n, p)
+  y <- as.numeric(X %*% beta + rnorm(n))
+  sel <- TRexSelector$new(X, y, tFDR = 0.1, verbose = FALSE)   # seed = -1 per trial
+  sel$select()
+  trex_fdp(sel$selected_indices, which(beta != 0))
+}, mc.cores = 4)
+mean(unlist(trials))
+```
+
+# Builds without OpenMP
+
+On Linux and Windows R supplies the OpenMP flags. CRAN's R for macOS has none, and the package then
+links the OpenMP runtime R ships with the header of Homebrew's libomp, or compiles single-threaded when no
+header is found. `TREX_OPENMP=no` at installation forces the single-threaded build. A single-threaded
+build selects the same variables, it only runs the experiments and the passes in sequence.
+
+# The CRAN rule
+
+CRAN checks packages on at most two cores. The vignettes and the tests of this package follow the rule
+with the idiom of their setup chunk, which caps the count for the duration of the page and restores it
+at the end.
+
+```{r cap, eval = FALSE}
+old_threads <- trex_set_num_threads(min(2L, trex_get_max_threads()))
+# ... the work ...
+trex_set_num_threads(old_threads)
+```
+
+```{r teardown, include = FALSE}
+trex_set_num_threads(old_threads)
+```
+
+# References
