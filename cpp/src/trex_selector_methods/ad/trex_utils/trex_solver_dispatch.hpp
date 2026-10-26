@@ -267,6 +267,13 @@ struct SolverConfig {
      *  state so the shuffle stream continues instead of restarting. */
     long long tie_seed = -1;
 
+    /** @brief Thread budget of the solver's own OpenMP regions
+     *  (SolverOptions::n_threads): 1 serial, 0 every core. Applied at
+     *  construction and re-applied to warm-started and deserialized solvers,
+     *  since the budget is not serialized. Inside a parallel K-loop the
+     *  solver keeps its regions serial whatever the budget says. */
+    int n_threads = 1;
+
     // --- In-memory warm start ---
 
     /** @brief Retained solver to continue in-memory (nullptr = none).
@@ -394,6 +401,7 @@ inline trex::tsolvers::ad::SolverOptions toSolverOptions(const SolverConfig& cfg
     o.rho_afs        = hp.rho_afs;
     o.ncgmp_variant  = static_cast<trex::tsolvers::ad::NCGMPVariant>(hp.ncgmp_variant);
     o.tenet_aug_use_lars = hp.tenet_aug_use_lars;
+    o.n_threads      = cfg.n_threads;
     o.kappa_dummy    = 1.0;
     o.fold_dummies   = cfg.tikhonov_fold_dummies;
     // GROUP_CENTERING is the structured fast path the dispatch serves for
@@ -490,6 +498,7 @@ SparseBetaPath dispatchSolver(const SolverConfig& cfg) {
         cfg.warm_solver->setTolerance(cfg.hyperparams.tol);
         cfg.warm_solver->setExchangeableTie(cfg.hyperparams.exch_tie_alpha,
                                             cfg.hyperparams.exch_tie_floor);
+        cfg.warm_solver->setNumThreads(cfg.n_threads);
         cfg.warm_solver->executeStep(cfg.T_stop, cfg.early_stop);
         return cfg.warm_solver->getBetaPathSparse();
     }
@@ -500,6 +509,7 @@ SparseBetaPath dispatchSolver(const SolverConfig& cfg) {
         solver.setTolerance(cfg.hyperparams.tol);
         solver.setExchangeableTie(cfg.hyperparams.exch_tie_alpha,
                                   cfg.hyperparams.exch_tie_floor);
+        solver.setNumThreads(cfg.n_threads);   // not serialized: a loaded solver starts serial
         if constexpr (std::is_base_of_v<cd::TCDLASSO_Solver, TSolver>) {
             applyCdKnobs(solver, cfg.hyperparams);
         }

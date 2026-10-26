@@ -168,5 +168,37 @@ TEST_F(TSolverInitTest, DefaultTieSeedIsReproducible) {
     EXPECT_FALSE(c.getRNG() == d.getRNG());  // equal with probability 2^-32
 }
 
+
+/** @brief The thread budget of a solver's own regions defaults to 1 (serial),
+ *         0 resolves to every core, a negative value throws, and the setter
+ *         follows the same rules. */
+TEST_F(TSolverInitTest, ThreadBudgetDefaultsToSerial) {
+    Eigen::Map<Eigen::MatrixXd> X_map(X.data(), X.rows(), X.cols());
+    Eigen::Map<Eigen::MatrixXd> D_map(D.data(), D.rows(), D.cols());
+    Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
+
+    trex::tsolvers::ad::SolverOptions reader;
+    reader.normalize = false;
+    reader.intercept = false;
+    EXPECT_EQ(reader.n_threads, 1);
+
+    TLARS_Solver serial(X_map, D_map, y_map, reader);
+    EXPECT_EQ(serial.getNumThreads(), 1);
+
+    trex::tsolvers::ad::SolverOptions all_cores = reader;
+    all_cores.n_threads = 0;
+    TLARS_Solver every_core(X_map, D_map, y_map, all_cores);
+    EXPECT_GE(every_core.getNumThreads(), 1);
+    EXPECT_EQ(every_core.getNumThreads(), std::max(1, omp_get_num_procs()));
+
+    trex::tsolvers::ad::SolverOptions negative = reader;
+    negative.n_threads = -1;
+    EXPECT_THROW(TLARS_Solver(X_map, D_map, y_map, negative), std::invalid_argument);
+
+    serial.setNumThreads(4);
+    EXPECT_EQ(serial.getNumThreads(), 4);
+    EXPECT_THROW(serial.setNumThreads(-2), std::invalid_argument);
+}
+
 // ========================================================================================
 } /* End of namespace trex::test::tsolvers::ad::linear_model */

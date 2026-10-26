@@ -125,7 +125,7 @@ void TCDLASSO_Solver::executeStep(std::size_t T_stop, bool early_stop) {
     validateConnected();
 
     // Set openMP dominance for the entire algorithm
-    EigenSingleThreadGuard eigen_single_thread_guard;
+    EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
 
     ensureCdState();
 
@@ -323,7 +323,8 @@ void TCDLASSO_Solver::ensureCdState() {
 
     // Pristine X^T y (correlations_ tracks the path, so recompute).
     correlations_y_.setZero(pt);
-    #pragma omp parallel for schedule(static)
+    const int nt = threadsFor(static_cast<double>(X_->rows()) * static_cast<double>(p_total));
+    #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
     for (std::size_t j = 0; j < p_total; ++j) {
         if (!is_dropped_[j]) { correlations_y_(static_cast<Eigen::Index>(j)) =
             getColumn(j).dot(y_); }
@@ -1146,7 +1147,8 @@ bool TCDLASSO_Solver::continuation(const CertifiedPoint& P, bool downward,
 
     C.c_exact.setZero(static_cast<Eigen::Index>(p_total));
     C.cdot.setZero(static_cast<Eigen::Index>(p_total));
-    #pragma omp parallel for schedule(static)
+    const int nt = threadsFor(2.0 * static_cast<double>(X_->rows()) * static_cast<double>(p_total));
+    #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
     for (std::size_t j = 0; j < p_total; ++j) {
         if (is_dropped_[j]) { continue; }
         const Eigen::Index ji = static_cast<Eigen::Index>(j);

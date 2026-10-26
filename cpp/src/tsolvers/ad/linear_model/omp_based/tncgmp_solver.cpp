@@ -68,7 +68,7 @@ TNCGMP_Solver::TNCGMP_Solver() : TSolver_Base() {}
 
 void TNCGMP_Solver::executeStep(std::size_t T_stop, bool early_stop) {
     validateConnected();
-    EigenSingleThreadGuard eigen_single_thread_guard;
+    EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
 
     // Fully Corrective: collinear rejections must not create standalone
     // actions_ entries (they would desync actions_ from the per-step

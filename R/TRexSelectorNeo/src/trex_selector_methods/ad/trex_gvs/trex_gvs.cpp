@@ -919,6 +919,9 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
                               static_cast<std::uint64_t>(seed_), k)
                           & 0x7FFFFFFFULL)
                     : -1LL;
+                // The inner split of the cores is the solver's budget; inside
+                // the parallel K-loop its regions stay serial anyway.
+                opts.n_threads = trex_ctrl_.max_inner_threads;
                 if (ien_native) {
                     // IEN native: pathwise LARS-IEN (no augmented copies).
                     // X is the shared base-normalized map, D_k was CENTERED

@@ -337,5 +337,47 @@ TYPED_TEST(TSolverPolymorphicTest, PrecenteredCountsInterceptLikeIntercept) {
     }
 }
 
+
+/** @brief The path of every solver is bitwise independent of its thread
+ *         budget: a kept region splits a pass whose results are written per
+ *         element, and every reduction runs in a fixed order. The design lies
+ *         above the work threshold of the regions, so the budget is live.
+ */
+TYPED_TEST(TSolverPolymorphicTest, PathIsIndependentOfTheThreadBudget) {
+    if (!trex::utils::openmp::is_available() || omp_get_num_procs() < 2) {
+        GTEST_SKIP() << "needs OpenMP and at least two cores";
+    }
+    constexpr Eigen::Index n = 400, p = 1500, L = 1500;   // 1.2 M entries per pass
+    SyntheticData data(n, p, L, std::vector<std::size_t>{3, 17, 41, 77, 101, 150, 222},
+                       std::vector<double>{3.0, -2.0, 2.0, -3.0, 2.5, 1.5, -1.5}, 10.0, 7, -1, -1,
+                       predictor_policy::Normal(), dummygen::Distribution::Normal(),
+                       noisegen::noise_policy::Normal());
+    const Eigen::MatrixXd X0 = data.getX(), D0 = data.getD();
+    const Eigen::VectorXd y0 = data.getY();
+
+    // Writers on private copies: the preprocessing passes take the budget too
+    const auto run = [&](int n_threads) {
+        Eigen::MatrixXd X = X0, D = D0;
+        Eigen::VectorXd y = y0;
+        Eigen::Map<Eigen::MatrixXd> Xm(X.data(), n, p), Dm(D.data(), n, L);
+        Eigen::Map<Eigen::VectorXd> ym(y.data(), n);
+        trex::tsolvers::ad::SolverOptions opts;
+        opts.n_threads = n_threads;
+        auto solver = create_solver_with<TypeParam>(Xm, Dm, ym, opts);
+        EXPECT_EQ(solver->getNumThreads(), n_threads);
+        solver->executeStep(4, true);
+        return std::make_pair(solver->getActions(), solver->getBetaPathSparse());
+    };
+    const auto [actions_1, path_1] = run(1);
+    const auto [actions_4, path_4] = run(4);
+
+    EXPECT_EQ(actions_1, actions_4);
+    ASSERT_EQ(path_1.steps.size(), path_4.steps.size());
+    for (std::size_t s = 0; s < path_1.steps.size(); ++s) {
+        EXPECT_EQ(path_1.steps[s].idx, path_4.steps[s].idx) << "step " << s;
+        EXPECT_EQ(path_1.steps[s].val, path_4.steps[s].val) << "step " << s;
+    }
+}
+
 // ========================================================================================
 } /* End of namespace trex::test::tsolvers::ad::linear_model */

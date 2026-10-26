@@ -66,8 +66,58 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   member. The `SolverTypeForTRex` enumerators after it (TGP to TAFS) shift
   down by one, and TIKOMP checkpoints are unreadable. See the 2026-10-26
   entry.
+- A T-solver used directly runs its OpenMP regions serially by default
+  (`SolverOptions::n_threads = 1`, 0 = every core); before, the regions took
+  every core OpenMP offered. `EigenSingleThreadGuard` in `tsolver_base.hpp` is
+  `EigenThreadBudgetGuard(n_threads)`. The selectors keep their behaviour in
+  this step. See the 2026-10-26 entry.
 
 ### 2026-10-26
+
+#### T-solvers: a per-solver thread budget replaces the process-wide OpenMP count (WP15 step 1)
+
+- `SolverOptions::n_threads` (default 1, 0 = every core, negative throws) is the budget
+  of the solver's own OpenMP regions. `TSolver_Base::setNumThreads()` (virtual, the
+  augmented wrappers forward it to the inner solver together with the budget at
+  construction) changes it on a live solver, `getNumThreads()` reads the resolved value.
+  The budget is not serialized, so a deserialized solver starts serial and the selector
+  dispatch re-applies it to warm-started and loaded solvers.
+- Every kept region asks `threadsFor(work)` with the entries of the design the pass
+  touches and runs `num_threads(nt) if (nt > 1)`. The answer is 1 below the provisional
+  threshold `kParallelWorkThreshold` = 1e6 entries, inside a parallel region of the
+  caller (`omp_in_parallel()`, so a solver inside a parallel K-loop never nests a team)
+  and with a budget of 1. The threshold comes from the measurement of the inner regions
+  in the Examples (notes/tools/wp15_inner_threads): the passes over the design pay from
+  n x m ~ 1e6 (x1.5 to x1.9 at two threads, x1.9 to x3.6 at four), below that the
+  fork-join (5 to 40 us) costs more than it saves.
+- Kept and gated: the correlation passes of the base and the LARS family (initialize,
+  refresh inactive, refresh all, the ENET update), the step-length search of TLARS,
+  TIENET and TIKNET, the T-OLS norms and downdate, the TACGP dot products with the
+  active atoms, the two passes of TCDLASSO, and the standardization and its restore
+  (`preprocessMatStatistics` / `restoreMatStatistics` take the thread count as a
+  parameter and no longer touch Eigen's global setting).
+- Dropped as never paying: the parallel inactive-set scan with per-thread buffers
+  (a serial O(m) scan now), the incremental O(m) updates of the step-length search,
+  the T-OLS projected-norm scoring loop, the T-GP and TACGP k-loops (direction copy
+  and update), and the `if (k > 100)` reductions of TACGP, whose numerator is summed
+  in a fixed order so the value does not depend on the thread count.
+- `EigenSingleThreadGuard` is `EigenThreadBudgetGuard(n_threads)`: it pins Eigen's
+  global count to the budget for the solver call and does nothing inside a caller's
+  parallel region, where a write to the global setting would race. Under
+  `EIGEN_USE_BLAS` the count is inert either way.
+- Behaviour: a T-solver used directly (C++, and through R and Python until the
+  bindings expose the budget) runs its regions serially, where before they ran on every
+  core OpenMP offered. The selectors are unchanged in this step: the experiment runner
+  and the GVS K-loop pass `max_inner_threads` as the budget, so serial random
+  experiments keep their inner regions on the cores and parallel experiments keep the
+  solvers serial. The selector-level `n_threads` that replaces `max_outer_threads` /
+  `max_inner_threads` and `autoConfigResources` follows in step 2.
+- Tests: `TSolverInitTest.ThreadBudgetDefaultsToSerial` (default 1, 0 resolves to the
+  core count, negative throws, the setter follows) and the typed
+  `TSolverPolymorphicTest.PathIsIndependentOfTheThreadBudget` (n 400, p = L = 1,500,
+  four steps with budgets 1 and 4, actions and sparse path identical; skipped without
+  OpenMP or on one core).
+- R vendored copy re-synced.
 
 #### TIKOMP removed: a greedy pursuit cannot give the Tikhonov net's grouping
 

@@ -33,10 +33,12 @@ void preprocessMatStatistics(
     Eigen::VectorXd& meansx,
     Eigen::VectorXd& normsx,
     std::vector<std::size_t>& dropped_indices,
-    ScalingMode mode
+    ScalingMode mode,
+    int n_threads
 ) {
     Eigen::Index nrows = X.rows();
     Eigen::Index pcols = X.cols();
+    const int nt = n_threads > 1 ? n_threads : 1;
 
     if (center) meansx.resize(pcols);
     if (normalize) normsx.resize(pcols);
@@ -49,13 +51,9 @@ void preprocessMatStatistics(
             ? std::sqrt(static_cast<double>(nrows - 1))
             : 1.0;
 
-    // Force Eigen single-threaded inside the OpenMP region below and restore
-    // the previous global setting on exit (must not leak into the host process).
-    const int prev_eigen_threads = Eigen::nbThreads();
-    Eigen::setNbThreads(1);
-
-    // Single parallel region to minimize thread-spawning overhead
-    #pragma omp parallel
+    // Single parallel region to minimize thread-spawning overhead; the
+    // column reductions inside never use Eigen's own threads
+    #pragma omp parallel num_threads(nt) if (nt > 1)
     {
 
         // --------------------------------------------------------------------
@@ -136,8 +134,6 @@ void preprocessMatStatistics(
         }
     } // End of #pragma omp parallel
 
-    Eigen::setNbThreads(prev_eigen_threads);
-
     // Ensure dropped indices are sorted for consistent downstream logic (C++20)
     if (normalize && !dropped_indices.empty()) {
         std::ranges::sort(dropped_indices);
@@ -150,13 +146,15 @@ void restoreMatStatistics(
     bool centered,
     const Eigen::VectorXd& meansx,
     bool normalized,
-    const Eigen::VectorXd& normsx
+    const Eigen::VectorXd& normsx,
+    int n_threads
 ) {
     Eigen::Index pcols = X.cols();
+    const int nt = n_threads > 1 ? n_threads : 1;
 
     // Un-scale
     if (normalized) {
-        #pragma omp parallel for schedule(static)
+        #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
         for (Eigen::Index j = 0; j < pcols; ++j) {
             X.col(j) *= normsx(j);
         }
@@ -164,7 +162,7 @@ void restoreMatStatistics(
 
     // Un-center
     if (centered) {
-        #pragma omp parallel for schedule(static)
+        #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
         for (Eigen::Index j = 0; j < pcols; ++j) {
             X.col(j).array() += meansx(j);
         }

@@ -765,6 +765,9 @@ private:
                           static_cast<std::uint64_t>(cfg.tie_seed_base), k)
                       & 0x7FFFFFFFULL)
                 : -1LL,
+            // The inner split of the cores is the solver's budget; inside a
+            // parallel K-loop the solver's regions stay serial anyway.
+            .n_threads = cfg.max_inner_threads,
             .tikhonov_K = cfg.tikhonov_K,
             .tikhonov_fold_dummies = cfg.tikhonov_fold_dummies,
             .tikhonov_group_centering = cfg.tikhonov_group_centering,

@@ -75,7 +75,7 @@ TAFS_Solver::TAFS_Solver() : TSolver_Base() {}
 
 void TAFS_Solver::executeStep(std::size_t T_stop, bool early_stop) {
     validateConnected();
-    EigenSingleThreadGuard eigen_single_thread_guard;
+    EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
 
     while (currentStep_ < maxSteps_ && !inactives_.empty() &&
            actives_.size() < effective_n_ &&

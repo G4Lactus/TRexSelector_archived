@@ -37,7 +37,7 @@ TACGP_Solver::TACGP_Solver(SolverTypeOMPBased solver_type)
 
 void TACGP_Solver::executeStep(std::size_t T_stop, bool early_stop) {
     validateConnected();
-    EigenSingleThreadGuard eigen_single_thread_guard;
+    EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
 
     while (currentStep_ < maxSteps_ &&
            actives_.size() < effective_n_ &&
@@ -143,7 +143,6 @@ void TACGP_Solver::computeGradientDirection() {
     direction_.resize(static_cast<Eigen::Index>(k));
 
     // Extract gradient for active variables
-    #pragma omp parallel for schedule(static) if (k > 100)
     for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(k); ++i) {
         direction_[i] = correlations_[static_cast<Eigen::Index>(actives_[i])];
     }
@@ -166,7 +165,6 @@ void TACGP_Solver::computeGradientDirection() {
         b_1_ = computeB_1();
 
         // d^n = c^n_A + b_1 * d^{n-1}
-        #pragma omp parallel for schedule(static) if (k > 100)
         for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(k); ++i) {
             direction_[i] += b_1_ * direction_prev_[i];
         }
@@ -185,14 +183,15 @@ double TACGP_Solver::computeB_1() {
     // Step 1: X_A^T p^{n-1}  (one dot product per active column, cost O(nk))
     Eigen::VectorXd Xtp(k);
 
-    #pragma omp parallel for schedule(static) if (k > 100)
+    const int nt = threadsFor(static_cast<double>(X_->rows()) * static_cast<double>(k));
+    #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
     for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(k); ++i) {
         Xtp[i] = getColumn(actives_[i]).dot(projected_direction_prev_);
     }
 
-    // Step 2: Numerator = <c^n_A, X_A^T p^{n-1}>
+    // Step 2: Numerator = <c^n_A, X_A^T p^{n-1}>, summed in a fixed order so
+    // the value does not depend on the thread count
     double numerator = 0.0;
-    #pragma omp parallel for reduction(+:numerator) if (k > 100)
     for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(k); ++i) {
         numerator += Xtp[i] * correlations_[static_cast<Eigen::Index>(actives_[i])];
     }

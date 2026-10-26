@@ -109,7 +109,7 @@ void TLARS_Solver::executeStep(std::size_t T_stop, bool early_stop) {
     validateConnected();
 
     // Set openMP dominance for the entire algorithm
-    EigenSingleThreadGuard eigen_single_thread_guard;
+    EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
 
     // Main T-LARS loop with early stopping based on dummy variable count
     while (
@@ -192,14 +192,16 @@ void TLARS_Solver::updateCorrelations(
     std::size_t num_inactives = inactives_.size();
 
     if ((currentStep_ % kahan_refresh_interval_) == 0) {
-        #pragma omp parallel for schedule(static)
+        const int nt = threadsFor(static_cast<double>(X_->rows()) *
+                                  static_cast<double>(num_inactives));
+        #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
         for (std::size_t i = 0; i < num_inactives; ++i) {
             Eigen::Index j = static_cast<Eigen::Index>(inactives_[i]);
             correlations_(j) = getColumn(j).dot(r_);
             correlation_compensation_(j) = 0.0;
         }
     } else {
-        #pragma omp parallel for schedule(static)
+        // O(m) update: serial, a fork-join costs more than the loop
         for (std::size_t i = 0; i < num_inactives; ++i) {
             Eigen::Index j = static_cast<Eigen::Index>(inactives_[i]);
             double update = -gamma * a(static_cast<Eigen::Index>(i)) -
@@ -300,7 +302,9 @@ std::pair<double, Eigen::VectorXd> TLARS_Solver::computeStepSize(
     Eigen::VectorXd a(num_inactives);
     double gamma = std::numeric_limits<double>::max();
 
-    #pragma omp parallel
+    const int nt = threadsFor(static_cast<double>(X_->rows()) *
+                              static_cast<double>(num_inactives));
+    #pragma omp parallel num_threads(nt) if (nt > 1)
     {
         double local_gamma = std::numeric_limits<double>::max();
 

@@ -198,9 +198,11 @@ class TENETAug_Solver : public TSolver_Base {
      * @param verbose    Passed to TLASSO_Solver.
      * @param scaling_mode Passed to TLASSO_Solver (L2 or z-score scaling).
      * @param tie_seed   Seed of the inner tie-break engine (SolverOptions::tie_seed).
+     * @param n_threads  Thread budget of the inner solver (SolverOptions::n_threads).
      */
     void buildInnerSolver(bool normalize, bool intercept, bool precentered,
-                          bool verbose, ScalingMode scaling_mode, long long tie_seed);
+                          bool verbose, ScalingMode scaling_mode, long long tie_seed,
+                          int n_threads);
 
 public:
     // ========================================================================
@@ -304,6 +306,13 @@ public:
 
     /** @brief Set the tolerance on the wrapper and on the inner solver. */
     void setTolerance(double tol) override { eps_ = tol; inner_->setTolerance(tol); }
+
+    /** @brief Set the thread budget on the wrapper and on the inner solver
+     *  (the inner solver owns every region). */
+    void setNumThreads(int n_threads) override {
+        TSolver_Base::setNumThreads(n_threads);
+        inner_->setNumThreads(n_threads);
+    }
 
     /** @brief Set the tie-breaking seed on the inner solver (the wrapper's own
      *  random engine is unused). */

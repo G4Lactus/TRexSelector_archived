@@ -34,7 +34,8 @@ TOOLS_Solver::TOOLS_Solver(
     // base constructor's preprocessing).
     const auto p_tot = static_cast<Eigen::Index>(p_original_ + num_dummies_);
     proj_sq_.resize(p_tot);
-    #pragma omp parallel for schedule(static)
+    const int nt = threadsFor(static_cast<double>(X_->rows()) * static_cast<double>(p_tot));
+    #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
     for (Eigen::Index j = 0; j < p_tot; ++j) {
         proj_sq_(j) = getColumn(static_cast<std::size_t>(j)).squaredNorm();
     }
@@ -58,6 +59,7 @@ void TOOLS_Solver::updateCorrelations() {
     // The correlation refresh X^T r rides on the pass of the last position.
     Eigen::VectorXd z;
     Eigen::VectorXd q(n);
+    const int nt = threadsFor(static_cast<double>(n) * static_cast<double>(n_inactive));
     for (std::size_t k = proj_rank_; k < m; ++k) {
         const auto kk = static_cast<Eigen::Index>(k);
         z = Eigen::VectorXd::Zero(kk + 1);
@@ -69,7 +71,7 @@ void TOOLS_Solver::updateCorrelations() {
         }
 
         const bool refresh = (k + 1 == m);
-        #pragma omp parallel for schedule(static)
+        #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
         for (Eigen::Index i = 0; i < n_inactive; ++i) {
             const std::size_t j = inactives_[static_cast<std::size_t>(i)];
             const auto jj = static_cast<Eigen::Index>(j);
@@ -97,8 +99,7 @@ std::pair<double, std::vector<std::size_t>> TOOLS_Solver::findTiedMaxCorrelation
     const bool empty_active_set = actives_.empty();
 
     // OLS selection score of every inactive feature from the downdated
-    // projected norms
-    #pragma omp parallel for schedule(static)
+    // projected norms (an O(m) loop: serial)
     for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(inactives_.size()); ++i) {
         Eigen::Index j = static_cast<Eigen::Index>(inactives_[i]);
         double corr = correlations_(j);

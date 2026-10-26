@@ -83,7 +83,7 @@ double TENET_Solver::validateLambda2(double x) {
 
 void TENET_Solver::executeStep(std::size_t T_stop, bool early_stop) {
     validateConnected();
-    EigenSingleThreadGuard eigen_single_thread_guard;
+    EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
 
     while (
         currentStep_ < maxSteps_ &&
@@ -332,7 +332,8 @@ void TENET_Solver::updateCorrelationsENET() {
     // Last p elements (coefficient penalties)
     Eigen::VectorXd r_coef = r_.tail(r_.size() - n);
 
-    #pragma omp parallel for schedule(static)
+    const int nt = threadsFor(static_cast<double>(n) * static_cast<double>(inactives_.size()));
+    #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
     for (std::size_t i = 0; i < inactives_.size(); ++i) {
         std::size_t j = inactives_[i];
         // C_j = (X_j^T * r_obs + d1 * r_coef[j]) * d2

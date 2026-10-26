@@ -35,7 +35,7 @@ TMP_Solver::TMP_Solver(SolverTypeOMPBased solver_type)
 
 void TMP_Solver::executeStep(std::size_t T_stop, bool early_stop) {
     validateConnected();
-    EigenSingleThreadGuard eigen_single_thread_guard;
+    EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
 
     while (currentStep_ < maxSteps_ &&
            actives_.size() < effective_n_ &&

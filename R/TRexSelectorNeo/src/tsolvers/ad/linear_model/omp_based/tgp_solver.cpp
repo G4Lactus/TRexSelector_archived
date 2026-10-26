@@ -31,7 +31,7 @@ TGP_Solver::TGP_Solver(SolverTypeOMPBased solver_type)
 void TGP_Solver::executeStep(std::size_t T_stop, bool early_stop) {
     validateConnected();
     // Set openMP dominance for the entire algorithm
-    EigenSingleThreadGuard eigen_single_thread_guard;
+    EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
 
     while (currentStep_ < maxSteps_ &&
            actives_.size() < effective_n_ &&
@@ -128,7 +128,6 @@ void TGP_Solver::computeGradientDirection() {
     Eigen::Index k = static_cast<Eigen::Index>(actives_.size());
     direction_.resize(k);
 
-    #pragma omp parallel for schedule(static) if (k > 100)
     for (Eigen::Index i = 0; i < k; ++i) {
         direction_[i] = correlations_[static_cast<Eigen::Index>(actives_[i])];
     }
@@ -182,7 +181,6 @@ void TGP_Solver::updateActiveCoefficients() {
     }
 
     // beta_A^n = beta_A^{n-1} + alpha^n * d^n
-    #pragma omp parallel for schedule(static) if (k > 100)
     for (std::size_t i = 0; i < k; ++i) {
         active_coefficients_[static_cast<Eigen::Index>(i)] +=
             step_size_ * direction_[static_cast<Eigen::Index>(i)];

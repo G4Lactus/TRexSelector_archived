@@ -116,7 +116,7 @@ void TENETAug_Solver::buildMaps() {
 
 void TENETAug_Solver::buildInnerSolver(bool normalize, bool intercept, bool precentered,
                                        bool verbose, ScalingMode scaling_mode,
-                                       long long tie_seed) {
+                                       long long tie_seed, int n_threads) {
     SolverOptions inner;
     inner.normalize    = normalize;
     inner.intercept    = intercept;
@@ -125,6 +125,7 @@ void TENETAug_Solver::buildInnerSolver(bool normalize, bool intercept, bool prec
     inner.scaling_mode = scaling_mode;
     inner.tol          = eps_;
     inner.tie_seed     = tie_seed;
+    inner.n_threads    = n_threads;
     if (use_lars_inner_) {
         // Pure-LARS inner solver: never drops variables (matches R type="lar").
         inner_ = std::make_unique<TLARS_Solver>(
@@ -155,6 +156,8 @@ TENETAug_Solver::TENETAug_Solver(
     const ScalingMode scaling_mode   = options.scaling_mode;
     const bool        use_lars_inner = options.tenet_aug_use_lars;
     eps_ = options.tol;
+    // The wrapper builds its base by hand: the budget is set here and on the inner solver
+    n_threads_ = resolveThreadBudget(options.n_threads);
     if (lambda2 < 0.0) {
         throw std::invalid_argument("TENETAug_Solver: lambda2 must be non-negative.");
     }
@@ -222,7 +225,7 @@ TENETAug_Solver::TENETAug_Solver(
 
     buildMaps();
     buildInnerSolver(inner_normalize, inner_intercept, inner_precentered, verbose,
-                     inner_scaling, options.tie_seed);
+                     inner_scaling, options.tie_seed, options.n_threads);
     syncDiagnosticsFromInner();
 }
 

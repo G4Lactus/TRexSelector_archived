@@ -61,6 +61,7 @@ TSolver_Base::TSolver_Base(
     if (options.tie_seed >= 0) {
         rng_.seed(static_cast<std::uint32_t>(options.tie_seed));
     }
+    n_threads_ = resolveThreadBudget(options.n_threads);
 
     p_original_ = static_cast<std::size_t>(X.cols());
     num_dummies_ = static_cast<std::size_t>(D.cols());
@@ -93,6 +94,28 @@ TSolver_Base::TSolver_Base(
 
 
 // ============================================================================
+// Thread budget
+// ============================================================================
+
+int TSolver_Base::resolveThreadBudget(int n_threads) const {
+    if (n_threads < 0) {
+        throw std::invalid_argument(
+            concatMsg("TSolver_Base: n_threads must be >= 0 (0 = every core). Got: ",
+                      n_threads));
+    }
+    return n_threads == 0 ? std::max(1, omp_get_num_procs()) : n_threads;
+}
+
+
+int TSolver_Base::threadsFor(double work) const noexcept {
+    if (n_threads_ <= 1 || work < kParallelWorkThreshold || omp_in_parallel() != 0) {
+        return 1;
+    }
+    return n_threads_;
+}
+
+
+// ============================================================================
 // Internal Tools & Utilities
 // ============================================================================
 
@@ -111,13 +134,15 @@ void TSolver_Base::preprocess() {
 
     // 1. Preprocess original predictors X
     su_preproc::preprocessMatStatistics(*X_, intercept_, normalize_,
-        eps_, meansx_, normsx_, dropped_indices_, scaling_mode_);
+        eps_, meansx_, normsx_, dropped_indices_, scaling_mode_,
+        threadsFor(static_cast<double>(X_->rows()) * static_cast<double>(X_->cols())));
 
     // 2. Preprocess dummy predictors D (Offset dropped indices)
     if (D_.has_value() && num_dummies_ > 0) {
         std::vector<std::size_t> d_dropped;
         su_preproc::preprocessMatStatistics(*D_, intercept_, normalize_,
-            eps_, meansd_, normsd_, d_dropped, scaling_mode_);
+            eps_, meansd_, normsd_, d_dropped, scaling_mode_,
+            threadsFor(static_cast<double>(D_->rows()) * static_cast<double>(D_->cols())));
 
         // Map D drops into the unified index space
         for (std::size_t j : d_dropped) {
@@ -170,13 +195,15 @@ void TSolver_Base::writeBackOwnedBuffers() const noexcept {
             Eigen::Map<Eigen::MatrixXd> xm(const_cast<double*>(X_->data()),
                                            X_->rows(), X_->cols());
             su_preproc::restoreMatStatistics(
-                xm, intercept_, meansx_, normalize_, normsx_);
+                xm, intercept_, meansx_, normalize_, normsx_,
+                threadsFor(static_cast<double>(xm.rows()) * static_cast<double>(xm.cols())));
         }
         if (D_.has_value() && num_dummies_ > 0) {
             Eigen::Map<Eigen::MatrixXd> dm(const_cast<double*>(D_->data()),
                                            D_->rows(), D_->cols());
             su_preproc::restoreMatStatistics(
-                dm, intercept_, meansd_, normalize_, normsd_);
+                dm, intercept_, meansd_, normalize_, normsd_,
+                threadsFor(static_cast<double>(dm.rows()) * static_cast<double>(dm.cols())));
         }
     } catch (...) {
         // never throw from the destructor path; the claims are released below
@@ -306,23 +333,12 @@ void TSolver_Base::updateInactiveSet() {
         dropped_indices_.begin(), dropped_indices_.end());
     std::size_t p_tot = p_original_ + num_dummies_;
 
-    std::vector<std::vector<std::size_t>> thread_buffers(omp_get_max_threads());
-
-    #pragma omp parallel
-    {
-        int tid = omp_get_thread_num();
-        thread_buffers[tid].reserve(p_tot / omp_get_max_threads());
-
-        #pragma omp for schedule(static)
-        for (std::size_t j = 0; j < p_tot; ++j) {
-            if (active_set.find(j) == active_set.end() &&
-                dropped_set.find(j) == dropped_set.end())
-                thread_buffers[tid].push_back(j);
+    // A serial O(p_tot) scan: the hash lookups never pay a fork-join.
+    inactives_.reserve(p_tot);
+    for (std::size_t j = 0; j < p_tot; ++j) {
+        if (!active_set.contains(j) && !dropped_set.contains(j)) {
+            inactives_.push_back(j);
         }
-    }
-
-    for (const auto& buf : thread_buffers) {
-        inactives_.insert(inactives_.end(), buf.begin(), buf.end());
     }
 
     any_dropped_ = false;
@@ -438,7 +454,9 @@ void TSolver_Base::initializeCorrelations() {
     // are serialized — leaving them uninitialized makes checkpoints
     // nondeterministic.
     correlations_.setZero(static_cast<Eigen::Index>(p_original_ + num_dummies_));
-    #pragma omp parallel for schedule(static)
+    const int nt = threadsFor(static_cast<double>(X_->rows()) *
+                              static_cast<double>(inactives_.size()));
+    #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
     for (std::size_t i = 0; i < inactives_.size(); ++i) {
         std::size_t j = inactives_[i];
         correlations_(static_cast<Eigen::Index>(j)) = getColumn(j).dot(y_);
@@ -492,7 +510,9 @@ TSolver_Base::findTiedMaxCorrelationsAllNonDropped() const {
 
 
 void TSolver_Base::refreshInactiveCorrelations() {
-    #pragma omp parallel for schedule(static)
+    const int nt = threadsFor(static_cast<double>(X_->rows()) *
+                              static_cast<double>(inactives_.size()));
+    #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
     for (std::size_t i = 0; i < inactives_.size(); ++i) {
         std::size_t j = inactives_[i];
         correlations_(static_cast<Eigen::Index>(j)) = getColumn(j).dot(r_);
@@ -504,7 +524,8 @@ void TSolver_Base::refreshAllCorrelations() {
     std::size_t p_tot = p_original_ + num_dummies_;
     std::unordered_set<std::size_t> dropped_set(dropped_indices_.begin(),
                                                 dropped_indices_.end());
-    #pragma omp parallel for schedule(static)
+    const int nt = threadsFor(static_cast<double>(X_->rows()) * static_cast<double>(p_tot));
+    #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
     for (std::size_t j = 0; j < p_tot; ++j) {
         correlations_(static_cast<Eigen::Index>(j)) =
             dropped_set.contains(j) ? 0.0 : getColumn(j).dot(r_);

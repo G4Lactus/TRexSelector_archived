@@ -107,7 +107,7 @@ void TIKNET_Solver::executeStep(std::size_t T_stop, bool early_stop) {
     validateConnected();
 
     // Set openMP dominance for the entire algorithm
-    EigenSingleThreadGuard eigen_single_thread_guard;
+    EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
 
     while (currentStep_ < maxSteps_ &&
            !inactives_.empty() &&
@@ -447,7 +447,9 @@ std::pair<double, Eigen::VectorXd> TIKNET_Solver::computeStepSizeTIK(
     // correlation update, so only the entry roots are skipped.
     const bool saturated = actives_.size() >= max_actives_;
 
-    #pragma omp parallel
+    const int nt = threadsFor(static_cast<double>(X_->rows()) *
+                              static_cast<double>(num_inactives));
+    #pragma omp parallel num_threads(nt) if (nt > 1)
     {
         double local_gamma = std::numeric_limits<double>::max();
 
@@ -520,7 +522,9 @@ void TIKNET_Solver::updateCorrelationsTIK(
         }
         ks_ = tikhonov_K_ * folded_s_;
 
-        #pragma omp parallel for schedule(static)
+        const int nt = threadsFor(static_cast<double>(X_->rows()) *
+                                  static_cast<double>(num_inactives));
+        #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
         for (std::size_t i = 0; i < num_inactives; ++i) {
             std::size_t j = inactives_[i];
             Eigen::Index ji = static_cast<Eigen::Index>(j);
@@ -530,7 +534,7 @@ void TIKNET_Solver::updateCorrelationsTIK(
             correlation_compensation_(ji) = 0.0;
         }
     } else {
-        #pragma omp parallel for schedule(static)
+        // O(m) update: serial, a fork-join costs more than the loop
         for (std::size_t i = 0; i < num_inactives; ++i) {
             Eigen::Index j = static_cast<Eigen::Index>(inactives_[i]);
             double update = -gamma * a(static_cast<Eigen::Index>(i)) -

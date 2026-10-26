@@ -36,6 +36,7 @@
 
 // Utils includes
 #include <utils/serialization/utils_cereal_eigen.hpp>
+#include <utils/openmp/utils_openmp.hpp>
 
 // tsolvers includes
 #include <tsolvers/ad/solver_utils/solver_preprocessing.hpp>
@@ -56,20 +57,25 @@ using ScalingMode = solver_utils::preprocessing::ScalingMode;
 // ===================================================================================
 
 /**
- * @brief RAII guard forcing Eigen into single-threaded mode for the enclosing
- * scope (the solvers parallelize with OpenMP themselves; nested Eigen threading
- * would oversubscribe). Restores the previous global thread count on exit so
- * the setting does not leak into the host process.
+ * @brief RAII guard pinning Eigen's global thread count to the solver's
+ * budget for the enclosing scope, outside any parallel region of a caller.
+ * Inside a caller's region (the experiment runner's team) it does nothing:
+ * that caller owns the global setting, and a write from inside a team would
+ * race. Restores the previous value on exit so nothing leaks into the host.
  */
-class EigenSingleThreadGuard {
+class EigenThreadBudgetGuard {
 public:
-    EigenSingleThreadGuard() : previous_(Eigen::nbThreads()) { Eigen::setNbThreads(1); }
-    ~EigenSingleThreadGuard() { Eigen::setNbThreads(previous_); }
+    explicit EigenThreadBudgetGuard(int n_threads)
+        : active_(omp_in_parallel() == 0), previous_(Eigen::nbThreads()) {
+        if (active_) { Eigen::setNbThreads(n_threads > 0 ? n_threads : 1); }
+    }
+    ~EigenThreadBudgetGuard() { if (active_) { Eigen::setNbThreads(previous_); } }
 
-    EigenSingleThreadGuard(const EigenSingleThreadGuard&) = delete;
-    EigenSingleThreadGuard& operator=(const EigenSingleThreadGuard&) = delete;
+    EigenThreadBudgetGuard(const EigenThreadBudgetGuard&) = delete;
+    EigenThreadBudgetGuard& operator=(const EigenThreadBudgetGuard&) = delete;
 
 private:
+    bool active_;
     int previous_;
 };
 
@@ -372,6 +378,19 @@ public:
      * @param seed The seed value to initialize the random engine.
      */
     virtual void setTieSeed(uint32_t seed) { rng_.seed(seed); }
+
+    /**
+     * @brief Set the thread budget of the solver's own OpenMP regions.
+     *
+     * @details Virtual: the augmented wrappers forward it to their inner
+     *          solver. 1: serial, 0: every core (SolverOptions::n_threads).
+     *
+     * @param n_threads The budget; a negative value throws.
+     */
+    virtual void setNumThreads(int n_threads) { n_threads_ = resolveThreadBudget(n_threads); }
+
+    /** @brief The resolved thread budget of the solver's own regions (>= 1). */
+    int getNumThreads() const noexcept { return n_threads_; }
 
     /**
      * @brief Configure exchangeability-calibrated stochastic tie-breaking for
@@ -831,6 +850,28 @@ protected:
 
     /** @brief Minimum |correlation| for exchangeable-tie candidates. */
     double exch_tie_floor_{0.5};
+
+    // ==========================================================================
+    // Thread budget
+    // ==========================================================================
+
+    /** @brief Work of a pass (entries of the design it touches) below which
+     *  its region stays serial: the fork-join cost exceeds the gain there.
+     *  Provisional value from the measurement of the inner regions. */
+    static constexpr double kParallelWorkThreshold = 1.0e6;
+
+    /** @brief Resolved thread budget of the solver's own regions (>= 1).
+     *  Not serialized: a loaded solver starts at 1. */
+    int n_threads_{1};
+
+    /** @brief Budget from an option value: 0 is every core, negative throws
+     *  (through concatMsg, so the bindings see the message). */
+    int resolveThreadBudget(int n_threads) const;
+
+    /** @brief Threads for a region of the given work: 1 below the threshold,
+     *  inside a caller's parallel region or with a budget of 1, else the
+     *  budget. Every kept region uses `num_threads(nt) if (nt > 1)`. */
+    int threadsFor(double work) const noexcept;
 
     /**
      * @brief Replace the step's additions with one random member of the

@@ -58,6 +58,8 @@ enum class ScalingMode {
  *             (L2-norm for ScalingMode::L2, sample SD for ScalingMode::ZSCORE).
  * @param[in,out] dropped_indices Appended with indices of zero-variance columns.
  * @param mode Column-scaling convention (default: ScalingMode::L2).
+ * @param n_threads Threads of the column passes (default 1, serial); the
+ *        caller applies its work threshold before passing a budget.
  */
 void preprocessMatStatistics(
     Eigen::Ref<Eigen::MatrixXd> X,
@@ -67,7 +69,8 @@ void preprocessMatStatistics(
     Eigen::VectorXd& meansx,
     Eigen::VectorXd& normsx,
     std::vector<std::size_t>& dropped_indices,
-    ScalingMode mode = ScalingMode::L2
+    ScalingMode mode = ScalingMode::L2,
+    int n_threads = 1
 );
 
 
@@ -79,13 +82,15 @@ void preprocessMatStatistics(
  * @param normalized If true, multiplies back column norms.
  * @param meansx Vector of column means to add back.
  * @param normsx Vector of column norms to multiply back.
+ * @param n_threads Threads of the column passes (default 1, serial).
  */
 void restoreMatStatistics(
     Eigen::Ref<Eigen::MatrixXd> X,
     bool centered,
     const Eigen::VectorXd& meansx,
     bool normalized,
-    const Eigen::VectorXd& normsx
+    const Eigen::VectorXd& normsx,
+    int n_threads = 1
 );
 
 
