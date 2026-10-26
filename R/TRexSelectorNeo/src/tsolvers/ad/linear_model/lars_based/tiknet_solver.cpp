@@ -447,7 +447,7 @@ std::pair<double, Eigen::VectorXd> TIKNET_Solver::computeStepSizeTIK(
     // correlation update, so only the entry roots are skipped.
     const bool saturated = actives_.size() >= max_actives_;
 
-    const int nt = threadsFor(static_cast<double>(X_->rows()) *
+    [[maybe_unused]] const int nt = threadsFor(static_cast<double>(X_->rows()) *
                               static_cast<double>(num_inactives));
     #pragma omp parallel num_threads(nt) if (nt > 1)
     {
@@ -522,7 +522,7 @@ void TIKNET_Solver::updateCorrelationsTIK(
         }
         ks_ = tikhonov_K_ * folded_s_;
 
-        const int nt = threadsFor(static_cast<double>(X_->rows()) *
+        [[maybe_unused]] const int nt = threadsFor(static_cast<double>(X_->rows()) *
                                   static_cast<double>(num_inactives));
         #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
         for (std::size_t i = 0; i < num_inactives; ++i) {

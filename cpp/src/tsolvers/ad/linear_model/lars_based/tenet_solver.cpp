@@ -332,7 +332,7 @@ void TENET_Solver::updateCorrelationsENET() {
     // Last p elements (coefficient penalties)
     Eigen::VectorXd r_coef = r_.tail(r_.size() - n);
 
-    const int nt = threadsFor(static_cast<double>(n) * static_cast<double>(inactives_.size()));
+    [[maybe_unused]] const int nt = threadsFor(static_cast<double>(n) * static_cast<double>(inactives_.size()));
     #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
     for (std::size_t i = 0; i < inactives_.size(); ++i) {
         std::size_t j = inactives_[i];

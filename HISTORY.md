@@ -74,6 +74,19 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
 
 ### 2026-10-26
 
+#### R CI: a sequential build job; the gate variables of the regions are `[[maybe_unused]]`
+
+- The R workflow gains a fourth matrix entry, Ubuntu with `TREX_OPENMP=no`, the
+  sequential build configure falls back to without an `omp.h` (CRAN's macOS R has no
+  OpenMP flags). The job asserts that configure reports the sequential build and that no
+  compile line carries `-fopenmp`, then runs the testthat suite and R CMD check as the
+  other three do. Locally the sequential build passes the suite (1,505 expectations,
+  `trex_get_max_threads()` 1). The C++ workflow had this job already.
+- In the sequential build the `num_threads(nt) if (nt > 1)` clause is the only reader of
+  the gate variable and sits in an ignored pragma, so the 17 sites warned about an
+  unused variable. The variable is `[[maybe_unused]]`.
+- R vendored copy re-synced.
+
 #### T-solvers: a per-solver thread budget replaces the process-wide OpenMP count (WP15 step 1)
 
 - `SolverOptions::n_threads` (default 1, 0 = every core, negative throws) is the budget

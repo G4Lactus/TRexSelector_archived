@@ -323,7 +323,7 @@ void TCDLASSO_Solver::ensureCdState() {
 
     // Pristine X^T y (correlations_ tracks the path, so recompute).
     correlations_y_.setZero(pt);
-    const int nt = threadsFor(static_cast<double>(X_->rows()) * static_cast<double>(p_total));
+    [[maybe_unused]] const int nt = threadsFor(static_cast<double>(X_->rows()) * static_cast<double>(p_total));
     #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
     for (std::size_t j = 0; j < p_total; ++j) {
         if (!is_dropped_[j]) { correlations_y_(static_cast<Eigen::Index>(j)) =
@@ -1147,7 +1147,7 @@ bool TCDLASSO_Solver::continuation(const CertifiedPoint& P, bool downward,
 
     C.c_exact.setZero(static_cast<Eigen::Index>(p_total));
     C.cdot.setZero(static_cast<Eigen::Index>(p_total));
-    const int nt = threadsFor(2.0 * static_cast<double>(X_->rows()) * static_cast<double>(p_total));
+    [[maybe_unused]] const int nt = threadsFor(2.0 * static_cast<double>(X_->rows()) * static_cast<double>(p_total));
     #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
     for (std::size_t j = 0; j < p_total; ++j) {
         if (is_dropped_[j]) { continue; }

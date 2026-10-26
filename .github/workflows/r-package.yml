@@ -32,13 +32,23 @@ jobs:
   # Build the package from the vendored sources and run the testthat suite.
   # ---------------------------------------------------------------------------
   test:
-    name: R ${{ matrix.os }}
+    name: R ${{ matrix.os }}${{ matrix.openmp == 'no' && ' (no OpenMP)' || '' }}
     needs: vendor-check
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         os: [ubuntu-24.04, macos-latest, windows-latest]
+        openmp: ["yes"]
+        include:
+          # The sequential build: what configure falls back to without an
+          # omp.h (CRAN's macOS R has no OpenMP flags). Every pragma is
+          # ignored and the stubs report one thread; the suite must pass.
+          - os: ubuntu-24.04
+            openmp: "no"
+    # configure reads TREX_OPENMP=no; any other value leaves the probes on.
+    env:
+      TREX_OPENMP: ${{ matrix.openmp }}
     # Windows runners default to PowerShell; the multi-line Rscript steps
     # below are written for a POSIX shell (Rtools ships bash).
     defaults:
@@ -59,7 +69,18 @@ jobs:
           working-directory: R/TRexSelectorNeo
 
       - name: Install package
-        run: R CMD INSTALL --no-docs R/TRexSelectorNeo
+        run: R CMD INSTALL --no-docs R/TRexSelectorNeo 2>&1 | tee install.log
+
+      # The switch must reach every object: configure reports the sequential
+      # build and no compile line carries an OpenMP flag.
+      - name: Check that the sequential build compiles without OpenMP
+        if: matrix.openmp == 'no'
+        run: |
+          grep -q 'compiling sequentially' install.log
+          if grep -q -e '-fopenmp' install.log; then
+            echo "::error::TREX_OPENMP=no, but a compile line still carries -fopenmp"
+            exit 1
+          fi
 
       - name: Run testthat suite
         working-directory: R/TRexSelectorNeo

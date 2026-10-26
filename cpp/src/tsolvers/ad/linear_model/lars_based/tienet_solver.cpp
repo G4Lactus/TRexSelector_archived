@@ -435,7 +435,7 @@ std::pair<double, Eigen::VectorXd> TIENET_Solver::computeStepSizeIEN(
     // correlation update, so only the entry roots are skipped.
     const bool saturated = actives_.size() >= max_actives_;
 
-    const int nt = threadsFor(static_cast<double>(X_->rows()) *
+    [[maybe_unused]] const int nt = threadsFor(static_cast<double>(X_->rows()) *
                               static_cast<double>(num_inactives));
     #pragma omp parallel num_threads(nt) if (nt > 1)
     {
@@ -509,7 +509,7 @@ void TIENET_Solver::updateCorrelationsIEN(
             group_sums_(group_of_unified_[beta_idx_[s]]) += beta_val_[s];
         }
 
-        const int nt = threadsFor(static_cast<double>(X_->rows()) *
+        [[maybe_unused]] const int nt = threadsFor(static_cast<double>(X_->rows()) *
                                   static_cast<double>(num_inactives));
         #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
         for (std::size_t i = 0; i < num_inactives; ++i) {

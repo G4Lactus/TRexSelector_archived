@@ -38,7 +38,7 @@ void preprocessMatStatistics(
 ) {
     Eigen::Index nrows = X.rows();
     Eigen::Index pcols = X.cols();
-    const int nt = n_threads > 1 ? n_threads : 1;
+    [[maybe_unused]] const int nt = n_threads > 1 ? n_threads : 1;
 
     if (center) meansx.resize(pcols);
     if (normalize) normsx.resize(pcols);
@@ -150,7 +150,7 @@ void restoreMatStatistics(
     int n_threads
 ) {
     Eigen::Index pcols = X.cols();
-    const int nt = n_threads > 1 ? n_threads : 1;
+    [[maybe_unused]] const int nt = n_threads > 1 ? n_threads : 1;
 
     // Un-scale
     if (normalized) {

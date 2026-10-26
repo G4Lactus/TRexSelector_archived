@@ -192,7 +192,7 @@ void TLARS_Solver::updateCorrelations(
     std::size_t num_inactives = inactives_.size();
 
     if ((currentStep_ % kahan_refresh_interval_) == 0) {
-        const int nt = threadsFor(static_cast<double>(X_->rows()) *
+        [[maybe_unused]] const int nt = threadsFor(static_cast<double>(X_->rows()) *
                                   static_cast<double>(num_inactives));
         #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
         for (std::size_t i = 0; i < num_inactives; ++i) {
@@ -302,7 +302,7 @@ std::pair<double, Eigen::VectorXd> TLARS_Solver::computeStepSize(
     Eigen::VectorXd a(num_inactives);
     double gamma = std::numeric_limits<double>::max();
 
-    const int nt = threadsFor(static_cast<double>(X_->rows()) *
+    [[maybe_unused]] const int nt = threadsFor(static_cast<double>(X_->rows()) *
                               static_cast<double>(num_inactives));
     #pragma omp parallel num_threads(nt) if (nt > 1)
     {

@@ -34,7 +34,7 @@ TOOLS_Solver::TOOLS_Solver(
     // base constructor's preprocessing).
     const auto p_tot = static_cast<Eigen::Index>(p_original_ + num_dummies_);
     proj_sq_.resize(p_tot);
-    const int nt = threadsFor(static_cast<double>(X_->rows()) * static_cast<double>(p_tot));
+    [[maybe_unused]] const int nt = threadsFor(static_cast<double>(X_->rows()) * static_cast<double>(p_tot));
     #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
     for (Eigen::Index j = 0; j < p_tot; ++j) {
         proj_sq_(j) = getColumn(static_cast<std::size_t>(j)).squaredNorm();
@@ -59,7 +59,7 @@ void TOOLS_Solver::updateCorrelations() {
     // The correlation refresh X^T r rides on the pass of the last position.
     Eigen::VectorXd z;
     Eigen::VectorXd q(n);
-    const int nt = threadsFor(static_cast<double>(n) * static_cast<double>(n_inactive));
+    [[maybe_unused]] const int nt = threadsFor(static_cast<double>(n) * static_cast<double>(n_inactive));
     for (std::size_t k = proj_rank_; k < m; ++k) {
         const auto kk = static_cast<Eigen::Index>(k);
         z = Eigen::VectorXd::Zero(kk + 1);

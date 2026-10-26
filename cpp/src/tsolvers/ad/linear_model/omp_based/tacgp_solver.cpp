@@ -183,7 +183,7 @@ double TACGP_Solver::computeB_1() {
     // Step 1: X_A^T p^{n-1}  (one dot product per active column, cost O(nk))
     Eigen::VectorXd Xtp(k);
 
-    const int nt = threadsFor(static_cast<double>(X_->rows()) * static_cast<double>(k));
+    [[maybe_unused]] const int nt = threadsFor(static_cast<double>(X_->rows()) * static_cast<double>(k));
     #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
     for (Eigen::Index i = 0; i < static_cast<Eigen::Index>(k); ++i) {
         Xtp[i] = getColumn(actives_[i]).dot(projected_direction_prev_);

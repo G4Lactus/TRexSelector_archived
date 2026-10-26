@@ -454,7 +454,7 @@ void TSolver_Base::initializeCorrelations() {
     // are serialized — leaving them uninitialized makes checkpoints
     // nondeterministic.
     correlations_.setZero(static_cast<Eigen::Index>(p_original_ + num_dummies_));
-    const int nt = threadsFor(static_cast<double>(X_->rows()) *
+    [[maybe_unused]] const int nt = threadsFor(static_cast<double>(X_->rows()) *
                               static_cast<double>(inactives_.size()));
     #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
     for (std::size_t i = 0; i < inactives_.size(); ++i) {
@@ -510,7 +510,7 @@ TSolver_Base::findTiedMaxCorrelationsAllNonDropped() const {
 
 
 void TSolver_Base::refreshInactiveCorrelations() {
-    const int nt = threadsFor(static_cast<double>(X_->rows()) *
+    [[maybe_unused]] const int nt = threadsFor(static_cast<double>(X_->rows()) *
                               static_cast<double>(inactives_.size()));
     #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
     for (std::size_t i = 0; i < inactives_.size(); ++i) {
@@ -524,7 +524,7 @@ void TSolver_Base::refreshAllCorrelations() {
     std::size_t p_tot = p_original_ + num_dummies_;
     std::unordered_set<std::size_t> dropped_set(dropped_indices_.begin(),
                                                 dropped_indices_.end());
-    const int nt = threadsFor(static_cast<double>(X_->rows()) * static_cast<double>(p_tot));
+    [[maybe_unused]] const int nt = threadsFor(static_cast<double>(X_->rows()) * static_cast<double>(p_tot));
     #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
     for (std::size_t j = 0; j < p_tot; ++j) {
         correlations_(static_cast<Eigen::Index>(j)) =
