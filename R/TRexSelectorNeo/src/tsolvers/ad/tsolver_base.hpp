@@ -358,15 +358,20 @@ public:
     /** @brief Defaulted move constructor. */
     TSolver_Base(TSolver_Base&&) = default;
 
-    /** @brief Sets numerical tolerance for numeric comparisons internally. */
-    void setTolerance(double tol) { eps_ = tol; }
+    /** @brief Sets numerical tolerance for numeric comparisons internally.
+     *  Virtual: the augmented wrappers forward it to their inner solver. */
+    virtual void setTolerance(double tol) { eps_ = tol; }
 
     /**
      * @brief Set the random seed for reproducible tie-breaking.
      *
+     * @details Virtual: the augmented wrappers (TENETAug, TIENETAug) forward
+     *          the seed to their inner solver, so a call through a
+     *          TSolver_Base pointer reaches the engine that breaks the ties.
+     *
      * @param seed The seed value to initialize the random engine.
      */
-    void setTieSeed(uint32_t seed) { rng_.seed(seed); }
+    virtual void setTieSeed(uint32_t seed) { rng_.seed(seed); }
 
     /**
      * @brief Configure exchangeability-calibrated stochastic tie-breaking for

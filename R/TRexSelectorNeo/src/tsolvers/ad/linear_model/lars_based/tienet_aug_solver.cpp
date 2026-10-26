@@ -105,7 +105,8 @@ void TIENETAug_Solver::buildInnerSolver(bool normalize,
                                         bool intercept,
                                         bool precentered,
                                         bool verbose,
-                                        ScalingMode scaling_mode) {
+                                        ScalingMode scaling_mode,
+                                        long long tie_seed) {
     SolverOptions inner;
     inner.normalize    = normalize;
     inner.intercept    = intercept;
@@ -113,6 +114,7 @@ void TIENETAug_Solver::buildInnerSolver(bool normalize,
     inner.verbose      = verbose;
     inner.scaling_mode = scaling_mode;
     inner.tol          = eps_;
+    inner.tie_seed     = tie_seed;
     if (use_lars_inner_) {
         // Pure-LARS inner solver: never drops variables (matches R type="lar").
         inner_ = std::make_unique<TLARS_Solver>(
@@ -283,7 +285,7 @@ TIENETAug_Solver::TIENETAug_Solver(
 
     buildMaps();
     buildInnerSolver(inner_normalize, inner_intercept, inner_precentered, verbose,
-                     scaling_mode);
+                     scaling_mode, options.tie_seed);
     syncDiagnosticsFromInner();
 }
 

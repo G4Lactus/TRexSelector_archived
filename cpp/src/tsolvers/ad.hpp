@@ -7,7 +7,8 @@
 /**
  * @file ad.hpp
  *
- * @brief Umbrella header for the augmented-dummy (AD) terminating solvers: the classical T-solvers that run on [X, D].
+ * @brief Umbrella header for the augmented-dummy (AD) terminating solvers.
+ * The classical T-solvers that run on [X, D].
  */
 // ====================================================================
 

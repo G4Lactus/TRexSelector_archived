@@ -6,9 +6,10 @@
  *        (the allocation guard).
  *
  * @details Eigen allocates through malloc, not operator new, so a global
- *          operator-new counter cannot see it; the portable measure is the
- *          process peak resident set (getrusage ru_maxrss: bytes on macOS,
- *          kilobytes on Linux). Each test takes the peak before a call and
+ *          operator-new counter cannot see it; the measure is the process
+ *          peak resident set (getrusage ru_maxrss: bytes on macOS, kilobytes
+ *          on Linux). getrusage is POSIX, so on Windows this file holds one
+ *          skipped test. Each test takes the peak before a call and
  *          after it on a design of 32 MB; the growth is the working memory
  *          the call needed on top of what was already resident. A full
  *          copy of X raises it by at least one X. The budgets below are the
@@ -37,8 +38,10 @@
 #include <random>
 #include <string>
 
-// system includes
+// system includes (getrusage is POSIX)
+#if !defined(_WIN32)
 #include <sys/resource.h>
+#endif
 
 // Eigen includes
 #include <Eigen/Dense>
@@ -62,6 +65,15 @@ using trex::ml_methods::pca::PCA;
 using trex::ml_methods::ridge::RidgeSolver;
 using trex::ml_methods::scaler_methods::LpNormScaler;
 using trex::ml_methods::svd::SVDSolver;
+
+#if defined(_WIN32)
+
+/** @brief The peak measure is POSIX; the budgets are measured on macOS and Linux. */
+TEST(MLMemory, SkippedOnWindows) {
+    GTEST_SKIP() << "peak resident set via getrusage: POSIX only";
+}
+
+#else
 
 namespace {
 
@@ -231,5 +243,7 @@ TEST(MLMemory, Scaler) {
     });
     EXPECT_LT(g, 0.1) << "scaler allocated more than its budget of 0.1 x X";
 }
+
+#endif  // !_WIN32
 
 } // namespace trex::test::ml_methods::memory

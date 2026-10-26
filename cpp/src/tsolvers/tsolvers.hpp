@@ -7,8 +7,8 @@
 /**
  * @file tsolvers.hpp
  *
- * @brief Umbrella header for the augmented-dummy (AD) T-solver family; VD and SD
- * have their own umbrellas (vd.hpp, sd.hpp) and stay separate.
+ * @brief Umbrella header for the augmented-dummy (AD) T-solver family.
+ * VD and SD have their own umbrellas (vd.hpp, sd.hpp) and stay separate.
  */
 // ====================================================================
 

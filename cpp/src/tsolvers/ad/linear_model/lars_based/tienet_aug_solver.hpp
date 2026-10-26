@@ -211,9 +211,10 @@ class TIENETAug_Solver : public TSolver_Base {
      *        false on the augmented system).
      * @param verbose Passed to the inner solver.
      * @param scaling_mode Passed to the inner solver (L2 or z-score scaling).
+     * @param tie_seed Seed of the inner tie-break engine (SolverOptions::tie_seed).
      */
     void buildInnerSolver(bool normalize, bool intercept, bool precentered,
-                          bool verbose, ScalingMode scaling_mode = ScalingMode::L2);
+                          bool verbose, ScalingMode scaling_mode, long long tie_seed);
 
 public:
     // ========================================================================
@@ -326,9 +327,12 @@ public:
      */
     double getIntercept(int step = -1) const override;
 
+    /** @brief Set the tolerance on the wrapper and on the inner solver. */
+    void setTolerance(double tol) override { eps_ = tol; inner_->setTolerance(tol); }
+
     /** @brief Set the tie-breaking seed on the inner solver (the wrapper's own
      *  random engine is unused). */
-    void setTieSeed(uint32_t seed) { inner_->setTieSeed(seed); }
+    void setTieSeed(uint32_t seed) override { inner_->setTieSeed(seed); }
 
     /** @brief The owned augmented X, D and y, the group vector, the wrapper's
      *  diagnostic mirror, the inner solver object and view objects (heap

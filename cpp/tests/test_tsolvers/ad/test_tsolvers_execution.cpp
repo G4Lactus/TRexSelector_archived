@@ -13,7 +13,11 @@
 #include <gtest/gtest.h>
 
 // std includes
+#include <algorithm>
+#include <cstdint>
 #include <map>
+#include <memory>
+#include <random>
 #include <set>
 
 // Eigen includes
@@ -23,6 +27,7 @@
 #include <tsolvers/ad/linear_model/lars_based/tlars_solver.hpp>
 #include <tsolvers/ad/linear_model/lars_based/tlasso_solver.hpp>
 #include <tsolvers/ad/linear_model/lars_based/tstagewise_solver.hpp>
+#include <tsolvers/ad/linear_model/lars_based/tenet_aug_solver.hpp>
 #include <tsolvers/ad/linear_model/lars_based/tienet_solver.hpp>
 #include <tsolvers/ad/linear_model/lars_based/tienet_aug_solver.hpp>
 #include <tsolvers/ad/linear_model/omp_based/tncgmp_solver.hpp>
@@ -584,6 +589,83 @@ TEST(TStagewiseSelection, FrozenCoefficientsAreSelected) {
         runs_with_frozen += sel.frozen.empty() ? 0 : 1;
     }
     EXPECT_GT(runs_with_frozen, 0) << "no T-Stagewise run froze a coefficient";
+}
+
+
+/**
+ * @brief The tie seed reaches the inner solver of the augmented wrappers on
+ *        every path: setTieSeed() through a TSolver_Base pointer (the R
+ *        binding's path, virtual) and SolverOptions::tie_seed at construction
+ *        give the pruned dummy tie the same outcome as setTieSeed() on the
+ *        concrete type. Two bitwise identical dummies enter together at the
+ *        first step with a budget of one, and pruneTiedDummies draws the
+ *        survivor from the tie-break engine.
+ */
+TEST(TieSeedDispatch, AugmentedWrappersForwardThroughBasePointer) {
+    using trex::tsolvers::ad::SolverOptions;
+    using trex::tsolvers::ad::TSolver_Base;
+    constexpr Eigen::Index n = 40, p = 10, L = 10;
+    std::mt19937 gen(3);
+    std::normal_distribution<double> dist(0.0, 1.0);
+    const auto draw = [&](Eigen::Index r, Eigen::Index c) {
+        return Eigen::MatrixXd::NullaryExpr(r, c, [&](Eigen::Index, Eigen::Index) { return dist(gen); });
+    };
+    Eigen::MatrixXd X = draw(n, p), D = draw(n, L);
+    D.col(1) = D.col(0);
+    Eigen::VectorXd y = 3.0 * D.col(0) + 0.1 * draw(n, 1).col(0);
+    // Caller-side centering and unit-L2 scaling; the solvers are readers
+    const auto center_scale = [](Eigen::MatrixXd& M) {
+        M.rowwise() -= M.colwise().mean();
+        M.array().rowwise() /= M.colwise().norm().array();
+    };
+    center_scale(X);
+    center_scale(D);
+    y.array() -= y.mean();
+    Eigen::Map<Eigen::MatrixXd> X_map(X.data(), n, p), D_map(D.data(), n, L);
+    Eigen::Map<Eigen::VectorXd> y_map(y.data(), n);
+    const SolverOptions opts{.normalize = false, .intercept = false, .precentered = true, .lambda2 = 0.5};
+    Eigen::VectorXi groups(p);
+    for (Eigen::Index j = 0; j < p; ++j) { groups(j) = static_cast<int>(j / 5); }
+
+    // The surviving dummy (p or p + 1) after the first step with T_stop = 1
+    const auto survivor = [&](TSolver_Base& s) {
+        s.executeStep(1, true);
+        const auto& act = s.getActives();
+        const bool d0 = std::find(act.begin(), act.end(), static_cast<std::size_t>(p)) != act.end();
+        const bool d1 = std::find(act.begin(), act.end(), static_cast<std::size_t>(p) + 1) != act.end();
+        EXPECT_NE(d0, d1) << "exactly one of the tied dummies survives";
+        return d0 ? static_cast<std::size_t>(p) : static_cast<std::size_t>(p) + 1;
+    };
+
+    std::set<std::size_t> seen_tenet, seen_tienet;
+    for (std::uint32_t seed = 0; seed < 16; ++seed) {
+        SolverOptions seeded = opts;
+        seeded.tie_seed = static_cast<long long>(seed);
+
+        TENETAug_Solver concrete(X_map, D_map, y_map, opts);
+        concrete.setTieSeed(seed);
+        const std::size_t k = survivor(concrete);
+        std::unique_ptr<TSolver_Base> base = std::make_unique<TENETAug_Solver>(X_map, D_map, y_map, opts);
+        base->setTieSeed(seed);
+        EXPECT_EQ(survivor(*base), k) << "TENETAug through the base pointer, seed " << seed;
+        TENETAug_Solver constructed(X_map, D_map, y_map, seeded);
+        EXPECT_EQ(survivor(constructed), k) << "TENETAug through the options, seed " << seed;
+        seen_tenet.insert(k);
+
+        TIENETAug_Solver concrete_g(X_map, D_map, y_map, groups, opts);
+        concrete_g.setTieSeed(seed);
+        const std::size_t kg = survivor(concrete_g);
+        std::unique_ptr<TSolver_Base> base_g =
+            std::make_unique<TIENETAug_Solver>(X_map, D_map, y_map, groups, opts);
+        base_g->setTieSeed(seed);
+        EXPECT_EQ(survivor(*base_g), kg) << "TIENETAug through the base pointer, seed " << seed;
+        TIENETAug_Solver constructed_g(X_map, D_map, y_map, groups, seeded);
+        EXPECT_EQ(survivor(constructed_g), kg) << "TIENETAug through the options, seed " << seed;
+        seen_tienet.insert(kg);
+    }
+    // The seed decides the survivor, so the equalities above are not vacuous
+    EXPECT_EQ(seen_tenet.size(), 2u);
+    EXPECT_EQ(seen_tienet.size(), 2u);
 }
 
 // ========================================================================================

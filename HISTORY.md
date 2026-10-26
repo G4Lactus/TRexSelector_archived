@@ -62,6 +62,31 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
 
 ### 2026-10-26
 
+#### T-solvers: the augmented wrappers forward seed and tolerance to the inner solver; small items
+
+- `TSolver_Base::setTieSeed()` and `setTolerance()` are virtual. `TENETAug_Solver` and
+  `TIENETAug_Solver` hid both with forwarding members, so a call through a `TSolver_Base`
+  pointer (R's `$set_tie_seed()` and `$set_tolerance()`, which hold the solver as a base
+  pointer) seeded the wrapper's unused engine and set the wrapper's unused tolerance. The
+  overrides forward to the inner solver. Python holds the concrete type and was not affected.
+- The wrappers also built the inner solver's options without `tie_seed`, so the inner
+  tie-break engine was always seeded 0 and a seeded selector's per-experiment seed (or -1 for
+  an unseeded run) stopped at the wrapper. `tie_seed` is forwarded at construction. A
+  selection can only move where the inner path meets an exact dummy tie (identical columns),
+  which continuous designs do not produce.
+- Tests: `TieSeedDispatch.AugmentedWrappersForwardThroughBasePointer` (two bitwise identical
+  dummies and a budget of one; the survivor set through a base pointer or through the options
+  equals the one set on the concrete type, and the seed decides it) and the same check in R
+  (`test-tsolvers.R`, through `$set_tie_seed()` and `tsolver_options(tie_seed)`). The full
+  C++ suite (660 tests) and the R tsolvers testthat files (547 expectations, against a
+  scratch install) pass.
+- `test_ml_methods_memory.cpp` included `<sys/resource.h>` and called `getrusage` unguarded.
+  The Windows CI job builds every test, so the next push would have broken the MSVC job. On
+  Windows the file holds one skipped test.
+- The dead `.gitignore` line (`TODO before main merge.txt`) is gone. The briefs of the
+  `tsolvers/ad.hpp` and `tsolvers/tsolvers.hpp` umbrella headers are one sentence each.
+- R vendored copy re-synced.
+
 #### R documentation of the TRexSelector result fields
 
 - The field texts of `T_stop`, `L`, `voting_grid`, `fdp_hat_mat`, `phi_mat`, `r_mat` and `phi_prime` in

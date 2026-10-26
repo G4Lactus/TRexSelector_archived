@@ -539,3 +539,54 @@ test_that("the default tie seed is fixed (reproducible tie-breaking)", {
   expect_identical(tsolver_options()$tie_seed, 0)
   expect_identical(tsolver_options(tie_seed = -1)$tie_seed, -1)
 })
+
+test_that("the augmented wrappers pass the tie seed to the inner solver", {
+  # Two bitwise identical dummies tie at the first step, and with T_stop = 1 the
+  # inner solver's tie-break engine draws the survivor. The seed set with
+  # $set_tie_seed() (the base-pointer path) and the seed set in the options give
+  # the same survivor, and the seed decides it.
+  set.seed(3)
+  nn <- 40L
+  pp <- 10L
+  center_scale <- function(M) {
+    M <- sweep(M, 2, colMeans(M))
+    sweep(M, 2, sqrt(colSums(M^2)), "/")
+  }
+  Xt <- matrix(rnorm(nn * pp), nn, pp)
+  Dt <- matrix(rnorm(nn * pp), nn, pp)
+  Dt[, 2] <- Dt[, 1]
+  yt <- 3 * Dt[, 1] + 0.1 * rnorm(nn)
+  Xt <- center_scale(Xt)
+  Dt <- center_scale(Dt)
+  yt <- yt - mean(yt)
+  grp <- rep(1:2, each = 5)
+  reader <- function(seed) {
+    tsolver_options(normalize = FALSE, intercept = FALSE, precentered = TRUE,
+                    lambda2 = 0.5, tie_seed = seed)
+  }
+  survivor <- function(s) {   # 1 or 2: which of the tied dummies entered
+    s$execute_step(T_stop = 1)
+    k <- s$get_active_dummy_indices()
+    expect_length(k, 1L)
+    k
+  }
+  seen_enet <- integer(0)
+  seen_ienet <- integer(0)
+  for (seed in 0:15) {
+    s1 <- TENETAug_Solver$new(Xt, Dt, yt, options = reader(0))
+    s1$set_tie_seed(seed)
+    k <- survivor(s1)
+    s2 <- TENETAug_Solver$new(Xt, Dt, yt, options = reader(seed))
+    expect_identical(survivor(s2), k)
+    seen_enet <- union(seen_enet, k)
+
+    g1 <- TIENETAug_Solver$new(Xt, Dt, yt, grp, options = reader(0))
+    g1$set_tie_seed(seed)
+    kg <- survivor(g1)
+    g2 <- TIENETAug_Solver$new(Xt, Dt, yt, grp, options = reader(seed))
+    expect_identical(survivor(g2), kg)
+    seen_ienet <- union(seen_ienet, kg)
+  }
+  expect_identical(sort(seen_enet), 1:2)
+  expect_identical(sort(seen_ienet), 1:2)
+})
