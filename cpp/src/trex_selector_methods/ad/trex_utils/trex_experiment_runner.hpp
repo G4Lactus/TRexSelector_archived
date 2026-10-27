@@ -97,8 +97,8 @@ struct ExperimentRunnerConfig {
 
     // --- L-loop seed tag (for deterministic dummy regeneration) ---
     std::size_t seed_factor = 0;    ///< L-loop tag (l_tag) for block seed derivation.
-                                    ///< 0 for prefix-stable strategies (HCONCAT/
-                                    ///< SEEDED); the L-iteration for STANDARD/SKIPL.
+                                    ///< 0 for the prefix-stable HCONCAT; the
+                                    ///< L-iteration for STANDARD / SKIPL / SEEDED.
 
     // --- HCONCAT: number of previously written columns already on disk ---
     std::size_t existing_cols_on_disk = 0;  ///< For HCONCAT memmap: columns from prior L.
@@ -441,11 +441,12 @@ private:
         std::vector<ExperimentSummary> summaries(cfg.K);
 
         // Sequential experiments; the solvers run with their budget
-        // cfg.max_inner_threads.
+        // cfg.max_inner_threads. The draws are keyed on (k, L step) like
+        // STANDARD's stored matrices.
         for (std::size_t k = 0; k < cfg.K; ++k) {
             summaries[k] = runWithTemporaryDummies(
                 k, cfg,
-                [&]() { return dummy_gen_.generateSeeded(cfg.num_dummies, k); });
+                [&]() { return dummy_gen_.generateSeeded(cfg.num_dummies, k, cfg.seed_factor); });
         }
 
         return summaries;
@@ -822,7 +823,7 @@ private:
             }
 
             case ExperimentStrategy::Seeded: {
-                dummy_gen_.generateSeededInto(D_map, k);
+                dummy_gen_.generateSeededInto(D_map, k, cfg.seed_factor);
                 break;
             }
 

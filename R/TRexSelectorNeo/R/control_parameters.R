@@ -65,9 +65,10 @@
 #' @param opt_threshold Optimization threshold (default: 0.75).
 #' @param lloop_strategy L-loop strategy: "SKIPL", "STANDARD", "HCONCAT",
 #'   "PERMUTATION", "PERMUTATION_SEEDED", or "SEEDED" (default: "HCONCAT").
-#'   The SEEDED variants re-derive dummies from the seed at every step
-#'   (nothing stored); "PERMUTATION_SEEDED" is the stateless twin of
-#'   "PERMUTATION" and produces identical experiments for the same seed.
+#'   The SEEDED variants re-derive dummies from the seed at every step and
+#'   store nothing: "SEEDED" is the storage-free twin of "STANDARD" (fresh
+#'   dummies at every L step, bit-identical to "STANDARD" for the same seed)
+#'   and "PERMUTATION_SEEDED" the storage-free twin of "PERMUTATION".
 #' @param tol Tolerance for solver algorithms (default: 1e-6).
 #' @param lambda2 Elastic-net L2 penalty (TENET hyperparameter, default: 0.1).
 #' @param rho_afs AFS hyperparameter (default: 0.3).

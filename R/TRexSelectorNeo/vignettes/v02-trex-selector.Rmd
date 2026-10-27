@@ -146,13 +146,14 @@ abline(h = sel$v_thresh, lty = 2, col = "red")
 | --- | --- | --- |
 | `"HCONCAT"` (default) | the same $K$ matrices grow by $p$ columns per L step | $K$ matrices |
 | `"STANDARD"` | fresh matrices at every L step | $K$ matrices |
-| `"SEEDED"` | derived from the seed at every step | none |
+| `"SEEDED"` | the draws of `"STANDARD"`, re-derived from the seed at every step | none |
 | `"PERMUTATION"` | permuted columns of the design | $K$ matrices |
 | `"PERMUTATION_SEEDED"` | the permutation re-derived from the seed | none |
 | `"SKIPL"` | no L-loop, the cap `max_dummy_multiplier` is used directly | $K$ matrices |
 
 The seeded strategies store nothing and suit designs where $K \cdot L \cdot p$ columns do not fit in
-memory. Fresh and grown dummies give the same FDR. A paired study of 500 trials in nine cells (signal to
+memory. `"SEEDED"` selects exactly as `"STANDARD"` for the same seed, and `"PERMUTATION_SEEDED"` exactly as
+`"PERMUTATION"`. Fresh and grown dummies give the same FDR. A paired study of 500 trials in nine cells (signal to
 noise ratio 0.5, 1 and 2 times target FDR 0.05, 0.1 and 0.2, $n = 300$, $p = 1{,}000$, ten active
 variables, $K = 20$, T-LARS) found the FDR equal within Monte Carlo error in every cell and the grown form
 ahead in TPR by 0.6 percentage points on average, because it calibrates a larger $L$ and runs longer

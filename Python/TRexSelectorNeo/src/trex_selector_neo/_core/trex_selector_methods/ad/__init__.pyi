@@ -638,7 +638,7 @@ class LLoopStrategy:
     
       PERMUTATION_SEEDED : Seed-derived base + row permutations per experiment; nothing stored.
     
-      SEEDED : Seed-derived independent dummies per experiment; nothing stored.
+      SEEDED : The storage-free twin of STANDARD: fresh dummies at every L step, re-derived from the seed per experiment and bit-identical to STANDARD for the same seed; nothing stored.
     """
     HCONCAT: typing.ClassVar[LLoopStrategy]  # value = <LLoopStrategy.HCONCAT: 2>
     PERMUTATION: typing.ClassVar[LLoopStrategy]  # value = <LLoopStrategy.PERMUTATION: 3>

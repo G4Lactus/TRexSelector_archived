@@ -109,8 +109,11 @@ inline constexpr bool isGreedySolver(
  *    HCONCAT / SEEDED) vs one shared base matrix whose rows are permuted per
  *    experiment (PERMUTATION / PERMUTATION_SEEDED).
  *  - Storage: STORED strategies keep matrices in the DummyGenerator for the
- *    whole run; SEEDED strategies re-derive everything from the seed at each
- *    step (zero persistent state, prefix-stable via deriveBlockSeed64 l_tag=0).
+ *    whole run; the SEEDED strategies re-derive everything from the seed at
+ *    each step (zero persistent state). SEEDED is the storage-free twin of
+ *    STANDARD: the same (k, L step) keys, so the two draw bit-identical
+ *    dummies for the same seed. PERMUTATION_SEEDED is the storage-free twin
+ *    of PERMUTATION (prefix-stable base, deriveBlockSeed64 l_tag = 0).
  */
 enum class LLoopStrategy {
     SKIPL,                 // Stored, one-shot: fixed dummies = max_dummy_multiplier * p.
@@ -118,7 +121,7 @@ enum class LLoopStrategy {
     HCONCAT,               // Stored, horizontally expand dummy matrices (faster, same result).
     PERMUTATION,           // Stored base dummy matrix + deterministic row permutations per k.
     PERMUTATION_SEEDED,  // Seed-derived base + row permutations per k; nothing stored.
-    SEEDED               // Seed-derived independent dummies per k; nothing stored.
+    SEEDED               // STANDARD's draws re-derived per k and L step; nothing stored.
 };
 
 

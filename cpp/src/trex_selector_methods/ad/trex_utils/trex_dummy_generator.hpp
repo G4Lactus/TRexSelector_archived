@@ -163,10 +163,11 @@ public:
      * @return Normalized dummy matrix (n × num_dummies).
      */
     Eigen::MatrixXd generateSeeded(std::size_t num_dummies,
-                                    std::size_t experiment_id) const {
+                                    std::size_t experiment_id,
+                                    std::size_t l_tag) const {
 
         Eigen::MatrixXd D(n_, num_dummies);
-        generateSeededInto(D, experiment_id);
+        generateSeededInto(D, experiment_id, l_tag);
         return D;
     }
 
@@ -323,33 +324,33 @@ public:
     /**
      * @brief Generate SEEDED-strategy dummies directly into an existing matrix.
      *
-     * @details Seeds via `deriveBlockSeed64(experiment_id, 0)`, i.e. from the
-     *          resolved base seed with the prefix-stable tag. This honours the
-     *          user-supplied seed and is stable across repeated calls within
-     *          one run, so every T-loop step re-derives the identical D_k even
-     *          when `seed < 0` (previously each call drew fresh `random_device`
-     *          entropy, silently changing the dummies mid-calibration).
+     * @details The storage-free twin of STANDARD: the draws are keyed on
+     *          (experiment k, L step) through `deriveBlockSeed64(experiment_id,
+     *          l_tag)`, exactly as generateAndStore(K, num_dummies, l_tag)
+     *          keys the stored matrices, so a SEEDED run and a STANDARD run
+     *          with the same seed draw bit-identical dummies at every L step
+     *          and differ only in storage. The key honours the user-supplied
+     *          seed and is stable across repeated calls within one L step, so
+     *          every T-loop step re-derives the identical D_k even when
+     *          `seed < 0`. The cluster path uses the same tag convention.
      *
      * @param target         Matrix to write into (n × num_dummies, pre-sized).
      * @param experiment_id  Experiment index k.
+     * @param l_tag          The L step (num_dummies / p), the tag STANDARD
+     *                       uses for the same step.
      */
     void generateSeededInto(Eigen::Ref<Eigen::MatrixXd> target,
-                            std::size_t experiment_id) const {
+                            std::size_t experiment_id,
+                            std::size_t l_tag) const {
 
         if (cluster_mode_) {
-            // SEEDED cluster convention: tag with LL = cols / p, the
-            // fresh-per-iteration scheme — bit-identical content to a
-            // STANDARD run at the same LL (the GVS "STANDARD ≡ SEEDED"
-            // equivalence). Stable across T-steps: LL is fixed within one
-            // L-iteration, so every re-derivation reproduces the same D_k.
-            const std::size_t LL =
-                static_cast<std::size_t>(target.cols()) / cluster_layer_cols_;
-            clusterGenerateInto(target, experiment_id, /*l_tag=*/LL,
+            // All layers from the single (k, l_tag) stream, as STANDARD does
+            clusterGenerateInto(target, experiment_id, l_tag,
                                 /*first_layer=*/0);
             return;
         }
 
-        const std::uint64_t seed_k = deriveBlockSeed64(experiment_id, 0);
+        const std::uint64_t seed_k = deriveBlockSeed64(experiment_id, l_tag);
 
         dummygen::generate_dummies(
             target, n_,
@@ -891,14 +892,15 @@ private:
      *          advances the column offset) are likewise impossible.
      *
      *          Tag conventions:
-     *            - l_tag = 0:      prefix-stable strategies (HCONCAT, SEEDED,
+     *            - l_tag = 0:      prefix-stable strategies (HCONCAT,
      *                              PERMUTATION base). The same (k, col) always
      *                              reproduces the same column, so re-derivation
      *                              at any T-/L-step and incremental expansion
      *                              agree bit-exactly.
-     *            - l_tag = L_iter: fresh-per-iteration strategies (STANDARD;
-     *                              SKIPL uses L_max for equivalence with
-     *                              STANDARD's final iteration).
+     *            - l_tag = L_iter: fresh-per-iteration strategies (STANDARD and
+     *                              its storage-free twin SEEDED; SKIPL uses
+     *                              L_max for equivalence with STANDARD's final
+     *                              iteration).
      *
      *          The base is `resolved_base_seed_`, fixed at construction: the
      *          same request always reproduces the same dummies within one

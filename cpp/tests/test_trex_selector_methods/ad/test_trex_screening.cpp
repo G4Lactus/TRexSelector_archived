@@ -112,9 +112,9 @@ TEST_F(TRexScreeningTest, Equivalence_PermutationSeededMatchesPermutation) {
 }
 
 
-/** @brief SEEDED regenerates the identical tag-0 draws STANDARD stores
- *  (screening runs at exactly L = p), one D_k at a time — the two must
- *  produce bit-identical screening results. */
+/** @brief SEEDED regenerates the identical draws STANDARD stores (both keyed
+ *  on the first L step, screening runs at exactly L = p), one D_k at a time
+ *  — the two must produce bit-identical screening results. */
 TEST_F(TRexScreeningTest, Equivalence_SeededMatchesStandard) {
 
     auto run_with = [&](LLoopStrategy strategy) {

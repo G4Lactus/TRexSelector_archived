@@ -21,6 +21,8 @@
 
 // project includes
 #include <trex_selector_methods/ad/trex_core/trex.hpp>
+#include <trex_selector_methods/ad/trex_da/trex_da.hpp>
+#include <trex_selector_methods/ad/trex_gvs/trex_gvs.hpp>
 #include <trex_selector_methods/ad/trex_utils/trex_dummy_generator.hpp>
 #include <utils/datageneration/utils_datagen.hpp>
 
@@ -130,6 +132,145 @@ TEST(LLoopSeeded, SeededStrategiesAreSeedReproducible) {
         const auto second = runSelection(strategy, 11);
         EXPECT_EQ(first, second) << "strategy not seed-reproducible";
     }
+}
+
+namespace {
+
+/** @brief Run a seeded core selection and return the whole result. */
+TRexSelector::SelectionResult runResult(LLoopStrategy strategy, int seed, bool mmap = false) {
+    const Eigen::Index n = 60, p = 100;
+    std::vector<std::size_t> sup = {3, 20, 45, 70, 90};
+    std::vector<double> coefs(sup.size(), 2.0);
+    datagen::SyntheticData data(n, p, sup, coefs, /*snr=*/3.0, /*seed=*/12345,
+                                datagen::predictor_policy::Normal(),
+                                datagen::noisegen::noise_policy::Normal());
+    Eigen::MatrixXd X = data.getX();
+    Eigen::VectorXd y = data.getY();
+    Eigen::Map<Eigen::MatrixXd> X_map(X.data(), X.rows(), X.cols());
+    Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
+
+    TRexControlParameter ctrl;
+    ctrl.K = 10;
+    ctrl.max_dummy_multiplier = 3;
+    ctrl.solver_type = SolverTypeForTRex::TLARS;
+    ctrl.lloop_strategy = strategy;
+    ctrl.use_memory_mapping = mmap;
+
+    TRexSelector sel(X_map, y_map, /*tFDR=*/0.1, ctrl, seed, /*verbose=*/false);
+    return sel.select();
+}
+
+void expectSameResult(const TRexSelector::SelectionResult& a,
+                      const TRexSelector::SelectionResult& b, const char* what) {
+    EXPECT_TRUE((a.selected_var.array() == b.selected_var.array()).all()) << what;
+    EXPECT_EQ(a.T_stop, b.T_stop) << what;
+    EXPECT_EQ(a.dummy_factor_L, b.dummy_factor_L) << what;
+    EXPECT_EQ(a.v_thresh, b.v_thresh) << what;
+    ASSERT_EQ(a.Phi_mat.rows(), b.Phi_mat.rows()) << what;
+    EXPECT_TRUE((a.Phi_mat.array() == b.Phi_mat.array()).all()) << what;
+    ASSERT_EQ(a.FDP_hat_mat.rows(), b.FDP_hat_mat.rows()) << what;
+    EXPECT_TRUE((a.FDP_hat_mat.array() == b.FDP_hat_mat.array()).all()) << what;
+}
+
+} // namespace
+
+
+/** @brief SEEDED is the storage-free twin of STANDARD: the same seed gives
+ *         bit-identical selections, stopping times, calibrated L and the
+ *         Phi and FDP-hat matrices, for the core selector. */
+TEST(LLoopSeeded, SeededMatchesStandard) {
+    for (int seed : {7, 42, 2026}) {
+        SCOPED_TRACE(seed);
+        expectSameResult(runResult(LLoopStrategy::STANDARD, seed),
+                         runResult(LLoopStrategy::SEEDED, seed),
+                         "SEEDED diverged from STANDARD");
+    }
+}
+
+
+/** @brief At the generator level: the SEEDED draw of experiment k at L step
+ *         LL equals the stored STANDARD matrix of the same step, and differs
+ *         from the HCONCAT (tag 0) draw it used to equal. */
+TEST(LLoopSeeded, SeededDrawsAreStandardsDraws) {
+    const std::size_t n = 30, p = 20, K = 4;
+    DummyGenerator gen(n, dummygen::Distribution::Normal(), /*seed=*/55);
+    for (std::size_t LL = 1; LL <= 3; ++LL) {
+        gen.generateAndStore(K, LL * p, /*l_tag=*/LL);
+        for (std::size_t k = 0; k < K; ++k) {
+            const Eigen::MatrixXd seeded = gen.generateSeeded(LL * p, k, LL);
+            EXPECT_TRUE(seeded == gen.getStored(k)) << "LL=" << LL << " k=" << k;
+        }
+    }
+    gen.generateAndStore(K, p, /*l_tag=*/0);   // the HCONCAT base
+    EXPECT_FALSE(gen.generateSeeded(p, 0, 1) == gen.getStored(0))
+        << "SEEDED at L step 1 must not equal the prefix-stable tag-0 base";
+}
+
+
+/** @brief The memory-mapped and the in-memory runs of the storage-free
+ *         strategies give the same result. */
+TEST(LLoopSeeded, SeededStrategiesAgreeInMemoryAndMapped) {
+    for (auto strategy : {LLoopStrategy::SEEDED, LLoopStrategy::PERMUTATION_SEEDED}) {
+        SCOPED_TRACE(static_cast<int>(strategy));
+        expectSameResult(runResult(strategy, 42, /*mmap=*/false),
+                         runResult(strategy, 42, /*mmap=*/true),
+                         "memory-mapped run diverged from the in-memory run");
+    }
+}
+
+
+/** @brief SEEDED equals STANDARD in the dependency-aware selector too. */
+TEST(LLoopSeeded, SeededMatchesStandardInDA) {
+    namespace da = trex::trex_selector_methods::ad::trex_da;
+    auto run = [](LLoopStrategy strategy) {
+        const Eigen::Index n = 60, p = 100;
+        std::vector<std::size_t> sup = {3, 20, 45, 70, 90};
+        std::vector<double> coefs(sup.size(), 2.0);
+        datagen::SyntheticData data(n, p, sup, coefs, 3.0, 12345,
+                                    datagen::predictor_policy::Normal(),
+                                    datagen::noisegen::noise_policy::Normal());
+        Eigen::MatrixXd X = data.getX();
+        Eigen::VectorXd y = data.getY();
+        Eigen::Map<Eigen::MatrixXd> X_map(X.data(), X.rows(), X.cols());
+        Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
+        da::TRexDAControlParameter ctrl;
+        ctrl.method = da::DAMethod::AR1;
+        ctrl.trex_ctrl.K = 10;
+        ctrl.trex_ctrl.max_dummy_multiplier = 3;
+        ctrl.trex_ctrl.lloop_strategy = strategy;
+        da::TRexDASelector sel(X_map, y_map, 0.1, ctrl, 42, false);
+        return sel.select();
+    };
+    expectSameResult(run(LLoopStrategy::STANDARD), run(LLoopStrategy::SEEDED),
+                     "DA: SEEDED diverged from STANDARD");
+}
+
+
+/** @brief SEEDED equals STANDARD in the grouped selector (cluster dummies). */
+TEST(LLoopSeeded, SeededMatchesStandardInGVS) {
+    namespace gvs = trex::trex_selector_methods::ad::trex_gvs;
+    auto run = [](LLoopStrategy strategy) {
+        const Eigen::Index n = 60, p = 100;
+        std::vector<std::size_t> sup = {3, 20, 45, 70, 90};
+        std::vector<double> coefs(sup.size(), 2.0);
+        datagen::SyntheticData data(n, p, sup, coefs, 3.0, 12345,
+                                    datagen::predictor_policy::Normal(),
+                                    datagen::noisegen::noise_policy::Normal());
+        Eigen::MatrixXd X = data.getX();
+        Eigen::VectorXd y = data.getY();
+        Eigen::Map<Eigen::MatrixXd> X_map(X.data(), X.rows(), X.cols());
+        Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
+        gvs::TRexGVSControlParameter ctrl;
+        ctrl.gvs_type = gvs::GVSType::EN;
+        ctrl.lambda_2 = 1.0;
+        ctrl.trex_ctrl.K = 10;
+        ctrl.trex_ctrl.max_dummy_multiplier = 3;
+        ctrl.trex_ctrl.lloop_strategy = strategy;
+        gvs::TRexGVSSelector sel(X_map, y_map, 0.1, ctrl, 42, false);
+        return sel.select();
+    };
+    expectSameResult(run(LLoopStrategy::STANDARD), run(LLoopStrategy::SEEDED),
+                     "GVS: SEEDED diverged from STANDARD");
 }
 
 // ========================================================================================

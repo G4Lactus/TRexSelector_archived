@@ -77,10 +77,11 @@ void ScreenTRexSelector::validateScreenTRexStrategy() const {
     // Screening is a SINGLE experiment pass at L = p, T = 1 (select() forces
     // num_dummies_ = p_, T_stop_ = 1). Supported:
     //   STANDARD           - K independent matrices, stored.
-    //   SEEDED             - the same independent draws, regenerated from
-    //                        the seed one D_k at a time in the serial
-    //                        runner loop; nothing stored (memory-lean
-    //                        twin of STANDARD, bit-identical results).
+    //   SEEDED             - the same draws keyed on (k, L step 1),
+    //                        regenerated from the seed one D_k at a time
+    //                        in the serial runner loop; nothing stored
+    //                        (storage-free twin of STANDARD, bit-identical
+    //                        results).
     //   PERMUTATION        - one stored base D_1, D_k = Perm(D_1).
     //   PERMUTATION_SEEDED - same experiments, base re-derived from the
     //                        seed; stateless (no persistent base matrix).
@@ -284,15 +285,16 @@ er::ExperimentResults ScreenTRexSelector::runScreenExperiments() {
                 // runs without warm start, but keep the documented pairing
                 // (see DummyGenerator::generateAndStore's @warning).
                 warm_start_mgr_.invalidate();
-                dummy_gen_.generateAndStore(trex_ctrl_.K, p_);
+                // The single pass is the first L step: tag 1, as the core
+                // selector keys its first STANDARD iteration
+                dummy_gen_.generateAndStore(trex_ctrl_.K, p_, /*l_tag=*/1);
             }
             break;
         }
         case tc::LLoopStrategy::SEEDED: {
-            // Memory-lean twin of STANDARD: the identical seeded draws
-            // (both live in the prefix-stable tag-0 domain at L = p), but
-            // regenerated one D_k at a time in the runner's serial loop and
-            // never stored — bit-identical screening results.
+            // Storage-free twin of STANDARD: the identical draws keyed on
+            // (k, L step 1), regenerated one D_k at a time in the runner's
+            // serial loop and never stored — bit-identical screening results.
             strategy = er::ExperimentStrategy::Seeded;
             break;
         }
@@ -332,7 +334,8 @@ er::ExperimentResults ScreenTRexSelector::runScreenExperiments() {
         p_,       // num_dummies = p  (L = p)
         1,        // T_stop = 1
         false,    // no warm start
-        strategy
+        strategy,
+        1         // seed_factor: the first L step, the tag of the stored STANDARD draws
     );
     cfg.collect_screen_betas = true;
 

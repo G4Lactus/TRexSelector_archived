@@ -82,8 +82,45 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   `TRexVDOptions::n_threads` default to 1 instead of "auto" (0 is rejected).
   There is no "every core" value: whoever wants every core reads the count
   and passes it. See the 2026-10-27 entries.
+- `LLoopStrategy::SEEDED` is the storage-free twin of `STANDARD` (fresh dummies
+  at every L step, bit-identical to STANDARD for the same seed) instead of the
+  storage-free twin of HCONCAT in the i.i.d. case. A seeded SEEDED run, and a
+  seeded screening run with STANDARD or SEEDED, selects differently from before
+  under the same law; unseeded runs are unaffected. See the 2026-10-27 entry.
 
 ### 2026-10-27
+
+#### SEEDED is the storage-free twin of STANDARD (WP18)
+
+- `LLoopStrategy::SEEDED` draws fresh dummies at every L step, keyed on
+  (experiment k, L step) exactly as `STANDARD` keys its stored matrices, so a
+  SEEDED run and a STANDARD run with the same seed draw bit-identical dummies
+  and select identically; they differ only in storage. Before, the i.i.d. case
+  of SEEDED re-derived its dummies from the prefix-stable tag 0 (the nested
+  law of HCONCAT, one draw persisting across the L steps) while its cluster
+  case (GVS, Tikhonov) already drew fresh. The nested law stays available as
+  HCONCAT, which stores its matrices.
+- The decision rests on the paired study of 500 trials in nine cells (Examples
+  notes/tools/fresh_vs_nested, recorded in the archive and on vignette page 2):
+  fresh and nested dummies give the same FDR, the nested form gains 0.6
+  percentage points of TPR on average through a larger calibrated L and longer
+  T-loops. No second seeded form and no switch.
+- Mechanics: `DummyGenerator::generateSeeded()` / `generateSeededInto()` take the
+  L step as their tag, the experiment runner passes `cfg.seed_factor` (the core
+  sets it to the L step for SEEDED, as for STANDARD, and leaves 0 for the
+  prefix-stable PERMUTATION_SEEDED base), and the screening keys its single
+  pass on L step 1 for STANDARD and SEEDED alike, so its pin holds.
+- Breaking for reproducibility only (see the release block): a seeded run with
+  `lloop_strategy = SEEDED` (and a seeded screening run with STANDARD or
+  SEEDED) selects differently from before, from the same law. Unseeded runs
+  are unaffected.
+- Tests: `LLoopSeeded.SeededMatchesStandard` (three seeds, the support, T_stop,
+  L, Phi and FDP-hat), `SeededDrawsAreStandardsDraws` (the generator: the
+  SEEDED draw at L step LL equals the stored STANDARD matrix and differs from
+  the tag-0 base), `SeededStrategiesAgreeInMemoryAndMapped`, and the same
+  identity in the DA and GVS selectors; the Tikhonov and screening pins stay.
+  Documentation in the enum, the generator's tag conventions, the R and Python
+  control docs.
 
 #### READMEs describe the threading model; the every-core value is gone (WP15 step 5)
 

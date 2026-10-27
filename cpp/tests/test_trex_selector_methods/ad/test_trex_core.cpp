@@ -755,9 +755,9 @@ TEST(TRexCoreTest, DirectDummies_HonourUserSeedAndAreStableWithinRun) {
     dg::DummyGenerator g_seed2(n, dummygen::Distribution::Normal(), 2, false);
     dg::DummyGenerator g_seed1_again(n, dummygen::Distribution::Normal(), 1, false);
 
-    Eigen::MatrixXd D1  = g_seed1.generateSeeded(num_dummies, 0);
-    Eigen::MatrixXd D2  = g_seed2.generateSeeded(num_dummies, 0);
-    Eigen::MatrixXd D1b = g_seed1_again.generateSeeded(num_dummies, 0);
+    Eigen::MatrixXd D1  = g_seed1.generateSeeded(num_dummies, 0, /*l_tag=*/1);
+    Eigen::MatrixXd D2  = g_seed2.generateSeeded(num_dummies, 0, /*l_tag=*/1);
+    Eigen::MatrixXd D1b = g_seed1_again.generateSeeded(num_dummies, 0, /*l_tag=*/1);
 
     EXPECT_FALSE(D1.isApprox(D2, 1e-12))
         << "Different user seeds produced identical DIRECT dummies.";
@@ -768,8 +768,8 @@ TEST(TRexCoreTest, DirectDummies_HonourUserSeedAndAreStableWithinRun) {
     // repeated derivation of the same experiment's dummies must be identical
     // (the T-loop re-derives D_k at every step).
     dg::DummyGenerator g_random(n, dummygen::Distribution::Normal(), -1, false);
-    Eigen::MatrixXd Da = g_random.generateSeeded(num_dummies, 3);
-    Eigen::MatrixXd Db = g_random.generateSeeded(num_dummies, 3);
+    Eigen::MatrixXd Da = g_random.generateSeeded(num_dummies, 3, /*l_tag=*/1);
+    Eigen::MatrixXd Db = g_random.generateSeeded(num_dummies, 3, /*l_tag=*/1);
     EXPECT_TRUE(Da.isApprox(Db, 1e-12))
         << "Unseeded DIRECT dummies changed between calls within one run.";
 }

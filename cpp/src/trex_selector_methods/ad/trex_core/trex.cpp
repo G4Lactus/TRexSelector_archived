@@ -1166,7 +1166,9 @@ void TRexSelector::runLLoopCalibration_Seeded(
     ctx.strategy            = independent
             ? er::ExperimentStrategy::Seeded
             : er::ExperimentStrategy::PermutationSeeded;
-    ctx.seed_factor_uses_LL = false;
+    // SEEDED keys its draws on the L step like STANDARD (its storage-free
+    // twin); PERMUTATION_SEEDED re-derives its base prefix-stable (tag 0).
+    ctx.seed_factor_uses_LL = independent;
     ctx.policy = [this, hook_strategy](std::size_t LL,
                                        std::size_t num_dummies,
                                        std::size_t& existing_on_disk_out) {
