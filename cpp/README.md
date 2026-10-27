@@ -113,6 +113,34 @@ cmake --workflow --preset tidy        # clang-tidy over the codebase
 
 ---
 
+## Dummy Strategies
+
+The T-Rex selector calibrates the number of dummies in its L-loop. `lloop_strategy` of
+`TRexControlParameter` says how the dummies of that loop are produced, in every selector that
+carries the control.
+
+| Strategy | Dummies | Storage |
+| --- | --- | --- |
+| `STANDARD` (default) | fresh matrices at every L step | K matrices |
+| `HCONCAT` | the same K matrices grow by p columns per L step | K matrices |
+| `SEEDED` | the draws of `STANDARD`, re-derived from the seed at every step | none |
+| `PERMUTATION` | permuted columns of the design | K matrices |
+| `PERMUTATION_SEEDED` | the permutation re-derived from the seed | none |
+| `SKIPL` | no L-loop, the cap `max_dummy_multiplier` is used directly | K matrices |
+
+`STANDARD` draws fresh dummies at every step, the law of the T-Rex paper and the default on every
+surface. The seeded strategies store nothing and suit designs where K times L times p columns do
+not fit in memory. `SEEDED` selects exactly as `STANDARD` for the same seed, and
+`PERMUTATION_SEEDED` exactly as `PERMUTATION`. `HCONCAT` keeps the grown law, which calibrates a
+larger L and gains 0.6 percentage points of true positive rate (TPR) on average in a paired study
+of 500 trials, at the same false discovery rate (FDR). `SKIPL` fixes L at the cap and skips the
+calibration, and under a large fixed L its FDP estimate is anti-conservative, so the calibrated
+strategies are the safe choice. The dummies are standard Normal by default, and
+`dummy_distribution` offers the other laws. The enum `LLoopStrategy` in trex.hpp documents the
+keys the seeded strategies derive their draws from.
+
+---
+
 ## Threads
 
 The library runs serially by default: `TRexControlParameter` has

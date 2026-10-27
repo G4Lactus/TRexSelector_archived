@@ -84,6 +84,23 @@ construct → `select()` → inspect pattern.
 
 ---
 
+## Dummy Strategies
+
+The T-Rex selector calibrates the number of dummies in its L-loop. `TRexControlParameter.lloop_strategy` says how the dummies of that loop are produced, in every selector that carries the control, with the `LLoopStrategy` enum.
+
+| Strategy | Dummies | Storage |
+| --- | --- | --- |
+| `STANDARD` (default) | fresh matrices at every L step | K matrices |
+| `HCONCAT` | the same K matrices grow by p columns per L step | K matrices |
+| `SEEDED` | the draws of `STANDARD`, re-derived from the seed at every step | none |
+| `PERMUTATION` | permuted columns of the design | K matrices |
+| `PERMUTATION_SEEDED` | the permutation re-derived from the seed | none |
+| `SKIPL` | no L-loop, the cap `max_dummy_multiplier` is used directly | K matrices |
+
+`STANDARD` draws fresh dummies at every step, the law of the T-Rex paper and the default on every surface. The seeded strategies store nothing and suit designs where K times L times p columns do not fit in memory. `SEEDED` selects exactly as `STANDARD` for the same seed, and `PERMUTATION_SEEDED` exactly as `PERMUTATION`. `HCONCAT` keeps the grown law, which calibrates a larger L and gains 0.6 percentage points of true positive rate (TPR) on average in a paired study of 500 trials, at the same false discovery rate (FDR). `SKIPL` fixes L at the cap and skips the calibration, and under a large fixed L its FDP estimate is anti-conservative, so the calibrated strategies are the safe choice. The dummies are standard Normal by default, and `dummy_distribution` offers the other laws. The R vignette page 2 carries the study.
+
+---
+
 ## Threads
 
 The package runs serially by default: `TRexControlParameter` has `parallel_rnd_experiments = False`, `max_outer_threads = 1` and `max_inner_threads = 1`, and `SolverOptions` has `n_threads = 1`. The random experiments of a selector run one after the other, every T-solver on one thread. Parallel work is opt-in, and one layer owns the cores at a time.

@@ -109,6 +109,14 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
 
 ### 2026-10-27
 
+#### The READMEs describe the dummy strategies
+
+- The C++, R and Python READMEs gain a "Dummy Strategies" section before their
+  Threads section: the six L-loop strategies with their storage, STANDARD as the
+  default on every surface, the seeded twins, the measured gain of HCONCAT, the
+  SKIPL caveat, the dummy distributions, and where the study lives (vignette
+  page 2). The last documentation item of WP18.
+
 #### The control defaults agree on the three surfaces (D11, D12)
 
 - An audit of every control constructor of R against the Python and C++
