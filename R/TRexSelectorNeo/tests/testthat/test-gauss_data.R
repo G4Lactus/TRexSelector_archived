@@ -35,7 +35,8 @@ D_g <- matrix(rnorm(n_g * p_g), n_g, p_g)
   TMP        = function() TMP_Solver$new(X_g, D_g, y_g),
   TOOLS      = function() TOOLS_Solver$new(X_g, D_g, y_g),
   TNCGMP_ls  = function() TNCGMP_Solver$new(X_g, D_g, y_g, options = tsolver_options(ncgmp_variant = "line_search")),
-  TNCGMP_fc  = function() TNCGMP_Solver$new(X_g, D_g, y_g, options = tsolver_options(ncgmp_variant = "fully_corrective")),
+  TNCGMP_fc  = function() TNCGMP_Solver$new(X_g, D_g, y_g,
+      options = tsolver_options(ncgmp_variant = "fully_corrective")),
   TAFS       = function() TAFS_Solver$new(X_g, D_g, y_g, options = tsolver_options(rho_afs = 1.0))
 )
 

@@ -117,7 +117,9 @@ SolverOptions parse_solver_options(const Rcpp::List& o) {
     if (has("cd_tol_certify"))    opts.cd_tol_certify    = Rcpp::as<double>(o["cd_tol_certify"]);
     if (has("cd_tol_probe"))      opts.cd_tol_probe      = Rcpp::as<double>(o["cd_tol_probe"]);
     if (has("cd_gram_cap"))       opts.cd_gram_cap       = static_cast<std::size_t>(Rcpp::as<double>(o["cd_gram_cap"]));
-    if (has("cd_max_sweeps"))     opts.cd_max_sweeps     = static_cast<std::size_t>(Rcpp::as<double>(o["cd_max_sweeps"]));
+    if (has("cd_max_sweeps")) {
+        opts.cd_max_sweeps = static_cast<std::size_t>(Rcpp::as<double>(o["cd_max_sweeps"]));
+    }
     if (has("cd_certified_localization"))
         opts.cd_certified_localization = Rcpp::as<bool>(o["cd_certified_localization"]);
     return opts;
@@ -1698,7 +1700,8 @@ NumericVector tsolver_cd_get_record_gaps(XPtr<TSolverRcpp> ptr) { // NOLINT(perf
 //' @title CD family: KKT violation at every recorded step
 //' @noRd
 // [[Rcpp::export]]
-NumericVector tsolver_cd_get_record_kkt_violations(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-unnecessary-value-param)
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
+NumericVector tsolver_cd_get_record_kkt_violations(XPtr<TSolverRcpp> ptr) {
     if (auto* p = dynamic_cast<TCDLASSO_Solver*>(ptr->solver_)) return wrap(p->getRecordKktViolations());
     stop("tsolver_cd_get_record_kkt_violations: Solver is not a CD-family solver.");
 }
@@ -1739,7 +1742,8 @@ Eigen::MatrixXd tsolver_get_beta_path(XPtr<TSolverRcpp> ptr) { // NOLINT(perform
 
 //' @noRd
 // [[Rcpp::export]]
-std::vector<double> tsolver_get_cp_with_sigma(XPtr<TSolverRcpp> ptr, double sigma_hat_sq) { // NOLINT(performance-unnecessary-value-param)
+std::vector<double> tsolver_get_cp_with_sigma(XPtr<TSolverRcpp> ptr,
+    double sigma_hat_sq) { // NOLINT(performance-unnecessary-value-param)
     return ptr->solver_->getCp(sigma_hat_sq);
 }
 
@@ -1751,19 +1755,22 @@ std::string tsolver_solver_type_to_string(XPtr<TSolverRcpp> ptr) { // NOLINT(per
 
 //' @noRd
 // [[Rcpp::export]]
-std::vector<std::size_t> tsolver_get_dropped_indices(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-unnecessary-value-param)
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
+std::vector<std::size_t> tsolver_get_dropped_indices(XPtr<TSolverRcpp> ptr) {
     return ptr->solver_->getDroppedIndices();
 }
 
 //' @noRd
 // [[Rcpp::export]]
-std::vector<std::size_t> tsolver_get_active_predictor_indices(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-unnecessary-value-param)
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
+std::vector<std::size_t> tsolver_get_active_predictor_indices(XPtr<TSolverRcpp> ptr) {
     return ptr->solver_->getActivePredictorIndices();
 }
 
 //' @noRd
 // [[Rcpp::export]]
-std::vector<std::size_t> tsolver_get_active_dummy_indices(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-unnecessary-value-param)
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
+std::vector<std::size_t> tsolver_get_active_dummy_indices(XPtr<TSolverRcpp> ptr) {
     return ptr->solver_->getActiveDummyIndices();
 }
 
@@ -1811,7 +1818,8 @@ int tsolver_get_num_threads(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-unnec
 
 //' @noRd
 // [[Rcpp::export]]
-void tsolver_set_exchangeable_tie(XPtr<TSolverRcpp> ptr, double alpha, double floor) { // NOLINT(performance-unnecessary-value-param)
+void tsolver_set_exchangeable_tie(XPtr<TSolverRcpp> ptr, double alpha,
+    double floor) { // NOLINT(performance-unnecessary-value-param)
     ptr->solver_->setExchangeableTie(alpha, floor);
 }
 
@@ -1839,7 +1847,8 @@ int tsolver_lars_get_kahan_refresh_interval(XPtr<TSolverRcpp> ptr) { // NOLINT(p
 
 //' @noRd
 // [[Rcpp::export]]
-void tsolver_lars_set_kahan_refresh_interval(XPtr<TSolverRcpp> ptr, int interval) { // NOLINT(performance-unnecessary-value-param)
+void tsolver_lars_set_kahan_refresh_interval(XPtr<TSolverRcpp> ptr,
+    int interval) { // NOLINT(performance-unnecessary-value-param)
     auto* s = dynamic_cast<TLARS_Solver*>(ptr->solver_);
     if (s == nullptr) stop("set_kahan_refresh_interval: not a LARS-family solver.");
     s->setKahanRefreshInterval(static_cast<std::size_t>(interval));
@@ -1855,14 +1864,16 @@ double tsolver_tenet_get_alpha(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-un
 
 //' @noRd
 // [[Rcpp::export]]
-Eigen::SparseMatrix<double> tsolver_tik_get_tikhonov_k(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-unnecessary-value-param)
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
+Eigen::SparseMatrix<double> tsolver_tik_get_tikhonov_k(XPtr<TSolverRcpp> ptr) {
     if (auto* a = dynamic_cast<TIKNET_Solver*>(ptr->solver_)) return a->getTikhonovK();
     stop("get_tikhonov_k: not a TIKNET solver.");
 }
 
 //' @noRd
 // [[Rcpp::export]]
-double tsolver_cd_get_kkt_violation(XPtr<TSolverRcpp> ptr, double lambda1) { // NOLINT(performance-unnecessary-value-param)
+double tsolver_cd_get_kkt_violation(XPtr<TSolverRcpp> ptr,
+    double lambda1) { // NOLINT(performance-unnecessary-value-param)
     auto* s = dynamic_cast<TCDLASSO_Solver*>(ptr->solver_);
     if (s == nullptr) stop("get_kkt_violation: not a CD-family solver.");
     return s->getKktViolation(lambda1);

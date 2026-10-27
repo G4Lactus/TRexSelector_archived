@@ -546,28 +546,49 @@ double trex_selector_get_y_mean(
 
 //' @noRd
 // [[Rcpp::export]]
-double trex_selector_get_tfdr(XPtr<RTRexSelector> r_ptr) { return r_ptr->getTFDR(); } // NOLINT(performance-unnecessary-value-param)
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
+double trex_selector_get_tfdr(XPtr<RTRexSelector> r_ptr) {
+    return r_ptr->getTFDR();
+}
 
 //' @noRd
 // [[Rcpp::export]]
-int trex_selector_get_k(XPtr<RTRexSelector> r_ptr) { return static_cast<int>(r_ptr->getK()); } // NOLINT(performance-unnecessary-value-param)
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
+int trex_selector_get_k(XPtr<RTRexSelector> r_ptr) {
+    return static_cast<int>(r_ptr->getK());
+}
 
 //' @noRd
 // [[Rcpp::export]]
-int trex_selector_get_max_num_dummies(XPtr<RTRexSelector> r_ptr) { return static_cast<int>(r_ptr->getMaxNumDummies()); } // NOLINT(performance-unnecessary-value-param)
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
+int trex_selector_get_max_num_dummies(XPtr<RTRexSelector> r_ptr) {
+    return static_cast<int>(r_ptr->getMaxNumDummies());
+}
 
 //' @noRd
 // [[Rcpp::export]]
-bool trex_selector_get_max_t_stop(XPtr<RTRexSelector> r_ptr) { return r_ptr->getMaxTStop(); } // NOLINT(performance-unnecessary-value-param)
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
+bool trex_selector_get_max_t_stop(XPtr<RTRexSelector> r_ptr) {
+    return r_ptr->getMaxTStop();
+}
 
 //' @noRd
 // [[Rcpp::export]]
-bool trex_selector_get_stagnation_check(XPtr<RTRexSelector> r_ptr) { return r_ptr->getStagnationCheck(); } // NOLINT(performance-unnecessary-value-param)
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
+bool trex_selector_get_stagnation_check(XPtr<RTRexSelector> r_ptr) {
+    return r_ptr->getStagnationCheck();
+}
 
 //' @noRd
 // [[Rcpp::export]]
-int trex_selector_get_num_selected(XPtr<RTRexSelector> r_ptr) { return static_cast<int>(r_ptr->getNumSelected()); } // NOLINT(performance-unnecessary-value-param)
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
+int trex_selector_get_num_selected(XPtr<RTRexSelector> r_ptr) {
+    return static_cast<int>(r_ptr->getNumSelected());
+}
 
 //' @noRd
 // [[Rcpp::export]]
-int trex_selector_get_num_dummies(XPtr<RTRexSelector> r_ptr) { return static_cast<int>(r_ptr->get()->getNumDummies()); } // NOLINT(performance-unnecessary-value-param)
+// NOLINTNEXTLINE(performance-unnecessary-value-param)
+int trex_selector_get_num_dummies(XPtr<RTRexSelector> r_ptr) {
+    return static_cast<int>(r_ptr->get()->getNumDummies());
+}

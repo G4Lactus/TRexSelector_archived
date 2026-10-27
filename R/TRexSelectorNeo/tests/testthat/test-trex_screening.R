@@ -83,7 +83,8 @@ test_that("TRexScreeningSelector correctly guards against invalid parameters", {
 
   # Invalid Screening Variants that are caught by Rcpp string mapping
   expect_error(
-    TRexScreeningSelector$new(X, y, screen_control = trex_screen_control(trex_method = "UNKNOWN_VARIANT"), verbose = FALSE),
+    TRexScreeningSelector$new(X, y, screen_control = trex_screen_control(trex_method = "UNKNOWN_VARIANT"),
+        verbose = FALSE),
     "Unknown ScreenTRexMethod:"
   )
 })

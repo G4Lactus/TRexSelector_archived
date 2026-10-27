@@ -16,9 +16,12 @@ BiobankScreenTRexControl parse_biobank_screen_parameter(
 ) {
     BiobankScreenTRexControl params;
     
-    if (biobank_control.containsElementNamed("target_FDR_trex")) params.target_FDR_trex = biobank_control["target_FDR_trex"];
-    if (biobank_control.containsElementNamed("lower_bound_FDR")) params.lower_bound_FDR = biobank_control["lower_bound_FDR"];
-    if (biobank_control.containsElementNamed("upper_bound_FDR")) params.upper_bound_FDR = biobank_control["upper_bound_FDR"];
+    if (biobank_control.containsElementNamed("target_FDR_trex"))
+        params.target_FDR_trex = biobank_control["target_FDR_trex"];
+    if (biobank_control.containsElementNamed("lower_bound_FDR"))
+        params.lower_bound_FDR = biobank_control["lower_bound_FDR"];
+    if (biobank_control.containsElementNamed("upper_bound_FDR"))
+        params.upper_bound_FDR = biobank_control["upper_bound_FDR"];
     
     // The Screen-TRex control nests the base T-Rex control (single source of
     // truth shared by the Screen-TRex path and the plain T-Rex fallback).
@@ -45,7 +48,8 @@ XPtr<RTRexBiobankScreeningSelector> trex_biobank_screening_1d_create(
 ) {
     Eigen::Map<Eigen::MatrixXd> X_map(X.begin(), X.nrow(), X.ncol());
     Eigen::Map<Eigen::VectorXd> y_map(y.begin(), y.size());
-    BiobankScreenTRexControl control = parse_biobank_screen_parameter(biobank_control_list, screen_control_list, trex_control_list);
+    BiobankScreenTRexControl control = parse_biobank_screen_parameter(biobank_control_list, screen_control_list,
+        trex_control_list);
     // Pin X and y until the finalizer has run: the base destructor writes the
     // de-normalized X back through the stored map (GC order is unspecified).
     return XPtr<RTRexBiobankScreeningSelector>(new RTRexBiobankScreeningSelector(X_map, y_map, control, seed, verbose),
@@ -66,7 +70,8 @@ XPtr<RTRexBiobankScreeningSelector> trex_biobank_screening_2d_create(
 ) {
     Eigen::Map<Eigen::MatrixXd> X_map(X.begin(), X.nrow(), X.ncol());
     Eigen::Map<Eigen::MatrixXd> Y_map(Y.begin(), Y.nrow(), Y.ncol());
-    BiobankScreenTRexControl control = parse_biobank_screen_parameter(biobank_control_list, screen_control_list, trex_control_list);
+    BiobankScreenTRexControl control = parse_biobank_screen_parameter(biobank_control_list, screen_control_list,
+        trex_control_list);
     // Pin X and Y until the finalizer has run (see above).
     return XPtr<RTRexBiobankScreeningSelector>(new RTRexBiobankScreeningSelector(X_map, Y_map, control, seed, verbose),
                                                true, R_NilValue, Rcpp::List::create(X, Y));
@@ -90,9 +95,11 @@ XPtr<RTRexBiobankScreeningSelector> trex_biobank_screening_1d_mmap_create(
     bool verbose
 ) {
     Eigen::Map<Eigen::VectorXd> y_map(y.begin(), y.size());
-    BiobankScreenTRexControl control = parse_biobank_screen_parameter(biobank_control_list, screen_control_list, trex_control_list);
+    BiobankScreenTRexControl control = parse_biobank_screen_parameter(biobank_control_list, screen_control_list,
+        trex_control_list);
     // Pin the mmap holder and y until the finalizer has run.
-    return XPtr<RTRexBiobankScreeningSelector>(new RTRexBiobankScreeningSelector(X_ptr->getMap(), y_map, control, seed, verbose),
+    return XPtr<RTRexBiobankScreeningSelector>(new RTRexBiobankScreeningSelector(X_ptr->getMap(), y_map, control, seed,
+        verbose),
                                                true, R_NilValue, Rcpp::List::create(X_ptr, y));
 }
 
@@ -108,9 +115,11 @@ XPtr<RTRexBiobankScreeningSelector> trex_biobank_screening_2d_mmap_create(
     bool verbose
 ) {
     Eigen::Map<Eigen::MatrixXd> Y_map(Y.begin(), Y.nrow(), Y.ncol());
-    BiobankScreenTRexControl control = parse_biobank_screen_parameter(biobank_control_list, screen_control_list, trex_control_list);
+    BiobankScreenTRexControl control = parse_biobank_screen_parameter(biobank_control_list, screen_control_list,
+        trex_control_list);
     // Pin the mmap holder and Y until the finalizer has run.
-    return XPtr<RTRexBiobankScreeningSelector>(new RTRexBiobankScreeningSelector(X_ptr->getMap(), Y_map, control, seed, verbose),
+    return XPtr<RTRexBiobankScreeningSelector>(new RTRexBiobankScreeningSelector(X_ptr->getMap(), Y_map, control, seed,
+        verbose),
                                                true, R_NilValue, Rcpp::List::create(X_ptr, Y));
 }
 

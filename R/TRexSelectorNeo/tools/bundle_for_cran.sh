@@ -130,7 +130,8 @@ EOF
 all: $(SHLIB) strippedLib
 
 strippedLib: $(SHLIB)
-	if test -e "/usr/bin/strip" && test -e "/bin/uname" && [ "`/bin/uname`" = "Linux" ]; then /usr/bin/strip --strip-debug $(SHLIB); fi
+	if test -e "/usr/bin/strip" && test -e "/bin/uname" && [ "`/bin/uname`" = "Linux" ]; then \
+	  /usr/bin/strip --strip-debug $(SHLIB); fi
 
 .PHONY: strippedLib
 EOF

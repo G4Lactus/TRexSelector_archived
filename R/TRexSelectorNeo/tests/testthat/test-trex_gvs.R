@@ -129,7 +129,8 @@ test_that("TRexGVSSelector correctly guards against invalid parameters", {
 
   # Invalid linkage triggers Rcpp stop()
   expect_error(
-    TRexGVSSelector$new(X, y, gvs_control = trex_gvs_control(gvs_type = "EN", hc_linkage = "UNKNOWN_LINKAGE"), verbose = FALSE),
+    TRexGVSSelector$new(X, y, gvs_control = trex_gvs_control(gvs_type = "EN", hc_linkage = "UNKNOWN_LINKAGE"),
+        verbose = FALSE),
     "Unsupported linkage method for GVS"
   )
 

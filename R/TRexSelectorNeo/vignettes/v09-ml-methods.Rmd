@@ -82,7 +82,8 @@ cv$fit(X, y, n_folds = 5, n_lambda = 50)
 c(lambda_min = cv$cv_min(), lambda_1se = cv$cv_1se())
 ```
 
-```{r ridge-plot, fig.cap = "Cross-validation error of the ridge penalty with the minimum and the one-standard-error choice."}
+```{r ridge-plot}
+#| fig.cap: "Cross-validation error of the ridge penalty with the minimum and the one-standard-error choice."
 plot(cv$get_lambdas(), cv$get_cv_errors(), log = "x", type = "l", col = "#336C68", lwd = 2,
      xlab = "lambda", ylab = "CV error")
 abline(v = c(cv$cv_min(), cv$cv_1se()), lty = c(1, 2), col = "red")
