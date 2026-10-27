@@ -3004,6 +3004,28 @@ BEGIN_RCPP
     return R_NilValue;
 END_RCPP
 }
+// tsolver_set_num_threads
+void tsolver_set_num_threads(XPtr<TSolverRcpp> ptr, int n_threads);
+RcppExport SEXP _TRexSelectorNeo_tsolver_set_num_threads(SEXP ptrSEXP, SEXP n_threadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< XPtr<TSolverRcpp> >::type ptr(ptrSEXP);
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    tsolver_set_num_threads(ptr, n_threads);
+    return R_NilValue;
+END_RCPP
+}
+// tsolver_get_num_threads
+int tsolver_get_num_threads(XPtr<TSolverRcpp> ptr);
+RcppExport SEXP _TRexSelectorNeo_tsolver_get_num_threads(SEXP ptrSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< XPtr<TSolverRcpp> >::type ptr(ptrSEXP);
+    rcpp_result_gen = Rcpp::wrap(tsolver_get_num_threads(ptr));
+    return rcpp_result_gen;
+END_RCPP
+}
 // tsolver_set_exchangeable_tie
 void tsolver_set_exchangeable_tie(XPtr<TSolverRcpp> ptr, double alpha, double floor);
 RcppExport SEXP _TRexSelectorNeo_tsolver_set_exchangeable_tie(SEXP ptrSEXP, SEXP alphaSEXP, SEXP floorSEXP) {
@@ -3581,6 +3603,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_TRexSelectorNeo_tsolver_is_connected", (DL_FUNC) &_TRexSelectorNeo_tsolver_is_connected, 1},
     {"_TRexSelectorNeo_tsolver_set_tolerance", (DL_FUNC) &_TRexSelectorNeo_tsolver_set_tolerance, 2},
     {"_TRexSelectorNeo_tsolver_set_tie_seed", (DL_FUNC) &_TRexSelectorNeo_tsolver_set_tie_seed, 2},
+    {"_TRexSelectorNeo_tsolver_set_num_threads", (DL_FUNC) &_TRexSelectorNeo_tsolver_set_num_threads, 2},
+    {"_TRexSelectorNeo_tsolver_get_num_threads", (DL_FUNC) &_TRexSelectorNeo_tsolver_get_num_threads, 1},
     {"_TRexSelectorNeo_tsolver_set_exchangeable_tie", (DL_FUNC) &_TRexSelectorNeo_tsolver_set_exchangeable_tie, 3},
     {"_TRexSelectorNeo_tsolver_get_warnings", (DL_FUNC) &_TRexSelectorNeo_tsolver_get_warnings, 1},
     {"_TRexSelectorNeo_tsolver_clear_warnings", (DL_FUNC) &_TRexSelectorNeo_tsolver_clear_warnings, 1},

@@ -223,6 +223,14 @@ class SolverOptions:
     def lambda2(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
         ...
     @property
+    def n_threads(self) -> int:
+        """
+        Thread budget of the solver's own passes over the design (correlation refreshes, step-length search, standardization). Default 1 (serial); 0 resolves to every core. A pass splits only above about a million entries and never inside a parallel region of the caller. The T-Rex selectors set it from max_inner_threads.
+        """
+    @n_threads.setter
+    def n_threads(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
+        ...
+    @property
     def ncgmp_variant(self) -> omp_based.NCGMPVariant:
         """
         TNCGMP variant (NCGMPVariant). Default LineSearch.

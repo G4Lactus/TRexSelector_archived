@@ -588,3 +588,35 @@ test_that("the augmented wrappers pass the tie seed to the inner solver", {
   expect_identical(sort(seen_enet), 1:2)
   expect_identical(sort(seen_ienet), 1:2)
 })
+
+
+test_that("n_threads is the solver's own budget: default 1, 0 every core, the path unchanged", {
+  set.seed(5)
+  n <- 400
+  p <- 1500
+  L <- 1500   # 1.2 million entries per pass, so the budget is live
+  X <- matrix(rnorm(n * p), n, p)
+  D <- matrix(rnorm(n * L), n, L)
+  y <- as.numeric(X[, 1:5] %*% c(3, -2, 2, -3, 2.5) + rnorm(n))
+  expect_identical(tsolver_options()$n_threads, 1L)
+
+  run <- function(nt) {
+    Xc <- X + 0
+    Dc <- D + 0
+    s <- TLARS_Solver$new(Xc, Dc, y, options = tsolver_options(n_threads = nt))
+    s$execute_step(4, TRUE)
+    list(threads = s$get_num_threads(), actions = s$get_actions(), beta = s$get_beta())
+  }
+  one <- run(1)
+  four <- run(4)
+  expect_identical(one$threads, 1L)
+  expect_identical(four$threads, 4L)
+  expect_identical(four$actions, one$actions)
+  expect_identical(four$beta, one$beta)
+
+  s <- TLARS_Solver$new(X + 0, D + 0, y, options = tsolver_options(n_threads = 0))
+  expect_gte(s$get_num_threads(), 1L)
+  s$set_num_threads(2)
+  expect_identical(s$get_num_threads(), 2L)
+  expect_error(s$set_num_threads(-1), "n_threads")
+})

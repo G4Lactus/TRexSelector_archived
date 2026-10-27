@@ -83,6 +83,22 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
 
 ### 2026-10-27
 
+#### R and Python: the solvers' thread budget is bound (WP15 step 4)
+
+- R: `tsolver_options(n_threads = 1)` carries the budget of a solver's own passes
+  (1 serial, 0 every core), the binding parses it, and the T-solver classes gain
+  `$set_num_threads()` and `$get_num_threads()`. Python: `SolverOptions.n_threads`
+  with the same meaning, and `setNumThreads()` / `getNumThreads()` on every
+  solver; the stubs are regenerated against pybind11 3.1.0. The selector options
+  (`parallel_rnd_experiments`, `max_outer_threads`, `max_inner_threads`) were
+  bound in step 2.
+- Tests: R and Python run T-LARS on a design above the work threshold (400 x
+  1,500 predictors and as many dummies) with budgets 1 and 4 and pin the actions
+  and the coefficient path bit for bit, resolve 0 to at least one thread, change
+  the budget on a live solver and reject a negative one.
+- The T-solvers vignette lists the option, the parallelism vignette names it for a
+  solver used on its own.
+
 #### Selections are bitwise independent of the thread options: the test (WP15 step 3)
 
 - `test_trex_thread_determinism.cpp` runs every selector (T-Rex with the HCONCAT,

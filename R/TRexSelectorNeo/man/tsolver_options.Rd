@@ -12,6 +12,7 @@ tsolver_options(
   verbose = FALSE,
   tol = .Machine$double.eps,
   tie_seed = 0,
+  n_threads = 1,
   exch_tie_alpha = 0,
   exch_tie_floor = 0.5,
   lambda2 = 0,
@@ -56,6 +57,13 @@ Default: machine epsilon.}
 \item{tie_seed}{Seed of the solver's tie-break engine. Default 0: a fixed
 seed, so a solver run is reproducible also where exact ties occur; a
 negative value seeds from the system entropy source (nondeterministic).}
+
+\item{n_threads}{Thread budget of the solver's own passes over the design
+(the correlation refreshes, the step-length search, the standardization).
+Default 1 (serial); \code{0} resolves to every core. A pass splits only
+above about a million entries of the design, and never inside a parallel
+region of the caller. The T-Rex selectors set it from
+\code{trex_control(max_inner_threads = )}.}
 
 \item{exch_tie_alpha}{Exchangeable-tie band width for the greedy solvers
 (TOMP and TAFS families), in units of the pairwise ranking-noise sd;

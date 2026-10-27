@@ -80,6 +80,8 @@ never written (the solver centers an internal copy).
     \item \href{#method-TSolver_Base-is_connected}{\code{TSolver_Base$is_connected()}}
     \item \href{#method-TSolver_Base-set_tolerance}{\code{TSolver_Base$set_tolerance()}}
     \item \href{#method-TSolver_Base-set_tie_seed}{\code{TSolver_Base$set_tie_seed()}}
+    \item \href{#method-TSolver_Base-set_num_threads}{\code{TSolver_Base$set_num_threads()}}
+    \item \href{#method-TSolver_Base-get_num_threads}{\code{TSolver_Base$get_num_threads()}}
     \item \href{#method-TSolver_Base-set_exchangeable_tie}{\code{TSolver_Base$set_exchangeable_tie()}}
     \item \href{#method-TSolver_Base-get_warnings}{\code{TSolver_Base$get_warnings()}}
     \item \href{#method-TSolver_Base-clear_warnings}{\code{TSolver_Base$clear_warnings()}}
@@ -596,6 +598,44 @@ dummies alike).
   }
   \subsection{Returns}{
     Invisibly returns \code{self}.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-TSolver_Base-set_num_threads"></a>}}
+\if{latex}{\out{\hypertarget{method-TSolver_Base-set_num_threads}{}}}
+\subsection{\code{TSolver_Base$set_num_threads()}}{
+  Set the thread budget of the solver's own passes over the
+design (\code{tsolver_options(n_threads = )}): 1 serial, 0 every core.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{TSolver_Base$set_num_threads(n_threads)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{n_threads}}{Non-negative integer.}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Invisibly returns \code{self}.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-TSolver_Base-get_num_threads"></a>}}
+\if{latex}{\out{\hypertarget{method-TSolver_Base-get_num_threads}{}}}
+\subsection{\code{TSolver_Base$get_num_threads()}}{
+  The resolved thread budget of the solver's own passes.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{TSolver_Base$get_num_threads()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Integer, at least 1.
   }
 }
 

@@ -55,7 +55,8 @@ threads for its passes over the design (the correlation refreshes, the step-leng
 standardization). The default is 1. A pass is split only when it touches at least a million entries of
 the design, because the cost of forming a team of threads exceeds the gain below that, so small problems
 run serially whatever the budget says. The budget is live when the experiments run in sequence. Inside
-parallel experiments the solvers stay serial.
+parallel experiments the solvers stay serial. A T-solver used on its own takes the same budget through
+`tsolver_options(n_threads = )`, and `$set_num_threads()` changes it on a live solver.
 
 # Parallel random experiments
 

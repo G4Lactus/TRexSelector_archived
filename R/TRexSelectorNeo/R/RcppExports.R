@@ -2110,6 +2110,16 @@ tsolver_set_tie_seed <- function(ptr, seed) {
 }
 
 #' @noRd
+tsolver_set_num_threads <- function(ptr, n_threads) {
+    invisible(.Call(`_TRexSelectorNeo_tsolver_set_num_threads`, ptr, n_threads))
+}
+
+#' @noRd
+tsolver_get_num_threads <- function(ptr) {
+    .Call(`_TRexSelectorNeo_tsolver_get_num_threads`, ptr)
+}
+
+#' @noRd
 tsolver_set_exchangeable_tie <- function(ptr, alpha, floor) {
     invisible(.Call(`_TRexSelectorNeo_tsolver_set_exchangeable_tie`, ptr, alpha, floor))
 }

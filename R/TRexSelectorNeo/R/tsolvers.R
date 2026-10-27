@@ -53,6 +53,12 @@ NULL
 #' @param tie_seed Seed of the solver's tie-break engine. Default 0: a fixed
 #'   seed, so a solver run is reproducible also where exact ties occur; a
 #'   negative value seeds from the system entropy source (nondeterministic).
+#' @param n_threads Thread budget of the solver's own passes over the design
+#'   (the correlation refreshes, the step-length search, the standardization).
+#'   Default 1 (serial); \code{0} resolves to every core. A pass splits only
+#'   above about a million entries of the design, and never inside a parallel
+#'   region of the caller. The T-Rex selectors set it from
+#'   \code{trex_control(max_inner_threads = )}.
 #' @param exch_tie_alpha Exchangeable-tie band width for the greedy solvers
 #'   (TOMP and TAFS families), in units of the pairwise ranking-noise sd;
 #'   0 (default) turns it off. Ignored by the path solvers.
@@ -94,6 +100,7 @@ tsolver_options <- function(normalize = TRUE,
                             verbose = FALSE,
                             tol = .Machine$double.eps,
                             tie_seed = 0,
+                            n_threads = 1,
                             exch_tie_alpha = 0,
                             exch_tie_floor = 0.5,
                             lambda2 = 0,
@@ -120,6 +127,7 @@ tsolver_options <- function(normalize = TRUE,
     verbose                   = as.logical(verbose),
     tol                       = as.numeric(tol),
     tie_seed                  = as.numeric(tie_seed),
+    n_threads                 = as.integer(n_threads),
     exch_tie_alpha            = as.numeric(exch_tie_alpha),
     exch_tie_floor            = as.numeric(exch_tie_floor),
     lambda2                   = as.numeric(lambda2),
@@ -410,6 +418,21 @@ TSolver_Base <- R6::R6Class(
     set_tie_seed = function(seed) {
       tsolver_set_tie_seed(self$ptr, as.numeric(seed))
       invisible(self)
+    },
+
+    #' @description Set the thread budget of the solver's own passes over the
+    #'   design (\code{tsolver_options(n_threads = )}): 1 serial, 0 every core.
+    #' @param n_threads Non-negative integer.
+    #' @return Invisibly returns \code{self}.
+    set_num_threads = function(n_threads) {
+      tsolver_set_num_threads(self$ptr, as.integer(n_threads))
+      invisible(self)
+    },
+
+    #' @description The resolved thread budget of the solver's own passes.
+    #' @return Integer, at least 1.
+    get_num_threads = function() {
+      tsolver_get_num_threads(self$ptr)
     },
 
     #' @description Exchangeable-tie band for the greedy solvers (TOMP / TAFS

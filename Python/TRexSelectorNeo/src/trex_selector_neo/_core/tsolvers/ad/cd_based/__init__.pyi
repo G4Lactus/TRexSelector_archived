@@ -123,6 +123,10 @@ class TCDENET_Solver:
         """
         Quantify the number of path steps successfully taken thus far.
         """
+    def getNumThreads(self) -> int:
+        """
+        The resolved thread budget of the solver's own passes (at least 1).
+        """
     def getR2(self) -> list[float]:
         """
         Get the coefficient of determination (R^2) at each step.
@@ -178,6 +182,10 @@ class TCDENET_Solver:
     def setExchangeableTie(self, alpha: typing.SupportsFloat | typing.SupportsIndex, floor: typing.SupportsFloat | typing.SupportsIndex = 0.5) -> None:
         """
         Configure exchangeability-calibrated stochastic tie-breaking for greedy candidate selection (TOMP/TAFS); alpha <= 0 turns it off.
+        """
+    def setNumThreads(self, n_threads: typing.SupportsInt | typing.SupportsIndex) -> None:
+        """
+        Set the thread budget of the solver's own passes over the design: 1 serial, 0 every core; negatives raise. A pass splits only above about a million entries and never inside a parallel region of the caller.
         """
     def setTieSeed(self, seed: typing.SupportsInt | typing.SupportsIndex) -> None:
         """
@@ -318,6 +326,10 @@ class TCDIENET_Solver:
         """
         Quantify the number of path steps successfully taken thus far.
         """
+    def getNumThreads(self) -> int:
+        """
+        The resolved thread budget of the solver's own passes (at least 1).
+        """
     def getR2(self) -> list[float]:
         """
         Get the coefficient of determination (R^2) at each step.
@@ -373,6 +385,10 @@ class TCDIENET_Solver:
     def setExchangeableTie(self, alpha: typing.SupportsFloat | typing.SupportsIndex, floor: typing.SupportsFloat | typing.SupportsIndex = 0.5) -> None:
         """
         Configure exchangeability-calibrated stochastic tie-breaking for greedy candidate selection (TOMP/TAFS); alpha <= 0 turns it off.
+        """
+    def setNumThreads(self, n_threads: typing.SupportsInt | typing.SupportsIndex) -> None:
+        """
+        Set the thread budget of the solver's own passes over the design: 1 serial, 0 every core; negatives raise. A pass splits only above about a million entries and never inside a parallel region of the caller.
         """
     def setTieSeed(self, seed: typing.SupportsInt | typing.SupportsIndex) -> None:
         """
@@ -504,6 +520,10 @@ class TCDLASSO_Solver:
         """
         Quantify the number of path steps successfully taken thus far.
         """
+    def getNumThreads(self) -> int:
+        """
+        The resolved thread budget of the solver's own passes (at least 1).
+        """
     def getR2(self) -> list[float]:
         """
         Get the coefficient of determination (R^2) at each step.
@@ -559,6 +579,10 @@ class TCDLASSO_Solver:
     def setExchangeableTie(self, alpha: typing.SupportsFloat | typing.SupportsIndex, floor: typing.SupportsFloat | typing.SupportsIndex = 0.5) -> None:
         """
         Configure exchangeability-calibrated stochastic tie-breaking for greedy candidate selection (TOMP/TAFS); alpha <= 0 turns it off.
+        """
+    def setNumThreads(self, n_threads: typing.SupportsInt | typing.SupportsIndex) -> None:
+        """
+        Set the thread budget of the solver's own passes over the design: 1 serial, 0 every core; negatives raise. A pass splits only above about a million entries and never inside a parallel region of the caller.
         """
     def setTieSeed(self, seed: typing.SupportsInt | typing.SupportsIndex) -> None:
         """
@@ -692,6 +716,10 @@ class TCDTIKNET_Solver:
         """
         Quantify the number of path steps successfully taken thus far.
         """
+    def getNumThreads(self) -> int:
+        """
+        The resolved thread budget of the solver's own passes (at least 1).
+        """
     def getR2(self) -> list[float]:
         """
         Get the coefficient of determination (R^2) at each step.
@@ -751,6 +779,10 @@ class TCDTIKNET_Solver:
     def setExchangeableTie(self, alpha: typing.SupportsFloat | typing.SupportsIndex, floor: typing.SupportsFloat | typing.SupportsIndex = 0.5) -> None:
         """
         Configure exchangeability-calibrated stochastic tie-breaking for greedy candidate selection (TOMP/TAFS); alpha <= 0 turns it off.
+        """
+    def setNumThreads(self, n_threads: typing.SupportsInt | typing.SupportsIndex) -> None:
+        """
+        Set the thread budget of the solver's own passes over the design: 1 serial, 0 every core; negatives raise. A pass splits only above about a million entries and never inside a parallel region of the caller.
         """
     def setTieSeed(self, seed: typing.SupportsInt | typing.SupportsIndex) -> None:
         """

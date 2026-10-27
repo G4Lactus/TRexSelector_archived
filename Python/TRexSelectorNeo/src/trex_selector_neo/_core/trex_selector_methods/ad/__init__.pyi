@@ -1576,7 +1576,7 @@ class TRexControlParameter:
     @property
     def max_inner_threads(self) -> int:
         """
-        Thread count for inner solver operations.
+        Thread budget of the solvers' own passes over the design (default 1, serial). 0 resolves to every core. Live when the experiments run in sequence; inside a parallel run the solvers stay serial. A pass splits only above about a million entries.
         """
     @max_inner_threads.setter
     def max_inner_threads(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
@@ -1584,7 +1584,7 @@ class TRexControlParameter:
     @property
     def max_outer_threads(self) -> int:
         """
-        Thread count for K repetitions (outer parallelism).
+        Threads of the parallel K-loop (default 1). 0 resolves to every core, the count is capped at K. Ignored while parallel_rnd_experiments is False.
         """
     @max_outer_threads.setter
     def max_outer_threads(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
@@ -1600,7 +1600,7 @@ class TRexControlParameter:
     @property
     def parallel_rnd_experiments(self) -> bool:
         """
-        Run K random experiments in parallel using OpenMP.
+        Run the K random experiments in parallel (default False: in sequence). Inside a parallel run every solver runs serially; the lean L-loop strategies (SEEDED, PERMUTATION, PERMUTATION_SEEDED) always run their experiments in sequence.
         """
     @parallel_rnd_experiments.setter
     def parallel_rnd_experiments(self, arg0: bool) -> None:

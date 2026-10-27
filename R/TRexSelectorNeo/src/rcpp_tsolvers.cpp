@@ -93,6 +93,7 @@ SolverOptions parse_solver_options(const Rcpp::List& o) {
     }
     if (has("tol"))            opts.tol            = Rcpp::as<double>(o["tol"]);
     if (has("tie_seed"))       opts.tie_seed       = static_cast<long long>(Rcpp::as<double>(o["tie_seed"]));
+    if (has("n_threads"))      opts.n_threads      = Rcpp::as<int>(o["n_threads"]);
     if (has("exch_tie_alpha")) opts.exch_tie_alpha = Rcpp::as<double>(o["exch_tie_alpha"]);
     if (has("exch_tie_floor")) opts.exch_tie_floor = Rcpp::as<double>(o["exch_tie_floor"]);
     if (has("lambda2"))        opts.lambda2        = Rcpp::as<double>(o["lambda2"]);
@@ -1794,6 +1795,18 @@ void tsolver_set_tolerance(XPtr<TSolverRcpp> ptr, double tol) { // NOLINT(perfor
 // [[Rcpp::export]]
 void tsolver_set_tie_seed(XPtr<TSolverRcpp> ptr, double seed) { // NOLINT(performance-unnecessary-value-param)
     ptr->solver_->setTieSeed(static_cast<uint32_t>(seed));
+}
+
+//' @noRd
+// [[Rcpp::export]]
+void tsolver_set_num_threads(XPtr<TSolverRcpp> ptr, int n_threads) { // NOLINT(performance-unnecessary-value-param)
+    ptr->solver_->setNumThreads(n_threads);
+}
+
+//' @noRd
+// [[Rcpp::export]]
+int tsolver_get_num_threads(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-unnecessary-value-param)
+    return ptr->solver_->getNumThreads();
 }
 
 //' @noRd

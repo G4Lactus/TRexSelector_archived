@@ -224,6 +224,12 @@ public:
     /** @brief Set the random seed for reproducible tie-breaking among dummies. */
     void setTieSeed(uint32_t seed) { solver_->setTieSeed(seed); }
 
+    /** @brief Set the thread budget of the solver's own regions (1 serial, 0 every core). */
+    void setNumThreads(int n_threads) { solver_->setNumThreads(n_threads); }
+
+    /** @brief The resolved thread budget of the solver's own regions (>= 1). */
+    int getNumThreads() const { return solver_->getNumThreads(); }
+
     /** @brief Configure exchangeability-calibrated stochastic tie-breaking (greedy solvers). */
     void setExchangeableTie(double alpha, double floor) {
         solver_->setExchangeableTie(alpha, floor);
@@ -442,6 +448,12 @@ py::class_<PySolverWrapper<Solver>>& add_standard_tsolver_methods(
              "Set the numerical tolerance used for internal numeric comparisons.")
         .def("setTieSeed", &PySolverWrapper<Solver>::setTieSeed, py::arg("seed"),
              "Set the random seed for reproducible tie-breaking among dummy candidates.")
+        .def("setNumThreads", &PySolverWrapper<Solver>::setNumThreads, py::arg("n_threads"),
+             "Set the thread budget of the solver's own passes over the design: 1 serial, 0 every "
+             "core; negatives raise. A pass splits only above about a million entries and never "
+             "inside a parallel region of the caller.")
+        .def("getNumThreads", &PySolverWrapper<Solver>::getNumThreads,
+             "The resolved thread budget of the solver's own passes (at least 1).")
         .def("setExchangeableTie", &PySolverWrapper<Solver>::setExchangeableTie,
              py::arg("alpha"), py::arg("floor") = 0.5,
              "Configure exchangeability-calibrated stochastic tie-breaking for greedy "
@@ -636,6 +648,11 @@ inline void bind_solver_options(py::module& m) {
        .def_readwrite("tie_seed", &SolverOptions::tie_seed,
             "Seed of the tie-break engine. Default 0: a fixed seed, so a solver run is reproducible "
             "also where exact ties occur; < 0 seeds from std::random_device (nondeterministic).")
+       .def_readwrite("n_threads", &SolverOptions::n_threads,
+            "Thread budget of the solver's own passes over the design (correlation refreshes, "
+            "step-length search, standardization). Default 1 (serial); 0 resolves to every core. "
+            "A pass splits only above about a million entries and never inside a parallel region "
+            "of the caller. The T-Rex selectors set it from max_inner_threads.")
        .def_readwrite("exch_tie_alpha", &SolverOptions::exch_tie_alpha,
             "Exchangeable-tie band width for the greedy solvers (TOMP/TAFS families); 0 (default) = off.")
        .def_readwrite("exch_tie_floor", &SolverOptions::exch_tie_floor,

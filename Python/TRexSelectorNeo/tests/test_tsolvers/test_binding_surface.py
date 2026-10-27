@@ -227,3 +227,35 @@ def test_precentered_counts_intercept_like_intercept():
     np.testing.assert_array_equal(np.asarray(reader.getCp()), np.asarray(fitted.getCp()))
     assert reader.getDoF()[0] == 1
     assert reader.getNumActives() <= n - 1
+
+
+def test_n_threads_option_and_setters():
+    """n_threads is the solver's own thread budget (default 1, 0 every core); the path
+    is bitwise independent of it, and negatives are rejected."""
+    from trex_selector_neo.tsolvers.ad.lars_based import TLARS_Solver
+
+    rng = np.random.default_rng(5)
+    n, p, num_dummies = 400, 1500, 1500          # 1.2 million entries per pass
+    X = np.asfortranarray(rng.standard_normal((n, p)))
+    D = np.asfortranarray(rng.standard_normal((n, num_dummies)))
+    y = X[:, :5] @ np.array([3.0, -2.0, 2.0, -3.0, 2.5]) + rng.standard_normal(n)
+    assert SolverOptions().n_threads == 1
+
+    def run(n_threads):
+        s = TLARS_Solver(X.copy(order="F"), D.copy(order="F"), y.copy(),
+                         SolverOptions(n_threads=n_threads))
+        s.executeStep(4, True)
+        return s.getNumThreads(), s.getActions(), s.getBetaPath()
+
+    t1, a1, b1 = run(1)
+    t4, a4, b4 = run(4)
+    assert (t1, t4) == (1, 4)
+    assert a4 == a1
+    assert np.array_equal(b4, b1)
+
+    s = TLARS_Solver(X.copy(order="F"), D.copy(order="F"), y.copy(), SolverOptions(n_threads=0))
+    assert s.getNumThreads() >= 1
+    s.setNumThreads(2)
+    assert s.getNumThreads() == 2
+    with pytest.raises(ValueError):
+        s.setNumThreads(-1)
