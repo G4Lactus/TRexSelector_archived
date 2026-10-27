@@ -8,7 +8,8 @@ ml_agglomerative_cluster(
   data,
   method = ml_linkage_method$Ward,
   metric = ml_distance_metric$Euclidean,
-  use_mmap = FALSE
+  use_mmap = FALSE,
+  verbose = FALSE
 )
 }
 \arguments{
@@ -22,6 +23,9 @@ Default is Euclidean.}
 
 \item{use_mmap}{Whether to use memory mapping files for intermediate storage. Default is FALSE.
 Ignored when \code{data} is already an \code{mmap_matrix} (always \code{TRUE}).}
+
+\item{verbose}{Whether the backend prints its allocation line (the size of the distance matrix in
+RAM or in the memory-mapped file). Default is FALSE.}
 }
 \value{
 A numeric matrix representing the computed hierarchical linkage.

@@ -172,3 +172,23 @@ def test_cut_tree_rejects_malformed_linkage(cluster_data):
     bad[1, 0] = linkage[0, 0]
     with pytest.raises(ValueError, match="already consumed"):
         cut_tree(bad, n, 2)
+
+
+# ---------------------------------------------------------------------------
+# Backend line
+# ---------------------------------------------------------------------------
+
+def test_verbose_default_is_silent(cluster_data, capfd):
+    """The backend's allocation line prints only on request."""
+    import ctypes
+    X, n, p = cluster_data
+
+    def c_stdout():
+        # The line is written by the C++ backend; flush the C stdio buffer before reading
+        ctypes.CDLL(None).fflush(None)
+        return capfd.readouterr().out
+
+    agglomerative_cluster(X, LinkageMethod.Ward, DistanceMetric.Euclidean)
+    assert "allocated" not in c_stdout()
+    agglomerative_cluster(X, LinkageMethod.Ward, DistanceMetric.Euclidean, verbose=True)
+    assert "allocated" in c_stdout()

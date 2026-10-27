@@ -388,8 +388,9 @@ MLLpNormScaler <- R6::R6Class("MLLpNormScaler",
 #' X <- matrix(rnorm(50 * 5), 50, 5)
 #' y <- X[, 1] * 2 + rnorm(50)
 #' cv <- MLRidgeCV$new()
-#' cv$fit(X, y, num_folds = 5)
+#' cv$fit(X, y, n_folds = 5)
 #' cv$cv_min()
+#' cv$selection_at_grid_edge()   # FALSE: the picks are interior grid points
 #'
 #' @family ML methods
 #' @export
@@ -418,22 +419,22 @@ MLRidgeCV <- R6::R6Class("MLRidgeCV",
     #'   (bound zero-copy; \code{"readonly"} mode suffices since the fit does
     #'   not modify \code{X}).
     #' @param y Response vector.
-    #' @param num_folds Number of folds (default 10).
-    #' @param n_lambda Number of lambdas in path (default 100).
+    #' @param n_folds Number of folds (default 10).
+    #' @param n_lambda Number of lambdas in the path (default 100).
     #' @param lambda_ratio Ratio of max to min lambda (default 1000).
     #' @param seed Random seed for CV splits (default 0).
     #'
     #' @return Value.
-    fit = function(X, y, num_folds = 10, n_lambda = 100, lambda_ratio = 1000.0, seed = 0) {
+    fit = function(X, y, n_folds = 10, n_lambda = 100, lambda_ratio = 1000.0, seed = 0) {
       if (inherits(X, "mmap_matrix")) {
         stopifnot(is.numeric(y), dim(X)[1] == length(y))
-        ridge_cv_fit_mmap(private$cpp_ptr, X, as.numeric(y), as.integer(num_folds),
+        ridge_cv_fit_mmap(private$cpp_ptr, X, as.numeric(y), as.integer(n_folds),
                           as.integer(n_lambda), as.numeric(lambda_ratio), as.integer(seed))
         return(invisible(self))
       }
       X <- .as_double_matrix(X)
       stopifnot(is.numeric(y), nrow(X) == length(y))
-      ridge_cv_fit(private$cpp_ptr, X, as.numeric(y), as.integer(num_folds), as.integer(n_lambda),
+      ridge_cv_fit(private$cpp_ptr, X, as.numeric(y), as.integer(n_folds), as.integer(n_lambda),
                    as.numeric(lambda_ratio), as.integer(seed))
 
       invisible(self)
@@ -488,6 +489,28 @@ MLRidgeCV <- R6::R6Class("MLRidgeCV",
     #' @return Value.
     get_cv_std = function() {
       ridge_cv_get_cv_std(private$cpp_ptr)
+    },
+
+    #' @description Whether the smallest training fold has p >= n_train, so
+    #'   the lambda -> 0 end of the grid tends to the minimum-norm
+    #'   interpolator instead of an ordinary least-squares fit. The curve
+    #'   still has a genuine interior minimum in that regime; together with
+    #'   \code{selection_at_grid_edge()} it tells whether \code{cv_min()} is
+    #'   a real minimum or the grid running out.
+    #'
+    #' @return Logical.
+    interpolates = function() {
+      ridge_cv_interpolates(private$cpp_ptr)
+    },
+
+    #' @description Whether \code{cv_min()} or \code{cv_1se()} landed on the
+    #'   first or the last grid point. The pick is then the grid boundary,
+    #'   not an optimum, and \code{lambda_ratio} or \code{n_lambda} need
+    #'   widening.
+    #'
+    #' @return Logical.
+    selection_at_grid_edge = function() {
+      ridge_cv_selection_at_grid_edge(private$cpp_ptr)
     }
   )
 )

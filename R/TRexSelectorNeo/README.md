@@ -154,24 +154,24 @@ construct → `$select()` → inspect pattern.
 
 The package runs serially by default: `trex_control()` has
 `parallel_rnd_experiments = FALSE`, `max_outer_threads = 1` and
-`max_inner_threads = 1`, and `tsolver_options()` has `n_threads = 1`. The
-random experiments of a selector run one after the other, every T-solver
-on one thread. Parallel work is opt-in, and one layer owns the cores at a
-time.
+`max_inner_threads = 1`, and `tsolver_options()` has `n_threads = 1`.
+The random experiments of a selector run one after the other, every
+T-solver on one thread. Parallel work is opt-in, and one layer owns the
+cores at a time.
 
 - `trex_control(parallel_rnd_experiments = TRUE, max_outer_threads = m)`
   runs the K random experiments on `m` threads, at most K. Inside the
   parallel experiments every solver runs serially.
 - `trex_control(max_inner_threads = m)` gives the solvers inside the
   experiments a budget of `m` threads for their passes over the design.
-  The budget is live when the experiments run in sequence, which the lean
-  L-loop strategies (`"SEEDED"`, `"PERMUTATION"`, `"PERMUTATION_SEEDED"`)
-  always do. A pass is split only when it touches at least a million
-  entries of the design, because the cost of forming a team of threads
-  exceeds the gain below that. Two to four threads carry the gain, since
-  the passes are memory-bandwidth bound.
-- `tsolver_options(n_threads = m)` is the same budget for a T-solver used
-  on its own, and `$set_num_threads()` changes it on a live solver.
+  The budget is live when the experiments run in sequence, which the
+  lean L-loop strategies (`"SEEDED"`, `"PERMUTATION"`,
+  `"PERMUTATION_SEEDED"`) always do. A pass is split only when it
+  touches at least a million entries of the design, because the cost of
+  forming a team of threads exceeds the gain below that. Two to four
+  threads carry the gain, since the passes are memory-bandwidth bound.
+- `tsolver_options(n_threads = m)` is the same budget for a T-solver
+  used on its own, and `$set_num_threads()` changes it on a live solver.
 - `trex_set_num_threads()` sets the process-wide OpenMP count that the
   one-shot kernels use (the scalers, the dummy generation, the
   clustering), `trex_get_max_threads()` reads it. The selectors and the
@@ -188,16 +188,16 @@ vignette has the details.
 The package has twelve vignettes in [`vignettes/`](vignettes/) (built on
 installation with `build_vignettes = TRUE`, listed by
 `browseVignettes("TRexSelectorNeo")`): getting started, the T-Rex
-selector, T-Rex+DA, T-Rex GVS, screening, T-Rex SPCA, T-Rex Tikhonov, the
-T-solvers, the ML methods, memory mapping, working without data copies,
-and parallelism. The help page of every selector, T-solver and machine
-learning class ends with the papers it builds on, and
-`citation("TRexSelectorNeo")` lists the package entry and the T-Rex method
-papers.
+selector, T-Rex+DA, T-Rex GVS, screening, T-Rex SPCA, T-Rex Tikhonov,
+the T-solvers, the ML methods, memory mapping, working without data
+copies, and parallelism. The help page of every selector, T-solver and
+machine learning class ends with the papers it builds on, and
+`citation("TRexSelectorNeo")` lists the package entry and the T-Rex
+method papers.
 
 ## Links
 
-T-Rex paper: <https://doi.org/10.1016/j.sigpro.2025.109894>
+T-Rex paper: <https://doi.org/10.48550/arXiv.2110.06048>
 
 TRexSelector repository (C++ core, Python, and R packages):
 [GitHub-TRexSelector](https://github.com/G4Lactus/TRexSelector)
@@ -207,15 +207,19 @@ Issues](https://github.com/G4Lactus/TRexSelector/issues)
 
 ## Acknowledgements
 
-The library builds on the Eigen linear algebra library: G. Guennebaud, B. Jacob et al., Eigen v3,
-<http://eigen.tuxfamily.org>, 2010.
+The package builds on the Eigen linear algebra library: G. Guennebaud,
+B. Jacob et al., Eigen v3, <http://eigen.tuxfamily.org>, 2010. It binds
+the C++ core through Rcpp and RcppEigen and relies on cereal (Rcereal)
+for serialization and on Boost.Interprocess (BH) for memory mapping,
+with OpenMP for the threads where the toolchain provides it.
 
 ## License
 
 GPL ≥ 3 — see [LICENSE](../../LICENSE).
 
-This program is free software: you can redistribute it and/or modify it under the
-terms of the GNU General Public License as published by the Free Software
-Foundation, either version 3 of the License, or (at your option) any later
-version. It is distributed WITHOUT ANY WARRANTY; without even the implied
-warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+This program is free software: you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the
+Free Software Foundation, either version 3 of the License, or (at your
+option) any later version. It is distributed WITHOUT ANY WARRANTY;
+without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE.

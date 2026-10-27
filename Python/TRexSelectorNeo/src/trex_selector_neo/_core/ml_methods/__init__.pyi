@@ -313,7 +313,7 @@ class RidgeCV:
         """
         Standard error of the CV MSE per lambda.
         """
-    def fit(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], n_folds: typing.SupportsInt | typing.SupportsIndex = 10, n_lambda: typing.SupportsInt | typing.SupportsIndex = 1000, lambda_ratio: typing.SupportsFloat | typing.SupportsIndex = 1000.0, seed: typing.SupportsInt | typing.SupportsIndex = 0) -> RidgeCV:
+    def fit(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], n_folds: typing.SupportsInt | typing.SupportsIndex = 10, n_lambda: typing.SupportsInt | typing.SupportsIndex = 100, lambda_ratio: typing.SupportsFloat | typing.SupportsIndex = 1000.0, seed: typing.SupportsInt | typing.SupportsIndex = 0) -> RidgeCV:
         """
         Fit K-fold CV over a log-spaced ridge grid.
         """

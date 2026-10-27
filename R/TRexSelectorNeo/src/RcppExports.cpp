@@ -13,8 +13,8 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // rcpp_agglomerative_cluster
-NumericMatrix rcpp_agglomerative_cluster(const Eigen::Map<Eigen::MatrixXd>& data, int method_idx, int metric_idx, bool use_mmap);
-RcppExport SEXP _TRexSelectorNeo_rcpp_agglomerative_cluster(SEXP dataSEXP, SEXP method_idxSEXP, SEXP metric_idxSEXP, SEXP use_mmapSEXP) {
+NumericMatrix rcpp_agglomerative_cluster(const Eigen::Map<Eigen::MatrixXd>& data, int method_idx, int metric_idx, bool use_mmap, bool verbose);
+RcppExport SEXP _TRexSelectorNeo_rcpp_agglomerative_cluster(SEXP dataSEXP, SEXP method_idxSEXP, SEXP metric_idxSEXP, SEXP use_mmapSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -22,20 +22,22 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type method_idx(method_idxSEXP);
     Rcpp::traits::input_parameter< int >::type metric_idx(metric_idxSEXP);
     Rcpp::traits::input_parameter< bool >::type use_mmap(use_mmapSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpp_agglomerative_cluster(data, method_idx, metric_idx, use_mmap));
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(rcpp_agglomerative_cluster(data, method_idx, metric_idx, use_mmap, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
 // rcpp_agglomerative_cluster_mmap
-NumericMatrix rcpp_agglomerative_cluster_mmap(XPtr<trex::utils::memmap::MemoryMappedMatrix<double>> data_ptr, int method_idx, int metric_idx);
-RcppExport SEXP _TRexSelectorNeo_rcpp_agglomerative_cluster_mmap(SEXP data_ptrSEXP, SEXP method_idxSEXP, SEXP metric_idxSEXP) {
+NumericMatrix rcpp_agglomerative_cluster_mmap(XPtr<trex::utils::memmap::MemoryMappedMatrix<double>> data_ptr, int method_idx, int metric_idx, bool verbose);
+RcppExport SEXP _TRexSelectorNeo_rcpp_agglomerative_cluster_mmap(SEXP data_ptrSEXP, SEXP method_idxSEXP, SEXP metric_idxSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< XPtr<trex::utils::memmap::MemoryMappedMatrix<double>> >::type data_ptr(data_ptrSEXP);
     Rcpp::traits::input_parameter< int >::type method_idx(method_idxSEXP);
     Rcpp::traits::input_parameter< int >::type metric_idx(metric_idxSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpp_agglomerative_cluster_mmap(data_ptr, method_idx, metric_idx));
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(rcpp_agglomerative_cluster_mmap(data_ptr, method_idx, metric_idx, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -565,6 +567,28 @@ BEGIN_RCPP
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< XPtr<ridge_cv> >::type ptr(ptrSEXP);
     rcpp_result_gen = Rcpp::wrap(ridge_cv_get_cv_std(ptr));
+    return rcpp_result_gen;
+END_RCPP
+}
+// ridge_cv_interpolates
+bool ridge_cv_interpolates(XPtr<ridge_cv> ptr);
+RcppExport SEXP _TRexSelectorNeo_ridge_cv_interpolates(SEXP ptrSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< XPtr<ridge_cv> >::type ptr(ptrSEXP);
+    rcpp_result_gen = Rcpp::wrap(ridge_cv_interpolates(ptr));
+    return rcpp_result_gen;
+END_RCPP
+}
+// ridge_cv_selection_at_grid_edge
+bool ridge_cv_selection_at_grid_edge(XPtr<ridge_cv> ptr);
+RcppExport SEXP _TRexSelectorNeo_ridge_cv_selection_at_grid_edge(SEXP ptrSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< XPtr<ridge_cv> >::type ptr(ptrSEXP);
+    rcpp_result_gen = Rcpp::wrap(ridge_cv_selection_at_grid_edge(ptr));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -3360,8 +3384,8 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_TRexSelectorNeo_rcpp_agglomerative_cluster", (DL_FUNC) &_TRexSelectorNeo_rcpp_agglomerative_cluster, 4},
-    {"_TRexSelectorNeo_rcpp_agglomerative_cluster_mmap", (DL_FUNC) &_TRexSelectorNeo_rcpp_agglomerative_cluster_mmap, 3},
+    {"_TRexSelectorNeo_rcpp_agglomerative_cluster", (DL_FUNC) &_TRexSelectorNeo_rcpp_agglomerative_cluster, 5},
+    {"_TRexSelectorNeo_rcpp_agglomerative_cluster_mmap", (DL_FUNC) &_TRexSelectorNeo_rcpp_agglomerative_cluster_mmap, 4},
     {"_TRexSelectorNeo_rcpp_cut_tree", (DL_FUNC) &_TRexSelectorNeo_rcpp_cut_tree, 3},
     {"_TRexSelectorNeo_zscore_scaler_create", (DL_FUNC) &_TRexSelectorNeo_zscore_scaler_create, 2},
     {"_TRexSelectorNeo_zscore_scaler_fit", (DL_FUNC) &_TRexSelectorNeo_zscore_scaler_fit, 3},
@@ -3408,6 +3432,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_TRexSelectorNeo_ridge_cv_get_lambdas", (DL_FUNC) &_TRexSelectorNeo_ridge_cv_get_lambdas, 1},
     {"_TRexSelectorNeo_ridge_cv_get_cv_errors", (DL_FUNC) &_TRexSelectorNeo_ridge_cv_get_cv_errors, 1},
     {"_TRexSelectorNeo_ridge_cv_get_cv_std", (DL_FUNC) &_TRexSelectorNeo_ridge_cv_get_cv_std, 1},
+    {"_TRexSelectorNeo_ridge_cv_interpolates", (DL_FUNC) &_TRexSelectorNeo_ridge_cv_interpolates, 1},
+    {"_TRexSelectorNeo_ridge_cv_selection_at_grid_edge", (DL_FUNC) &_TRexSelectorNeo_ridge_cv_selection_at_grid_edge, 1},
     {"_TRexSelectorNeo_enet_create", (DL_FUNC) &_TRexSelectorNeo_enet_create, 1},
     {"_TRexSelectorNeo_enet_fit", (DL_FUNC) &_TRexSelectorNeo_enet_fit, 11},
     {"_TRexSelectorNeo_enet_fit_mmap", (DL_FUNC) &_TRexSelectorNeo_enet_fit_mmap, 11},

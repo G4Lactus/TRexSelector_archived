@@ -370,7 +370,7 @@ test_that("MLRidgeCV CV: cv_errors and cv_std have length n_lambda", {
   y <- X %*% rnorm(p) + rnorm(n) * 2.0
 
   m <- MLRidgeCV$new()
-  m$fit(X, y, num_folds = 5L, n_lambda = 100L, lambda_ratio = 1000.0, seed = 42L)
+  m$fit(X, y, n_folds = 5L, n_lambda = 100L, lambda_ratio = 1000.0, seed = 42L)
 
   expect_equal(length(m$get_cv_errors()), 100L)
   expect_equal(length(m$get_cv_std()),    100L)
@@ -384,7 +384,7 @@ test_that("MLRidgeCV CV: index_1se >= index_min and cv_1se >= cv_min", {
   y <- X %*% rnorm(p) + rnorm(n) * 2.0
 
   m <- MLRidgeCV$new()
-  m$fit(X, y, num_folds = 5L, n_lambda = 100L, lambda_ratio = 1000.0, seed = 42L)
+  m$fit(X, y, n_folds = 5L, n_lambda = 100L, lambda_ratio = 1000.0, seed = 42L)
 
   idx_min <- m$index_min()   # 1-based
   idx_1se <- m$index_1se()   # 1-based
@@ -407,7 +407,7 @@ test_that("MLRidgeCV CV: mse at index_1se <= mse_min + sem_min (1SE rule)", {
   y <- X %*% rnorm(p) + rnorm(n) * 2.0
 
   m <- MLRidgeCV$new()
-  m$fit(X, y, num_folds = 5L, n_lambda = 100L, lambda_ratio = 1000.0, seed = 42L)
+  m$fit(X, y, n_folds = 5L, n_lambda = 100L, lambda_ratio = 1000.0, seed = 42L)
 
   mse     <- m$get_cv_errors()
   sem     <- m$get_cv_std()
@@ -430,18 +430,40 @@ test_that("MLRidgeCV rejects dimension mismatch between X and y", {
   expect_error(m$fit(X, y_bad))
 })
 
-test_that("MLRidgeCV rejects num_folds < 2", {
+test_that("MLRidgeCV rejects n_folds < 2", {
   X <- matrix(rnorm(100), 20, 5)
   y <- rnorm(20)
   m <- MLRidgeCV$new()
-  expect_error(m$fit(X, y, num_folds = 1L))
+  expect_error(m$fit(X, y, n_folds = 1L))
 })
 
-test_that("MLRidgeCV rejects num_folds > n", {
+test_that("MLRidgeCV rejects n_folds > n", {
   X <- matrix(rnorm(100), 20, 5)
   y <- rnorm(20)
   m <- MLRidgeCV$new()
-  expect_error(m$fit(X, y, num_folds = 25L))
+  expect_error(m$fit(X, y, n_folds = 25L))
+})
+
+test_that("MLRidgeCV reports the interpolation regime and grid-edge picks", {
+  set.seed(7)
+  # p < n_train in every fold: no interpolation, default grid of 100 points
+  X <- matrix(rnorm(150 * 20), 150, 20)
+  y <- X %*% rnorm(20) + rnorm(150)
+  m <- MLRidgeCV$new()
+  m$fit(X, y, n_folds = 5L, seed = 1L)
+  expect_length(m$get_lambdas(), 100L)
+  expect_false(m$interpolates())
+  expect_type(m$selection_at_grid_edge(), "logical")
+  # p >= n_train in every fold: the lambda -> 0 end interpolates
+  Xw <- matrix(rnorm(30 * 60), 30, 60)
+  yw <- Xw[, 1:3] %*% c(2, -1, 1) + rnorm(30)
+  mw <- MLRidgeCV$new()
+  mw$fit(Xw, yw, n_folds = 5L, seed = 1L)
+  expect_true(mw$interpolates())
+  # a two-point grid puts every pick on an edge
+  me <- MLRidgeCV$new()
+  me$fit(X, y, n_folds = 5L, n_lambda = 2L, seed = 1L)
+  expect_true(me$selection_at_grid_edge())
 })
 
 
@@ -861,9 +883,9 @@ test_that("MLRidgeCV fits zero-copy from a readonly mmap_matrix handle", {
   ro <- mem_matrix(f, rows = n, cols = p, mode = "readonly")
 
   cv_mm <- MLRidgeCV$new()
-  cv_mm$fit(ro, y, num_folds = 5, n_lambda = 20, seed = 7)
+  cv_mm$fit(ro, y, n_folds = 5, n_lambda = 20, seed = 7)
   cv_mem <- MLRidgeCV$new()
-  cv_mem$fit(X, y, num_folds = 5, n_lambda = 20, seed = 7)
+  cv_mem$fit(X, y, n_folds = 5, n_lambda = 20, seed = 7)
 
   expect_equal(cv_mm$cv_min(), cv_mem$cv_min())
   expect_equal(cv_mm$get_cv_errors(), cv_mem$get_cv_errors())
@@ -889,8 +911,8 @@ local({
   on.exit(unlink(f), add = TRUE)
 
   test_that("MLRidgeCV on a readonly mmap_matrix equals the in-memory fit", {
-    a <- MLRidgeCV$new(); a$fit(X, y, num_folds = 5, n_lambda = 30, seed = 1)
-    b <- MLRidgeCV$new(); b$fit(ro, y, num_folds = 5, n_lambda = 30, seed = 1)
+    a <- MLRidgeCV$new(); a$fit(X, y, n_folds = 5, n_lambda = 30, seed = 1)
+    b <- MLRidgeCV$new(); b$fit(ro, y, n_folds = 5, n_lambda = 30, seed = 1)
     expect_identical(b$get_cv_errors(), a$get_cv_errors())
     expect_identical(b$cv_1se(), a$cv_1se())
   })
@@ -984,15 +1006,15 @@ test_that("MLRidgeCV(low_memory = TRUE) agrees with the SVD route and reads a re
   n <- 60; p <- 300
   X <- matrix(rnorm(n * p), n, p)
   y <- X[, 1] * 2 + rnorm(n)
-  a <- MLRidgeCV$new(); a$fit(X, y, num_folds = 5, n_lambda = 40, seed = 4)
-  b <- MLRidgeCV$new(low_memory = TRUE); b$fit(X, y, num_folds = 5, n_lambda = 40, seed = 4)
+  a <- MLRidgeCV$new(); a$fit(X, y, n_folds = 5, n_lambda = 40, seed = 4)
+  b <- MLRidgeCV$new(low_memory = TRUE); b$fit(X, y, n_folds = 5, n_lambda = 40, seed = 4)
   expect_equal(b$get_lambdas(), a$get_lambdas(), tolerance = 1e-14)
   expect_equal(b$get_cv_errors(), a$get_cv_errors(), tolerance = 1e-7)
   expect_identical(b$index_min(), a$index_min())
   f <- tempfile(fileext = ".bin"); on.exit(unlink(f), add = TRUE)
   invisible(mem_matrix_from(X, f))
   ro <- mem_matrix(f, n, p, mode = "readonly")
-  c <- MLRidgeCV$new(low_memory = TRUE); c$fit(ro, y, num_folds = 5, n_lambda = 40, seed = 4)
+  c <- MLRidgeCV$new(low_memory = TRUE); c$fit(ro, y, n_folds = 5, n_lambda = 40, seed = 4)
   expect_identical(c$get_cv_errors(), b$get_cv_errors())
 })
 

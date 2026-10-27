@@ -78,7 +78,7 @@ geometric grid and reports the minimum and the one-standard-error rule.
 ridge <- MLRidge$new()
 round(ridge$solve(X, y, lambda = 1)[1:5], 3)
 cv <- MLRidgeCV$new()
-cv$fit(X, y, num_folds = 5, n_lambda = 50)
+cv$fit(X, y, n_folds = 5, n_lambda = 50)
 c(lambda_min = cv$cv_min(), lambda_1se = cv$cv_1se())
 ```
 
@@ -161,9 +161,8 @@ matrix, and `ml_cut_tree()` cuts it into a given number of clusters.
 set.seed(9)
 centers <- rep(c(-3, 0, 3), each = 20)
 Z <- centers + matrix(rnorm(60 * 4), 60, 4)
-invisible(capture.output(    # the backend logs its memory allocation
-  linkage <- ml_agglomerative_cluster(Z, method = ml_linkage_method$Ward,
-                                      metric = ml_distance_metric$Euclidean)))
+linkage <- ml_agglomerative_cluster(Z, method = ml_linkage_method$Ward,
+                                    metric = ml_distance_metric$Euclidean)
 dim(linkage)
 labels <- ml_cut_tree(linkage, num_orig_objs = 60, num_clusters = 3)
 table(labels, rep(1:3, each = 20))
@@ -173,9 +172,8 @@ To cluster variables instead of observations, cluster the transposed design with
 distance, which is what the grouped and the dependency-aware selectors do.
 
 ```{r hac-vars}
-invisible(capture.output(
-  link_vars <- ml_agglomerative_cluster(t(X), method = ml_linkage_method$Single,
-                                        metric = ml_distance_metric$Correlation)))
+link_vars <- ml_agglomerative_cluster(t(X), method = ml_linkage_method$Single,
+                                      metric = ml_distance_metric$Correlation)
 head(ml_cut_tree(link_vars, num_orig_objs = p, num_clusters = 5))
 ```
 

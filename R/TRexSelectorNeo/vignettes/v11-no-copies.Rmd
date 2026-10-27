@@ -128,9 +128,9 @@ of the sparse PCA selector keeps its peak memory under 0.3 times the size of `X`
 
 ```{r low-memory}
 cv_a <- MLRidgeCV$new()
-cv_a$fit(X, y, num_folds = 5, n_lambda = 30)
+cv_a$fit(X, y, n_folds = 5, n_lambda = 30)
 cv_b <- MLRidgeCV$new(low_memory = TRUE)
-cv_b$fit(X, y, num_folds = 5, n_lambda = 30)
+cv_b$fit(X, y, n_folds = 5, n_lambda = 30)
 all.equal(cv_a$get_cv_errors(), cv_b$get_cv_errors())
 ```
 

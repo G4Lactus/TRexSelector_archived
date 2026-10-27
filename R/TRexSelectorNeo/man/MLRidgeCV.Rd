@@ -11,8 +11,9 @@ set.seed(1)
 X <- matrix(rnorm(50 * 5), 50, 5)
 y <- X[, 1] * 2 + rnorm(50)
 cv <- MLRidgeCV$new()
-cv$fit(X, y, num_folds = 5)
+cv$fit(X, y, n_folds = 5)
 cv$cv_min()
+cv$selection_at_grid_edge()   # FALSE: the picks are interior grid points
 
 }
 \references{
@@ -49,6 +50,8 @@ Other ML methods:
     \item \href{#method-MLRidgeCV-get_lambdas}{\code{MLRidgeCV$get_lambdas()}}
     \item \href{#method-MLRidgeCV-get_cv_errors}{\code{MLRidgeCV$get_cv_errors()}}
     \item \href{#method-MLRidgeCV-get_cv_std}{\code{MLRidgeCV$get_cv_std()}}
+    \item \href{#method-MLRidgeCV-interpolates}{\code{MLRidgeCV$interpolates()}}
+    \item \href{#method-MLRidgeCV-selection_at_grid_edge}{\code{MLRidgeCV$selection_at_grid_edge()}}
     \item \href{#method-MLRidgeCV-clone}{\code{MLRidgeCV$clone()}}
   }
 }
@@ -88,7 +91,7 @@ O(n p), the route for p >> n.}
     \preformatted{MLRidgeCV$fit(
   X,
   y,
-  num_folds = 10,
+  n_folds = 10,
   n_lambda = 100,
   lambda_ratio = 1000,
   seed = 0
@@ -103,8 +106,8 @@ O(n p), the route for p >> n.}
 (bound zero-copy; \code{"readonly"} mode suffices since the fit does
 not modify \code{X}).}
       \item{\code{y}}{Response vector.}
-      \item{\code{num_folds}}{Number of folds (default 10).}
-      \item{\code{n_lambda}}{Number of lambdas in path (default 100).}
+      \item{\code{n_folds}}{Number of folds (default 10).}
+      \item{\code{n_lambda}}{Number of lambdas in the path (default 100).}
       \item{\code{lambda_ratio}}{Ratio of max to min lambda (default 1000).}
       \item{\code{seed}}{Random seed for CV splits (default 0).}
     }
@@ -217,6 +220,44 @@ not modify \code{X}).}
   }
   \subsection{Returns}{
     Value.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-MLRidgeCV-interpolates"></a>}}
+\if{latex}{\out{\hypertarget{method-MLRidgeCV-interpolates}{}}}
+\subsection{\code{MLRidgeCV$interpolates()}}{
+  Whether the smallest training fold has p >= n_train, so
+the lambda -> 0 end of the grid tends to the minimum-norm
+interpolator instead of an ordinary least-squares fit. The curve
+still has a genuine interior minimum in that regime; together with
+\code{selection_at_grid_edge()} it tells whether \code{cv_min()} is
+a real minimum or the grid running out.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{MLRidgeCV$interpolates()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Logical.
+  }
+}
+
+\if{html}{\out{<hr>}}
+\if{html}{\out{<a id="method-MLRidgeCV-selection_at_grid_edge"></a>}}
+\if{latex}{\out{\hypertarget{method-MLRidgeCV-selection_at_grid_edge}{}}}
+\subsection{\code{MLRidgeCV$selection_at_grid_edge()}}{
+  Whether \code{cv_min()} or \code{cv_1se()} landed on the
+first or the last grid point. The pick is then the grid boundary,
+not an optimum, and \code{lambda_ratio} or \code{n_lambda} need
+widening.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{MLRidgeCV$selection_at_grid_edge()}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Logical.
   }
 }
 

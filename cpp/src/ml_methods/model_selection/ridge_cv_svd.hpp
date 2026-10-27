@@ -103,7 +103,9 @@ public:
      * @param X            Predictor matrix (n x p).
      * @param y            Response vector (n).
      * @param n_folds      Number of CV folds (default 10).
-     * @param n_lambda     Number of lambdas on the geometric grid (default 1000).
+     * @param n_lambda     Number of lambdas on the geometric grid (default 100,
+     *                     the glmnet convention; the CV curve is smooth in
+     *                     log lambda, so a finer grid resolves nothing).
      * @param lambda_ratio Grid range factor: grid spans
      *                     `[lambda_max / lambda_ratio, lambda_max]` (default 1000.0).
      * @param seed         RNG seed for the fold-index permutation
@@ -117,7 +119,7 @@ public:
     void fit(Eigen::Ref<const Eigen::MatrixXd> X,
              Eigen::Ref<const Eigen::VectorXd> y,
              int n_folds           = 10,
-             Eigen::Index n_lambda = 1000,
+             Eigen::Index n_lambda = 100,
              double lambda_ratio   = 1000.0,
              unsigned int seed     = 0) {
 

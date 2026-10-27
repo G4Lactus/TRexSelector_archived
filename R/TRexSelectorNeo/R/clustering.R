@@ -89,6 +89,8 @@ ml_distance_metric <- list(
 #'               Default is Euclidean.
 #' @param use_mmap Whether to use memory mapping files for intermediate storage. Default is FALSE.
 #'                 Ignored when \code{data} is already an \code{mmap_matrix} (always \code{TRUE}).
+#' @param verbose Whether the backend prints its allocation line (the size of the distance matrix in
+#'                RAM or in the memory-mapped file). Default is FALSE.
 #'
 #' @return A numeric matrix representing the computed hierarchical linkage.
 #'
@@ -122,7 +124,8 @@ ml_distance_metric <- list(
 ml_agglomerative_cluster <- function(data,
                                   method = ml_linkage_method$Ward,
                                   metric = ml_distance_metric$Euclidean,
-                                  use_mmap = FALSE) {
+                                  use_mmap = FALSE,
+                                  verbose = FALSE) {
   is_mmap <- inherits(data, "mmap_matrix")
   if (!is_mmap && (!is.matrix(data) || !is.numeric(data))) {
     stop("Input 'data' must be a numeric matrix or mmap_matrix.")
@@ -164,9 +167,9 @@ ml_agglomerative_cluster <- function(data,
 
   # Delegate to Rcpp layer
   if (is_mmap) {
-    result <- rcpp_agglomerative_cluster_mmap(data, method, metric)
+    result <- rcpp_agglomerative_cluster_mmap(data, method, metric, as.logical(verbose))
   } else {
-    result <- rcpp_agglomerative_cluster(data, method, metric, use_mmap)
+    result <- rcpp_agglomerative_cluster(data, method, metric, use_mmap, as.logical(verbose))
   }
   # convert 0-based Cpp cluster IDs to 1-based R convention
   result[, 1:2] <- result[, 1:2] + 1L

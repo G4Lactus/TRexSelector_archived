@@ -10,12 +10,13 @@
 #'                      5=Median, 6=Centroid)
 #' @param metric_idx Distance metric index (0=Euclid, 1=Corr, 2=Manhattan, 3=CorrLSHF, 4=CorrLSHA)
 #' @param use_mmap Boolean flag for memory mapping
+#' @param verbose Print the backend's allocation line
 #'
 #' @return A linkage matrix
 #'
 #' @noRd
-rcpp_agglomerative_cluster <- function(data, method_idx, metric_idx, use_mmap = FALSE) {
-    .Call(`_TRexSelectorNeo_rcpp_agglomerative_cluster`, data, method_idx, metric_idx, use_mmap)
+rcpp_agglomerative_cluster <- function(data, method_idx, metric_idx, use_mmap = FALSE, verbose = FALSE) {
+    .Call(`_TRexSelectorNeo_rcpp_agglomerative_cluster`, data, method_idx, metric_idx, use_mmap, verbose)
 }
 
 #' @title Rcpp Agglomerative Clustering (memory-mapped input)
@@ -27,12 +28,13 @@ rcpp_agglomerative_cluster <- function(data, method_idx, metric_idx, use_mmap = 
 #' @param method_idx Linkage method index (0=Ward, 1=Average, 2=Complete, 3=Single, 4=WPGMA,
 #'                      5=Median, 6=Centroid)
 #' @param metric_idx Distance metric index (0=Euclid, 1=Corr, 2=Manhattan, 3=CorrLSHF, 4=CorrLSHA)
+#' @param verbose Print the backend's allocation line
 #'
 #' @return A linkage matrix
 #'
 #' @noRd
-rcpp_agglomerative_cluster_mmap <- function(data_ptr, method_idx, metric_idx) {
-    .Call(`_TRexSelectorNeo_rcpp_agglomerative_cluster_mmap`, data_ptr, method_idx, metric_idx)
+rcpp_agglomerative_cluster_mmap <- function(data_ptr, method_idx, metric_idx, verbose = FALSE) {
+    .Call(`_TRexSelectorNeo_rcpp_agglomerative_cluster_mmap`, data_ptr, method_idx, metric_idx, verbose)
 }
 
 #' @title Rcpp Cut Tree
@@ -477,6 +479,24 @@ ridge_cv_get_cv_errors <- function(ptr) {
 #' @noRd
 ridge_cv_get_cv_std <- function(ptr) {
     .Call(`_TRexSelectorNeo_ridge_cv_get_cv_std`, ptr)
+}
+
+#' @title Interpolation regime of the smallest training fold
+#'
+#' @param ptr XPtr to ridge_cv
+#' @return TRUE when p >= n_train, so the lambda -> 0 end of the grid interpolates
+#' @noRd
+ridge_cv_interpolates <- function(ptr) {
+    .Call(`_TRexSelectorNeo_ridge_cv_interpolates`, ptr)
+}
+
+#' @title Selection at a grid edge
+#'
+#' @param ptr XPtr to ridge_cv
+#' @return TRUE when cv_min() or cv_1se() landed on the first or last grid point
+#' @noRd
+ridge_cv_selection_at_grid_edge <- function(ptr) {
+    .Call(`_TRexSelectorNeo_ridge_cv_selection_at_grid_edge`, ptr)
 }
 
 #' @title Create Elastic Net path

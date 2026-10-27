@@ -415,3 +415,9 @@ test_that("ml_cut_tree rejects malformed linkage matrices", {
   bad[2, 1] <- lnk[1, 1]
   expect_error(ml_cut_tree(bad, n_fix, 2L), "already consumed")
 })
+
+test_that("ml_agglomerative_cluster is silent by default and reports its backend on request", {
+  expect_silent(ml_agglomerative_cluster(data_fix, ml_linkage_method$Ward))
+  expect_output(ml_agglomerative_cluster(data_fix, ml_linkage_method$Ward, verbose = TRUE),
+                "allocated")
+})

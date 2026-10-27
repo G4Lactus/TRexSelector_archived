@@ -31,7 +31,9 @@ OpenMP exists.*
 *The BLAS/LAPACK backend can be disabled at configure time with `-DTREX_USE_BLAS_LAPACK=OFF`.*
 
 The library builds on the Eigen linear algebra library: G. Guennebaud, B. Jacob et al., Eigen v3,
-<http://eigen.tuxfamily.org>, 2010.
+<http://eigen.tuxfamily.org>, 2010. It also relies on cereal for serialization, on Boost.Interprocess for
+memory mapping and on OpenMP for the threads, with an optional BLAS/LAPACK backend. The R package binds the
+library through Rcpp and RcppEigen, the Python package through pybind11.
 
 ---
 

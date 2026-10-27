@@ -331,7 +331,7 @@ inline void bind_ml_methods(py::module& m) {
                 return self;
             },
             py::arg("X"), py::arg("y"), py::arg("n_folds") = 10,
-            py::arg("n_lambda") = 1000, py::arg("lambda_ratio") = 1000.0,
+            py::arg("n_lambda") = 100, py::arg("lambda_ratio") = 1000.0,
             py::arg("seed") = 0, py::return_value_policy::reference_internal,
             "Fit K-fold CV over a log-spaced ridge grid.")
         .def("cv_min", &ridge_cv_svd::cv_min, "lambda minimizing mean CV MSE.")

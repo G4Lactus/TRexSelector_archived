@@ -92,8 +92,31 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   are gone and the path no longer depends on the build. Recorded step counts
   change; coefficients and supports below saturation do not. See the 2026-10-27
   entry.
-
-### 2026-10-27
+- R: `MLRidgeCV$fit(num_folds = )` is `n_folds`. C++ `ridge_cv_svd::fit()` and
+  Python `RidgeCV.fit()` default to `n_lambda = 100` instead of 1,000 (R's
+  default, the glmnet convention). See the 2026-10-27 entry.
+- `MLRidgeCV$fit()` takes `n_folds` (was `num_folds`; MLElasticNetCV, Python and
+  C++ already used that name). The ridge CV grid default is 100 points on every
+  surface: C++ `ridge_cv_svd::fit()` and Python `RidgeCV.fit()` come down from
+  1,000 to R's 100, the glmnet convention (decided 2026-10-27). The grid stays
+  geometric over three decades; the CV curve is smooth in log lambda, so 100
+  points locate the minimum and the one-standard-error point within the fold
+  noise, while every further point costs a shrinkage pass and a held-out
+  prediction per fold. The two queries of the C++ class reach R: `interpolates()` (the smallest
+  training fold has p >= n_train, so the lambda -> 0 end of the grid
+  interpolates) and `selection_at_grid_edge()` (a pick on the first or last
+  grid point). Breaking for callers of `num_folds` (see the release block).
+- `ml_agglomerative_cluster()` and `agglomerative_cluster()` gain
+  `verbose = FALSE` / `verbose=False`: the backend's allocation line (the size
+  of the distance matrix in RAM or in the memory-mapped file) prints on request
+  only. The R and Python bindings used to call the dispatcher with its C++
+  default of true, so every call wrote to the console and vignette 9 wrapped
+  its calls in capture.output(). The C++ default stays true.
+- The three READMEs acknowledge cereal, Boost.Interprocess, OpenMP and the
+  binding layers (Rcpp and RcppEigen, pybind11) next to Eigen.
+- Vignette page 2 carries the SKIPL caveat: under a large fixed L the FDP
+  estimate is anti-conservative (an FDR of 0.137 at a target of 0.1 in the
+  Examples demo 04).
 
 #### T-Stagewise: a variable removed within a step is no candidate for that step's move
 

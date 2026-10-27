@@ -677,6 +677,30 @@ Eigen::VectorXd ridge_cv_get_cv_std(
     return ptr->cv_sem();
 }
 
+//' @title Interpolation regime of the smallest training fold
+//'
+//' @param ptr XPtr to ridge_cv
+//' @return TRUE when p >= n_train, so the lambda -> 0 end of the grid interpolates
+//' @noRd
+// [[Rcpp::export]]
+bool ridge_cv_interpolates(
+    XPtr<ridge_cv> ptr // NOLINT(performance-unnecessary-value-param)
+) {
+    return ptr->interpolates();
+}
+
+//' @title Selection at a grid edge
+//'
+//' @param ptr XPtr to ridge_cv
+//' @return TRUE when cv_min() or cv_1se() landed on the first or last grid point
+//' @noRd
+// [[Rcpp::export]]
+bool ridge_cv_selection_at_grid_edge(
+    XPtr<ridge_cv> ptr // NOLINT(performance-unnecessary-value-param)
+) {
+    return ptr->selection_at_grid_edge();
+}
+
 // =================================================================================
 // Elastic Net — coordinate-descent path (enet_gaussian)
 // =================================================================================
