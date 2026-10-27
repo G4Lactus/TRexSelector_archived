@@ -80,7 +80,7 @@ struct TRexVDOptions {
     double     rho       = 1.0;      // AFS shrinkage
 
     // Threads of the K-loop: 1 (default) runs the experiments in sequence,
-    // 0 resolves to every core, the count is capped at K; negatives throw.
+    // the count is capped at K; values below 1 throw.
     int n_threads       = 1;
 };
 

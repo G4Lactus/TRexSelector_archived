@@ -354,11 +354,11 @@ inline void bind_trex_core(py::module& m_tsm) {
                        "PERMUTATION, PERMUTATION_SEEDED) always run their experiments in sequence.")
         .def_readwrite("use_memory_mapping",  &TRexControlParameter::use_memory_mapping,  "Use out-of-core memory-mapped dummy matrix.")
         .def_readwrite("max_outer_threads",   &TRexControlParameter::max_outer_threads,
-                       "Threads of the parallel K-loop (default 1). 0 resolves to every core, the count is "
-                       "capped at K. Ignored while parallel_rnd_experiments is False.")
+                       "Threads of the parallel K-loop (default 1; a whole number of at least 1), capped at "
+                       "K. Ignored while parallel_rnd_experiments is False.")
         .def_readwrite("max_inner_threads",   &TRexControlParameter::max_inner_threads,
-                       "Thread budget of the solvers' own passes over the design (default 1, serial). 0 "
-                       "resolves to every core. Live when the experiments run in sequence; inside a parallel "
+                       "Thread budget of the solvers' own passes over the design (default 1, serial; a whole "
+                       "number of at least 1). Live when the experiments run in sequence; inside a parallel "
                        "run the solvers stay serial. A pass splits only above about a million entries.")
         .def_readwrite("solver_type",         &TRexControlParameter::solver_type,         "Solver algorithm to use for T-Rex.")
         .def_readwrite("solver_params",       &TRexControlParameter::solver_params,       "Hyperparameters for the selected solver.")

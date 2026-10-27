@@ -84,6 +84,19 @@ construct → `select()` → inspect pattern.
 
 ---
 
+## Threads
+
+The package runs serially by default: `TRexControlParameter` has `parallel_rnd_experiments = False`, `max_outer_threads = 1` and `max_inner_threads = 1`, and `SolverOptions` has `n_threads = 1`. The random experiments of a selector run one after the other, every T-solver on one thread. Parallel work is opt-in, and one layer owns the cores at a time.
+
+- `parallel_rnd_experiments = True` with `max_outer_threads = m` runs the K random experiments on `m` threads, at most K. Inside the parallel experiments every solver runs serially.
+- `max_inner_threads = m` gives the solvers inside the experiments a budget of `m` threads for their passes over the design. The budget is live when the experiments run in sequence, which the lean L-loop strategies (`SEEDED`, `PERMUTATION`, `PERMUTATION_SEEDED`) always do. A pass is split only when it touches at least a million entries of the design, because the cost of forming a team of threads exceeds the gain below that. Two to four threads carry the gain, since the passes are memory-bandwidth bound.
+- `SolverOptions(n_threads=m)` is the same budget for a T-solver used on its own, and `setNumThreads()` changes it on a live solver.
+- `trex_selector_neo.utils.set_num_threads()` sets the process-wide OpenMP count that the one-shot kernels use (the scalers, the dummy generation, the clustering), `get_max_threads()` reads it. The selectors and the solvers do not read it.
+
+Every thread option is a whole number of at least 1; other values raise `ValueError`. A seeded run selects the same variables whatever the thread settings. Without OpenMP every setting is a no-op and `get_max_threads()` returns 1 (see Installation).
+
+---
+
 ## Links
 
 T-Rex paper: <https://doi.org/10.1016/j.sigpro.2025.109894>

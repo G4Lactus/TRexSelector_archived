@@ -8,7 +8,7 @@
  *
  * @details Every selector runs a seeded problem under six thread settings:
  *  experiments in sequence with a solver budget of 1, 2 and 4, experiments in
- *  parallel on 2 and 4 threads, and both options at 0 (every core). The
+ *  parallel on 2 and 4 threads, and both options at 4 at once. The
  *  selected support, the stopping time, the voting threshold, the Phi and
  *  FDP-hat matrices and the R matrix of every setting equal those of the
  *  sequential run with one thread. Experiment k derives its own seed, every
@@ -69,7 +69,7 @@ constexpr ThreadSetting kSettings[] = {
     {false, 1, 4, "sequential, solver budget 4"},
     {true,  2, 1, "parallel experiments on 2 threads"},
     {true,  4, 1, "parallel experiments on 4 threads"},
-    {true,  0, 0, "every core for both options"},
+    {true,  4, 4, "parallel experiments on 4 threads with a solver budget of 4"},
 };
 
 void applySetting(TRexControlParameter& ctrl, const ThreadSetting& s) {

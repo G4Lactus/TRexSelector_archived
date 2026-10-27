@@ -83,10 +83,11 @@ test_that("a seeded selector selects the same variables whatever the thread opti
   serial   <- run(trex_control(K = 4))
   parallel <- run(trex_control(K = 4, parallel_rnd_experiments = TRUE, max_outer_threads = 2))
   budget   <- run(trex_control(K = 4, max_inner_threads = 2))
-  every    <- run(trex_control(K = 4, max_outer_threads = 0, max_inner_threads = 0))
+  both     <- run(trex_control(K = 4, parallel_rnd_experiments = TRUE, max_outer_threads = 2,
+                               max_inner_threads = 2))
   expect_identical(parallel, serial)
   expect_identical(budget, serial)
-  expect_identical(every, serial)
+  expect_identical(both, serial)
 
   # use_openmp was renamed parallel_rnd_experiments
   expect_error(trex_control(use_openmp = TRUE), "unused argument")
@@ -135,7 +136,7 @@ test_that("TRexSelector correctly guards against edge-case hyperparameter inputs
     "tloop_max_stagnant_steps"
   )
 
-  # The thread options reject negatives; 0 means every core and is accepted
+  # The thread options are whole numbers of at least 1 (there is no "every core" value)
   expect_error(
     TRexSelector$new(X, y, verbose = FALSE, control = trex_control(max_outer_threads = -1)),
     "max_outer_threads"
@@ -144,9 +145,11 @@ test_that("TRexSelector correctly guards against edge-case hyperparameter inputs
     TRexSelector$new(X, y, verbose = FALSE, control = trex_control(max_inner_threads = -1)),
     "max_inner_threads"
   )
-  ctrl_zero <- trex_control(max_outer_threads = 0, max_inner_threads = 0)
-  ctrl_zero$max_outer_threads <- -3   # bypass the R check: the backend rejects it too
-  expect_error(TRexSelector$new(X, y, verbose = FALSE, control = ctrl_zero), "max_outer_threads")
+  expect_error(trex_control(max_outer_threads = 0), "max_outer_threads")
+  expect_error(trex_control(max_inner_threads = 0), "max_inner_threads")
+  ctrl_bad <- trex_control()
+  ctrl_bad$max_outer_threads <- 0   # bypass the R check: the backend rejects it too
+  expect_error(TRexSelector$new(X, y, verbose = FALSE, control = ctrl_bad), "max_outer_threads")
 
   # lambda2 (ENET constraint) and rho_afs (AFS constraint) bounds
   expect_error(

@@ -170,8 +170,8 @@ TEST_F(TSolverInitTest, DefaultTieSeedIsReproducible) {
 
 
 /** @brief The thread budget of a solver's own regions defaults to 1 (serial),
- *         0 resolves to every core, a negative value throws, and the setter
- *         follows the same rules. */
+ *         a value below 1 throws (there is no "every core" value), and the
+ *         setter follows the same rules. */
 TEST_F(TSolverInitTest, ThreadBudgetDefaultsToSerial) {
     Eigen::Map<Eigen::MatrixXd> X_map(X.data(), X.rows(), X.cols());
     Eigen::Map<Eigen::MatrixXd> D_map(D.data(), D.rows(), D.cols());
@@ -185,11 +185,9 @@ TEST_F(TSolverInitTest, ThreadBudgetDefaultsToSerial) {
     TLARS_Solver serial(X_map, D_map, y_map, reader);
     EXPECT_EQ(serial.getNumThreads(), 1);
 
-    trex::tsolvers::ad::SolverOptions all_cores = reader;
-    all_cores.n_threads = 0;
-    TLARS_Solver every_core(X_map, D_map, y_map, all_cores);
-    EXPECT_GE(every_core.getNumThreads(), 1);
-    EXPECT_EQ(every_core.getNumThreads(), std::max(1, omp_get_num_procs()));
+    trex::tsolvers::ad::SolverOptions zero = reader;
+    zero.n_threads = 0;   // no "every core" value: below 1 throws
+    EXPECT_THROW(TLARS_Solver(X_map, D_map, y_map, zero), std::invalid_argument);
 
     trex::tsolvers::ad::SolverOptions negative = reader;
     negative.n_threads = -1;

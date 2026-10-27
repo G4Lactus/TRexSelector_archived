@@ -230,8 +230,8 @@ def test_precentered_counts_intercept_like_intercept():
 
 
 def test_n_threads_option_and_setters():
-    """n_threads is the solver's own thread budget (default 1, 0 every core); the path
-    is bitwise independent of it, and negatives are rejected."""
+    """n_threads is the solver's own thread budget (default 1, at least 1); the path
+    is bitwise independent of it, and values below 1 are rejected."""
     from trex_selector_neo.tsolvers.ad.lars_based import TLARS_Solver
 
     rng = np.random.default_rng(5)
@@ -253,9 +253,13 @@ def test_n_threads_option_and_setters():
     assert a4 == a1
     assert np.array_equal(b4, b1)
 
-    s = TLARS_Solver(X.copy(order="F"), D.copy(order="F"), y.copy(), SolverOptions(n_threads=0))
-    assert s.getNumThreads() >= 1
+    with pytest.raises(ValueError):
+        TLARS_Solver(X.copy(order="F"), D.copy(order="F"), y.copy(), SolverOptions(n_threads=0))
+    s = TLARS_Solver(X.copy(order="F"), D.copy(order="F"), y.copy(), SolverOptions(n_threads=3))
+    assert s.getNumThreads() == 3
     s.setNumThreads(2)
     assert s.getNumThreads() == 2
     with pytest.raises(ValueError):
         s.setNumThreads(-1)
+    with pytest.raises(ValueError):
+        s.setNumThreads(0)

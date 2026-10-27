@@ -68,12 +68,12 @@ always run their experiments in sequence. Was \code{use_openmp}.}
 
 \item{use_memory_mapping}{Use out-of-core memory mapping (default: FALSE).}
 
-\item{max_outer_threads}{Threads of the parallel K-loop (default: 1).
-\code{0} resolves to every core, the count is capped at \code{K}.
-Ignored while \code{parallel_rnd_experiments} is \code{FALSE}.}
+\item{max_outer_threads}{Threads of the parallel K-loop (default: 1; a
+whole number of at least 1), capped at \code{K}. Ignored while
+\code{parallel_rnd_experiments} is \code{FALSE}.}
 
 \item{max_inner_threads}{Thread budget of the solvers' own passes over
-the design (default: 1, serial). \code{0} resolves to every core. Live
+the design (default: 1, serial; a whole number of at least 1). Live
 when the experiments run in sequence; inside a parallel run the
 solvers stay serial. A pass splits only above about a million entries
 of the design, so small problems run serially whatever the budget.}

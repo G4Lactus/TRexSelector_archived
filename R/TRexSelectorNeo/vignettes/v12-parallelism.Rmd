@@ -62,7 +62,7 @@ parallel experiments the solvers stay serial. A T-solver used on its own takes t
 
 `trex_control(parallel_rnd_experiments = TRUE, max_outer_threads = m)` runs the random experiments on
 `m` threads (at most $K$). Inside the parallel experiments every solver runs serially, so the number of
-threads in use is `max_outer_threads` and nothing more. For both options the value 0 means every core.
+threads in use is `max_outer_threads` and nothing more. Both options are whole numbers of at least 1.
 The lean L-loop strategies (`"SEEDED"`, `"PERMUTATION"`, `"PERMUTATION_SEEDED"`) run their experiments
 in sequence in every case and give the cores to the solvers.
 

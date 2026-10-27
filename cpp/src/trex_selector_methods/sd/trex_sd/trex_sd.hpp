@@ -105,10 +105,10 @@ struct TRexSDOptions {
     CalibMode    calib  = CalibMode::CalibrateBoth;
 
     // Threads of the K-loop: 1 (default) runs the experiments in sequence,
-    // 0 resolves to every core, the count is capped at K; negatives throw.
+    // the count is capped at K; values below 1 throw.
     int n_threads = 1;
     // Budget of the solvers' own regions (the step-length search): 1
-    // (default) serial, 0 every core. Serial inside a parallel K-loop.
+    // (default) serial, at least 1. Serial inside a parallel K-loop.
     int n_inner_threads = 1;
 };
 

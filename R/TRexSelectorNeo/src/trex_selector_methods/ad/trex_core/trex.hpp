@@ -198,32 +198,29 @@ struct TRexControlParameter {
      *  experiments in sequence. */
     bool parallel_rnd_experiments = false;
 
-    /** @brief Threads of the parallel K-loop (default: 1). 0 resolves to
-     *  every core at construction, the count is capped at K. Ignored while
-     *  parallel_rnd_experiments is false. */
+    /** @brief Threads of the parallel K-loop (default: 1, at least 1); the
+     *  count is capped at K. Ignored while parallel_rnd_experiments is
+     *  false. */
     int max_outer_threads = 1;
 
     /** @brief Thread budget of the solvers' own regions, passed as
-     *  SolverOptions::n_threads (default: 1, serial). 0 resolves to every
-     *  core at construction. Live when the experiments run in sequence;
-     *  inside a parallel K-loop the solvers stay serial whatever the budget
-     *  says. */
+     *  SolverOptions::n_threads (default: 1, serial; at least 1). Live when
+     *  the experiments run in sequence; inside a parallel K-loop the solvers
+     *  stay serial whatever the budget says. */
     int max_inner_threads = 1;
 
-    /** @brief Resolve the two thread options: a negative value throws, 0
-     *  becomes the core count, the outer count is capped at K. The selector
-     *  constructor calls it on its copy of the control. */
+    /** @brief Validate the two thread options (a value below 1 throws) and
+     *  cap the outer count at K. The selector constructor calls it on its
+     *  copy of the control. */
     void resolveThreadOptions() {
-        auto resolve = [](int& value, const char* name) {
-            if (value < 0) {
+        auto check = [](int value, const char* name) {
+            if (value < 1) {
                 throw std::invalid_argument(
-                    std::string(name) + " must be >= 0 (0 = every core). Got: "
-                    + std::to_string(value));
+                    std::string(name) + " must be >= 1. Got: " + std::to_string(value));
             }
-            if (value == 0) { value = std::max(1, omp_get_num_procs()); }
         };
-        resolve(max_outer_threads, "max_outer_threads");
-        resolve(max_inner_threads, "max_inner_threads");
+        check(max_outer_threads, "max_outer_threads");
+        check(max_inner_threads, "max_inner_threads");
         if (K > 0) {
             max_outer_threads = std::min(max_outer_threads, static_cast<int>(K));
         }

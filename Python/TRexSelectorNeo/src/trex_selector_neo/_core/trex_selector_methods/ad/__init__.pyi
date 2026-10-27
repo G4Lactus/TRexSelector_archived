@@ -1576,7 +1576,7 @@ class TRexControlParameter:
     @property
     def max_inner_threads(self) -> int:
         """
-        Thread budget of the solvers' own passes over the design (default 1, serial). 0 resolves to every core. Live when the experiments run in sequence; inside a parallel run the solvers stay serial. A pass splits only above about a million entries.
+        Thread budget of the solvers' own passes over the design (default 1, serial; a whole number of at least 1). Live when the experiments run in sequence; inside a parallel run the solvers stay serial. A pass splits only above about a million entries.
         """
     @max_inner_threads.setter
     def max_inner_threads(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:
@@ -1584,7 +1584,7 @@ class TRexControlParameter:
     @property
     def max_outer_threads(self) -> int:
         """
-        Threads of the parallel K-loop (default 1). 0 resolves to every core, the count is capped at K. Ignored while parallel_rnd_experiments is False.
+        Threads of the parallel K-loop (default 1; a whole number of at least 1), capped at K. Ignored while parallel_rnd_experiments is False.
         """
     @max_outer_threads.setter
     def max_outer_threads(self, arg0: typing.SupportsInt | typing.SupportsIndex) -> None:

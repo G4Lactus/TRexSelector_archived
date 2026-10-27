@@ -184,14 +184,13 @@ public:
     // ==========================================================================
 
     /** @brief Set the budget of the solver's own OpenMP regions: 1 serial
-     *  (the default), 0 every core, negatives throw. */
+     *  (the default), at least 1; a value below 1 throws. */
     void setNumThreads(int n_threads) {
-        if (n_threads < 0) {
+        if (n_threads < 1) {
             throw std::invalid_argument(
-                "SDTSolver_Base: n_threads must be >= 0 (0 = every core). Got: "
-                + std::to_string(n_threads));
+                "SDTSolver_Base: n_threads must be >= 1. Got: " + std::to_string(n_threads));
         }
-        n_threads_ = n_threads == 0 ? std::max(1, omp_get_num_procs()) : n_threads;
+        n_threads_ = n_threads;
     }
 
     /** @brief The resolved thread budget (>= 1). */

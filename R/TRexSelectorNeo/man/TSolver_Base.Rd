@@ -606,7 +606,7 @@ dummies alike).
 \if{latex}{\out{\hypertarget{method-TSolver_Base-set_num_threads}{}}}
 \subsection{\code{TSolver_Base$set_num_threads()}}{
   Set the thread budget of the solver's own passes over the
-design (\code{tsolver_options(n_threads = )}): 1 serial, 0 every core.
+design (\code{tsolver_options(n_threads = )}): 1 serial, at least 1.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
     \preformatted{TSolver_Base$set_num_threads(n_threads)}

@@ -98,12 +98,11 @@ TSolver_Base::TSolver_Base(
 // ============================================================================
 
 int TSolver_Base::resolveThreadBudget(int n_threads) const {
-    if (n_threads < 0) {
+    if (n_threads < 1) {
         throw std::invalid_argument(
-            concatMsg("TSolver_Base: n_threads must be >= 0 (0 = every core). Got: ",
-                      n_threads));
+            concatMsg("TSolver_Base: n_threads must be >= 1. Got: ", n_threads));
     }
-    return n_threads == 0 ? std::max(1, omp_get_num_procs()) : n_threads;
+    return n_threads;
 }
 
 

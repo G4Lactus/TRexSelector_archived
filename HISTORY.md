@@ -67,21 +67,41 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   down by one, and TIKOMP checkpoints are unreadable. See the 2026-10-26
   entry.
 - A T-solver used directly runs its OpenMP regions serially by default
-  (`SolverOptions::n_threads = 1`, 0 = every core); before, the regions took
-  every core OpenMP offered. `EigenSingleThreadGuard` in `tsolver_base.hpp` is
-  `EigenThreadBudgetGuard(n_threads)`. See the 2026-10-26 entry.
+  (`SolverOptions::n_threads = 1`, a whole number of at least 1); before, the
+  regions took every core OpenMP offered. `EigenSingleThreadGuard` in
+  `tsolver_base.hpp` is `EigenThreadBudgetGuard(n_threads)`. See the
+  2026-10-26 entry.
 - The selectors run serially by default: the random experiments in sequence
   and every solver on one thread. `TRexControlParameter::max_outer_threads`
-  and `max_inner_threads` are honoured as set (defaults 1 and 1, 0 = every
-  core, negatives throw) where `autoConfigResources()` used to overwrite them
-  with the core count; that method is gone, and so is the `EigenThreadScope`
-  class of the experiment runner. In R, `trex_control(use_openmp = )` is
+  and `max_inner_threads` are honoured as set (defaults 1 and 1, values below
+  1 throw) where `autoConfigResources()` used to overwrite them with the core
+  count; that method is gone, and so is the `EigenThreadScope` class of the
+  experiment runner. In R, `trex_control(use_openmp = )` is
   `parallel_rnd_experiments` (the C++ and Python name), and the two thread
   options now reach the backend. `TRexSDOptions::n_threads` and
-  `TRexVDOptions::n_threads` default to 1 instead of "auto" (0 keeps that
-  meaning as every core). See the 2026-10-27 entry.
+  `TRexVDOptions::n_threads` default to 1 instead of "auto" (0 is rejected).
+  There is no "every core" value: whoever wants every core reads the count
+  and passes it. See the 2026-10-27 entries.
 
 ### 2026-10-27
+
+#### READMEs describe the threading model; the every-core value is gone (WP15 step 5)
+
+- The C++, R and Python READMEs gain a Threads section: the serial defaults, the
+  two selector options and the solver budget, the process-wide count of the
+  one-shot kernels, determinism, builds without OpenMP.
+- The value 0 ("every core") of `max_outer_threads`, `max_inner_threads`,
+  `SolverOptions::n_threads` and the SD / VD `n_threads` is removed: every thread
+  option is a whole number of at least 1, other values throw, and R and Python
+  validate the same way. One keyword that hands the whole machine to a single
+  run invites oversubscription next to a caller's own parallel loop or other
+  work. A user who wants every core reads the count (`trex_get_max_threads()`,
+  `trex_selector_neo.utils.get_max_threads()`, `omp_get_num_procs()`) and
+  passes it. The entries of steps 1, 2 and 4 below describe the value as it
+  was.
+- The work threshold of a million entries per pass is the shipped value, and
+  the options carry no caps (decided 2026-10-27). Tests, help pages,
+  docstrings, stubs and the two vignettes follow.
 
 #### R and Python: the solvers' thread budget is bound (WP15 step 4)
 

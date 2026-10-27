@@ -150,6 +150,39 @@ All selector variants (`TRexSelector`, `TRexDASelector`,
 `TRexBiobankScreeningSelector`, `TRexSPCASelector`) follow the same
 construct → `$select()` → inspect pattern.
 
+## Threads
+
+The package runs serially by default: `trex_control()` has
+`parallel_rnd_experiments = FALSE`, `max_outer_threads = 1` and
+`max_inner_threads = 1`, and `tsolver_options()` has `n_threads = 1`. The
+random experiments of a selector run one after the other, every T-solver
+on one thread. Parallel work is opt-in, and one layer owns the cores at a
+time.
+
+- `trex_control(parallel_rnd_experiments = TRUE, max_outer_threads = m)`
+  runs the K random experiments on `m` threads, at most K. Inside the
+  parallel experiments every solver runs serially.
+- `trex_control(max_inner_threads = m)` gives the solvers inside the
+  experiments a budget of `m` threads for their passes over the design.
+  The budget is live when the experiments run in sequence, which the lean
+  L-loop strategies (`"SEEDED"`, `"PERMUTATION"`, `"PERMUTATION_SEEDED"`)
+  always do. A pass is split only when it touches at least a million
+  entries of the design, because the cost of forming a team of threads
+  exceeds the gain below that. Two to four threads carry the gain, since
+  the passes are memory-bandwidth bound.
+- `tsolver_options(n_threads = m)` is the same budget for a T-solver used
+  on its own, and `$set_num_threads()` changes it on a live solver.
+- `trex_set_num_threads()` sets the process-wide OpenMP count that the
+  one-shot kernels use (the scalers, the dummy generation, the
+  clustering), `trex_get_max_threads()` reads it. The selectors and the
+  solvers do not read it.
+
+Every thread option is a whole number of at least 1; other values are
+errors. A seeded run selects the same variables whatever the thread
+settings. Without OpenMP every setting is a no-op and
+`trex_get_max_threads()` returns 1 (see Installation). The parallelism
+vignette has the details.
+
 ## Documentation
 
 The package has twelve vignettes in [`vignettes/`](vignettes/) (built on

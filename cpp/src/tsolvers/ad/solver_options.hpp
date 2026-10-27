@@ -101,7 +101,7 @@ struct SolverOptions {
     /** @brief Thread budget of the solver's own OpenMP regions, the passes
      *  over the design (correlation refreshes, the step-length search, the
      *  T-OLS downdate, the standardization and its restore). 1 (default):
-     *  serial. 0: every core. A region runs in parallel only when the budget
+     *  serial; at least 1. A region runs in parallel only when the budget
      *  is above 1, the work of the pass exceeds
      *  TSolver_Base::kParallelWorkThreshold entries and the solver is not
      *  inside a parallel region of the caller. Not serialized: a loaded

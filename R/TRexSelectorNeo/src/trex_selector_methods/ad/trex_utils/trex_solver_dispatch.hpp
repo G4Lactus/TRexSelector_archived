@@ -268,7 +268,7 @@ struct SolverConfig {
     long long tie_seed = -1;
 
     /** @brief Thread budget of the solver's own OpenMP regions
-     *  (SolverOptions::n_threads): 1 serial, 0 every core. Applied at
+     *  (SolverOptions::n_threads): 1 serial, at least 1. Applied at
      *  construction and re-applied to warm-started and deserialized solvers,
      *  since the budget is not serialized. Inside a parallel K-loop the
      *  solver keeps its regions serial whatever the budget says. */

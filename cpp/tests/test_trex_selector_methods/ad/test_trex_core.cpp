@@ -223,9 +223,10 @@ TEST(TRexCoreTest, Param_Concurrency) {
 }
 
 
-/** @brief The thread options resolve at construction: 0 is every core, a
- *  negative value throws, the outer count is capped at K, and the defaults
- *  are one thread each (no parallelism unless asked for). */
+/** @brief The thread options are validated at construction: a value below
+ *  1 throws (0 included: there is no "every core" value), the outer count is
+ *  capped at K, and the defaults are one thread each (no parallelism unless
+ *  asked for). */
 TEST(TRexCoreTest, ThreadOptionsResolveAtConstruction) {
     TRexControlParameter ctrl;
     ctrl.K = 4;
@@ -233,14 +234,14 @@ TEST(TRexCoreTest, ThreadOptionsResolveAtConstruction) {
     EXPECT_EQ(ctrl.max_outer_threads, 1);
     EXPECT_EQ(ctrl.max_inner_threads, 1);
 
-    TRexControlParameter every_core;
-    every_core.K = 4;
-    every_core.max_outer_threads = 0;
-    every_core.max_inner_threads = 0;
-    every_core.resolveThreadOptions();
-    const int cores = std::max(1, omp_get_num_procs());
-    EXPECT_EQ(every_core.max_outer_threads, std::min(cores, 4));
-    EXPECT_EQ(every_core.max_inner_threads, cores);
+    TRexControlParameter zero_outer;
+    zero_outer.K = 4;
+    zero_outer.max_outer_threads = 0;
+    EXPECT_THROW(zero_outer.resolveThreadOptions(), std::invalid_argument);
+    TRexControlParameter zero_inner;
+    zero_inner.K = 4;
+    zero_inner.max_inner_threads = 0;
+    EXPECT_THROW(zero_inner.resolveThreadOptions(), std::invalid_argument);
 
     TRexControlParameter capped;
     capped.K = 2;

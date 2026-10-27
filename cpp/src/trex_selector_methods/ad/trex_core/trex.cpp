@@ -107,7 +107,7 @@ TRexSelector::TRexSelector(
     tFDR_(tFDR),
     trex_ctrl_([&]() {
         auto ctrl = trex_control;
-        // 0 = every core, negatives throw, the outer count is capped at K
+        // values below 1 throw, the outer count is capped at K
         ctrl.resolveThreadOptions();
         // Resolve the AUTO stagnation default by solver family: greedy
         // solvers need the noise-trap guard; equiangular LARS-path solvers

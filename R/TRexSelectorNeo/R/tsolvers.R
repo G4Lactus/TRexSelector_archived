@@ -55,7 +55,7 @@ NULL
 #'   negative value seeds from the system entropy source (nondeterministic).
 #' @param n_threads Thread budget of the solver's own passes over the design
 #'   (the correlation refreshes, the step-length search, the standardization).
-#'   Default 1 (serial); \code{0} resolves to every core. A pass splits only
+#'   Default 1 (serial); a whole number of at least 1. A pass splits only
 #'   above about a million entries of the design, and never inside a parallel
 #'   region of the caller. The T-Rex selectors set it from
 #'   \code{trex_control(max_inner_threads = )}.
@@ -421,7 +421,7 @@ TSolver_Base <- R6::R6Class(
     },
 
     #' @description Set the thread budget of the solver's own passes over the
-    #'   design (\code{tsolver_options(n_threads = )}): 1 serial, 0 every core.
+    #'   design (\code{tsolver_options(n_threads = )}): 1 serial, at least 1.
     #' @param n_threads Non-negative integer.
     #' @return Invisibly returns \code{self}.
     set_num_threads = function(n_threads) {

@@ -590,7 +590,7 @@ test_that("the augmented wrappers pass the tie seed to the inner solver", {
 })
 
 
-test_that("n_threads is the solver's own budget: default 1, 0 every core, the path unchanged", {
+test_that("n_threads is the solver's own budget: default 1, at least 1, the path unchanged", {
   set.seed(5)
   n <- 400
   p <- 1500
@@ -614,9 +614,12 @@ test_that("n_threads is the solver's own budget: default 1, 0 every core, the pa
   expect_identical(four$actions, one$actions)
   expect_identical(four$beta, one$beta)
 
-  s <- TLARS_Solver$new(X + 0, D + 0, y, options = tsolver_options(n_threads = 0))
-  expect_gte(s$get_num_threads(), 1L)
+  expect_error(TLARS_Solver$new(X + 0, D + 0, y, options = tsolver_options(n_threads = 0)),
+               "n_threads")
+  s <- TLARS_Solver$new(X + 0, D + 0, y, options = tsolver_options(n_threads = 3))
+  expect_identical(s$get_num_threads(), 3L)
   s$set_num_threads(2)
   expect_identical(s$get_num_threads(), 2L)
   expect_error(s$set_num_threads(-1), "n_threads")
+  expect_error(s$set_num_threads(0), "n_threads")
 })

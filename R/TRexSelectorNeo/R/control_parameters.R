@@ -52,11 +52,11 @@
 #'   (\code{"SEEDED"}, \code{"PERMUTATION"}, \code{"PERMUTATION_SEEDED"})
 #'   always run their experiments in sequence. Was \code{use_openmp}.
 #' @param use_memory_mapping Use out-of-core memory mapping (default: FALSE).
-#' @param max_outer_threads Threads of the parallel K-loop (default: 1).
-#'   \code{0} resolves to every core, the count is capped at \code{K}.
-#'   Ignored while \code{parallel_rnd_experiments} is \code{FALSE}.
+#' @param max_outer_threads Threads of the parallel K-loop (default: 1; a
+#'   whole number of at least 1), capped at \code{K}. Ignored while
+#'   \code{parallel_rnd_experiments} is \code{FALSE}.
 #' @param max_inner_threads Thread budget of the solvers' own passes over
-#'   the design (default: 1, serial). \code{0} resolves to every core. Live
+#'   the design (default: 1, serial; a whole number of at least 1). Live
 #'   when the experiments run in sequence; inside a parallel run the
 #'   solvers stay serial. A pass splits only above about a million entries
 #'   of the design, so small problems run serially whatever the budget.
@@ -179,11 +179,11 @@ trex_control <- function(solver = "TLARS",
   if (tloop_max_stagnant_steps < 0) {
     stop("tloop_max_stagnant_steps must be >= 0. Got: ", tloop_max_stagnant_steps)
   }
-  if (max_outer_threads < 0) {
-    stop("max_outer_threads must be >= 0 (0 = every core). Got: ", max_outer_threads)
+  if (max_outer_threads < 1) {
+    stop("max_outer_threads must be >= 1. Got: ", max_outer_threads)
   }
-  if (max_inner_threads < 0) {
-    stop("max_inner_threads must be >= 0 (0 = every core). Got: ", max_inner_threads)
+  if (max_inner_threads < 1) {
+    stop("max_inner_threads must be >= 1. Got: ", max_inner_threads)
   }
   # The C++ side applies the certify/probe pair only when BOTH are > 0;
   # fail loudly here instead of silently ignoring a half-set pair.

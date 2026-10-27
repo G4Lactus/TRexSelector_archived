@@ -185,7 +185,7 @@ class TCDENET_Solver:
         """
     def setNumThreads(self, n_threads: typing.SupportsInt | typing.SupportsIndex) -> None:
         """
-        Set the thread budget of the solver's own passes over the design: 1 serial, 0 every core; negatives raise. A pass splits only above about a million entries and never inside a parallel region of the caller.
+        Set the thread budget of the solver's own passes over the design: 1 serial, a whole number of at least 1 (other values raise). A pass splits only above about a million entries and never inside a parallel region of the caller.
         """
     def setTieSeed(self, seed: typing.SupportsInt | typing.SupportsIndex) -> None:
         """
@@ -388,7 +388,7 @@ class TCDIENET_Solver:
         """
     def setNumThreads(self, n_threads: typing.SupportsInt | typing.SupportsIndex) -> None:
         """
-        Set the thread budget of the solver's own passes over the design: 1 serial, 0 every core; negatives raise. A pass splits only above about a million entries and never inside a parallel region of the caller.
+        Set the thread budget of the solver's own passes over the design: 1 serial, a whole number of at least 1 (other values raise). A pass splits only above about a million entries and never inside a parallel region of the caller.
         """
     def setTieSeed(self, seed: typing.SupportsInt | typing.SupportsIndex) -> None:
         """
@@ -582,7 +582,7 @@ class TCDLASSO_Solver:
         """
     def setNumThreads(self, n_threads: typing.SupportsInt | typing.SupportsIndex) -> None:
         """
-        Set the thread budget of the solver's own passes over the design: 1 serial, 0 every core; negatives raise. A pass splits only above about a million entries and never inside a parallel region of the caller.
+        Set the thread budget of the solver's own passes over the design: 1 serial, a whole number of at least 1 (other values raise). A pass splits only above about a million entries and never inside a parallel region of the caller.
         """
     def setTieSeed(self, seed: typing.SupportsInt | typing.SupportsIndex) -> None:
         """
@@ -782,7 +782,7 @@ class TCDTIKNET_Solver:
         """
     def setNumThreads(self, n_threads: typing.SupportsInt | typing.SupportsIndex) -> None:
         """
-        Set the thread budget of the solver's own passes over the design: 1 serial, 0 every core; negatives raise. A pass splits only above about a million entries and never inside a parallel region of the caller.
+        Set the thread budget of the solver's own passes over the design: 1 serial, a whole number of at least 1 (other values raise). A pass splits only above about a million entries and never inside a parallel region of the caller.
         """
     def setTieSeed(self, seed: typing.SupportsInt | typing.SupportsIndex) -> None:
         """

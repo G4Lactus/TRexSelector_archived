@@ -560,14 +560,13 @@ TRexSDResult TRexSD::run(Eigen::MatrixXd& X, const Eigen::VectorXd& y)
 {
     const int n = (int)X.rows(), p = (int)X.cols();
 
-    // Threads: 0 = every core, negatives throw, the K-loop is capped at K
+    // Threads: values below 1 throw, the K-loop is capped at K
     auto resolve_threads = [](int value, const char* name) {
-        if (value < 0) {
+        if (value < 1) {
             throw std::invalid_argument(
-                std::string("TRexSD: ") + name + " must be >= 0 (0 = every core). Got: "
-                + std::to_string(value));
+                std::string("TRexSD: ") + name + " must be >= 1. Got: " + std::to_string(value));
         }
-        return value == 0 ? std::max(1, omp_get_num_procs()) : value;
+        return value;
     };
     const int n_threads = std::min(opt_.K, resolve_threads(opt_.n_threads, "n_threads"));
     n_inner_resolved_ = resolve_threads(opt_.n_inner_threads, "n_inner_threads");

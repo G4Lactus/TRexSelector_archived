@@ -383,7 +383,7 @@ public:
      * @brief Set the thread budget of the solver's own OpenMP regions.
      *
      * @details Virtual: the augmented wrappers forward it to their inner
-     *          solver. 1: serial, 0: every core (SolverOptions::n_threads).
+     *          solver. 1: serial; at least 1 (SolverOptions::n_threads).
      *
      * @param n_threads The budget; a negative value throws.
      */
@@ -864,8 +864,8 @@ protected:
      *  Not serialized: a loaded solver starts at 1. */
     int n_threads_{1};
 
-    /** @brief Budget from an option value: 0 is every core, negative throws
-     *  (through concatMsg, so the bindings see the message). */
+    /** @brief Budget from an option value: a value below 1 throws (through
+     *  concatMsg, so the bindings see the message). */
     int resolveThreadBudget(int n_threads) const;
 
     /** @brief Threads for a region of the given work: 1 below the threshold,
