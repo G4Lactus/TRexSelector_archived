@@ -134,7 +134,7 @@ void TNCGMP_Solver::executeStep(std::size_t T_stop, bool early_stop) {
                 updateInactiveSet();
                 continue; // Skip residual update, try next iteration
             } else {
-                R_ = newR;
+                R_ = std::move(newR);
                 actives_.push_back(j_new);
                 pending_drop_actions.push_back(actionAdd(j_new));
                 actions_.push_back(std::move(pending_drop_actions));

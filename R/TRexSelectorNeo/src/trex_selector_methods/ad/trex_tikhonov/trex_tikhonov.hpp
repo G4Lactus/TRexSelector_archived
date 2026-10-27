@@ -427,12 +427,13 @@ struct TRexTikhonovControlParameter {
      *  `solver_type` must be one of the general-K solvers: TCDTIKNET (CCD,
      *  default) or TIKNET (native LARS homotopy, FOLDED-coupling only).
      *  With penalty_structure = GROUP_CENTERING, the TCDTIKNET dispatch
-     *  routes to TCDIENET's O(1) group-centering hooks, while TIKNET
-     *  consumes the internally built K_GC on its sparse path (the O(1)
-     *  fast-path hooks are CCD-only). The default here overrides the base
-     *  class's own default (TLARS) accordingly. All other base knobs (K,
-     *  L-loop strategy, warm starts, memory mapping, CD hyperparameters,
-     *  ...) apply unchanged. */
+     *  routes to TCDIENET's O(1) group-centering hooks, so the solver's
+     *  warnings (sweep budget, certification fallback) carry the tag
+     *  [TCDIENET]. TIKNET consumes the internally built K_GC on its sparse
+     *  path (the O(1) fast-path hooks are CCD-only). The default here
+     *  overrides the base class's own default (TLARS) accordingly. All other
+     *  base knobs (K, L-loop strategy, warm starts, memory mapping, CD
+     *  hyperparameters, ...) apply unchanged. */
     tc::TRexControlParameter trex_ctrl = [] {
         tc::TRexControlParameter t;
         t.solver_type = disp::SolverTypeForTRex::TCDTIKNET;

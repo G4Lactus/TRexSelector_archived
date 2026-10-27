@@ -138,7 +138,7 @@ protected:
         newR.topLeftCorner(mi, mi) = R_;
         newR.block(0, mi, mi, 1) = r_vec;
         newR(mi, mi) = std::sqrt(rpp_sq);
-        R_ = newR;
+        R_ = std::move(newR);
         return true;
     }
 

@@ -20,6 +20,7 @@
 #include <utils/logging/logger.hpp>
 #include <utils/global_temp_dir.hpp>
 #include <utils/checked_arith.hpp>
+#include <utils/physical_memory.hpp>
 
 // std includes
 #include <vector>
@@ -27,6 +28,8 @@
 #include <limits>
 #include <stdexcept>
 #include <string>
+#include <iomanip>
+#include <sstream>
 #include <iostream>
 #include <filesystem>
 #include <fstream>
@@ -51,6 +54,28 @@ namespace trex::ml_methods::clustering::hierarchical::agglomerative {
 
 // Detail namespace for internal utilities
 namespace detail {
+
+    /**
+     * @brief Refuse a RAM buffer the machine cannot hold.
+     *
+     * @details The allocator does not refuse a buffer beyond the physical
+     *  memory. Its zero fill touches page after page until the kernel kills
+     *  the process, so the check runs before the fill and names the remedy.
+     *  A physical size of 0 (unknown) passes.
+     *
+     * @throws std::runtime_error when needed_bytes exceed physical_bytes.
+     */
+    inline void checkRamBudget(std::size_t needed_bytes, std::size_t physical_bytes) {
+        if (physical_bytes == 0 || needed_bytes <= physical_bytes) return;
+        constexpr double GiB = 1024.0 * 1024.0 * 1024.0;
+        std::ostringstream msg;
+        msg << std::fixed << std::setprecision(2)
+            << "BlockTiledMatrix: the distance matrix needs "
+            << static_cast<double>(needed_bytes) / GiB << " GiB of RAM, but the machine has "
+            << static_cast<double>(physical_bytes) / GiB
+            << " GiB. Use the memory-mapped backend (use_mmap = true) for this size.";
+        throw std::runtime_error(msg.str());
+    }
 
     /**
      * @brief Lance-Williams coefficients for hierarchical clustering.
@@ -271,7 +296,9 @@ public:
             }
         }
         else {
-            // Use physical RAM
+            // Use physical RAM; refuse a buffer the machine cannot hold
+            detail::checkRamBudget(
+                total_bytes, trex::utils::physical_memory::physicalMemoryBytes());
             ram_backend_.assign(total_elements, 0.0);
             data_ptr_ = ram_backend_.data();
             if (verbose) {

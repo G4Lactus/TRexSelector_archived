@@ -598,7 +598,9 @@ trex_dummy_distribution <- function(type     = "Normal",
 #'   centering penalty over the dummy clusters (\code{prior_groups}, or the
 #'   HAC clustering). An all-singleton partition is legitimate there: K
 #'   vanishes and the path is the plain lasso on per-variable cluster
-#'   dummies.
+#'   dummies. On this path TCDTIKNET runs through the group-centering
+#'   hooks of TCDIENET, so its warnings (sweep budget, certification
+#'   fallback) carry the tag \code{[TCDIENET]}.
 #' @param lambda_2 Penalty weight, solver scale. A negative value (default
 #'   \code{-1}) triggers auto-determination via \code{lambda2_method};
 #'   \code{0} is the degenerate pure-lasso case; a positive value is used

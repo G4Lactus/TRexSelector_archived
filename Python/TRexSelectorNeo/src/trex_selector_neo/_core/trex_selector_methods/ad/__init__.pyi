@@ -2261,7 +2261,7 @@ class TRexTikhonovControlParameter:
     @property
     def penalty_structure(self) -> TikPenaltyStructure:
         """
-        SPARSE_GENERAL (tikhonov_K given) or GROUP_CENTERING (K from the groups).
+        SPARSE_GENERAL (tikhonov_K given) or GROUP_CENTERING (K from the groups; TCDTIKNET then runs through the group-centering hooks of TCDIENET, so its warnings carry the tag [TCDIENET]).
         """
     @penalty_structure.setter
     def penalty_structure(self, arg0: TikPenaltyStructure) -> None:

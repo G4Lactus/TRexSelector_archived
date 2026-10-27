@@ -174,7 +174,7 @@ inline void bind_trex_tikhonov(py::module& m) {
     py::class_<tik::TRexTikhonovControlParameter>(m, "TRexTikhonovControlParameter",
         "Control parameters for TRexTikhonovSelector: the penalty (a dense p x p PSD matrix tikhonov_K, or GROUP_CENTERING built from groups), the lambda_2 rule, and the cluster-aware dummies.")
         .def(py::init<>())
-        .def_readwrite("penalty_structure", &tik::TRexTikhonovControlParameter::penalty_structure, "SPARSE_GENERAL (tikhonov_K given) or GROUP_CENTERING (K from the groups).")
+        .def_readwrite("penalty_structure", &tik::TRexTikhonovControlParameter::penalty_structure, "SPARSE_GENERAL (tikhonov_K given) or GROUP_CENTERING (K from the groups; TCDTIKNET then runs through the group-centering hooks of TCDIENET, so its warnings carry the tag [TCDIENET]).")
         .def_property("tikhonov_K",
             [](const tik::TRexTikhonovControlParameter& c) {
                 return Eigen::MatrixXd(c.tikhonov_K);

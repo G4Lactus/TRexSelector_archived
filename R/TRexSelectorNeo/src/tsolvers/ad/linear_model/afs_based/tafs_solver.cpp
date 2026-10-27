@@ -111,7 +111,7 @@ void TAFS_Solver::executeStep(std::size_t T_stop, bool early_stop) {
                 any_dropped_ = true;
                 logWarning(concatMsg("Variable ", j_new, " collinear; dropped."));
             } else {
-                R_ = newR;
+                R_ = std::move(newR);
                 actives_.push_back(j_new);
                 actions_this_step.push_back(actionAdd(j_new));
                 num_additions_++;

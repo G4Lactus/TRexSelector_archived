@@ -105,7 +105,17 @@ target_sources(trex_utils PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/logging/logger.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/memmap/memory_mapped_matrix.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/openmp/utils_openmp.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/physical_memory.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/serialization/utils_cereal_eigen.hpp
+)
+# ==================================================================================
+
+
+# ==================================================================================
+# 4c. Source Files (.cpp - private)
+# ==================================================================================
+target_sources(trex_utils PRIVATE
+    ${CMAKE_CURRENT_SOURCE_DIR}/physical_memory.cpp
 )
 # ==================================================================================
 

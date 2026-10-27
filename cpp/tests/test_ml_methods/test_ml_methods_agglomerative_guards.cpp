@@ -5,8 +5,9 @@
  * @brief Input guards of the agglomerative clustering:
  *  non-finite data is rejected at the dispatcher before any engine runs, a
  *  zero-norm column keeps its documented "maximally dissimilar" convention,
- *  and cut_tree / cut_tree_by_height refuse malformed merge matrices instead
- *  of indexing out of range.
+ *  a RAM distance matrix beyond the physical memory is refused before its
+ *  zero fill, and cut_tree / cut_tree_by_height refuse malformed merge
+ *  matrices instead of indexing out of range.
  */
 // ===================================================================================
 
@@ -17,13 +18,17 @@
 #include <Eigen/Dense>
 
 // std includes
+#include <cstddef>
 #include <limits>
 #include <stdexcept>
+#include <string>
 #include <vector>
 
 // project includes
 #include "ml_methods/clustering/hierarchical/agglomerative/agglomerative_dispatcher.hpp"
+#include "ml_methods/clustering/hierarchical/agglomerative/block_tiled_matrix_policy.hpp"
 #include "ml_methods/clustering/hierarchical/agglomerative/distance_policy.hpp"
+#include "utils/physical_memory.hpp"
 
 // ===================================================================================
 
@@ -142,6 +147,39 @@ TEST(AgglomerativeGuardsTest, CutTreeRejectsMalformedMerges) {
     std::swap(bad[0].distance, bad[3].distance);
     EXPECT_THROW(DendrogramUtils::cut_tree_by_height(bad, 5, 10.0), std::invalid_argument);
     EXPECT_NO_THROW(DendrogramUtils::cut_tree_by_height(merges, 5, 10.0));
+}
+
+// ===================================================================================
+
+/** @brief The RAM backend refuses a distance matrix beyond the physical memory
+ *  before its zero fill and names the memory-mapped backend as the remedy. A
+ *  fitting buffer and an unknown physical size (0) pass. */
+TEST(AgglomerativeGuardsTest, RamBufferBeyondPhysicalMemoryIsRefused) {
+    constexpr std::size_t GiB = std::size_t{1} << 30;
+    EXPECT_NO_THROW(detail::checkRamBudget(8 * GiB, 16 * GiB));
+    EXPECT_NO_THROW(detail::checkRamBudget(16 * GiB, 16 * GiB));
+    EXPECT_NO_THROW(detail::checkRamBudget(64 * GiB, 0));
+    try {
+        detail::checkRamBudget(64 * GiB, 16 * GiB);
+        FAIL() << "a buffer beyond the physical memory must be refused";
+    } catch (const std::runtime_error& e) {
+        const std::string msg = e.what();
+        EXPECT_NE(msg.find("64.00 GiB"), std::string::npos) << msg;
+        EXPECT_NE(msg.find("16.00 GiB"), std::string::npos) << msg;
+        EXPECT_NE(msg.find("use_mmap = true"), std::string::npos) << msg;
+    }
+
+    // End to end: 1,000,000 objects need a tiled matrix of about 7 TiB. The
+    // check runs before any buffer is touched, so the constructor throws at once.
+    const std::size_t physical = trex::utils::physical_memory::physicalMemoryBytes();
+    if (physical == 0) GTEST_SKIP() << "physical memory unknown on this platform";
+    EXPECT_GT(physical, 256 * (std::size_t{1} << 20));
+    const Eigen::MatrixXd data = Eigen::MatrixXd::Zero(1, 1'000'000);
+    using Policy = BlockTiledMatrixPolicy<
+        Eigen::MatrixXd, DistancePolicy<Eigen::MatrixXd, DistanceMetric::Euclidean>,
+        LinkageMethod::Average>;
+    EXPECT_THROW([&] { Policy policy(data, /*use_mmap=*/false, /*verbose=*/false); }(),
+                 std::runtime_error);
 }
 
 // ===================================================================================

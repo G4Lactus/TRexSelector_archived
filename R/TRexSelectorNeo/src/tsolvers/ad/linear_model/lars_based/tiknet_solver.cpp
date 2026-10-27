@@ -327,7 +327,7 @@ std::vector<int> TIKNET_Solver::updateActiveSetTIK(
             any_dropped_ = true;
             logWarning(concatMsg("Variable ", j_new, " collinear; dropped."));
         } else {
-            R_ = newR;
+            R_ = std::move(newR);
             actives_.push_back(j_new);
             actions_this_step.push_back(actionAdd(j_new));
             Sign_.push_back((correlations_(static_cast<Eigen::Index>(j_new)) >= 0) ?

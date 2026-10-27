@@ -90,6 +90,30 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
 
 ### 2026-10-27
 
+#### The clustering refuses a RAM buffer beyond the physical memory and scans in parallel
+
+- `BlockTiledMatrixPolicy`, the distance matrix of every linkage except single
+  under `use_mmap = FALSE`, compares its size with the installed physical memory
+  before the zero fill. A buffer the machine cannot hold throws
+  `std::runtime_error` with both sizes and the remedy, the memory-mapped
+  backend. Before, the fill touched page after page until the kernel killed the
+  process (the Examples hac_02 test C). The size comes from the new
+  `utils/physical_memory.hpp` (`sysctl` on macOS, `GlobalMemoryStatusEx` on
+  Windows, `sysconf` elsewhere), and an unknown size passes. Test
+  `AgglomerativeGuardsTest.RamBufferBeyondPhysicalMemoryIsRefused`: the check on
+  fixed sizes and a 1,000,000-object construction that throws at once.
+- The dispatcher's non-finite scan of the clustering input runs over the
+  columns in parallel on the process-wide thread count, like the other one-shot
+  kernels. The smallest offending column wins, so the message names the entry a
+  serial scan names. The serial scan read a mapped design of 400,000 columns
+  once more on a single core (6 to 9 minutes in the Examples).
+- TLARS, TIENET, TIKNET, TNCGMP, TAFS and the SD solver base move the updated
+  Cholesky factor into place instead of copying it, as TOMP does.
+- The TCDTIKNET warnings under `penalty_structure = GROUP_CENTERING` (sweep
+  budget, certification fallback) carry the tag `[TCDIENET]` by design: the
+  dispatch serves that path with TCDIENET's group-centering hooks. The Tikhonov
+  control docs of the three surfaces and vignette page 7 say so.
+
 #### SEEDED is the storage-free twin of STANDARD (WP18)
 
 - `LLoopStrategy::SEEDED` draws fresh dummies at every L step, keyed on

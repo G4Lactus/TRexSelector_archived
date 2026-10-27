@@ -134,7 +134,9 @@ en$selected_indices
 block-diagonal centering penalty $\boldsymbol I - \boldsymbol J / p_m$ over the dummy clusters, so the
 members of a group share a coefficient, the penalty of the informed elastic net. The groups come from
 `prior_groups` or from the clustering. An all-singleton partition is legitimate, the penalty vanishes
-and the path is the lasso on per-variable cluster dummies.
+and the path is the lasso on per-variable cluster dummies. On this path the TCDTIKNET solver runs
+through the group-centering hooks of TCDIENET, so its warnings (sweep budget, certification fallback)
+carry the tag `[TCDIENET]`.
 
 ```{r centering}
 groups <- rep(1:6, each = 10)

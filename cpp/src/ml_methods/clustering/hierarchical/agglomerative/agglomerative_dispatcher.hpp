@@ -39,6 +39,7 @@
 #include <utils/fp_classify/fp_classify.hpp>
 
 // std includes
+#include <atomic>
 #include <complex>
 #include <string>
 
@@ -57,8 +58,11 @@ namespace detail {
  *  NaN; the nearest-neighbour searches then compare false everywhere and
  *  return their sentinel index into container indexing (the CTRexSelector
  *  hclust crash, misdiagnosed for a day as an OpenMP stack overflow). The
- *  check is O(np) against the O(p^2 n) clustering. Bit-based
- *  (fp_classify): std::isfinite folds away under -ffast-math.
+ *  check is O(np) against the O(p^2 n) clustering and scans the columns in
+ *  parallel on the process-wide thread count (a one-shot kernel). The
+ *  smallest offending column wins, so the message names the entry a serial
+ *  scan names. Bit-based (fp_classify): std::isfinite folds away under
+ *  -ffast-math.
  *
  * @throws std::invalid_argument naming the first offending entry.
  */
@@ -66,25 +70,43 @@ template <typename MatrixType>
 void reject_non_finite(const MatrixType& data) {
     namespace fpc = trex::utils::fp_classify;
     using Scalar = typename MatrixType::Scalar;
-    for (Eigen::Index j = 0; j < data.cols(); ++j) {
-        for (Eigen::Index i = 0; i < data.rows(); ++i) {
-            const Scalar v = data(i, j);
-            bool finite;
-            if constexpr (Eigen::NumTraits<Scalar>::IsComplex) {
-                finite = fpc::isfinite(static_cast<double>(std::real(v))) &&
-                         fpc::isfinite(static_cast<double>(std::imag(v)));
-            } else {
-                finite = fpc::isfinite(static_cast<double>(v));
-            }
-            if (!finite) {
-                throw std::invalid_argument(
-                    "AgglomerativeClustering: non-finite entry at row " +
-                    std::to_string(i) + ", column " + std::to_string(j) +
-                    " — every distance of that column would be NaN and the "
-                    "nearest-neighbour search undefined; clean the data first.");
-            }
+    const Eigen::Index n_rows = data.rows();
+    const Eigen::Index n_cols = data.cols();
+
+    auto is_finite = [](const Scalar& v) -> bool {
+        if constexpr (Eigen::NumTraits<Scalar>::IsComplex) {
+            return fpc::isfinite(static_cast<double>(std::real(v))) &&
+                   fpc::isfinite(static_cast<double>(std::imag(v)));
+        } else {
+            return fpc::isfinite(static_cast<double>(v));
         }
+    };
+    // First non-finite row of column j, -1 for a clean column
+    auto first_bad_row = [&](Eigen::Index j) -> Eigen::Index {
+        for (Eigen::Index i = 0; i < n_rows; ++i) {
+            if (!is_finite(data(i, j))) return i;
+        }
+        return -1;
+    };
+
+    std::atomic<Eigen::Index> bad_col{n_cols};
+    #pragma omp parallel for schedule(static)
+    for (Eigen::Index j = 0; j < n_cols; ++j) {
+        // Columns past an offending one need no scan
+        if (j >= bad_col.load(std::memory_order_relaxed)) continue;
+        if (first_bad_row(j) < 0) continue;
+        Eigen::Index seen = bad_col.load(std::memory_order_relaxed);
+        while (j < seen &&
+               !bad_col.compare_exchange_weak(seen, j, std::memory_order_relaxed)) {}
     }
+
+    const Eigen::Index j = bad_col.load();
+    if (j == n_cols) return;
+    throw std::invalid_argument(
+        "AgglomerativeClustering: non-finite entry at row " +
+        std::to_string(first_bad_row(j)) + ", column " + std::to_string(j) +
+        " — every distance of that column would be NaN and the "
+        "nearest-neighbour search undefined; clean the data first.");
 }
 
 }  // namespace detail
