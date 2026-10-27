@@ -181,6 +181,27 @@ TRexGVSSelector::TRexGVSSelector(
         }
     }
 
+    // ---- lambda_2 rule by track -------------------------------------------
+    // The struct default CV_1SE_CCD is the EN-geometry tuner; on the IEN track
+    // it stands for the IEN-geometry tuner CV_1SE_IEN_CCD (the rule of every
+    // surface). The IEN-geometry tuners consume the group structure, so the
+    // EN track refuses them here, before any work.
+    const bool ien_rule =
+        trex_gvs_ctrl_.lambda2_method == LambdaSelectionMethod::CV_1SE_IEN_CCD ||
+        trex_gvs_ctrl_.lambda2_method == LambdaSelectionMethod::CV_MIN_IEN_CCD ||
+        trex_gvs_ctrl_.lambda2_method == LambdaSelectionMethod::CV_1SE_TIK_SVD ||
+        trex_gvs_ctrl_.lambda2_method == LambdaSelectionMethod::CV_MIN_TIK_SVD;
+    if (trex_gvs_ctrl_.gvs_type == GVSType::IEN) {
+        if (trex_gvs_ctrl_.lambda2_method == LambdaSelectionMethod::CV_1SE_CCD) {
+            trex_gvs_ctrl_.lambda2_method = LambdaSelectionMethod::CV_1SE_IEN_CCD;
+        }
+    } else if (ien_rule) {
+        throw std::invalid_argument(
+            "TRexGVSSelector: lambda2_method is an IEN-geometry tuner (it "
+            "consumes the group structure) and requires gvs_type = IEN."
+        );
+    }
+
     // ---- Memory mapping --------------------------------------------------
     // The user-requested flag is captured in the member-initializer list as
     // `gvs_use_mmap_` (read from the *original* parameter copy). The flag

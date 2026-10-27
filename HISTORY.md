@@ -95,7 +95,49 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
 - R: `MLRidgeCV$fit(num_folds = )` is `n_folds`. C++ `ridge_cv_svd::fit()` and
   Python `RidgeCV.fit()` default to `n_lambda = 100` instead of 1,000 (R's
   default, the glmnet convention). See the 2026-10-27 entry.
+- R defaults aligned with C++ and Python: `trex_control()` defaults to
+  `lloop_strategy = "STANDARD"` (was HCONCAT), leaves `tloop_stagnation_stop`
+  to the C++ solver rule (TIENET and TIENET_AUG no longer stop by default) and
+  sets `cd_lambda_rel_tol = 1e-6` (was 1e-5). C++: `TRexGVSSelector` resolves
+  the default lambda_2 rule to CV_1SE_IEN_CCD on the IEN track, as the
+  bindings did. R selections that relied on these defaults change. See the
+  2026-10-27 entry.
+- T-Stagewise stops when the support holds T dummies, frozen coefficients
+  included; before, only the active dummies counted and the path ran on after a
+  removal. Selections and step counts of T-Stagewise runs change. See the
+  2026-10-27 entry.
+
 ### 2026-10-27
+
+#### The control defaults agree on the three surfaces (D11, D12)
+
+- An audit of every control constructor of R against the Python and C++
+  structs (identical by construction) found four deviations, all in R or in
+  binding logic, and the three surfaces now carry one value each:
+  - `trex_control(lloop_strategy = )` defaults to `"STANDARD"` as C++ and
+    Python do (was `"HCONCAT"`; the roxygen page and vignette page 2 called
+    HCONCAT the default). Decided 2026-10-27 (D11): the fresh-dummy law of the
+    T-Rex paper is the default everywhere.
+  - `trex_control(tloop_stagnation_stop = NULL)` passes NULL to the C++ core,
+    whose solver rule (`isGreedySolver()`) decides on every surface. R used to
+    resolve NULL with its own list, which counted TIENET and TIENET_AUG as
+    greedy, so an R GVS run on the IEN track stopped its T-loops early where
+    Python and C++ ran them to the end (T_stop 7 against 11 in the audit cell).
+    The path solvers never stop by default; the greedy ones do.
+  - `trex_control(cd_lambda_rel_tol = )` defaults to 1e-6 as C++ and Python do
+    (was the former 1e-5).
+  - The lambda_2 rule on the IEN track resolves in the C++ GVS constructor
+    (D12): the struct default CV_1SE_CCD becomes CV_1SE_IEN_CCD when
+    gvs_type = IEN, and the IEN-geometry tuners are refused on the EN track at
+    construction. R and the Python wrapper applied that rule in their own code;
+    the Python wrapper's copy is gone, R's NULL resolution gives the same value.
+    A C++ user who kept the default on the IEN track got the EN-geometry tuner
+    (lambda_2 = 29,555 and 2 selected variables in the audit cell against 42).
+- The R runtime gap of the Examples is explained on the way: at equal
+  parameters the core cell takes the same time in R and Python, and the 17 %
+  of the GVS cell is the Eigen version (RcppEigen ships 3.4.0, the C++ tree and
+  the wheels use 5.0.1; a wheel built against Eigen 3.4.0 reproduces R's time).
+  No library work; the study is archived in the research folder.
 
 #### The root README's reference list is rendered from the master bibliography
 

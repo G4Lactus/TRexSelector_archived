@@ -90,9 +90,10 @@ TRexControlParameter parse_control_parameter(const Rcpp::List& control) {
         }
     }
 
-    // T-Loop Early Stopping
-    if (control.containsElementNamed("tloop_stagnation_stop")) {
-        params.tloop_stagnation_stop = control["tloop_stagnation_stop"];
+    // T-Loop Early Stopping; NULL leaves the core's solver rule in charge
+    if (control.containsElementNamed("tloop_stagnation_stop") &&
+        !Rf_isNull(control["tloop_stagnation_stop"])) {
+        params.tloop_stagnation_stop = Rcpp::as<bool>(control["tloop_stagnation_stop"]);
     }
     if (control.containsElementNamed("tloop_max_stagnant_steps")) {
         params.tloop_max_stagnant_steps = control["tloop_max_stagnant_steps"];

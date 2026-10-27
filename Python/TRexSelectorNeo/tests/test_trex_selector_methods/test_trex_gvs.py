@@ -253,8 +253,8 @@ def test_lambda2_method_track_resolution_and_restore(signal_data):
     assert gvs_ctrl.lambda2_method == trex_selector_neo.LambdaSelectionMethod.CV_1SE_CCD
     trex_selector_neo.TRexGVSSelector(X, y, gvs_control=gvs_ctrl,
                                       trex_control=ctrl, verbose=False)
-    # The wrapper resolves the default to the IEN-geometry tuner for the
-    # C++ copy, but restores the caller's object afterwards.
+    # The C++ constructor resolves the default to the IEN-geometry tuner on
+    # its own copy; the caller's object stays as set.
     assert gvs_ctrl.lambda2_method == trex_selector_neo.LambdaSelectionMethod.CV_1SE_CCD
 
 

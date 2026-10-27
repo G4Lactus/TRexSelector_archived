@@ -29,14 +29,15 @@ test_that("trex_control validates the CD knobs", {
   expect_error(trex_control(cd_gram_cap = -1), "cd_gram_cap must be >= 0")
   expect_error(trex_control(cd_max_sweeps = -1), "cd_max_sweeps must be >= 0")
 
-  # The CCD family records exact minimizers per crossing: non-greedy, so the
-  # stagnation-stop auto-detection must default to FALSE (mirrors the C++
-  # isGreedySolver classification).
+  # The stagnation-stop default is NULL on the R side and resolved by the C++
+  # core's solver rule (isGreedySolver), the one source for the three
+  # surfaces; an explicit value is carried as given.
   for (s in c("TCDLASSO", "TCDENET", "TCDIENET", "TCDTIKNET", "TIKNET",
-              "TENET_AUG")) {
-    expect_false(trex_control(solver = s)$tloop_stagnation_stop)
+              "TENET_AUG", "TOMP")) {
+    expect_null(trex_control(solver = s)$tloop_stagnation_stop)
   }
-  expect_true(trex_control(solver = "TOMP")$tloop_stagnation_stop)
+  expect_false(trex_control(solver = "TOMP", tloop_stagnation_stop = FALSE)$tloop_stagnation_stop)
+  expect_true(trex_control(tloop_stagnation_stop = TRUE)$tloop_stagnation_stop)
 
   # Certified crossing localization is the CD default; the flag is carried.
   expect_true(trex_control()$cd_certified_localization)

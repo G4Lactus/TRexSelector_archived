@@ -41,10 +41,12 @@
 #'   \code{TRexTikhonovSelector}. The plain selector rejects both families
 #'   with an informative error.
 #' @param K Number of random experiments (default: 20).
-#' @param tloop_stagnation_stop Whether to stop T-loop on stagnation. NULL (default) enables
-#'   auto-detection: FALSE for non-greedy solvers (TLARS, TLASSO, TENET,
-#'   TENET_AUG, TIKNET, and the CD family TCDLASSO/TCDENET/TCDIENET/
-#'   TCDTIKNET), TRUE for all others.
+#' @param tloop_stagnation_stop Whether to stop the T-loop on stagnation. NULL
+#'   (default) leaves the choice to the C++ core, the same rule on every
+#'   surface: FALSE for the path solvers (TLARS, TLASSO, TENET, TENET_AUG,
+#'   TIENET, TIENET_AUG, TIKNET and the CD family TCDLASSO, TCDENET, TCDIENET,
+#'   TCDTIKNET), TRUE for the greedy ones (the OMP family, TSTEPWISE,
+#'   TSTAGEWISE, TAFS, TNCGMP, TOOLS).
 #' @param tloop_max_stagnant_steps Steps before stagnation trigger (default: 5).
 #' @param parallel_rnd_experiments Run the K random experiments in parallel
 #'   (default: \code{FALSE}, the experiments run in sequence). Inside a
@@ -64,7 +66,8 @@
 #' @param use_max_T_stop Whether to bound max T_stop (default: TRUE).
 #' @param opt_threshold Optimization threshold (default: 0.75).
 #' @param lloop_strategy L-loop strategy: "SKIPL", "STANDARD", "HCONCAT",
-#'   "PERMUTATION", "PERMUTATION_SEEDED", or "SEEDED" (default: "HCONCAT").
+#'   "PERMUTATION", "PERMUTATION_SEEDED", or "SEEDED" (default: "STANDARD",
+#'   as in C++ and Python).
 #'   The SEEDED variants re-derive dummies from the seed at every step and
 #'   store nothing: "SEEDED" is the storage-free twin of "STANDARD" (fresh
 #'   dummies at every L step, bit-identical to "STANDARD" for the same seed)
@@ -91,8 +94,8 @@
 #'   \code{TRexGVSSelector} use the \code{gvs_control} knob of the same
 #'   name instead. Ignored by every other solver.
 #' @param cd_lambda_rel_tol Relative lambda step tolerance of the CCD family's
-#'   crossing search (default: 1e-5). Values <= 0 keep the solver's internal
-#'   default. Ignored by the non-CCD solvers.
+#'   crossing search (default: 1e-6, as in C++ and Python). Values <= 0 keep
+#'   the solver's internal default. Ignored by the non-CCD solvers.
 #' @param cd_tol_certify KKT certification tolerance of the CCD family. Must
 #'   be set together with \code{cd_tol_probe}; the default -1 keeps the
 #'   solver's own tolerances. Ignored by the non-CCD solvers.
@@ -151,7 +154,7 @@ trex_control <- function(solver = "TLARS",
                          max_dummy_multiplier = 10,
                          use_max_T_stop = TRUE,
                          opt_threshold = 0.75,
-                         lloop_strategy = "HCONCAT",
+                         lloop_strategy = "STANDARD",
                          tol = 1e-6,
                          lambda2 = 0.1,
                          rho_afs = 0.3,
@@ -159,7 +162,7 @@ trex_control <- function(solver = "TLARS",
                          exch_tie_alpha = 0,
                          exch_tie_floor = 0.5,
                          tenet_aug_use_lars = FALSE,
-                         cd_lambda_rel_tol = 1e-5,
+                         cd_lambda_rel_tol = 1e-6,
                          cd_tol_certify = -1,
                          cd_tol_probe = -1,
                          cd_gram_cap = 0,
@@ -200,10 +203,10 @@ trex_control <- function(solver = "TLARS",
     stop("cd_max_sweeps must be >= 0. Got: ", cd_max_sweeps)
   }
 
-  non_greedy_solvers <- c("TLARS", "TLASSO", "TENET", "TENET_AUG", "TIKNET",
-                          "TCDLASSO", "TCDENET", "TCDIENET", "TCDTIKNET")
-  if (is.null(tloop_stagnation_stop)) {
-    tloop_stagnation_stop <- !(solver %in% non_greedy_solvers)
+  # NULL stays NULL: the C++ core resolves it by its own solver rule, the one
+  # source of the default for the three surfaces
+  if (!is.null(tloop_stagnation_stop)) {
+    tloop_stagnation_stop <- as.logical(tloop_stagnation_stop)
   }
 
   list(
@@ -320,7 +323,9 @@ trex_da_control <- function(da_method = "BT",
 #'   \code{"CV_1SE_CCD"} for \code{gvs_type = "EN"} and
 #'   \code{"CV_1SE_IEN_CCD"} for \code{gvs_type = "IEN"} (the IEN-geometry
 #'   tuner consumes the group structure; the 1SE rule is preferred because
-#'   the MIN rule tends to pin to the grid floor). Explicit choices:
+#'   the MIN rule tends to pin to the grid floor). The C++ core applies the
+#'   same rule at construction on every surface, so an explicit
+#'   \code{"CV_1SE_CCD"} on the IEN track also runs the IEN tuner. Explicit choices:
 #'   EN-shaped ridge CV \code{"CV_1SE_CCD"}, \code{"CV_MIN_CCD"},
 #'   \code{"CV_1SE_SVD"}, \code{"CV_MIN_SVD"} (allowed on both tracks);
 #'   IEN-geometry \code{"CV_1SE_IEN_CCD"}, \code{"CV_MIN_IEN_CCD"},

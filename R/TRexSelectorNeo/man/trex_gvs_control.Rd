@@ -40,7 +40,9 @@ pure T-LASSO case (no ridge); a positive value is used as-is.}
 \code{"CV_1SE_CCD"} for \code{gvs_type = "EN"} and
 \code{"CV_1SE_IEN_CCD"} for \code{gvs_type = "IEN"} (the IEN-geometry
 tuner consumes the group structure; the 1SE rule is preferred because
-the MIN rule tends to pin to the grid floor). Explicit choices:
+the MIN rule tends to pin to the grid floor). The C++ core applies the
+same rule at construction on every surface, so an explicit
+\code{"CV_1SE_CCD"} on the IEN track also runs the IEN tuner. Explicit choices:
 EN-shaped ridge CV \code{"CV_1SE_CCD"}, \code{"CV_MIN_CCD"},
 \code{"CV_1SE_SVD"}, \code{"CV_MIN_SVD"} (allowed on both tracks);
 IEN-geometry \code{"CV_1SE_IEN_CCD"}, \code{"CV_MIN_IEN_CCD"},

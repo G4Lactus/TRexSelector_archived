@@ -16,7 +16,7 @@ trex_control(
   max_dummy_multiplier = 10,
   use_max_T_stop = TRUE,
   opt_threshold = 0.75,
-  lloop_strategy = "HCONCAT",
+  lloop_strategy = "STANDARD",
   tol = 1e-06,
   lambda2 = 0.1,
   rho_afs = 0.3,
@@ -24,7 +24,7 @@ trex_control(
   exch_tie_alpha = 0,
   exch_tie_floor = 0.5,
   tenet_aug_use_lars = FALSE,
-  cd_lambda_rel_tol = 1e-05,
+  cd_lambda_rel_tol = 1e-06,
   cd_tol_certify = -1,
   cd_tol_probe = -1,
   cd_gram_cap = 0,
@@ -53,10 +53,12 @@ with an informative error.}
 
 \item{K}{Number of random experiments (default: 20).}
 
-\item{tloop_stagnation_stop}{Whether to stop T-loop on stagnation. NULL (default) enables
-auto-detection: FALSE for non-greedy solvers (TLARS, TLASSO, TENET,
-TENET_AUG, TIKNET, and the CD family TCDLASSO/TCDENET/TCDIENET/
-TCDTIKNET), TRUE for all others.}
+\item{tloop_stagnation_stop}{Whether to stop the T-loop on stagnation. NULL
+(default) leaves the choice to the C++ core, the same rule on every
+surface: FALSE for the path solvers (TLARS, TLASSO, TENET, TENET_AUG,
+TIENET, TIENET_AUG, TIKNET and the CD family TCDLASSO, TCDENET, TCDIENET,
+TCDTIKNET), TRUE for the greedy ones (the OMP family, TSTEPWISE,
+TSTAGEWISE, TAFS, TNCGMP, TOOLS).}
 
 \item{tloop_max_stagnant_steps}{Steps before stagnation trigger (default: 5).}
 
@@ -85,7 +87,8 @@ of the design, so small problems run serially whatever the budget.}
 \item{opt_threshold}{Optimization threshold (default: 0.75).}
 
 \item{lloop_strategy}{L-loop strategy: "SKIPL", "STANDARD", "HCONCAT",
-"PERMUTATION", "PERMUTATION_SEEDED", or "SEEDED" (default: "HCONCAT").
+"PERMUTATION", "PERMUTATION_SEEDED", or "SEEDED" (default: "STANDARD",
+as in C++ and Python).
 The SEEDED variants re-derive dummies from the seed at every step and
 store nothing: "SEEDED" is the storage-free twin of "STANDARD" (fresh
 dummies at every L step, bit-identical to "STANDARD" for the same seed)
@@ -120,8 +123,8 @@ opts into the pure-LARS inner path that never drops variables. Inside
 name instead. Ignored by every other solver.}
 
 \item{cd_lambda_rel_tol}{Relative lambda step tolerance of the CCD family's
-crossing search (default: 1e-5). Values <= 0 keep the solver's internal
-default. Ignored by the non-CCD solvers.}
+crossing search (default: 1e-6, as in C++ and Python). Values <= 0 keep
+the solver's internal default. Ignored by the non-CCD solvers.}
 
 \item{cd_tol_certify}{KKT certification tolerance of the CCD family. Must
 be set together with \code{cd_tol_probe}; the default -1 keeps the

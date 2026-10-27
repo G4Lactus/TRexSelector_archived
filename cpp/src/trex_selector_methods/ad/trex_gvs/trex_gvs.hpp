@@ -337,7 +337,10 @@ struct TRexGVSControlParameter {
      *            for numerical validation.
      *          - CV_1SE_CCD / CV_MIN_CCD : glmnet-faithful coordinate-descent ridge CV
      *            (enet_cv_ccd, alpha=0) with glmnet's fdev/devmax path early
-     *            stopping. Default: CV_1SE_CCD.
+     *            stopping. Default: CV_1SE_CCD; on the IEN track the
+     *            constructor turns this default into CV_1SE_IEN_CCD (the
+     *            same rule on every surface), and the IEN-geometry rules
+     *            are refused on the EN track.
      *          - CV_1SE_IEN_CCD / CV_MIN_IEN_CCD : IEN-geometry profiled CV
      *            (ienet_cv_ccd); gvs_type = IEN only, solver scale.
      *          - CV_1SE_TIK_SVD / CV_MIN_TIK_SVD : analytic generalized-

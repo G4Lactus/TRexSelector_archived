@@ -268,25 +268,9 @@ class TRexGVSSelector(TRexSelector):
                     stacklevel=2,
                 )
 
-        # lambda2_method resolves by track: the struct default (CV_1SE_CCD,
-        # indistinguishable from an explicit choice — same convention as
-        # TLARS above) becomes the IEN-geometry tuner on the IEN track.
-        # IEN users wanting an EN-shaped ridge CV explicitly still have
-        # CV_MIN_CCD / CV_1SE_SVD / CV_MIN_SVD. The IEN-geometry tuners
-        # consume the group structure, so the EN track rejects them.
-        _ien_methods = (LambdaSelectionMethod.CV_1SE_IEN_CCD,
-                        LambdaSelectionMethod.CV_MIN_IEN_CCD,
-                        LambdaSelectionMethod.CV_1SE_TIK_SVD,
-                        LambdaSelectionMethod.CV_MIN_TIK_SVD)
-        _l2m_original = gvs_control.lambda2_method
-        if gvs_control.gvs_type == GVSType.IEN:
-            if gvs_control.lambda2_method == LambdaSelectionMethod.CV_1SE_CCD:
-                gvs_control.lambda2_method = LambdaSelectionMethod.CV_1SE_IEN_CCD
-        elif gvs_control.lambda2_method in _ien_methods:
-            raise ValueError(
-                f"lambda2_method = {gvs_control.lambda2_method.name} is an "
-                f"IEN-geometry tuner (it consumes the group structure) and "
-                f"requires gvs_type = IEN.")
+        # lambda2_method resolves by track in the C++ constructor: the struct
+        # default CV_1SE_CCD becomes CV_1SE_IEN_CCD on the IEN track, and the
+        # IEN-geometry tuners are refused on the EN track (ValueError).
 
         # lambda_2 == 0 is the degenerate no-ridge case (pure T-LASSO), NOT
         # automatic CV (the sentinel for that is lambda_2 < 0). Warn so a user
@@ -299,15 +283,10 @@ class TRexGVSSelector(TRexSelector):
                 UserWarning,
                 stacklevel=2,
             )
-        try:
-            self._selector: PyTRexGVSSelector = PyTRexGVSSelector(self.X, self.y, tFDR,
-                                                                  gvs_control,
-                                                                  trex_control,
-                                                                  seed, verbose)
-        finally:
-            # The C++ selector copied the struct; undo the track resolution
-            # so the caller's control object is left as they set it.
-            gvs_control.lambda2_method = _l2m_original
+        self._selector: PyTRexGVSSelector = PyTRexGVSSelector(self.X, self.y, tFDR,
+                                                              gvs_control,
+                                                              trex_control,
+                                                              seed, verbose)
 
     def select(self) -> GVSSelectionResult:
         self._selector.select()

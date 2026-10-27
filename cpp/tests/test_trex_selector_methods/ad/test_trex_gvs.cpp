@@ -475,7 +475,8 @@ TEST_F(TRexGVSTest, EndToEnd_IEN_AutoLambda2_TikSvd) {
 
 
 /** @brief The IEN-geometry lambda_2 methods require gvs_type = IEN (they
- *  consume the group structure); EN must reject them at select() time. */
+ *  consume the group structure); EN rejects them at construction, before any
+ *  work, and computeLambda2() keeps its own guard. */
 TEST_F(TRexGVSTest, Validation_ThrowsOnIenLambdaMethodForEN) {
     GroupedData d(150, 40, 0.75, 1.0, 7);
     Eigen::Map<Eigen::MatrixXd> Xm(d.X.data(), d.X.rows(), d.X.cols());
@@ -488,8 +489,7 @@ TEST_F(TRexGVSTest, Validation_ThrowsOnIenLambdaMethodForEN) {
     ctrl.trex_ctrl.K = 3;
     ctrl.trex_ctrl.max_dummy_multiplier = 2;
 
-    TRexGVSSelector trex(Xm, ym, 0.2, ctrl, 42, false);
-    EXPECT_THROW(trex.select(), std::invalid_argument);
+    EXPECT_THROW(TRexGVSSelector(Xm, ym, 0.2, ctrl, 42, false), std::invalid_argument);
 }
 
 
@@ -788,6 +788,43 @@ TEST_F(TRexGVSTest, ScalingModeParity_IEN_FixedLambda2) {
             << "  L2     n_selected = " << sel_l2.sum() << "\n"
             << "  ZSCORE n_selected = " << sel_z.sum();
     }
+}
+
+/** @brief The lambda_2 rule resolves by track in the constructor: the struct
+ *  default CV_1SE_CCD stands for CV_1SE_IEN_CCD on the IEN track (the run
+ *  equals an explicit CV_1SE_IEN_CCD run), and the IEN-geometry tuners are
+ *  refused on the EN track before any work. */
+TEST(TRexGVSLambda2Rule, DefaultResolvesByTrack) {
+    const Eigen::Index n = 150, p = 40;
+    GroupedData d(n, p, 0.75, 1.0, 7);
+    auto run = [&](LambdaSelectionMethod method) {
+        Eigen::MatrixXd X = d.X;
+        Eigen::VectorXd y = d.y;
+        Eigen::Map<Eigen::MatrixXd> X_map(X.data(), X.rows(), X.cols());
+        Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
+        TRexGVSControlParameter ctrl;
+        ctrl.gvs_type = GVSType::IEN;
+        ctrl.lambda2_method = method;
+        ctrl.trex_ctrl.solver_type = SolverTypeForTRex::TIENET;
+        ctrl.trex_ctrl.K = 5;
+        ctrl.trex_ctrl.max_dummy_multiplier = 2;
+        TRexGVSSelector trex(X_map, y_map, 0.2, ctrl, 42, false);
+        const auto res = trex.select();
+        return std::make_pair(trex.getGVSResult().lambda2_used, Eigen::VectorXi(res.selected_var));
+    };
+    const auto by_default = run(LambdaSelectionMethod::CV_1SE_CCD);
+    const auto explicit_ien = run(LambdaSelectionMethod::CV_1SE_IEN_CCD);
+    EXPECT_DOUBLE_EQ(by_default.first, explicit_ien.first);
+    EXPECT_TRUE((by_default.second.array() == explicit_ien.second.array()).all());
+
+    Eigen::MatrixXd X = d.X;
+    Eigen::VectorXd y = d.y;
+    Eigen::Map<Eigen::MatrixXd> X_map(X.data(), X.rows(), X.cols());
+    Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
+    TRexGVSControlParameter en;
+    en.gvs_type = GVSType::EN;
+    en.lambda2_method = LambdaSelectionMethod::CV_1SE_IEN_CCD;
+    EXPECT_THROW(TRexGVSSelector(X_map, y_map, 0.2, en, 42, false), std::invalid_argument);
 }
 
 // ========================================================================================

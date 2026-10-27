@@ -144,8 +144,8 @@ abline(h = sel$v_thresh, lty = 2, col = "red")
 
 | Strategy | Dummies | Storage |
 | --- | --- | --- |
-| `"HCONCAT"` (default) | the same $K$ matrices grow by $p$ columns per L step | $K$ matrices |
-| `"STANDARD"` | fresh matrices at every L step | $K$ matrices |
+| `"STANDARD"` (default) | fresh matrices at every L step | $K$ matrices |
+| `"HCONCAT"` | the same $K$ matrices grow by $p$ columns per L step | $K$ matrices |
 | `"SEEDED"` | the draws of `"STANDARD"`, re-derived from the seed at every step | none |
 | `"PERMUTATION"` | permuted columns of the design | $K$ matrices |
 | `"PERMUTATION_SEEDED"` | the permutation re-derived from the seed | none |
