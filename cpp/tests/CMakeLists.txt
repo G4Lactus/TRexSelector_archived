@@ -99,6 +99,7 @@ add_trex_test(test_utils_disk_space test_utils/test_utils_disk_space.cpp)
 # builds: CI's cpp-tests job, the R package, the Python wheel, and locally
 # cpp/build/release-noblas.
 add_trex_test(test_trex_thread_hygiene test_trex_selector_methods/ad/test_trex_thread_hygiene.cpp)
+add_trex_test(test_trex_thread_determinism test_trex_selector_methods/ad/test_trex_thread_determinism.cpp)
 add_trex_test(test_trex_vd test_trex_selector_methods/vd/test_trex_vd.cpp)
 add_trex_test(test_trex_scaling_none test_trex_selector_methods/ad/test_trex_scaling_none.cpp)
 add_trex_test(test_trex_lambda2_guard test_trex_selector_methods/ad/test_trex_lambda2_guard.cpp)

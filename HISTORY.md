@@ -83,6 +83,27 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
 
 ### 2026-10-27
 
+#### Selections are bitwise independent of the thread options: the test (WP15 step 3)
+
+- `test_trex_thread_determinism.cpp` runs every selector (T-Rex with the HCONCAT,
+  STANDARD, SEEDED and PERMUTATION_SEEDED strategies, T-Rex+DA, GVS, Screen-T-Rex,
+  the biobank screening, SPCA, Tikhonov) on one seeded problem under six thread
+  settings: experiments in sequence with a solver budget of 1, 2 and 4, experiments
+  in parallel on 2 and 4 threads, and both options at 0. The selected support, the
+  stopping time, the voting threshold, the Phi, FDP-hat and R matrices and Phi'
+  (the screening's estimate and coefficients, the biobank record, the SPCA supports,
+  loadings and scores) equal those of the sequential one-thread run bit for bit.
+  The test runs in every build; without OpenMP the settings are inert and the
+  identities hold trivially.
+- The two ingredients were already in place: experiment k derives its own seed
+  and every reduction inside the solvers is summed in a fixed order (the TACGP sum
+  since step 1), and the dropped-column lists of the standardization are sorted
+  after the per-thread merge in `preprocessMatStatistics()` and in
+  `TSolver_Base::preprocess()`, so the plan's "sort after the merge" item needed
+  no change.
+- Verified in the BLAS build and in a no-BLAS build (where Eigen's own threading
+  is live), both with OpenMP.
+
 #### Selectors: the thread options are honoured, serial by default (WP15 step 2)
 
 - One owner of the cores at a time. `parallel_rnd_experiments` (default false)
