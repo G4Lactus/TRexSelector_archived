@@ -120,7 +120,8 @@ Eigen::VectorXd SD_TLARS_Solver::equiangularVector(const Eigen::Ref<const Eigen:
     return u;
 }
 
-std::pair<double, Eigen::VectorXd> SD_TLARS_Solver::computeStepSize(double Cmax, const Eigen::Ref<const Eigen::VectorXd>& u) {
+std::pair<double, Eigen::VectorXd> SD_TLARS_Solver::computeStepSize(double Cmax,
+    const Eigen::Ref<const Eigen::VectorXd>& u) {
     Eigen::VectorXd a(inactives_.size());
     double gamma = std::numeric_limits<double>::max();
 

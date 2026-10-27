@@ -250,7 +250,8 @@ struct SimConfig {
     Eigen::Index M                 = 3;     ///< Number of latent factors
     Eigen::Index overlap_pool_size = 30;    ///< Shared candidate-index pool size
     double       tFDR              = 0.10;  ///< Target FDR for T-Rex SPCA
-    double       lambda_2          = -1.0;  ///< Ridge penalty (LARS units); < 0 = auto-compute via CV, 0 = no ridge, > 0 = fixed
+    /// Ridge penalty (LARS units); < 0 = auto-compute via CV, 0 = no ridge, > 0 = fixed
+    double       lambda_2          = -1.0;
     std::size_t  num_MC            = 100;   ///< Monte Carlo trials
     int          base_seed         = 42;    ///< Base RNG seed
 };
@@ -345,7 +346,8 @@ inline SPCASingleResult evaluate_spca(
     const int false_disc = static_cast<int>(est_supp_pc1.size()) - tp;
 
     double pc1_tpr = true_supp_pc1.empty() ? 1.0 : static_cast<double>(tp) / static_cast<double>(true_supp_pc1.size());
-    double pc1_fdr = est_supp_pc1.empty()  ? 0.0 : static_cast<double>(false_disc) / static_cast<double>(est_supp_pc1.size());
+    double pc1_fdr = est_supp_pc1.empty()
+        ? 0.0 : static_cast<double>(false_disc) / static_cast<double>(est_supp_pc1.size());
 
     // ----------------------------------------------------------------------
     // 2. Cumulative PEV across ALL components

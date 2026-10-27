@@ -129,7 +129,10 @@ TEST_P(LowMemoryEngine, MaskedFitEqualsGatheredFit) {
     }
     Eigen::MatrixXd X_tr(static_cast<Eigen::Index>(train_idx.size()), X.cols());
     Eigen::VectorXd y_tr(static_cast<Eigen::Index>(train_idx.size()));
-    for (std::size_t t = 0; t < train_idx.size(); ++t) { X_tr.row(static_cast<Eigen::Index>(t)) = X.row(train_idx[t]); y_tr(static_cast<Eigen::Index>(t)) = y(train_idx[t]); }
+    for (std::size_t t = 0; t < train_idx.size(); ++t) {
+        X_tr.row(static_cast<Eigen::Index>(t)) = X.row(train_idx[t]);
+        y_tr(static_cast<Eigen::Index>(t)) = y(train_idx[t]);
+    }
     Eigen::MatrixXd X_te(static_cast<Eigen::Index>(test_idx.size()), X.cols());
     for (std::size_t t = 0; t < test_idx.size(); ++t) X_te.row(static_cast<Eigen::Index>(t)) = X.row(test_idx[t]);
 

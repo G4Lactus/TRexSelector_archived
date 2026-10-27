@@ -14,7 +14,8 @@ Status: 2026-07-12
 Linear model $y = X\beta + \varepsilon$ with $X \in \mathbb{R}^{n \times p}$,
 sparse support $\mathcal{S} = \{j : \beta_j \neq 0\}$, $|\mathcal{S}| \ll p$,
 typically $p \gg n$. Goal: select $\hat{\mathcal{S}}$ with
-$\mathrm{FDR} = \mathbb{E}[\mathrm{FDP}] = \mathbb{E}\big[\tfrac{|\hat{\mathcal{S}} \setminus \mathcal{S}|}{\max(1, |\hat{\mathcal{S}}|)}\big] \le \alpha$
+$\mathrm{FDR} = \mathbb{E}[\mathrm{FDP}] = \mathbb{E}\big[\tfrac{|\hat{\mathcal{S}} \setminus \mathcal{S}|}{\max(1,
+|\hat{\mathcal{S}}|)}\big] \le \alpha$
 while maximizing $\mathrm{TPR} = \mathbb{E}\big[\tfrac{|\hat{\mathcal{S}} \cap \mathcal{S}|}{|\mathcal{S}|}\big]$.
 
 **Preprocessing contract**: columns of $X$ centered with a common L2 norm

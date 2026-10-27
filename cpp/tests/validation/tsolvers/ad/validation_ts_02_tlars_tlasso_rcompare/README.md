@@ -2,7 +2,8 @@
 
 ## Purpose
 
-Final forward-selection path-equivalence test comparing the CRAN `tlars` package against the C++ `TLARS`/`TLASSO` solvers, using the same sparse factor-model data as the SPCA demos (`trex_spca`).
+Final forward-selection path-equivalence test comparing the CRAN `tlars` package against the C++ `TLARS`/`TLASSO`
+solvers, using the same sparse factor-model data as the SPCA demos (`trex_spca`).
 
 This is the authoritative cross-language correctness check for the two most commonly used solvers in the T-Rex selector.
 

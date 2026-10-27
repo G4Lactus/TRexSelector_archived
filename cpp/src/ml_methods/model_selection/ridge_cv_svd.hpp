@@ -558,8 +558,12 @@ private:
             for (Eigen::Index jj = 0; jj < nb; ++jj) {
                 const Eigen::Index j = j0 + jj;
                 const double m = x_mean_tr(j), inv_s = 1.0 / x_scale_tr(j);
-                for (Eigen::Index t = 0; t < n_train; ++t) Btr(t, jj) = (X(tr[static_cast<std::size_t>(t)], j) - m) * inv_s;
-                for (Eigen::Index t = 0; t < n_test;  ++t) Bte(t, jj) = (X(te[static_cast<std::size_t>(t)], j) - m) * inv_s;
+                for (Eigen::Index t = 0; t < n_train; ++t) {
+                    Btr(t, jj) = (X(tr[static_cast<std::size_t>(t)], j) - m) * inv_s;
+                }
+                for (Eigen::Index t = 0; t < n_test; ++t) {
+                    Bte(t, jj) = (X(te[static_cast<std::size_t>(t)], j) - m) * inv_s;
+                }
             }
             K_tr.selfadjointView<Eigen::Lower>().rankUpdate(Btr.leftCols(nb));
             K_te.noalias() += Bte.leftCols(nb) * Btr.leftCols(nb).transpose();

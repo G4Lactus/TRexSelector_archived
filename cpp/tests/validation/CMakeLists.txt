@@ -164,5 +164,5 @@ add_custom_target(build_diagnostics
             validation_trex_spca_06_handrolled_comparison
             validation_trex_spca_07_matrix_dump
             validation_ts_01_tenet_aug_comparison
-    COMMENT "Built all migrated diagnostics -- run individually from build/debug/bin/ (most are multi-minute MC studies)."
+    COMMENT "Built all diagnostics; run them individually from build/debug/bin/ (most are multi-minute MC studies)"
     VERBATIM)

@@ -206,7 +206,8 @@ TEST(TSolverGettersTest, TENETBetaDeNormalizesDummies) {
     Eigen::Map<Eigen::MatrixXd> XB_map(XB.data(), n, p);
     Eigen::Map<Eigen::MatrixXd> DB_map(DB.data(), n, L);
     Eigen::Map<Eigen::VectorXd> yB_map(yB.data(), n);
-    TENET_Solver B(XB_map, DB_map, yB_map, trex::tsolvers::ad::SolverOptions{.normalize = false, .intercept = false, .lambda2 = 0.5});
+    TENET_Solver B(XB_map, DB_map, yB_map, trex::tsolvers::ad::SolverOptions{.normalize = false, .intercept = false,
+        .lambda2 = 0.5});
     B.executeStep(2, true);
 
     ASSERT_EQ(A.getNumSteps(), B.getNumSteps());
@@ -241,7 +242,8 @@ TEST(TSolverGettersTest, ZScoreScalingMatchesManualStandardization) {
     Eigen::Map<Eigen::MatrixXd> XA_map(XA.data(), n, p);
     Eigen::Map<Eigen::MatrixXd> DA_map(DA.data(), n, L);
     Eigen::Map<Eigen::VectorXd> yA_map(yA.data(), n);
-    TLARS_Solver A(XA_map, DA_map, yA_map, trex::tsolvers::ad::SolverOptions{.scaling_mode = trex::tsolvers::ad::ScalingMode::ZSCORE});
+    TLARS_Solver A(XA_map, DA_map, yA_map,
+        trex::tsolvers::ad::SolverOptions{.scaling_mode = trex::tsolvers::ad::ScalingMode::ZSCORE});
     A.executeStep(2, true);
 
     // Solver B: manual z-scoring (divisor = sample SD), preprocessing disabled
@@ -304,7 +306,8 @@ TEST(TSolverGettersTest, TENETAugMatchesGramBasedTENET) {
     Eigen::Map<Eigen::MatrixXd> X1_map(X1.data(), n, p);
     Eigen::Map<Eigen::MatrixXd> D1_map(D1.data(), n, L);
     Eigen::Map<Eigen::VectorXd> y1_map(y1.data(), n);
-    TENET_Solver gram(X1_map, D1_map, y1_map, trex::tsolvers::ad::SolverOptions{.normalize = false, .intercept = false, .precentered = true, .lambda2 = lambda2});
+    TENET_Solver gram(X1_map, D1_map, y1_map, trex::tsolvers::ad::SolverOptions{.normalize = false, .intercept = false,
+        .precentered = true, .lambda2 = lambda2});
     gram.executeStep(3, true);
 
     Eigen::MatrixXd X2 = X, D2 = D;

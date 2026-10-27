@@ -386,12 +386,14 @@ TEST_F(TSolverCdTest, GroupCenteringMatchesSparseFoldedKgc) {
     K_gc.setFromTriplets(trip.begin(), trip.end());
 
     Mapped ms(X, D, y);
-    TCDTIKNET_Solver sparse_path(ms.Xm, ms.Dm, ms.ym, K_gc, trex::tsolvers::ad::SolverOptions{.lambda2 = lambda2, .fold_dummies = true});
+    TCDTIKNET_Solver sparse_path(ms.Xm, ms.Dm, ms.ym, K_gc, trex::tsolvers::ad::SolverOptions{.lambda2 = lambda2,
+        .fold_dummies = true});
     sparse_path.setLambdaRelTol(1e-6);
     sparse_path.executeStep(5, true);
 
     Mapped mg(X, D, y);
-    TCDIENET_Solver fast_path(mg.Xm, mg.Dm, mg.ym, groups, trex::tsolvers::ad::SolverOptions{.lambda2 = lambda2, .group_penalty = GroupPenaltyVariant::CENTERING});
+    TCDIENET_Solver fast_path(mg.Xm, mg.Dm, mg.ym, groups, trex::tsolvers::ad::SolverOptions{.lambda2 = lambda2,
+        .group_penalty = GroupPenaltyVariant::CENTERING});
     fast_path.setLambdaRelTol(1e-6);
     fast_path.executeStep(5, true);
 
@@ -408,7 +410,8 @@ TEST_F(TSolverCdTest, GroupCenteringSingletonGroupsMatchTcdlasso) {
         X.cols(), 0, static_cast<int>(X.cols()) - 1);
 
     Mapped mg(X, D, y);
-    TCDIENET_Solver cen(mg.Xm, mg.Dm, mg.ym, singleton, trex::tsolvers::ad::SolverOptions{.lambda2 = 3.0, .group_penalty = GroupPenaltyVariant::CENTERING});
+    TCDIENET_Solver cen(mg.Xm, mg.Dm, mg.ym, singleton, trex::tsolvers::ad::SolverOptions{.lambda2 = 3.0,
+        .group_penalty = GroupPenaltyVariant::CENTERING});
     cen.executeStep(5, true);
 
     Mapped mc(X, D, y);
@@ -611,7 +614,8 @@ TEST_F(TSolverCdTest, CertifiedRecordsCarryCertificates) {
         Eigen::SparseMatrix<double> K_gc(p, p);
         K_gc.setFromTriplets(trip.begin(), trip.end());
         Mapped m(X, D, y);
-        TCDTIKNET_Solver s(m.Xm, m.Dm, m.ym, K_gc, trex::tsolvers::ad::SolverOptions{.lambda2 = 2.0, .fold_dummies = true});
+        TCDTIKNET_Solver s(m.Xm, m.Dm, m.ym, K_gc, trex::tsolvers::ad::SolverOptions{.lambda2 = 2.0,
+            .fold_dummies = true});
         check(s, "TCDTIKNET(folded)");
     }
 }

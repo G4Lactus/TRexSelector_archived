@@ -121,7 +121,8 @@ r_sel <- tryCatch({
 }, error = function(e) { cat("trex() failed:", conditionMessage(e), "\n"); NULL })
 
 if (!is.null(r_sel)) {
-  cat(sprintf("R trex+DA+BT: T_stop=%d  num_dummies=%d (L=%g)  #selected=%d  FDP=%.4f  TPP=%.4f  selected(0-based): %s\n",
+  cat(sprintf(paste0("R trex+DA+BT: T_stop=%d  num_dummies=%d (L=%g)  #selected=%d  FDP=%.4f  TPP=%.4f  ",
+                     "selected(0-based): %s\n"),
               r_sel$T_stop, r_sel$num_dummies, r_sel$num_dummies / p,
               length(r_sel$selected), r_sel$FDP, r_sel$TPP,
               paste(r_sel$selected, collapse = " ")))

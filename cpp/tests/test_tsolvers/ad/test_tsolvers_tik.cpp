@@ -365,7 +365,8 @@ TEST_F(TSolverTikTest, TiknetGroupMeanKMatchesTienet) {
     const double lambda2 = 1.0;
 
     Mapped mt(X, D, y);
-    TIKNET_Solver tik(mt.Xm, mt.Dm, mt.ym, groupMeanK(X.cols(), 5), trex::tsolvers::ad::SolverOptions{.lambda2 = lambda2});
+    TIKNET_Solver tik(mt.Xm, mt.Dm, mt.ym, groupMeanK(X.cols(), 5),
+        trex::tsolvers::ad::SolverOptions{.lambda2 = lambda2});
     tik.executeStep(5, true);
 
     Mapped mi(X, D, y);
@@ -414,11 +415,13 @@ TEST_F(TSolverTikTest, TiknetKgcCrossingSupportsMatchCcdGroupCentering) {
     const double lambda2 = 2.0;
 
     Mapped mt(X, D, y);
-    TIKNET_Solver tik(mt.Xm, mt.Dm, mt.ym, groupCenteringK(X.cols(), 5), trex::tsolvers::ad::SolverOptions{.lambda2 = lambda2});
+    TIKNET_Solver tik(mt.Xm, mt.Dm, mt.ym, groupCenteringK(X.cols(), 5),
+        trex::tsolvers::ad::SolverOptions{.lambda2 = lambda2});
     tik.executeStep(T, true);
 
     Mapped mc(X, D, y);
-    TCDIENET_Solver ccd(mc.Xm, mc.Dm, mc.ym, groups, trex::tsolvers::ad::SolverOptions{.lambda2 = lambda2, .group_penalty = GroupPenaltyVariant::CENTERING});
+    TCDIENET_Solver ccd(mc.Xm, mc.Dm, mc.ym, groups, trex::tsolvers::ad::SolverOptions{.lambda2 = lambda2,
+        .group_penalty = GroupPenaltyVariant::CENTERING});
     ccd.setLambdaRelTol(1e-6);
     ccd.executeStep(T, true);
 
@@ -443,7 +446,8 @@ TEST_F(TSolverTikTest, SerializeLoadContinueMatchesContinuous_TIKNET) {
     const Eigen::Index p = X.cols();
     expectRoundTripMatchesContinuous<TIKNET_Solver>(
         [p](Mapped& m) {
-            return TIKNET_Solver(m.Xm, m.Dm, m.ym, groupCenteringK(p, 5), trex::tsolvers::ad::SolverOptions{.lambda2 = 2.0});
+            return TIKNET_Solver(m.Xm, m.Dm, m.ym, groupCenteringK(p, 5),
+                trex::tsolvers::ad::SolverOptions{.lambda2 = 2.0});
         },
         "tiknet");
 }
@@ -618,7 +622,8 @@ TEST_F(TSolverTikTest, SerializeLoadContinueAcrossDropRecovery_TIKNET) {
     for (std::size_t T_partial = 1; T_partial <= 5; ++T_partial) {
         {
             Mapped mp(X, D, y);
-            TIKNET_Solver probe(mp.Xm, mp.Dm, mp.ym, groupMeanK(20, 5), trex::tsolvers::ad::SolverOptions{.lambda2 = 1.0});
+            TIKNET_Solver probe(mp.Xm, mp.Dm, mp.ym, groupMeanK(20, 5),
+                trex::tsolvers::ad::SolverOptions{.lambda2 = 1.0});
             probe.executeStep(T_partial, true);
             if (!probe.getActions().empty()) {
                 for (int act : probe.getActions().back()) {
@@ -628,7 +633,8 @@ TEST_F(TSolverTikTest, SerializeLoadContinueAcrossDropRecovery_TIKNET) {
         }
         expectRoundTripMatchesContinuous<TIKNET_Solver>(
             [](Mapped& m) {
-                return TIKNET_Solver(m.Xm, m.Dm, m.ym, groupMeanK(20, 5), trex::tsolvers::ad::SolverOptions{.lambda2 = 1.0});
+                return TIKNET_Solver(m.Xm, m.Dm, m.ym, groupMeanK(20, 5),
+                    trex::tsolvers::ad::SolverOptions{.lambda2 = 1.0});
             },
             "tiknet_droprec_T" + std::to_string(T_partial), T_partial, 6);
     }
@@ -684,7 +690,8 @@ TEST_F(TSolverTikTest, TiknetRankBoundTakesTerminalStep) {
     const double lambda2 = 0.5;
 
     Mapped m(rb.X, rb.D, rb.y);
-    TIKNET_Solver tik(m.Xm, m.Dm, m.ym, identityK(10), trex::tsolvers::ad::SolverOptions{.normalize = false, .intercept = false, .lambda2 = lambda2});
+    TIKNET_Solver tik(m.Xm, m.Dm, m.ym, identityK(10), trex::tsolvers::ad::SolverOptions{.normalize = false,
+        .intercept = false, .lambda2 = lambda2});
     tik.executeStep(0, false);
 
     const auto& dof = tik.getDoF();
@@ -715,7 +722,8 @@ TEST_F(TSolverTikTest, TiknetRankBoundDropContinuesPath) {
     const double lambda2 = 0.5;
 
     Mapped m(rb.X, rb.D, rb.y);
-    TIKNET_Solver tik(m.Xm, m.Dm, m.ym, identityK(10), trex::tsolvers::ad::SolverOptions{.normalize = false, .intercept = false, .lambda2 = lambda2});
+    TIKNET_Solver tik(m.Xm, m.Dm, m.ym, identityK(10), trex::tsolvers::ad::SolverOptions{.normalize = false,
+        .intercept = false, .lambda2 = lambda2});
     tik.executeStep(0, false);
 
     const auto& dof = tik.getDoF();
@@ -763,12 +771,14 @@ TEST_F(TSolverTikTest, TiknetIdentityKMatchesTienetSingletonGroupsAtRankBound) {
     const double lambda2 = 0.5;
 
     Mapped mt(rb.X, rb.D, rb.y);
-    TIKNET_Solver tik(mt.Xm, mt.Dm, mt.ym, identityK(10), trex::tsolvers::ad::SolverOptions{.normalize = false, .intercept = false, .lambda2 = lambda2});
+    TIKNET_Solver tik(mt.Xm, mt.Dm, mt.ym, identityK(10), trex::tsolvers::ad::SolverOptions{.normalize = false,
+        .intercept = false, .lambda2 = lambda2});
     tik.executeStep(0, false);
 
     Eigen::VectorXi singleton = Eigen::VectorXi::LinSpaced(10, 0, 9);
     Mapped mi(rb.X, rb.D, rb.y);
-    TIENET_Solver ien(mi.Xm, mi.Dm, mi.ym, singleton, trex::tsolvers::ad::SolverOptions{.normalize = false, .intercept = false, .lambda2 = lambda2});
+    TIENET_Solver ien(mi.Xm, mi.Dm, mi.ym, singleton, trex::tsolvers::ad::SolverOptions{.normalize = false,
+        .intercept = false, .lambda2 = lambda2});
     ien.executeStep(0, false);
 
     EXPECT_EQ(tik.getActions(), ien.getActions());
@@ -828,15 +838,18 @@ TEST_F(TSolverTikTest, TiknetAcceptsValidTikhonovK) {
     const Eigen::Index p = X.cols();
     {
         Mapped m(X, D, y);
-        EXPECT_NO_THROW(TIKNET_Solver(m.Xm, m.Dm, m.ym, identityK(p), trex::tsolvers::ad::SolverOptions{.lambda2 = 1.0}));
+        EXPECT_NO_THROW(TIKNET_Solver(m.Xm, m.Dm, m.ym, identityK(p),
+            trex::tsolvers::ad::SolverOptions{.lambda2 = 1.0}));
     }
     {
         Mapped m(X, D, y);
-        EXPECT_NO_THROW(TIKNET_Solver(m.Xm, m.Dm, m.ym, groupMeanK(p, 5), trex::tsolvers::ad::SolverOptions{.lambda2 = 1.0}));
+        EXPECT_NO_THROW(TIKNET_Solver(m.Xm, m.Dm, m.ym, groupMeanK(p, 5),
+            trex::tsolvers::ad::SolverOptions{.lambda2 = 1.0}));
     }
     {
         Mapped m(X, D, y);
-        EXPECT_NO_THROW(TIKNET_Solver(m.Xm, m.Dm, m.ym, groupCenteringK(p, 5), trex::tsolvers::ad::SolverOptions{.lambda2 = 1.0}));
+        EXPECT_NO_THROW(TIKNET_Solver(m.Xm, m.Dm, m.ym, groupCenteringK(p, 5),
+            trex::tsolvers::ad::SolverOptions{.lambda2 = 1.0}));
     }
 }
 
@@ -870,7 +883,8 @@ TEST_F(TSolverTikTest, TcdtiknetRejectsInvalidTikhonovK) {
     }
     {
         Mapped m(X, D, y);
-        EXPECT_NO_THROW(TCDTIKNET_Solver(m.Xm, m.Dm, m.ym, groupCenteringK(p, 5), trex::tsolvers::ad::SolverOptions{.lambda2 = 1.0}));
+        EXPECT_NO_THROW(TCDTIKNET_Solver(m.Xm, m.Dm, m.ym, groupCenteringK(p, 5),
+            trex::tsolvers::ad::SolverOptions{.lambda2 = 1.0}));
     }
 }
 

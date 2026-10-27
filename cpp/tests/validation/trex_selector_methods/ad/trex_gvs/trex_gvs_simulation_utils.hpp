@@ -604,12 +604,18 @@ inline void print_mc_snr_table(
                 << std::fixed << std::setprecision(6);
             for (std::size_t i = 0; i < snr_grid.size(); ++i) {
                 const double snr = snr_grid[i];
-                csv << "EN,mean_FDP,"     << snr << "," << en_results[i].mean_fdp     << "," << en_results[i].sd_fdp     << "\n";
-                csv << "EN,mean_TPP,"     << snr << "," << en_results[i].mean_tpp     << "," << en_results[i].sd_tpp     << "\n";
-                csv << "EN+AUG,mean_FDP," << snr << "," << en_aug_results[i].mean_fdp << "," << en_aug_results[i].sd_fdp << "\n";
-                csv << "EN+AUG,mean_TPP," << snr << "," << en_aug_results[i].mean_tpp << "," << en_aug_results[i].sd_tpp << "\n";
-                csv << "IEN,mean_FDP,"    << snr << "," << ien_results[i].mean_fdp    << "," << ien_results[i].sd_fdp    << "\n";
-                csv << "IEN,mean_TPP,"    << snr << "," << ien_results[i].mean_tpp    << "," << ien_results[i].sd_tpp    << "\n";
+                csv << "EN,mean_FDP,"     << snr << "," << en_results[i].mean_fdp     << ","
+                    << en_results[i].sd_fdp     << "\n";
+                csv << "EN,mean_TPP,"     << snr << "," << en_results[i].mean_tpp     << ","
+                    << en_results[i].sd_tpp     << "\n";
+                csv << "EN+AUG,mean_FDP," << snr << "," << en_aug_results[i].mean_fdp << ","
+                    << en_aug_results[i].sd_fdp << "\n";
+                csv << "EN+AUG,mean_TPP," << snr << "," << en_aug_results[i].mean_tpp << ","
+                    << en_aug_results[i].sd_tpp << "\n";
+                csv << "IEN,mean_FDP,"    << snr << "," << ien_results[i].mean_fdp    << ","
+                    << ien_results[i].sd_fdp    << "\n";
+                csv << "IEN,mean_TPP,"    << snr << "," << ien_results[i].mean_tpp    << ","
+                    << ien_results[i].sd_tpp    << "\n";
             }
             std::cout << "[Info] CSV saved to: " << dir + file_stem + ".csv\n\n";
         }
@@ -1010,12 +1016,18 @@ inline void print_mc_param_sweep_table(
                 << std::fixed << std::setprecision(6);
             for (std::size_t i = 0; i < param_grid.size(); ++i) {
                 const double pv = param_grid[i];
-                csv << "EN,mean_FDP,"     << pv << "," << en_results[i].mean_fdp     << "," << en_results[i].sd_fdp     << "\n";
-                csv << "EN,mean_TPP,"     << pv << "," << en_results[i].mean_tpp     << "," << en_results[i].sd_tpp     << "\n";
-                csv << "EN+AUG,mean_FDP," << pv << "," << en_aug_results[i].mean_fdp << "," << en_aug_results[i].sd_fdp << "\n";
-                csv << "EN+AUG,mean_TPP," << pv << "," << en_aug_results[i].mean_tpp << "," << en_aug_results[i].sd_tpp << "\n";
-                csv << "IEN,mean_FDP,"    << pv << "," << ien_results[i].mean_fdp    << "," << ien_results[i].sd_fdp    << "\n";
-                csv << "IEN,mean_TPP,"    << pv << "," << ien_results[i].mean_tpp    << "," << ien_results[i].sd_tpp    << "\n";
+                csv << "EN,mean_FDP,"     << pv << "," << en_results[i].mean_fdp     << ","
+                    << en_results[i].sd_fdp     << "\n";
+                csv << "EN,mean_TPP,"     << pv << "," << en_results[i].mean_tpp     << ","
+                    << en_results[i].sd_tpp     << "\n";
+                csv << "EN+AUG,mean_FDP," << pv << "," << en_aug_results[i].mean_fdp << ","
+                    << en_aug_results[i].sd_fdp << "\n";
+                csv << "EN+AUG,mean_TPP," << pv << "," << en_aug_results[i].mean_tpp << ","
+                    << en_aug_results[i].sd_tpp << "\n";
+                csv << "IEN,mean_FDP,"    << pv << "," << ien_results[i].mean_fdp    << ","
+                    << ien_results[i].sd_fdp    << "\n";
+                csv << "IEN,mean_TPP,"    << pv << "," << ien_results[i].mean_tpp    << ","
+                    << ien_results[i].sd_tpp    << "\n";
             }
             std::cout << "[Info] CSV saved to: " << dir + file_stem + ".csv\n\n";
         }

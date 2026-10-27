@@ -126,7 +126,8 @@ void MemoryMappedMatrix<Scalar>::initialize() {
             : boost::interprocess::read_write;
             
         file_mapping_ = std::make_unique<boost::interprocess::file_mapping>(filename_.c_str(), b_mode);
-        mapped_region_ = std::make_unique<boost::interprocess::mapped_region>(*file_mapping_, b_mode, 0, required_bytes);
+        mapped_region_ = std::make_unique<boost::interprocess::mapped_region>(*file_mapping_, b_mode, 0,
+            required_bytes);
     } catch (const std::exception& e) {
         throw std::runtime_error("Boost map failed: " + std::string(e.what()));
     }

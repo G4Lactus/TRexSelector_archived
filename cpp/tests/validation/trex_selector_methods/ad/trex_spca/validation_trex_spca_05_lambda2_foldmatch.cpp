@@ -145,8 +145,14 @@ int main() {
         const Eigen::Index n_tr = static_cast<Eigen::Index>(tr.size());
         Eigen::MatrixXd X_tr(n_tr, p), X_te(n_te, p);
         Eigen::VectorXd y_tr(n_tr),    y_te(n_te);
-        for (Eigen::Index k = 0; k < n_tr; ++k) { X_tr.row(k) = X.row(tr[static_cast<std::size_t>(k)]); y_tr(k) = y(tr[static_cast<std::size_t>(k)]); }
-        for (Eigen::Index k = 0; k < n_te; ++k) { X_te.row(k) = X.row(te[static_cast<std::size_t>(k)]); y_te(k) = y(te[static_cast<std::size_t>(k)]); }
+        for (Eigen::Index k = 0; k < n_tr; ++k) {
+            X_tr.row(k) = X.row(tr[static_cast<std::size_t>(k)]);
+            y_tr(k) = y(tr[static_cast<std::size_t>(k)]);
+        }
+        for (Eigen::Index k = 0; k < n_te; ++k) {
+            X_te.row(k) = X.row(te[static_cast<std::size_t>(k)]);
+            y_te(k) = y(te[static_cast<std::size_t>(k)]);
+        }
 
         ms::enet_gaussian en;
         en.fit(X_tr, y_tr, lam, /*alpha=*/0.0,

@@ -63,8 +63,10 @@ else()
     option(TREX_USE_BLAS_LAPACK "Use BLAS/LAPACK backends for Eigen" ON)
 endif()
 option(TREX_PORTABLE_BUILD "Disable -march=native for portable/wheel builds. Set ON when building for PyPI or CI." OFF)
-option(TREX_INSTALL_CPP_SDK "Install the C++ SDK: headers, static libraries and the CMake package files. OFF for Python wheels, which need only the extension module." ON)
-option(TREX_WITH_OPENMP "Use OpenMP when it is found. OFF forces the single-threaded build even where OpenMP exists." ON)
+# The SDK install (headers, static libraries, CMake package files) is OFF for Python wheels,
+# which need only the extension module. TREX_WITH_OPENMP=OFF forces the single-threaded build.
+option(TREX_INSTALL_CPP_SDK "Install the C++ SDK (headers, static libraries, CMake package files)" ON)
+option(TREX_WITH_OPENMP "Use OpenMP when it is found (OFF forces the single-threaded build)" ON)
 
 # Shared per-target compiler flags (GCC/Clang vs MSVC)
 include(cmake/TRexCompilerOptions.cmake)
@@ -389,7 +391,8 @@ endif()
 if(CMAKE_PROJECT_NAME STREQUAL PROJECT_NAME)
     set(CPACK_PACKAGE_NAME                 "TRexSelector")
     set(CPACK_PACKAGE_VENDOR               "Robust Data Science Group - TU Darmstadt")
-    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY  "C++ T-Rex Selector for FDR-controlled variable selection in high-dimensional regression")
+    set(CPACK_PACKAGE_DESCRIPTION_SUMMARY
+        "C++ T-Rex Selector for FDR-controlled variable selection in high-dimensional regression")
     set(CPACK_PACKAGE_VERSION              ${PROJECT_VERSION})
     set(CPACK_PACKAGE_VERSION_MAJOR        ${PROJECT_VERSION_MAJOR})
     set(CPACK_PACKAGE_VERSION_MINOR        ${PROJECT_VERSION_MINOR})
