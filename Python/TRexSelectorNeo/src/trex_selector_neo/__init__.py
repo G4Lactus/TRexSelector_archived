@@ -370,7 +370,8 @@ class TRexTikhonovSelector(TRexSelector):
 
     @property
     def lambda2_pilot(self) -> Lambda2PilotResult:
-        """Record of the lambda_2 pilot of the last select() (Lambda2PilotResult; ``ran`` is False unless a PILOT_* rule resolved lambda_2)."""
+        """Record of the lambda_2 pilot of the last select() (Lambda2PilotResult; ``ran`` is False unless a
+        PILOT_* rule resolved lambda_2)."""
         return self._selector.getLambda2PilotResult()
 
 

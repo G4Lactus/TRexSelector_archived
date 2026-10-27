@@ -176,8 +176,11 @@ inline void bind_trex_core(py::module& m_tsm) {
         "(user-managed centering and scaling, e.g. a pre-normalized design or an intercept-free "
         "dictionary), with the dummies kept on the unit-L2 standard.")
         .value("L2",     dn::ScalingMode::L2,     "Divide each centered column by its L2 norm (unit L2 norm).")
-        .value("ZSCORE", dn::ScalingMode::ZSCORE, "Divide each centered column by its sample SD (n-1); glmnet standardize=TRUE convention.")
-        .value("NONE",   dn::ScalingMode::NONE,   "Leave X and y untouched (no centering, no scaling); the design should be unit-L2-commensurate since the dummies keep the unit-L2 standard. A design pre-normalized with normalize_design() selects under NONE exactly what the raw design selects under L2.")
+        .value("ZSCORE", dn::ScalingMode::ZSCORE, "Divide each centered column by its sample SD (n-1); glmnet "
+            "standardize=TRUE convention.")
+        .value("NONE",   dn::ScalingMode::NONE,   "Leave X and y untouched (no centering, no scaling); the design "
+            "should be unit-L2-commensurate since the dummies keep the unit-L2 standard. A design pre-normalized with "
+            "normalize_design() selects under NONE exactly what the raw design selects under L2.")
         .export_values();
 
     // The library's own normalization as a user-callable helper, so a caller
@@ -208,13 +211,18 @@ inline void bind_trex_core(py::module& m_tsm) {
         "(constant under L2 / ZSCORE, all-zero under NONE), naming the column (0-based).");
 
     // Bind LLoopStrategy enum
-    py::enum_<LLoopStrategy>(m_tsm, "LLoopStrategy", "L-loop strategy controlling how dummy variables are constructed in each experiment.")
+    py::enum_<LLoopStrategy>(m_tsm, "LLoopStrategy", "L-loop strategy controlling how dummy variables are constructed "
+        "in each experiment.")
         .value("SKIPL", LLoopStrategy::SKIPL, "Stored, one-shot: fixed dummies = max_dummy_multiplier * p.")
         .value("STANDARD", LLoopStrategy::STANDARD, "Stored; fresh dummies at each L-loop iteration (conservative).")
-        .value("HCONCAT", LLoopStrategy::HCONCAT, "Stored; horizontally expand dummy matrices across L (faster, same result).")
-        .value("PERMUTATION", LLoopStrategy::PERMUTATION, "Stored base dummy matrix + deterministic row permutations per experiment.")
-        .value("PERMUTATION_SEEDED", LLoopStrategy::PERMUTATION_SEEDED, "Seed-derived base + row permutations per experiment; nothing stored.")
-        .value("SEEDED", LLoopStrategy::SEEDED, "The storage-free twin of STANDARD: fresh dummies at every L step, re-derived from the seed per experiment and bit-identical to STANDARD for the same seed; nothing stored.")
+        .value("HCONCAT", LLoopStrategy::HCONCAT, "Stored; horizontally expand dummy matrices across L (faster, same "
+            "result).")
+        .value("PERMUTATION", LLoopStrategy::PERMUTATION, "Stored base dummy matrix + deterministic row permutations "
+            "per experiment.")
+        .value("PERMUTATION_SEEDED", LLoopStrategy::PERMUTATION_SEEDED, "Seed-derived base + row permutations per "
+            "experiment; nothing stored.")
+        .value("SEEDED", LLoopStrategy::SEEDED, "The storage-free twin of STANDARD: fresh dummies at every L step, "
+            "re-derived from the seed per experiment and bit-identical to STANDARD for the same seed; nothing stored.")
         .export_values();
 
     // Bind SolverTypeForTRex enum
@@ -228,35 +236,63 @@ inline void bind_trex_core(py::module& m_tsm) {
         .value("TGP",        disp::SolverTypeForTRex::TGP,        "Terminating Gradient Pursuit.")
         .value("TACGP",      disp::SolverTypeForTRex::TACGP,      "Terminating Approximate Conjugate Gradient Pursuit.")
         .value("TMP",        disp::SolverTypeForTRex::TMP,        "Terminating Matching Pursuit.")
-        .value("TNCGMP",     disp::SolverTypeForTRex::TNCGMP,     "Terminating Norm-Corrected Generalized Matching Pursuit.")
+        .value("TNCGMP",     disp::SolverTypeForTRex::TNCGMP,     "Terminating Norm-Corrected Generalized Matching "
+            "Pursuit.")
         .value("TOOLS",      disp::SolverTypeForTRex::TOOLS,      "Terminating Orthogonal Least Squares.")
         .value("TAFS",       disp::SolverTypeForTRex::TAFS,       "Terminating AFS.")
-        .value("TENET_AUG",  disp::SolverTypeForTRex::TENET_AUG,  "Terminating Elastic Net via augmented LASSO; accepted wherever TENET runs (LASSO inner path standard, LARS via tenet_aug_use_lars).")
-        .value("TCDLASSO",   disp::SolverTypeForTRex::TCDLASSO,   "Terminating coordinate-descent LASSO (exact penalized-lasso minimizers per crossing; certified crossing localization by default).")
+        .value("TENET_AUG",  disp::SolverTypeForTRex::TENET_AUG,  "Terminating Elastic Net via augmented LASSO; "
+            "accepted wherever TENET runs (LASSO inner path standard, LARS via tenet_aug_use_lars).")
+        .value("TCDLASSO",   disp::SolverTypeForTRex::TCDLASSO,   "Terminating coordinate-descent LASSO (exact "
+            "penalized-lasso minimizers per crossing; certified crossing localization by default).")
         .value("TCDENET",    disp::SolverTypeForTRex::TCDENET,    "Terminating coordinate-descent Elastic Net.")
-        .value("TIENET",     disp::SolverTypeForTRex::TIENET,     "Terminating Informed Elastic Net, native pathwise (GVS-only, gvs_type=IEN; IEN default).")
-        .value("TIENET_AUG", disp::SolverTypeForTRex::TIENET_AUG, "Terminating Informed Elastic Net via augmented LASSO (GVS-only, gvs_type=IEN).")
-        .value("TCDIENET",   disp::SolverTypeForTRex::TCDIENET,   "Terminating coordinate-descent Informed Elastic Net (GVS-only, gvs_type=IEN).")
-        .value("TCDTIKNET",  disp::SolverTypeForTRex::TCDTIKNET,  "Terminating coordinate-descent Tikhonov Net (sparse-K; needs a penalty matrix, TRexTikhonovSelector only — not yet bound in Python).")
-        .value("TIKNET",     disp::SolverTypeForTRex::TIKNET,     "Terminating Tikhonov Net, native pathwise (sparse-K, FOLDED; TRexTikhonovSelector only).")
+        .value("TIENET",     disp::SolverTypeForTRex::TIENET,     "Terminating Informed Elastic Net, native pathwise "
+            "(GVS-only, gvs_type=IEN; IEN default).")
+        .value("TIENET_AUG", disp::SolverTypeForTRex::TIENET_AUG, "Terminating Informed Elastic Net via augmented "
+            "LASSO "
+            "(GVS-only, gvs_type=IEN).")
+        .value("TCDIENET",   disp::SolverTypeForTRex::TCDIENET,   "Terminating coordinate-descent Informed Elastic Net "
+            "(GVS-only, gvs_type=IEN).")
+        .value("TCDTIKNET",  disp::SolverTypeForTRex::TCDTIKNET,  "Terminating coordinate-descent Tikhonov Net "
+            "(sparse-K; needs a penalty matrix, TRexTikhonovSelector only — not yet bound in Python).")
+        .value("TIKNET",     disp::SolverTypeForTRex::TIKNET,     "Terminating Tikhonov Net, native pathwise "
+            "(sparse-K, "
+            "FOLDED; TRexTikhonovSelector only).")
         .export_values();
 
     // Bind SolverHyperparameters struct
-    py::class_<disp::SolverHyperparameters>(m_tsm, "SolverHyperparameters", "Hyperparameters for the selected T-Rex solver.")
+    py::class_<disp::SolverHyperparameters>(m_tsm, "SolverHyperparameters", "Hyperparameters for the selected T-Rex "
+        "solver.")
         .def(py::init<>())
-        .def_readwrite("lambda2",       &disp::SolverHyperparameters::lambda2,       "L2 penalty for ENET-type solvers.")
-        .def_readwrite("rho_afs",       &disp::SolverHyperparameters::rho_afs,       "Shrinkage step size for AFS solver in (0, 1].")
-        .def_readwrite("ncgmp_variant", &disp::SolverHyperparameters::ncgmp_variant, "NCGMP variant: 0 = LineSearch, 1 = FullyCorrective.")
-        .def_readwrite("tol",           &disp::SolverHyperparameters::tol,           "Numerical tolerance for solver steps.")
-        .def_readwrite("exch_tie_alpha", &disp::SolverHyperparameters::exch_tie_alpha, "Exchangeable-tie band width for greedy solvers (TOMP/TAFS) in pairwise ranking-noise sd units; 0 = off. Recommended under trex+DA: 0.25.")
-        .def_readwrite("exch_tie_floor", &disp::SolverHyperparameters::exch_tie_floor, "Minimum |correlation| for exchangeable-tie candidates in (0, 1); ignored unless exch_tie_alpha > 0.")
-        .def_readwrite("tenet_aug_use_lars", &disp::SolverHyperparameters::tenet_aug_use_lars, "TENET_AUG: False (default) = standard LASSO inner path; True = optional pure-LARS inner path that never drops variables.")
-        .def_readwrite("cd_lambda_rel_tol", &disp::SolverHyperparameters::cd_lambda_rel_tol, "CCD family: relative lambda step tolerance of the crossing search (<= 0 keeps the solver default).")
-        .def_readwrite("cd_tol_certify", &disp::SolverHyperparameters::cd_tol_certify, "CCD family: KKT certification tolerance; applied only when set together with cd_tol_probe (both > 0).")
-        .def_readwrite("cd_tol_probe", &disp::SolverHyperparameters::cd_tol_probe, "CCD family: probing tolerance; applied only when set together with cd_tol_certify (both > 0).")
-        .def_readwrite("cd_gram_cap", &disp::SolverHyperparameters::cd_gram_cap, "CCD family: column cap for the cached Gram matrix (0 keeps the solver default).")
-        .def_readwrite("cd_max_sweeps", &disp::SolverHyperparameters::cd_max_sweeps, "CCD family: maximum coordinate sweeps per subproblem (0 keeps the solver default).")
-        .def_readwrite("cd_certified_localization", &disp::SolverHyperparameters::cd_certified_localization, "CCD family: True (default) = certified crossing localization (duality-gap and coordinate-status certificates, closed-form continuation, records at the knot); False = LEGACY probe bisection with the support-nesting stop.");
+        .def_readwrite("lambda2",       &disp::SolverHyperparameters::lambda2,       "L2 penalty for ENET-type "
+            "solvers.")
+        .def_readwrite("rho_afs",       &disp::SolverHyperparameters::rho_afs,       "Shrinkage step size for AFS "
+            "solver in (0, 1].")
+        .def_readwrite("ncgmp_variant", &disp::SolverHyperparameters::ncgmp_variant, "NCGMP variant: 0 = LineSearch, 1 "
+            "= FullyCorrective.")
+        .def_readwrite("tol",           &disp::SolverHyperparameters::tol,           "Numerical tolerance for solver "
+            "steps.")
+        .def_readwrite("exch_tie_alpha", &disp::SolverHyperparameters::exch_tie_alpha, "Exchangeable-tie band width "
+            "for "
+            "greedy solvers (TOMP/TAFS) in pairwise ranking-noise sd units; 0 = off. Recommended under trex+DA: 0.25.")
+        .def_readwrite("exch_tie_floor", &disp::SolverHyperparameters::exch_tie_floor, "Minimum |correlation| for "
+            "exchangeable-tie candidates in (0, 1); ignored unless exch_tie_alpha > 0.")
+        .def_readwrite("tenet_aug_use_lars", &disp::SolverHyperparameters::tenet_aug_use_lars, "TENET_AUG: False "
+            "(default) = standard LASSO inner path; True = optional pure-LARS inner path that never drops variables.")
+        .def_readwrite("cd_lambda_rel_tol", &disp::SolverHyperparameters::cd_lambda_rel_tol, "CCD family: relative "
+            "lambda step tolerance of the crossing search (<= 0 keeps the solver default).")
+        .def_readwrite("cd_tol_certify", &disp::SolverHyperparameters::cd_tol_certify, "CCD family: KKT certification "
+            "tolerance; applied only when set together with cd_tol_probe (both > 0).")
+        .def_readwrite("cd_tol_probe", &disp::SolverHyperparameters::cd_tol_probe, "CCD family: probing tolerance; "
+            "applied only when set together with cd_tol_certify (both > 0).")
+        .def_readwrite("cd_gram_cap", &disp::SolverHyperparameters::cd_gram_cap, "CCD family: column cap for the "
+            "cached "
+            "Gram matrix (0 keeps the solver default).")
+        .def_readwrite("cd_max_sweeps", &disp::SolverHyperparameters::cd_max_sweeps, "CCD family: maximum coordinate "
+            "sweeps per subproblem (0 keeps the solver default).")
+        .def_readwrite("cd_certified_localization", &disp::SolverHyperparameters::cd_certified_localization, "CCD "
+            "family: True (default) = certified crossing localization (duality-gap and coordinate-status certificates, "
+            "closed-form continuation, records at the knot); False = LEGACY probe bisection with the support-nesting "
+            "stop.");
 
     // Bind DummyDistribution (wraps C++ dummygen::Distribution)
     py::class_<dg::Distribution> dummy_dist(m_tsm, "DummyDistribution",
@@ -335,24 +371,34 @@ inline void bind_trex_core(py::module& m_tsm) {
         .def_readwrite("logistic_scale",                  &dg::Distribution::logistic_scale);
 
     // Bind TRexControlParameter
-    py::class_<TRexControlParameter>(m_tsm, "TRexControlParameter", "Control parameters for the core T-Rex selection algorithm.")
+    py::class_<TRexControlParameter>(m_tsm, "TRexControlParameter", "Control parameters for the core T-Rex selection "
+        "algorithm.")
         .def(py::init<>())
-        .def_readwrite("K", &TRexControlParameter::K, "Number of random simulation experiments to run over variable inclusions.")
-        .def_readwrite("max_dummy_multiplier", &TRexControlParameter::max_dummy_multiplier, "Maximum dummy multiplier L (default 10).")
-        .def_readwrite("use_max_T_stop", &TRexControlParameter::use_max_T_stop, "If true, always run solvers to T_stop regardless of early stopping.")
-        .def_readwrite("opt_threshold", &TRexControlParameter::opt_threshold, "Voting threshold parameter (default 0.75).")
-        .def_readwrite("lloop_strategy", &TRexControlParameter::lloop_strategy, "L-loop strategy for constructing dummy variables.")
+        .def_readwrite("K", &TRexControlParameter::K, "Number of random simulation experiments to run over variable "
+            "inclusions.")
+        .def_readwrite("max_dummy_multiplier", &TRexControlParameter::max_dummy_multiplier, "Maximum dummy multiplier "
+            "L "
+            "(default 10).")
+        .def_readwrite("use_max_T_stop", &TRexControlParameter::use_max_T_stop, "If true, always run solvers to T_stop "
+            "regardless of early stopping.")
+        .def_readwrite("opt_threshold", &TRexControlParameter::opt_threshold, "Voting threshold parameter (default "
+            "0.75).")
+        .def_readwrite("lloop_strategy", &TRexControlParameter::lloop_strategy, "L-loop strategy for constructing "
+            "dummy "
+            "variables.")
         .def_readwrite("tloop_stagnation_stop", &TRexControlParameter::tloop_stagnation_stop,
                        "T-loop early stopping on support-set stagnation. None (default) resolves "
                        "by solver family: disabled for equiangular LARS-path solvers "
                        "(TLARS/TLASSO/TENET/TENET_AUG, matching the R reference), enabled for "
                        "greedy solvers (guards their noise trap). Set True/False to override.")
-        .def_readwrite("tloop_max_stagnant_steps", &TRexControlParameter::tloop_max_stagnant_steps, "Maximum consecutive stagnant T-loop steps before early stopping.")
+        .def_readwrite("tloop_max_stagnant_steps", &TRexControlParameter::tloop_max_stagnant_steps, "Maximum "
+            "consecutive stagnant T-loop steps before early stopping.")
         .def_readwrite("parallel_rnd_experiments", &TRexControlParameter::parallel_rnd_experiments,
                        "Run the K random experiments in parallel (default False: in sequence). Inside a "
                        "parallel run every solver runs serially; the lean L-loop strategies (SEEDED, "
                        "PERMUTATION, PERMUTATION_SEEDED) always run their experiments in sequence.")
-        .def_readwrite("use_memory_mapping",  &TRexControlParameter::use_memory_mapping,  "Use out-of-core memory-mapped dummy matrix.")
+        .def_readwrite("use_memory_mapping",  &TRexControlParameter::use_memory_mapping,  "Use out-of-core "
+            "memory-mapped dummy matrix.")
         .def_readwrite("max_outer_threads",   &TRexControlParameter::max_outer_threads,
                        "Threads of the parallel K-loop (default 1; a whole number of at least 1), capped at "
                        "K. Ignored while parallel_rnd_experiments is False.")
@@ -360,23 +406,37 @@ inline void bind_trex_core(py::module& m_tsm) {
                        "Thread budget of the solvers' own passes over the design (default 1, serial; a whole "
                        "number of at least 1). Live when the experiments run in sequence; inside a parallel "
                        "run the solvers stay serial. A pass splits only above about a million entries.")
-        .def_readwrite("solver_type",         &TRexControlParameter::solver_type,         "Solver algorithm to use for T-Rex.")
-        .def_readwrite("solver_params",       &TRexControlParameter::solver_params,       "Hyperparameters for the selected solver.")
-        .def_readwrite("scaling_mode",        &TRexControlParameter::scaling_mode,        "Working-design convention: L2 (default) or ZSCORE center X and y and scale X; NONE leaves X and y as supplied (user-managed; dummies keep the unit-L2 standard). Non-finite entries and dead columns are rejected in every mode (ValueError).")
-        .def_readwrite("dummy_distribution",  &TRexControlParameter::dummy_distribution,  "Distribution used to generate dummy variables.");
+        .def_readwrite("solver_type",         &TRexControlParameter::solver_type,         "Solver algorithm to use for "
+            "T-Rex.")
+        .def_readwrite("solver_params",       &TRexControlParameter::solver_params,       "Hyperparameters for the "
+            "selected solver.")
+        .def_readwrite("scaling_mode",        &TRexControlParameter::scaling_mode,        "Working-design convention: "
+            "L2 (default) or ZSCORE center X and y and scale X; NONE leaves X and y as supplied (user-managed; dummies "
+            "keep the unit-L2 standard). Non-finite entries and dead columns are rejected in every mode (ValueError).")
+        .def_readwrite("dummy_distribution",  &TRexControlParameter::dummy_distribution,  "Distribution used to "
+            "generate dummy variables.");
 
     // Bind TRexSelector::SelectionResult
-    py::class_<TRexSelector::SelectionResult>(m_tsm, "SelectionResult", "Return value of TRexSelector.select(): selected variables and diagnostic matrices.")
-        .def_readonly("selected_var", &TRexSelector::SelectionResult::selected_var, "Selection indicator vector (length p; 1 = selected, 0 = not selected).")
-        .def_readonly("v_thresh", &TRexSelector::SelectionResult::v_thresh, "Voting threshold v applied to control the FDR.")
-        .def_readonly("r_mat", &TRexSelector::SelectionResult::R_mat, "R matrix of empirical tail probabilities (p x T_stop).")
+    py::class_<TRexSelector::SelectionResult>(m_tsm, "SelectionResult", "Return value of TRexSelector.select(): "
+        "selected variables and diagnostic matrices.")
+        .def_readonly("selected_var", &TRexSelector::SelectionResult::selected_var, "Selection indicator vector "
+            "(length "
+            "p; 1 = selected, 0 = not selected).")
+        .def_readonly("v_thresh", &TRexSelector::SelectionResult::v_thresh, "Voting threshold v applied to control the "
+            "FDR.")
+        .def_readonly("r_mat", &TRexSelector::SelectionResult::R_mat, "R matrix of empirical tail probabilities (p x "
+            "T_stop).")
         .def_readonly("T_stop", &TRexSelector::SelectionResult::T_stop, "T_stop: maximum number of LARS steps run.")
-        .def_readonly("num_dummies", &TRexSelector::SelectionResult::num_dummies, "Total number of dummy variables used.")
+        .def_readonly("num_dummies", &TRexSelector::SelectionResult::num_dummies, "Total number of dummy variables "
+            "used.")
         .def_readonly("dummy_factor_L", &TRexSelector::SelectionResult::dummy_factor_L, "Dummy multiplier L used.")
         .def_readonly("fdp_hat_mat", &TRexSelector::SelectionResult::FDP_hat_mat, "FDP hat matrix (p x |voting_grid|).")
-        .def_readonly("phi_mat", &TRexSelector::SelectionResult::Phi_mat, "Phi matrix: relative occurrence counts per predictor.")
-        .def_readonly("phi_prime", &TRexSelector::SelectionResult::Phi_prime, "Smoothed selection probability vector phi'.")
-        .def_readonly("voting_grid", &TRexSelector::SelectionResult::voting_grid, "Voting grid: per-candidate vote totals across K experiments.");
+        .def_readonly("phi_mat", &TRexSelector::SelectionResult::Phi_mat, "Phi matrix: relative occurrence counts per "
+            "predictor.")
+        .def_readonly("phi_prime", &TRexSelector::SelectionResult::Phi_prime, "Smoothed selection probability vector "
+            "phi'.")
+        .def_readonly("voting_grid", &TRexSelector::SelectionResult::voting_grid, "Voting grid: per-candidate vote "
+            "totals across K experiments.");
 
     // Bind PyTRexSelector
     py::class_<PyTRexSelector>(m_tsm, "TRexSelector",
@@ -387,7 +447,8 @@ inline void bind_trex_core(py::module& m_tsm) {
         "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
         "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
         "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n")
-        .def(py::init<Eigen::Ref<Eigen::MatrixXd>, Eigen::Ref<Eigen::VectorXd>, double, const TRexControlParameter&, int, bool>(),
+        .def(py::init<Eigen::Ref<Eigen::MatrixXd>, Eigen::Ref<Eigen::VectorXd>, double, const TRexControlParameter&,
+            int, bool>(),
              py::arg("X"), py::arg("y"), py::arg("tFDR") = 0.1,
              py::arg("trex_control") = TRexControlParameter(),
              py::arg("seed") = -1, py::arg("verbose") = true,
@@ -405,14 +466,19 @@ inline void bind_trex_core(py::module& m_tsm) {
              "Run the T-Rex algorithm and return a SelectionResult.")
         .def("getTFDR", &PyTRexSelector::getTFDR, "Return the target FDR.")
         .def("getK", &PyTRexSelector::getK, "Return K: the number of random experiments.")
-        .def("getMaxNumDummies", &PyTRexSelector::getMaxNumDummies, "Return the maximum number of dummy variables per L level.")
+        .def("getMaxNumDummies", &PyTRexSelector::getMaxNumDummies, "Return the maximum number of dummy variables per "
+            "L "
+            "level.")
         .def("getMaxTStop", &PyTRexSelector::getMaxTStop, "Return whether use_max_T_stop is active.")
-        .def("getStagnationCheck", &PyTRexSelector::getStagnationCheck, "Return whether T-loop stagnation stopping is active.")
+        .def("getStagnationCheck", &PyTRexSelector::getStagnationCheck, "Return whether T-loop stagnation stopping is "
+            "active.")
         .def("getXMeans", &PyTRexSelector::getXMeans, "Return the column means of X.")
         .def("getXL2Norms", &PyTRexSelector::getXL2Norms, "Return the column-wise L2 norms of X after centering.")
         .def("getYMean", &PyTRexSelector::getYMean, "Return the mean of y.")
-        .def("getSelectedVar", &PyTRexSelector::getSelectedVar, "Return the binary selection indicator vector (1 = selected).")
-        .def("getSelectedIndices", &PyTRexSelector::getSelectedIndices, "Return 0-based indices of selected predictors.")
+        .def("getSelectedVar", &PyTRexSelector::getSelectedVar, "Return the binary selection indicator vector (1 = "
+            "selected).")
+        .def("getSelectedIndices", &PyTRexSelector::getSelectedIndices, "Return 0-based indices of selected "
+            "predictors.")
         .def("getNumSelected", &PyTRexSelector::getNumSelected, "Return the number of selected predictors.")
         .def("getTStop", &PyTRexSelector::getTStop, "Return T_stop: the LARS step count used.")
         .def("getVotingGrid", &PyTRexSelector::getVotingGrid, "Return the voting grid.")

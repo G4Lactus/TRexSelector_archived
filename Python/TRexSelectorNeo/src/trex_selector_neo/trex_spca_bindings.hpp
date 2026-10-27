@@ -116,7 +116,8 @@ inline void bind_trex_spca(py::module& m) {
                        "Ridge penalty for ActiveSet loading assembly (default: 1e-6).")
         .def_readwrite("gvs_ctrl",              &TRexSPCAControlParameter::gvs_ctrl,
                        "TRexGVSControlParameter forwarded to each per-PC GVS run. "
-                       "gvs_ctrl.gvs_type must stay GVSType.EN (T-Rex SPCA is defined on the elastic net, IEN raises ValueError). "
+                       "gvs_ctrl.gvs_type must stay GVSType.EN (T-Rex SPCA is defined on the elastic net, IEN raises "
+                           "ValueError). "
                        "Set gvs_ctrl.lambda_2 > 0 to bypass auto-determination. "
                        "The base T-Rex parameters are configured via gvs_ctrl.trex_ctrl.")
         .def_readwrite("en_solver",             &TRexSPCAControlParameter::en_solver,

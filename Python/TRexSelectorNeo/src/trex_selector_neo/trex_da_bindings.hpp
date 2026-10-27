@@ -94,8 +94,10 @@ inline void bind_trex_da(py::module& m) {
         .export_values();
 
     py::enum_<BTSelectionMode>(m, "BTSelectionMode", "Cell-selection policy for the BT (binary-tree) DA method.")
-        .value("FeasibleOnly", BTSelectionMode::FeasibleOnly, "Only FDP-feasible cells may be selected (default; controls realized FDR).")
-        .value("RFaithful",    BTSelectionMode::RFaithful,    "Reproduces the R reference; may inflate FDR at high within-group correlation.")
+        .value("FeasibleOnly", BTSelectionMode::FeasibleOnly, "Only FDP-feasible cells may be selected (default; "
+            "controls realized FDR).")
+        .value("RFaithful",    BTSelectionMode::RFaithful,    "Reproduces the R reference; may inflate FDR at high "
+            "within-group correlation.")
         .export_values();
 
     py::class_<TRexDAControlParameter>(m, "TRexDAControlParameter", "Control parameters for TRexDASelector.")
@@ -104,19 +106,29 @@ inline void bind_trex_da(py::module& m) {
         .def_readwrite("cor_coef", &TRexDAControlParameter::cor_coef, "Correlation coefficient parameter.")
         .def_readwrite("rho_thr_DA", &TRexDAControlParameter::rho_thr_DA, "Correlation threshold for DA.")
         .def_readwrite("hc_linkage", &TRexDAControlParameter::hc_linkage, "Hierarchical clustering linkage method.")
-        .def_readwrite("hc_grid_length", &TRexDAControlParameter::hc_grid_length, "Grid length for hierarchical clustering.")
-        .def_readwrite("bt_selection_mode", &TRexDAControlParameter::bt_selection_mode, "Cell-selection policy for the BT method (FeasibleOnly or RFaithful).")
-        .def_readwrite("prior_groups", &TRexDAControlParameter::prior_groups, "Prior grouping constraints (label vectors of length p); sub-clustering runs within their finest common refinement.")
-        .def_readwrite("trex_ctrl", &TRexDAControlParameter::trex_ctrl, "Nested base T-Rex algorithmic control parameters (overridden by the separate trex_control argument to TRexDASelector).");
+        .def_readwrite("hc_grid_length", &TRexDAControlParameter::hc_grid_length, "Grid length for hierarchical "
+            "clustering.")
+        .def_readwrite("bt_selection_mode", &TRexDAControlParameter::bt_selection_mode, "Cell-selection policy for the "
+            "BT method (FeasibleOnly or RFaithful).")
+        .def_readwrite("prior_groups", &TRexDAControlParameter::prior_groups, "Prior grouping constraints (label "
+            "vectors of length p); sub-clustering runs within their finest common refinement.")
+        .def_readwrite("trex_ctrl", &TRexDAControlParameter::trex_ctrl, "Nested base T-Rex algorithmic control "
+            "parameters (overridden by the separate trex_control argument to TRexDASelector).");
 
-    py::class_<TRexDASelector::DASelectionResult, TRexSelector::SelectionResult>(m, "DASelectionResult", "Extended SelectionResult holding specific DA outputs.")
+    py::class_<TRexDASelector::DASelectionResult, TRexSelector::SelectionResult>(m, "DASelectionResult", "Extended "
+        "SelectionResult holding specific DA outputs.")
         .def_readonly("rho_thresh", &TRexDASelector::DASelectionResult::rho_thresh, "The threshold applied for rho.")
         .def_readonly("rho_grid", &TRexDASelector::DASelectionResult::rho_grid, "Grid values used for rho.")
-        .def_readonly("method",           &TRexDASelector::DASelectionResult::method,           "The resulting DA method applied.")
-        .def_readonly("cor_coef",          &TRexDASelector::DASelectionResult::cor_coef,          "Auto-estimated or supplied correlation coefficient.")
-        .def_readonly("fdp_hat_array_bt",  &TRexDASelector::DASelectionResult::FDP_hat_array_BT,  "Per-rho-level FDP estimate matrices (BT method only).")
-        .def_readonly("phi_array_bt",      &TRexDASelector::DASelectionResult::Phi_array_BT,      "Per-rho-level deflated Phi matrices (BT method only).")
-        .def_readonly("r_array_bt",        &TRexDASelector::DASelectionResult::R_array_BT,        "Per-rho-level R matrices (BT method only).");
+        .def_readonly("method",           &TRexDASelector::DASelectionResult::method,           "The resulting DA "
+            "method applied.")
+        .def_readonly("cor_coef",          &TRexDASelector::DASelectionResult::cor_coef,          "Auto-estimated or "
+            "supplied correlation coefficient.")
+        .def_readonly("fdp_hat_array_bt",  &TRexDASelector::DASelectionResult::FDP_hat_array_BT,  "Per-rho-level FDP "
+            "estimate matrices (BT method only).")
+        .def_readonly("phi_array_bt",      &TRexDASelector::DASelectionResult::Phi_array_BT,      "Per-rho-level "
+            "deflated Phi matrices (BT method only).")
+        .def_readonly("r_array_bt",        &TRexDASelector::DASelectionResult::R_array_BT,        "Per-rho-level R "
+            "matrices (BT method only).");
 
     py::class_<PyTRexDASelector, PyTRexSelector>(m, "TRexDASelector",
         "Dependency-aware T-Rex selector (T-Rex+DA): FDR-controlled variable selection for dependent\n"
@@ -137,7 +149,8 @@ inline void bind_trex_da(py::module& m) {
         "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
         "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
         "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n")
-        .def(py::init<Eigen::Ref<Eigen::MatrixXd>, Eigen::Ref<Eigen::VectorXd>, double, const TRexDAControlParameter&, const TRexControlParameter&, int, bool>(),
+        .def(py::init<Eigen::Ref<Eigen::MatrixXd>, Eigen::Ref<Eigen::VectorXd>, double, const TRexDAControlParameter&,
+            const TRexControlParameter&, int, bool>(),
              py::arg("X"), py::arg("y"), py::arg("tFDR") = 0.1,
              py::arg("da_control") = TRexDAControlParameter(),
              py::arg("trex_control") = TRexControlParameter(),

@@ -128,70 +128,137 @@ public:
 inline void bind_trex_gvs(py::module& m) {
     py::enum_<GVSType>(m, "GVSType", "Group Variable Selection method variants.")
         .value("EN", GVSType::EN, "Elastic-Net group variable selection (uses TENET solver).")
-        .value("IEN", GVSType::IEN, "Informed Elastic-Net using group structure from clustering (solver via trex_control.solver_type: TIENET default, TIENET_AUG, TCDIENET).")
+        .value("IEN", GVSType::IEN, "Informed Elastic-Net using group structure from clustering (solver via "
+            "trex_control.solver_type: TIENET default, TIENET_AUG, TCDIENET).")
         .export_values();
 
     py::enum_<ENSolverType>(m, "ENSolverType", "Elastic-Net solver variant used when gvs_type == EN.")
         .value("TENET",     ENSolverType::TENET,     "Gram-based Elastic Net (ridge absorbed via Cholesky update).")
         .value("TENET_AUG", ENSolverType::TENET_AUG, "Augmented-LASSO Elastic Net (row-augmented system).")
-        .value("TCDENET",   ENSolverType::TCDENET,   "Coordinate-descent Elastic Net (exact fixed-lambda1 minimizers per dummy crossing).")
+        .value("TCDENET",   ENSolverType::TCDENET,   "Coordinate-descent Elastic Net (exact fixed-lambda1 minimizers "
+            "per dummy crossing).")
         .export_values();
 
     py::class_<trex::ml_methods::model_selection::lambda2_cv_diagnostics>(m, "Lambda2CVDiagnostics",
-        "Health record of a lambda_2 tuner run: whether it ran, its cost, the truncation-edge count, and the boundary-pick guard fields for the returned pick (grid_index / grid_size, at_grid_edge, profile_at_edge, boundary_pick).")
+        "Health record of a lambda_2 tuner run: whether it ran, its cost, the truncation-edge count, and the "
+            "boundary-pick guard fields for the returned pick (grid_index / grid_size, at_grid_edge, profile_at_edge, "
+            "boundary_pick).")
         .def(py::init<>())
-        .def_readonly("ran", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::ran, "A tuner ran (False: lambda_2 came from the caller).")
-        .def_readonly("seconds", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::seconds, "Wall-clock seconds spent resolving lambda_2.")
-        .def_readonly("n_profile_at_edge", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::n_profile_at_edge, "lambda_2 values whose profiled lambda_1 optimum landed on a truncation edge (0 = healthy).")
-        .def_readonly("support_cap", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::support_cap, "Support cap (glmnet dfmax) applied, or -1 when disabled.")
-        .def_readonly("dfmax_ratio", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::dfmax_ratio, "IEN tuner: the support-cap ratio it was called with (cv_dfmax_ratio, as passed; <= 0 disabled the cap). 0 when no IEN-geometry tuner ran.")
-        .def_readonly("low_dimensional", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::low_dimensional, "p <= cap: the cap was inert.")
+        .def_readonly("ran", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::ran, "A tuner ran (False: "
+            "lambda_2 came from the caller).")
+        .def_readonly("seconds", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::seconds, "Wall-clock "
+            "seconds spent resolving lambda_2.")
+        .def_readonly("n_profile_at_edge",
+            &trex::ml_methods::model_selection::lambda2_cv_diagnostics::n_profile_at_edge, "lambda_2 "
+            ""
+            "values whose profiled lambda_1 optimum landed on a truncation edge (0 = healthy).")
+        .def_readonly("support_cap", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::support_cap, "Support "
+            "cap (glmnet dfmax) applied, or -1 when disabled.")
+        .def_readonly("dfmax_ratio", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::dfmax_ratio, "IEN "
+            "tuner: the support-cap ratio it was called with (cv_dfmax_ratio, as passed; <= 0 disabled the cap). 0 "
+                "when "
+            "no IEN-geometry tuner ran.")
+        .def_readonly("low_dimensional", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::low_dimensional,
+            "p "
+            ""
+            "<= cap: the cap was inert.")
         // Boundary-pick guard: the chosen pick on its grid.
-        .def_readonly("grid_index", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::grid_index, "0-based index of the returned lambda_2 on the tuner's grid (-1: no tuner ran).")
-        .def_readonly("grid_size", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::grid_size, "Number of lambda_2 grid points searched (0: no tuner ran).")
-        .def_readonly("at_grid_edge", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::at_grid_edge, "The returned lambda_2 is the first or last grid point: the grid boundary, not a CV optimum.")
-        .def_readonly("profile_at_edge", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::profile_at_edge, "IEN tuner: the profiled lambda_1 optimum of the chosen lambda_2 sat on the truncation edge of the lambda_1 path.")
-        .def_readonly("profile_at_support_cap", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::profile_at_support_cap, "IEN tuner: profile_at_edge, and that edge is the support cap (raise cv_dfmax_ratio to move it).")
-        .def_readonly("boundary_pick", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::boundary_pick, "at_grid_edge or profile_at_edge: the selector warned once and returned the pick unchanged.");
+        .def_readonly("grid_index", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::grid_index, "0-based "
+            "index of the returned lambda_2 on the tuner's grid (-1: no tuner ran).")
+        .def_readonly("grid_size", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::grid_size, "Number of "
+            "lambda_2 grid points searched (0: no tuner ran).")
+        .def_readonly("at_grid_edge", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::at_grid_edge, "The "
+            "returned lambda_2 is the first or last grid point: the grid boundary, not a CV optimum.")
+        .def_readonly("profile_at_edge", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::profile_at_edge,
+            "IEN "
+            ""
+            "tuner: the profiled lambda_1 optimum of the chosen lambda_2 sat on the truncation edge of the lambda_1 "
+            "path.")
+        .def_readonly("profile_at_support_cap",
+            &trex::ml_methods::model_selection::lambda2_cv_diagnostics::profile_at_support_cap, "IEN "
+            ""
+            "tuner: profile_at_edge, and that edge is the support cap (raise cv_dfmax_ratio to move it).")
+        .def_readonly("boundary_pick", &trex::ml_methods::model_selection::lambda2_cv_diagnostics::boundary_pick,
+            "at_grid_edge "
+            ""
+            "or profile_at_edge: the selector warned once and returned the pick unchanged.");
 
-    py::enum_<LambdaSelectionMethod>(m, "LambdaSelectionMethod", "Rule for auto-selecting the ridge parameter lambda_2 when lambda_2 < 0.")
+    py::enum_<LambdaSelectionMethod>(m, "LambdaSelectionMethod", "Rule for auto-selecting the ridge parameter lambda_2 "
+        "when lambda_2 < 0.")
         .value("CV_1SE_SVD", LambdaSelectionMethod::CV_1SE_SVD, "JacobiSVD ridge CV, 1-SE rule.")
         .value("CV_MIN_SVD", LambdaSelectionMethod::CV_MIN_SVD, "JacobiSVD ridge CV, minimum-CV-error rule.")
-        .value("CV_1SE_CCD", LambdaSelectionMethod::CV_1SE_CCD, "Coordinate-descent ridge CV, glmnet-faithful 1-SE rule (default).")
-        .value("CV_MIN_CCD", LambdaSelectionMethod::CV_MIN_CCD, "Coordinate-descent ridge CV, glmnet-faithful minimum rule.")
-        .value("CV_1SE_IEN_CCD", LambdaSelectionMethod::CV_1SE_IEN_CCD, "IEN-geometry coordinate-descent CV (lambda1 profiled, group-consuming), 1-SE rule. IEN default.")
-        .value("CV_MIN_IEN_CCD", LambdaSelectionMethod::CV_MIN_IEN_CCD, "IEN-geometry coordinate-descent CV (lambda1 profiled, group-consuming), minimum rule.")
-        .value("CV_1SE_TIK_SVD", LambdaSelectionMethod::CV_1SE_TIK_SVD, "Generalized-Tikhonov SVD ridge CV (IEN geometry), 1-SE rule.")
-        .value("CV_MIN_TIK_SVD", LambdaSelectionMethod::CV_MIN_TIK_SVD, "Generalized-Tikhonov SVD ridge CV (IEN geometry), minimum rule.")
+        .value("CV_1SE_CCD", LambdaSelectionMethod::CV_1SE_CCD, "Coordinate-descent ridge CV, glmnet-faithful 1-SE "
+            "rule "
+            "(default).")
+        .value("CV_MIN_CCD", LambdaSelectionMethod::CV_MIN_CCD, "Coordinate-descent ridge CV, glmnet-faithful minimum "
+            "rule.")
+        .value("CV_1SE_IEN_CCD", LambdaSelectionMethod::CV_1SE_IEN_CCD, "IEN-geometry coordinate-descent CV (lambda1 "
+            "profiled, group-consuming), 1-SE rule. IEN default.")
+        .value("CV_MIN_IEN_CCD", LambdaSelectionMethod::CV_MIN_IEN_CCD, "IEN-geometry coordinate-descent CV (lambda1 "
+            "profiled, group-consuming), minimum rule.")
+        .value("CV_1SE_TIK_SVD", LambdaSelectionMethod::CV_1SE_TIK_SVD, "Generalized-Tikhonov SVD ridge CV (IEN "
+            "geometry), 1-SE rule.")
+        .value("CV_MIN_TIK_SVD", LambdaSelectionMethod::CV_MIN_TIK_SVD, "Generalized-Tikhonov SVD ridge CV (IEN "
+            "geometry), minimum rule.")
         .export_values();
 
     py::class_<TRexGVSControlParameter>(m, "TRexGVSControlParameter", "Control parameters for TRexGVSSelector.")
         .def(py::init<>())
-        .def_readwrite("gvs_type",    &TRexGVSControlParameter::gvs_type,    "GVS method variant (EN = Elastic Net, IEN = Informed Elastic Net).")
-        .def_readwrite("en_solver",   &TRexGVSControlParameter::en_solver,   "EN solver variant when gvs_type == EN: TENET (default), TENET_AUG, or TCDENET.")
-        .def_readwrite("corr_max",    &TRexGVSControlParameter::corr_max,    "Maximum pairwise correlation for automatic cluster formation.")
+        .def_readwrite("gvs_type",    &TRexGVSControlParameter::gvs_type,    "GVS method variant (EN = Elastic Net, "
+            "IEN "
+            "= Informed Elastic Net).")
+        .def_readwrite("en_solver",   &TRexGVSControlParameter::en_solver,   "EN solver variant when gvs_type == EN: "
+            "TENET (default), TENET_AUG, or TCDENET.")
+        .def_readwrite("corr_max",    &TRexGVSControlParameter::corr_max,    "Maximum pairwise correlation for "
+            "automatic cluster formation.")
         .def_readwrite("hc_linkage",  &TRexGVSControlParameter::hc_linkage,  "Hierarchical clustering linkage method.")
-        .def_readwrite("lambda_2", &TRexGVSControlParameter::lambda_2, "Ridge L2 penalty in LARS units (< 0 = auto-select, 0 = pure TLASSO, > 0 = fixed).")
-        .def_readwrite("lambda2_method", &TRexGVSControlParameter::lambda2_method, "Rule for auto-selecting lambda_2 when lambda_2 < 0.")
-        .def_readwrite("cv_n_folds", &TRexGVSControlParameter::cv_n_folds, "Number of folds for cross-validated lambda_2 selection.")
-        .def_readwrite("cv_n_lambda", &TRexGVSControlParameter::cv_n_lambda, "Number of points on the lambda grid searched during CV (EN-shaped rules).")
-        .def_readwrite("cv_n_lambda1", &TRexGVSControlParameter::cv_n_lambda1, "IEN-geometry CD tuners (CV_*_IEN_CCD): points on the profiled lambda_1 path per lambda_2 value (default 40).")
-        .def_readwrite("cv_dfmax_ratio", &TRexGVSControlParameter::cv_dfmax_ratio, "IEN-geometry CD tuners (CV_*_IEN_CCD): support cap as a fraction of the smallest fold's training size (default 0.8; <= 0 disables the cap; larger values allow larger supports at a higher tuner cost; must be finite).")
-        .def_readwrite("cv_n_lambda2", &TRexGVSControlParameter::cv_n_lambda2, "IEN-geometry CD tuners: points on the lambda_2 grid (default 100).")
-        .def_readwrite("cv_seed", &TRexGVSControlParameter::cv_seed, "Seed for the CV fold-permutation RNG (-1 = derive from the T-Rex seed).")
-        .def_readwrite("prior_groups", &TRexGVSControlParameter::prior_groups, "Manually specified group assignments (0-based; empty = auto-cluster).")
-        .def_readwrite("group_labels", &TRexGVSControlParameter::group_labels, "Optional human-readable cluster names (size must equal number of clusters).")
-        .def_readwrite("tenet_aug_use_lars", &TRexGVSControlParameter::tenet_aug_use_lars, "For TENET_AUG: use a pure-LARS inner solver (R-parity diagnostic).")
-        .def_readwrite("trex_ctrl", &TRexGVSControlParameter::trex_ctrl, "Nested base T-Rex algorithmic control parameters (used directly by TRexSPCASelector; overridden by the separate trex_control argument in TRexGVSSelector).");
+        .def_readwrite("lambda_2", &TRexGVSControlParameter::lambda_2, "Ridge L2 penalty in LARS units (< 0 = "
+            "auto-select, 0 = pure TLASSO, > 0 = fixed).")
+        .def_readwrite("lambda2_method", &TRexGVSControlParameter::lambda2_method, "Rule for auto-selecting lambda_2 "
+            "when lambda_2 < 0.")
+        .def_readwrite("cv_n_folds", &TRexGVSControlParameter::cv_n_folds, "Number of folds for cross-validated "
+            "lambda_2 selection.")
+        .def_readwrite("cv_n_lambda", &TRexGVSControlParameter::cv_n_lambda, "Number of points on the lambda grid "
+            "searched during CV (EN-shaped rules).")
+        .def_readwrite("cv_n_lambda1", &TRexGVSControlParameter::cv_n_lambda1, "IEN-geometry CD tuners (CV_*_IEN_CCD): "
+            "points on the profiled lambda_1 path per lambda_2 value (default 40).")
+        .def_readwrite("cv_dfmax_ratio", &TRexGVSControlParameter::cv_dfmax_ratio, "IEN-geometry CD tuners "
+            "(CV_*_IEN_CCD): support cap as a fraction of the smallest fold's training size (default 0.8; <= 0 "
+                "disables "
+            "the cap; larger values allow larger supports at a higher tuner cost; must be finite).")
+        .def_readwrite("cv_n_lambda2", &TRexGVSControlParameter::cv_n_lambda2, "IEN-geometry CD tuners: points on the "
+            "lambda_2 grid (default 100).")
+        .def_readwrite("cv_seed", &TRexGVSControlParameter::cv_seed, "Seed for the CV fold-permutation RNG (-1 = "
+            "derive "
+            "from the T-Rex seed).")
+        .def_readwrite("prior_groups", &TRexGVSControlParameter::prior_groups, "Manually specified group assignments "
+            "(0-based; empty = auto-cluster).")
+        .def_readwrite("group_labels", &TRexGVSControlParameter::group_labels, "Optional human-readable cluster names "
+            "(size must equal number of clusters).")
+        .def_readwrite("tenet_aug_use_lars", &TRexGVSControlParameter::tenet_aug_use_lars, "For TENET_AUG: use a "
+            "pure-LARS inner solver (R-parity diagnostic).")
+        .def_readwrite("trex_ctrl", &TRexGVSControlParameter::trex_ctrl, "Nested base T-Rex algorithmic control "
+            "parameters (used directly by TRexSPCASelector; overridden by the separate trex_control argument in "
+            "TRexGVSSelector).");
 
-    py::class_<TRexGVSSelector::GVSSelectionResult, TRexSelector::SelectionResult>(m, "GVSSelectionResult", "SelectionResult extended with GVS-specific fields.")
-        .def_readonly("lambda2_used", &TRexGVSSelector::GVSSelectionResult::lambda2_used, "L2 penalty lambda2 used (auto-selected via GCV if not specified).")
+    py::class_<TRexGVSSelector::GVSSelectionResult, TRexSelector::SelectionResult>(m, "GVSSelectionResult",
+        "SelectionResult "
+        ""
+        "extended with GVS-specific fields.")
+        .def_readonly("lambda2_used", &TRexGVSSelector::GVSSelectionResult::lambda2_used, "L2 penalty lambda2 used "
+            "(auto-selected via GCV if not specified).")
         .def_readonly("gvs_type", &TRexGVSSelector::GVSSelectionResult::gvs_type, "GVS method used (EN or IEN).")
-        .def_readonly("max_clusters", &TRexGVSSelector::GVSSelectionResult::max_clusters, "Number of variable groups identified by hierarchical clustering.")
-        .def_readonly("hc_method_used", &TRexGVSSelector::GVSSelectionResult::hc_method_used, "Hierarchical clustering linkage method used.")
-        .def_readonly("groups_vec", &TRexGVSSelector::GVSSelectionResult::groups_vec, "Group assignment vector (0-based group index per predictor).")
-        .def_readonly("group_labels", &TRexGVSSelector::GVSSelectionResult::group_labels, "Unique group label integers.")
-        .def_readonly("lambda2_cv", &TRexGVSSelector::GVSSelectionResult::lambda2_cv, "Health record of the lambda_2 tuner (Lambda2CVDiagnostics).");
+        .def_readonly("max_clusters", &TRexGVSSelector::GVSSelectionResult::max_clusters, "Number of variable groups "
+            "identified by hierarchical clustering.")
+        .def_readonly("hc_method_used", &TRexGVSSelector::GVSSelectionResult::hc_method_used, "Hierarchical clustering "
+            "linkage method used.")
+        .def_readonly("groups_vec", &TRexGVSSelector::GVSSelectionResult::groups_vec, "Group assignment vector "
+            "(0-based "
+            "group index per predictor).")
+        .def_readonly("group_labels", &TRexGVSSelector::GVSSelectionResult::group_labels, "Unique group label "
+            "integers.")
+        .def_readonly("lambda2_cv", &TRexGVSSelector::GVSSelectionResult::lambda2_cv, "Health record of the lambda_2 "
+            "tuner (Lambda2CVDiagnostics).");
 
     py::class_<PyTRexGVSSelector, PyTRexSelector>(m, "TRexGVSSelector",
         "TRex Selector with Group Variable Selection support.\n"
@@ -209,7 +276,8 @@ inline void bind_trex_gvs(py::module& m) {
         "J. Machkour, M. Muma, and D. P. Palomar, \"The Terminating-Random Experiments Selector:\n"
         "  Fast High-Dimensional Variable Selection with False Discovery Rate Control,\" Signal\n"
         "  Process., vol. 231, Art. no. 109894, 2025, doi: 10.1016/j.sigpro.2025.109894.\n")
-        .def(py::init<Eigen::Ref<Eigen::MatrixXd>, Eigen::Ref<Eigen::VectorXd>, double, const TRexGVSControlParameter&, const TRexControlParameter&, int, bool>(),
+        .def(py::init<Eigen::Ref<Eigen::MatrixXd>, Eigen::Ref<Eigen::VectorXd>, double, const TRexGVSControlParameter&,
+            const TRexControlParameter&, int, bool>(),
              py::arg("X"), py::arg("y"), py::arg("tFDR") = 0.1,
              py::arg("gvs_control") = TRexGVSControlParameter(),
              py::arg("trex_control") = TRexControlParameter(),
@@ -217,7 +285,8 @@ inline void bind_trex_gvs(py::module& m) {
              py::keep_alive<1, 2>(), py::keep_alive<1, 3>(),
              "Construct the GVS selector. X and y are accessed zero-copy via Eigen::Map.")
         .def("getGVSResult", &PyTRexGVSSelector::getGVSResult, "Return the GVSSelectionResult after calling select().")
-        .def("getLambda2CVDiagnostics", &PyTRexGVSSelector::getLambda2CVDiagnostics, "Return the lambda_2 tuner health record of the last select().");
+        .def("getLambda2CVDiagnostics", &PyTRexGVSSelector::getLambda2CVDiagnostics, "Return the lambda_2 tuner health "
+            "record of the last select().");
 }
 // =====================================================================================
 #endif /* End of TREX_PYTHON_TREX_GVS_BINDINGS_HPP */

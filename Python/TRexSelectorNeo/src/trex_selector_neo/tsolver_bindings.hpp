@@ -589,7 +589,8 @@ py::class_<PySolverWrapper<Solver>>& add_cd_tsolver_methods(py::class_<PySolverW
        .def("isCertifiedLocalization", &PySolverWrapper<Solver>::isCertifiedLocalization,
             "True if the solver localizes crossings with certificates (options.cd_certified_localization).")
        .def("isCertifiedDegraded", &PySolverWrapper<Solver>::isCertifiedDegraded,
-            "True once certification became unavailable along the path (A0-w boundary) and the solver fell back to LEGACY.")
+            "True once certification became unavailable along the path (A0-w boundary) and the solver fell back to "
+                "LEGACY.")
        .def("getRecordGaps", &PySolverWrapper<Solver>::getRecordGaps,
             "Duality gap at every recorded step.")
        .def("getRecordKktViolations", &PySolverWrapper<Solver>::getRecordKktViolations,
@@ -665,7 +666,8 @@ inline void bind_solver_options(py::module& m) {
        .def_readwrite("ncgmp_variant", &SolverOptions::ncgmp_variant,
             "TNCGMP variant (NCGMPVariant). Default LineSearch.")
        .def_readwrite("tenet_aug_use_lars", &SolverOptions::tenet_aug_use_lars,
-            "TENETAug / TIENETAug: pure-LARS inner path that never drops variables (True) instead of the LASSO inner path (False, default).")
+            "TENETAug / TIENETAug: pure-LARS inner path that never drops variables (True) instead of the LASSO inner "
+                "path (False, default).")
        .def_readwrite("kappa_dummy", &SolverOptions::kappa_dummy,
             "Ridge weight of the dummy block (TCDENET; TCDTIKNET under INDEPENDENT_RIDGE). Default 1.0.")
        .def_readwrite("fold_dummies", &SolverOptions::fold_dummies,
