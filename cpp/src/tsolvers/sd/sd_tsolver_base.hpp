@@ -28,7 +28,10 @@
 #include <cstdint>
 #include <random>
 #include <stdexcept>
+#include <string>
 #include <optional>
+#include <algorithm>
+#include <utils/openmp/utils_openmp.hpp>
 
 namespace trex::tsolvers::sd {
 
@@ -175,6 +178,42 @@ public:
 
     virtual ~SDTSolver_Base() = default;
     virtual void executeStep(std::size_t T_stop = 0, bool early_stop = true) = 0;
+
+    // ==========================================================================
+    // Thread budget of the solver's own regions
+    // ==========================================================================
+
+    /** @brief Set the budget of the solver's own OpenMP regions: 1 serial
+     *  (the default), 0 every core, negatives throw. */
+    void setNumThreads(int n_threads) {
+        if (n_threads < 0) {
+            throw std::invalid_argument(
+                "SDTSolver_Base: n_threads must be >= 0 (0 = every core). Got: "
+                + std::to_string(n_threads));
+        }
+        n_threads_ = n_threads == 0 ? std::max(1, omp_get_num_procs()) : n_threads;
+    }
+
+    /** @brief The resolved thread budget (>= 1). */
+    int getNumThreads() const noexcept { return n_threads_; }
+
+protected:
+    /** @brief Work of a pass (entries of the design it touches) below which
+     *  its region stays serial; the value of the ad T-solvers. */
+    static constexpr double kParallelWorkThreshold = 1.0e6;
+
+    int n_threads_{1};
+
+    /** @brief Threads for a region of the given work: 1 below the threshold,
+     *  inside a caller's parallel region or with a budget of 1. */
+    int threadsFor(double work) const noexcept {
+        if (n_threads_ <= 1 || work < kParallelWorkThreshold || omp_in_parallel() != 0) {
+            return 1;
+        }
+        return n_threads_;
+    }
+
+public:
 
     // ==========================================================================
     // Read-only accessors (diagnostics for demos / callers)

@@ -848,16 +848,13 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
     }
 
     // ---- OpenMP setup (mirror base ExperimentRunner pattern) ------------
+    // One owner of the cores: the K-loop takes its team size from the outer
+    // option (capped at K) when the experiments are parallel; inside the
+    // team every solver stays serial, so no nested team forms.
+    const int outer_threads = static_cast<int>(std::min<std::size_t>(
+        static_cast<std::size_t>(std::max(1, trex_ctrl_.max_outer_threads)), K));
     const bool do_parallel =
-        trex_ctrl_.parallel_rnd_experiments && (trex_ctrl_.max_outer_threads > 1);
-    // Eigen budget set ONCE from this thread and restored on exit; never
-    // written inside the team (see EigenThreadScope).
-    trex::trex_selector_methods::ad::utils::experiment_runner::EigenThreadScope
-        eigen_scope(do_parallel ? trex_ctrl_.max_inner_threads : 0);
-    #ifdef _OPENMP
-    int old_max_levels = omp_get_max_active_levels();
-    if (do_parallel) omp_set_max_active_levels(2);
-    #endif
+        trex_ctrl_.parallel_rnd_experiments && (outer_threads > 1);
 
     // An exception may not leave an OpenMP structured block — even an
     // INACTIVE region (if(false), single thread): the runtime calls
@@ -867,12 +864,8 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
     std::exception_ptr first_error = nullptr;
     std::atomic<bool> has_error{false};
 
-    #pragma omp parallel if(do_parallel)
+    #pragma omp parallel if(do_parallel) num_threads(outer_threads)
     {
-        #ifdef _OPENMP
-        if (do_parallel) omp_set_num_threads(trex_ctrl_.max_inner_threads);
-        #endif
-
         #pragma omp for schedule(dynamic)
         for (std::size_t k = 0; k < K; ++k) {
             if (has_error.load(std::memory_order_relaxed)) { continue; }
@@ -1054,10 +1047,6 @@ TRexGVSSelector::ExpAgg TRexGVSSelector::runKExperiments(
     }
 
     if (first_error) { std::rethrow_exception(first_error); }
-
-    #ifdef _OPENMP
-    if (do_parallel) omp_set_max_active_levels(old_max_levels);
-    #endif
 
     // Aggregate per-K contributions.
     Eigen::MatrixXd phi_T_acc = Eigen::MatrixXd::Zero(p_idx, T_idx);

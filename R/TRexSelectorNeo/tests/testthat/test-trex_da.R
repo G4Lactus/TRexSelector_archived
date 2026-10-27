@@ -225,7 +225,7 @@ test_that("TRexDASelector handles concurrent execution properly (OpenMP with DA)
   selector_openmp <- expect_no_error(
     TRexDASelector$new(X, y,
                        da_control = trex_da_control(da_method = "BT", hc_linkage = "Average"),
-                       control = trex_control(K = 5, use_openmp = TRUE, max_inner_threads = 2, max_outer_threads = 2),
+                       control = trex_control(K = 5, parallel_rnd_experiments = TRUE, max_inner_threads = 2, max_outer_threads = 2),
                        verbose = FALSE)
   )
 

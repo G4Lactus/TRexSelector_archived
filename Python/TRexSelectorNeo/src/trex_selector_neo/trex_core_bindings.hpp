@@ -348,10 +348,18 @@ inline void bind_trex_core(py::module& m_tsm) {
                        "(TLARS/TLASSO/TENET/TENET_AUG, matching the R reference), enabled for "
                        "greedy solvers (guards their noise trap). Set True/False to override.")
         .def_readwrite("tloop_max_stagnant_steps", &TRexControlParameter::tloop_max_stagnant_steps, "Maximum consecutive stagnant T-loop steps before early stopping.")
-        .def_readwrite("parallel_rnd_experiments", &TRexControlParameter::parallel_rnd_experiments, "Run K random experiments in parallel using OpenMP.")
+        .def_readwrite("parallel_rnd_experiments", &TRexControlParameter::parallel_rnd_experiments,
+                       "Run the K random experiments in parallel (default False: in sequence). Inside a "
+                       "parallel run every solver runs serially; the lean L-loop strategies (SEEDED, "
+                       "PERMUTATION, PERMUTATION_SEEDED) always run their experiments in sequence.")
         .def_readwrite("use_memory_mapping",  &TRexControlParameter::use_memory_mapping,  "Use out-of-core memory-mapped dummy matrix.")
-        .def_readwrite("max_outer_threads",   &TRexControlParameter::max_outer_threads,   "Thread count for K repetitions (outer parallelism).")
-        .def_readwrite("max_inner_threads",   &TRexControlParameter::max_inner_threads,   "Thread count for inner solver operations.")
+        .def_readwrite("max_outer_threads",   &TRexControlParameter::max_outer_threads,
+                       "Threads of the parallel K-loop (default 1). 0 resolves to every core, the count is "
+                       "capped at K. Ignored while parallel_rnd_experiments is False.")
+        .def_readwrite("max_inner_threads",   &TRexControlParameter::max_inner_threads,
+                       "Thread budget of the solvers' own passes over the design (default 1, serial). 0 "
+                       "resolves to every core. Live when the experiments run in sequence; inside a parallel "
+                       "run the solvers stay serial. A pass splits only above about a million entries.")
         .def_readwrite("solver_type",         &TRexControlParameter::solver_type,         "Solver algorithm to use for T-Rex.")
         .def_readwrite("solver_params",       &TRexControlParameter::solver_params,       "Hyperparameters for the selected solver.")
         .def_readwrite("scaling_mode",        &TRexControlParameter::scaling_mode,        "Working-design convention: L2 (default) or ZSCORE center X and y and scale X; NONE leaves X and y as supplied (user-managed; dummies keep the unit-L2 standard). Non-finite entries and dead columns are rejected in every mode (ValueError).")

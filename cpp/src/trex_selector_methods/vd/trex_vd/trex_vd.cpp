@@ -554,12 +554,15 @@ TRexVDResult TRexVD::run(
 {
     const int n = (int)X.rows(), p = (int)X.cols();
 
-    // Thread count (omp_get_max_threads() is stubbed to 1 without OpenMP)
-    int n_threads;
-    if (opt_.n_threads > 0)
-        n_threads = opt_.n_threads;
-    else
-        n_threads = std::min(opt_.K, omp_get_max_threads());
+    // Threads of the K-loop: 0 = every core (omp_get_num_procs() is stubbed
+    // to 1 without OpenMP), negatives throw, the count is capped at K
+    if (opt_.n_threads < 0) {
+        throw std::invalid_argument(
+            "TRexVD: n_threads must be >= 0 (0 = every core). Got: "
+            + std::to_string(opt_.n_threads));
+    }
+    const int n_threads = std::min(
+        opt_.K, opt_.n_threads == 0 ? std::max(1, omp_get_num_procs()) : opt_.n_threads);
 
     // Voting grid
     Vec V = make_V_(opt_.K, opt_.eps);

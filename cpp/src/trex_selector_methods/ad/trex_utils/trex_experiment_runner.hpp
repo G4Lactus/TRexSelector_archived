@@ -65,37 +65,6 @@ namespace mm = trex::trex_selector_methods::ad::utils::memmap_manager;
 
 // ===================================================================================
 
-/**
- * @brief Scoped Eigen thread budget.
- *
- * @details Eigen's thread count is ONE process-global integer. Writing it from
- *  inside an OpenMP team is a data race, and pointless there: Eigen never
- *  parallelizes a product when it is called from a team of more than one
- *  thread (Parallelizer.h tests the team size). The runner therefore sets the
- *  budget ONCE, from the calling thread, before a parallel region or a
- *  sequential experiment loop, and restores the previous value on exit so
- *  nothing leaks into the host process (an R or Python session, a caller's
- *  own Monte-Carlo loop). `threads <= 0` leaves the value untouched (the
- *  scope still restores). Host contract: Eigen's global is the host's to set,
- *  outside any parallel region; two selectors running at the same time in
- *  different host threads still share that one global — inherent to Eigen —
- *  so a host doing that pins the value itself and does not rely on the
- *  library's restore.
- */
-class EigenThreadScope {
-public:
-    explicit EigenThreadScope(int threads) : previous_(Eigen::nbThreads()) {
-        if (threads > 0) { Eigen::setNbThreads(threads); }
-    }
-    ~EigenThreadScope() { Eigen::setNbThreads(previous_); }
-
-    EigenThreadScope(const EigenThreadScope&) = delete;
-    EigenThreadScope& operator=(const EigenThreadScope&) = delete;
-
-private:
-    int previous_;
-};
-
 // ===================================================================================
 // ExperimentStrategy: handles how dummies are provided per experiment
 // ===================================================================================
@@ -170,8 +139,15 @@ struct ExperimentRunnerConfig {
     // --- Memory mapping ---
     bool use_memory_mapping = false;
 
-    // --- Parallelism ---
+    // --- Threads ---
+    /** @brief Threads of the K-loop of the stored strategies (1: the
+     *  experiments run in sequence). The selector passes 1 unless
+     *  parallel_rnd_experiments is set; the runner caps the count at K. */
     int max_outer_threads = 1;
+
+    /** @brief Budget of the solvers' own regions (SolverOptions::n_threads);
+     *  every solver pins Eigen's thread count to it for its own call and
+     *  keeps its regions serial inside a parallel K-loop. */
     int max_inner_threads = 1;
 
     // --- General-Tikhonov penalty (TCDTIKNET / TIKNET dispatch) ---
@@ -385,23 +361,15 @@ private:
 
         std::vector<ExperimentSummary> summaries(cfg.K);
 
-        const bool do_parallel = (cfg.max_outer_threads > 1);
-
-        // Eigen budget for the workers' (nested) regions, set ONCE from this
-        // thread and restored on exit; never written inside the team.
-        EigenThreadScope eigen_scope(do_parallel ? cfg.max_inner_threads : 0);
-
-        // --- OpenMP setup ---
-        // Nesting is enabled ONLY for the parallel-experiments mode (as in
-        // runMemmap() and TRexGVSSelector). Unconditionally raising the
-        // active-level limit let every solver / preprocessing region below
-        // spawn a full inner team inside a CALLER's parallel loop (a Monte
-        // Carlo over trials): 6 x 6 threads on a 12-core machine, observed
-        // on demo_13 (p = 2200, L up to 22000).
-        #ifdef _OPENMP
-        int old_max_levels = omp_get_max_active_levels();
-        if (do_parallel) omp_set_max_active_levels(2);
-        #endif
+        // One owner of the cores: the K-loop takes its team size from the
+        // outer option (capped at K); inside the team every solver stays
+        // serial (its regions test omp_in_parallel()), so no nested team
+        // forms and no per-thread setting is written. With one thread the
+        // region is inactive and the solvers' budget is live.
+        const int outer_threads = static_cast<int>(
+            std::min<std::size_t>(static_cast<std::size_t>(std::max(1, cfg.max_outer_threads)),
+                                  cfg.K));
+        const bool do_parallel = (outer_threads > 1);
 
         // An exception may not leave an OpenMP structured block — even an
         // INACTIVE region (if(false), single thread): the runtime calls
@@ -411,14 +379,8 @@ private:
         std::exception_ptr first_error = nullptr;
         std::atomic<bool> has_error{false};
 
-        #pragma omp parallel if(do_parallel)
+        #pragma omp parallel if(do_parallel) num_threads(outer_threads)
         {
-            // Per-thread ICV for the nested solver regions; Eigen's global
-            // is NOT touched here (see EigenThreadScope).
-            #ifdef _OPENMP
-            if (do_parallel) omp_set_num_threads(cfg.max_inner_threads);
-            #endif
-
             #pragma omp for schedule(dynamic)
             for (std::size_t k = 0; k < cfg.K; ++k) {
                 if (has_error.load(std::memory_order_relaxed)) { continue; }
@@ -438,10 +400,6 @@ private:
             }
         }
 
-        #ifdef _OPENMP
-        if (do_parallel) omp_set_max_active_levels(old_max_levels);
-        #endif
-
         if (first_error) { std::rethrow_exception(first_error); }
         return summaries;
     }
@@ -459,11 +417,8 @@ private:
         std::vector<ExperimentSummary> summaries(cfg.K);
 
         // Sequential by design; getPermuted() returns a fresh permuted
-        // copy per k (base + one working copy alive at a time)
-        // Sequential experiments: the solvers may use every core for Eigen
-        // products — scoped, so the host's setting is restored on return.
-        EigenThreadScope eigen_scope(omp_get_max_threads());
-
+        // copy per k (base + one working copy alive at a time). The solvers
+        // run with their budget cfg.max_inner_threads.
         for (std::size_t k = 0; k < cfg.K; ++k) {
             summaries[k] = runWithTemporaryDummies(
                 k, cfg,
@@ -485,10 +440,8 @@ private:
 
         std::vector<ExperimentSummary> summaries(cfg.K);
 
-        // Sequential experiments: the solvers may use every core for Eigen
-        // products — scoped, so the host's setting is restored on return.
-        EigenThreadScope eigen_scope(omp_get_max_threads());
-
+        // Sequential experiments; the solvers run with their budget
+        // cfg.max_inner_threads.
         for (std::size_t k = 0; k < cfg.K; ++k) {
             summaries[k] = runWithTemporaryDummies(
                 k, cfg,
@@ -519,11 +472,9 @@ private:
 
         std::vector<ExperimentSummary> summaries(cfg.K);
 
-        // Sequential experiments: the solvers may use every core for Eigen
-        // products — scoped, so the host's setting is restored on return.
-        EigenThreadScope eigen_scope(omp_get_max_threads());
-
-        // Transient base for this step only — dropped on return.
+        // Sequential experiments; the solvers run with their budget
+        // cfg.max_inner_threads. Transient base for this step only, dropped
+        // on return.
         const Eigen::MatrixXd base = dummy_gen_.generate(
             cfg.num_dummies,
             static_cast<std::size_t>(cfg.permutation_base_id));
@@ -613,31 +564,22 @@ private:
 
         std::vector<ExperimentSummary> summaries(cfg.K);
 
-        // Determine if we can parallelize (only for non-shared files)
+        // Parallel only over per-experiment files (a shared file is written
+        // in sequence); the team size is the outer option capped at K, and
+        // the solvers stay serial inside the team (see runStandard).
         const bool shared = (memmap_mgr_->numFiles() == 1);
-        const bool do_parallel = !shared && (cfg.max_outer_threads > 1);
-
-        // Eigen budget set ONCE from this thread, restored on exit.
-        EigenThreadScope eigen_scope(do_parallel ? cfg.max_inner_threads : 0);
-
-        #ifdef _OPENMP
-        int old_max_levels = omp_get_max_active_levels();
-        if (do_parallel) omp_set_max_active_levels(2);
-        #endif
+        const int outer_threads = static_cast<int>(
+            std::min<std::size_t>(static_cast<std::size_t>(std::max(1, cfg.max_outer_threads)),
+                                  cfg.K));
+        const bool do_parallel = !shared && (outer_threads > 1);
 
         // Same OpenMP exception discipline as runStandard: capture, drain,
         // rethrow after the region (an escaping exception terminates).
         std::exception_ptr first_error = nullptr;
         std::atomic<bool> has_error{false};
 
-        #pragma omp parallel if(do_parallel)
+        #pragma omp parallel if(do_parallel) num_threads(outer_threads)
         {
-            // Per-thread ICV for the nested solver regions; Eigen's global
-            // is NOT touched here (see EigenThreadScope).
-            #ifdef _OPENMP
-            if (do_parallel) omp_set_num_threads(cfg.max_inner_threads);
-            #endif
-
             #pragma omp for schedule(dynamic)
             for (std::size_t k = 0; k < cfg.K; ++k) {
                 if (has_error.load(std::memory_order_relaxed)) { continue; }
@@ -672,10 +614,6 @@ private:
                 }
             }
         }
-
-        #ifdef _OPENMP
-        if (do_parallel) omp_set_max_active_levels(old_max_levels);
-        #endif
 
         if (first_error) { std::rethrow_exception(first_error); }
         return summaries;

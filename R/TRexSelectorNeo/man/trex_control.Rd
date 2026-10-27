@@ -9,7 +9,7 @@ trex_control(
   K = 20,
   tloop_stagnation_stop = NULL,
   tloop_max_stagnant_steps = 5,
-  use_openmp = FALSE,
+  parallel_rnd_experiments = FALSE,
   use_memory_mapping = FALSE,
   max_outer_threads = 1,
   max_inner_threads = 1,
@@ -60,13 +60,23 @@ TCDTIKNET), TRUE for all others.}
 
 \item{tloop_max_stagnant_steps}{Steps before stagnation trigger (default: 5).}
 
-\item{use_openmp}{Whether to use OpenMP parallelization (default: FALSE).}
+\item{parallel_rnd_experiments}{Run the K random experiments in parallel
+(default: \code{FALSE}, the experiments run in sequence). Inside a
+parallel run every solver runs serially; the lean L-loop strategies
+(\code{"SEEDED"}, \code{"PERMUTATION"}, \code{"PERMUTATION_SEEDED"})
+always run their experiments in sequence. Was \code{use_openmp}.}
 
 \item{use_memory_mapping}{Use out-of-core memory mapping (default: FALSE).}
 
-\item{max_outer_threads}{Thread count for K repetitions (default: 1).}
+\item{max_outer_threads}{Threads of the parallel K-loop (default: 1).
+\code{0} resolves to every core, the count is capped at \code{K}.
+Ignored while \code{parallel_rnd_experiments} is \code{FALSE}.}
 
-\item{max_inner_threads}{Thread count for inner solvers (default: 1).}
+\item{max_inner_threads}{Thread budget of the solvers' own passes over
+the design (default: 1, serial). \code{0} resolves to every core. Live
+when the experiments run in sequence; inside a parallel run the
+solvers stay serial. A pass splits only above about a million entries
+of the design, so small problems run serially whatever the budget.}
 
 \item{max_dummy_multiplier}{Maximum dummy features multiplier (default: 10).}
 

@@ -66,9 +66,8 @@ void run_trex_core_test(Eigen::Index n,
     trex_ctrl.lloop_strategy = l_strategy;
 
     if (multi_threaded) {
-        omp_set_num_threads(2);
         trex_ctrl.parallel_rnd_experiments = true;
-        trex_ctrl.autoConfigResources();
+        trex_ctrl.max_outer_threads = 2;
     }
 
     TRexSelector trex(X_map, y_map, 0.1, trex_ctrl, 42,
@@ -218,9 +217,90 @@ TEST(TRexCoreTest, Param_LStrategies_SKIPL) {
 
 /** @brief Test TRexSelector with concurrency enabled. */
 TEST(TRexCoreTest, Param_Concurrency) {
-    // Tests autoConfigResources logic and threaded OpenMP execution
+    // Parallel random experiments on two threads
     run_trex_core_test(150, 200, disp::SolverTypeForTRex::TLARS,
                        LLoopStrategy::HCONCAT, true);
+}
+
+
+/** @brief The thread options resolve at construction: 0 is every core, a
+ *  negative value throws, the outer count is capped at K, and the defaults
+ *  are one thread each (no parallelism unless asked for). */
+TEST(TRexCoreTest, ThreadOptionsResolveAtConstruction) {
+    TRexControlParameter ctrl;
+    ctrl.K = 4;
+    ctrl.resolveThreadOptions();
+    EXPECT_EQ(ctrl.max_outer_threads, 1);
+    EXPECT_EQ(ctrl.max_inner_threads, 1);
+
+    TRexControlParameter every_core;
+    every_core.K = 4;
+    every_core.max_outer_threads = 0;
+    every_core.max_inner_threads = 0;
+    every_core.resolveThreadOptions();
+    const int cores = std::max(1, omp_get_num_procs());
+    EXPECT_EQ(every_core.max_outer_threads, std::min(cores, 4));
+    EXPECT_EQ(every_core.max_inner_threads, cores);
+
+    TRexControlParameter capped;
+    capped.K = 2;
+    capped.max_outer_threads = 64;
+    capped.resolveThreadOptions();
+    EXPECT_EQ(capped.max_outer_threads, 2);
+
+    TRexControlParameter negative;
+    negative.max_inner_threads = -1;
+    EXPECT_THROW(negative.resolveThreadOptions(), std::invalid_argument);
+
+    std::vector<std::size_t> support = {1, 2, 3};
+    std::vector<double> coefs = {5.0, -3.0, 2.0};
+    SyntheticData data(60, 20, support, coefs, 1.0, 42);
+    auto X = data.getX();
+    auto y = data.getY();
+    Eigen::Map<Eigen::MatrixXd> X_map(X.data(), X.rows(), X.cols());
+    Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
+    TRexControlParameter bad;
+    bad.max_outer_threads = -2;
+    EXPECT_THROW(TRexSelector(X_map, y_map, 0.1, bad, 42, false), std::invalid_argument);
+}
+
+
+/** @brief A seeded selector selects the same variables with the experiments
+ *  in sequence and in parallel: every experiment derives its own seed, so
+ *  the dummies do not depend on the thread that draws them. */
+TEST(TRexCoreTest, ParallelExperimentsSelectAsSerial) {
+    if (!trex::utils::openmp::is_available() || omp_get_num_procs() < 2) {
+        GTEST_SKIP() << "needs OpenMP and at least two cores";
+    }
+    std::vector<std::size_t> support = {1, 2, 3};
+    std::vector<double> coefs = {5.0, -3.0, 2.0};
+    SyntheticData data(100, 40, support, coefs, 1.0, 42);
+    auto X = data.getX();
+    auto y = data.getY();
+
+    auto run = [&](bool parallel, int outer, int inner) {
+        Eigen::MatrixXd Xc = X;
+        Eigen::VectorXd yc = y;
+        Eigen::Map<Eigen::MatrixXd> X_map(Xc.data(), Xc.rows(), Xc.cols());
+        Eigen::Map<Eigen::VectorXd> y_map(yc.data(), yc.size());
+        TRexControlParameter ctrl;
+        ctrl.K = 4;
+        ctrl.max_dummy_multiplier = 2;
+        ctrl.parallel_rnd_experiments = parallel;
+        ctrl.max_outer_threads = outer;
+        ctrl.max_inner_threads = inner;
+        TRexSelector trex(X_map, y_map, 0.1, ctrl, 42, false);
+        return trex.select().selected_var;
+    };
+
+    const auto serial   = run(false, 1, 1);
+    const auto parallel = run(true, 2, 1);
+    const auto budget   = run(false, 1, 2);
+    ASSERT_EQ(serial.size(), parallel.size());
+    EXPECT_TRUE((serial.array() == parallel.array()).all())
+        << "parallel experiments selected differently from the sequential run";
+    EXPECT_TRUE((serial.array() == budget.array()).all())
+        << "the solvers' thread budget changed the selection";
 }
 
 

@@ -79,7 +79,9 @@ struct TRexVDOptions {
     VDDummyLaw dummy_law = VDDummyLaw::Spherical;
     double     rho       = 1.0;      // AFS shrinkage
 
-    int n_threads       = 0;         // 0 = auto
+    // Threads of the K-loop: 1 (default) runs the experiments in sequence,
+    // 0 resolves to every core, the count is capped at K; negatives throw.
+    int n_threads       = 1;
 };
 
 // ---------- Result ----------

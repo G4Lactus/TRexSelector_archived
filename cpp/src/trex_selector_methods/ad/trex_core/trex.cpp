@@ -107,7 +107,8 @@ TRexSelector::TRexSelector(
     tFDR_(tFDR),
     trex_ctrl_([&]() {
         auto ctrl = trex_control;
-        ctrl.autoConfigResources();
+        // 0 = every core, negatives throw, the outer count is capped at K
+        ctrl.resolveThreadOptions();
         // Resolve the AUTO stagnation default by solver family: greedy
         // solvers need the noise-trap guard; equiangular LARS-path solvers
         // terminate properly on their own (R reference / paper behavior).
@@ -287,18 +288,6 @@ void TRexSelector::validateTRexParameters() const {
             + std::to_string(trex_ctrl_.opt_threshold));
     }
 
-    if (trex_ctrl_.max_outer_threads < 1) {
-        throw std::invalid_argument(
-            "max_outer_threads must be >= 1. Got: "
-            + std::to_string(trex_ctrl_.max_outer_threads));
-    }
-
-    if (trex_ctrl_.max_inner_threads < 1) {
-        throw std::invalid_argument(
-            "max_inner_threads must be >= 1. Got: "
-            + std::to_string(trex_ctrl_.max_inner_threads));
-    }
-
     // Only strictly validate solver params if present
     // (Assuming lambda2, rho_afs, and ncgmp_variant are inside trex_ctrl_.solver_params)
     if (trex_ctrl_.solver_params.lambda2 < 0.0) {
@@ -453,7 +442,11 @@ er::ExperimentRunnerConfig TRexSelector::buildRunnerConfig(
     cfg.precentered           = (trex_ctrl_.scaling_mode != dn::ScalingMode::NONE);
     cfg.use_warm_start        = use_warm_start;
     cfg.use_memory_mapping    = trex_ctrl_.use_memory_mapping;
-    cfg.max_outer_threads     = trex_ctrl_.max_outer_threads;
+    // The K-loop runs on max_outer_threads threads only when the experiments
+    // are parallel; the solvers' budget is max_inner_threads in both modes
+    // (inert inside a parallel K-loop, where the solvers stay serial).
+    cfg.max_outer_threads     = trex_ctrl_.parallel_rnd_experiments
+                                    ? trex_ctrl_.max_outer_threads : 1;
     cfg.max_inner_threads     = trex_ctrl_.max_inner_threads;
     cfg.verbose               = verbose_;
     // Deterministic tie-break shuffles for user-seeded runs: experiment k

@@ -171,7 +171,7 @@ protected:
      *  drift): c_j = d^T r is an O(k) index-set sum per dummy. Used by the
      *  refit solvers (OMP/AFS); LARS maintains them incrementally. */
     void refreshPoolCorrelations() {
-        #pragma omp parallel for
+        // An O(pool x k) loop: serial
         for (std::size_t i = 0; i < pool_Q_.size(); ++i) {
             double c = 0.0;
             for (int idx : pool_Q_[i].P_indices) c += r_(idx);

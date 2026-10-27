@@ -46,37 +46,47 @@ std::unique_ptr<tsolvers::sd::SDTSolver_Base> TRexSD::make_solver_(
     const auto L = (std::size_t)num_dummies;
     const auto T = (std::size_t)T_stop;
 
+    std::unique_ptr<tsolvers::sd::SDTSolver_Base> solver;
     if (opt_.solver == SDSolverType::General) {
         switch (opt_.algo) {
             case SDAlgo::OMP:
-                return std::make_unique<sdsol::SD_TOMP_Solver>(
+                solver = std::make_unique<sdsol::SD_TOMP_Solver>(
                     Xm, ym, rho_d_resolved_, L, T, /*intercept=*/true, seed);
+                break;
             case SDAlgo::AFS:
-                return std::make_unique<sdsol::SD_TAFS_Solver>(
+                solver = std::make_unique<sdsol::SD_TAFS_Solver>(
                     Xm, ym, rho_d_resolved_, L, T, /*intercept=*/true, seed,
                     opt_.rho);
+                break;
             case SDAlgo::LARS:
             default:
-                return std::make_unique<sdsol::SD_TLARS_Solver>(
+                solver = std::make_unique<sdsol::SD_TLARS_Solver>(
                     Xm, ym, rho_d_resolved_, L, T, /*intercept=*/true, seed);
+                break;
+        }
+    } else {
+        const auto policy = (opt_.solver == SDSolverType::Pair)
+            ? tsolvers::sd::SD2GenPolicy::OnDemand
+            : tsolvers::sd::SD2GenPolicy::Geometric;
+        switch (opt_.algo) {
+            case SDAlgo::OMP:
+                solver = std::make_unique<sdsol::SD2_TOMP_Solver>(
+                    Xm, ym, L, T, /*intercept=*/true, seed, policy);
+                break;
+            case SDAlgo::AFS:
+                solver = std::make_unique<sdsol::SD2_TAFS_Solver>(
+                    Xm, ym, L, T, /*intercept=*/true, seed, policy, opt_.rho);
+                break;
+            case SDAlgo::LARS:
+            default:
+                solver = std::make_unique<sdsol::SD2_TLARS_Solver>(
+                    Xm, ym, L, T, /*intercept=*/true, seed, policy);
+                break;
         }
     }
-
-    const auto policy = (opt_.solver == SDSolverType::Pair)
-        ? tsolvers::sd::SD2GenPolicy::OnDemand
-        : tsolvers::sd::SD2GenPolicy::Geometric;
-    switch (opt_.algo) {
-        case SDAlgo::OMP:
-            return std::make_unique<sdsol::SD2_TOMP_Solver>(
-                Xm, ym, L, T, /*intercept=*/true, seed, policy);
-        case SDAlgo::AFS:
-            return std::make_unique<sdsol::SD2_TAFS_Solver>(
-                Xm, ym, L, T, /*intercept=*/true, seed, policy, opt_.rho);
-        case SDAlgo::LARS:
-        default:
-            return std::make_unique<sdsol::SD2_TLARS_Solver>(
-                Xm, ym, L, T, /*intercept=*/true, seed, policy);
-    }
+    // The solvers' budget of this run (serial inside a parallel K-loop)
+    solver->setNumThreads(n_inner_resolved_);
+    return solver;
 }
 
 // ========================================================================
@@ -550,11 +560,17 @@ TRexSDResult TRexSD::run(Eigen::MatrixXd& X, const Eigen::VectorXd& y)
 {
     const int n = (int)X.rows(), p = (int)X.cols();
 
-    int n_threads;
-    if (opt_.n_threads > 0)
-        n_threads = opt_.n_threads;
-    else
-        n_threads = std::min(opt_.K, omp_get_max_threads());
+    // Threads: 0 = every core, negatives throw, the K-loop is capped at K
+    auto resolve_threads = [](int value, const char* name) {
+        if (value < 0) {
+            throw std::invalid_argument(
+                std::string("TRexSD: ") + name + " must be >= 0 (0 = every core). Got: "
+                + std::to_string(value));
+        }
+        return value == 0 ? std::max(1, omp_get_num_procs()) : value;
+    };
+    const int n_threads = std::min(opt_.K, resolve_threads(opt_.n_threads, "n_threads"));
+    n_inner_resolved_ = resolve_threads(opt_.n_inner_threads, "n_inner_threads");
 
     Eigen::VectorXd V = make_V_(opt_.K, opt_.eps);
 

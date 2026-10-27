@@ -98,9 +98,16 @@ TRexControlParameter parse_control_parameter(const Rcpp::List& control) {
         params.tloop_max_stagnant_steps = control["tloop_max_stagnant_steps"];
     }
 
-    // Parallel configuration
+    // Threads: the K-loop team and the solvers' budget (0 = every core,
+    // resolved by the selector constructor)
     if (control.containsElementNamed("parallel_rnd_experiments")) {
         params.parallel_rnd_experiments = control["parallel_rnd_experiments"];
+    }
+    if (control.containsElementNamed("max_outer_threads")) {
+        params.max_outer_threads = Rcpp::as<int>(control["max_outer_threads"]);
+    }
+    if (control.containsElementNamed("max_inner_threads")) {
+        params.max_inner_threads = Rcpp::as<int>(control["max_inner_threads"]);
     }
     if (control.containsElementNamed("use_memory_mapping")) {
         params.use_memory_mapping = control["use_memory_mapping"];
@@ -249,7 +256,7 @@ TRexControlParameter parse_control_parameter(const Rcpp::List& control) {
         }
     }
 
-    params.autoConfigResources();
+    // The thread options are resolved by the selector constructor
     return params;
 }
 

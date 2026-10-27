@@ -84,7 +84,7 @@ test_that("TRexGVSSelector handles concurrent execution properly (OpenMP)", {
   selector_openmp <- expect_no_error(
     TRexGVSSelector$new(X, y,
                         gvs_control = trex_gvs_control(gvs_type = "IEN"),
-                        control = trex_control(K = 5, use_openmp = TRUE, max_inner_threads = 2,
+                        control = trex_control(K = 5, parallel_rnd_experiments = TRUE, max_inner_threads = 2,
                                               max_outer_threads = 2),
                         verbose = FALSE)
   )

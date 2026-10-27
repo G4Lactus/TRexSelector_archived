@@ -129,7 +129,7 @@ test_that("TRexScreeningSelector handles concurrent execution properly (OpenMP)"
   # Run multithreaded (runs one sweeping K-loop for fast Screening)
   selector_openmp <- expect_no_error(
     TRexScreeningSelector$new(X, y,
-                              control = trex_control(use_openmp = TRUE, max_inner_threads = 2,
+                              control = trex_control(parallel_rnd_experiments = TRUE, max_inner_threads = 2,
                                                     max_outer_threads = 2),
                               verbose = FALSE)
   )

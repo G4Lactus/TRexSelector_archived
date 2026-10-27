@@ -104,7 +104,12 @@ struct TRexSDOptions {
     // (T, v) grid) — classic-parity default; fixed-L modes are for studies.
     CalibMode    calib  = CalibMode::CalibrateBoth;
 
-    int n_threads = 0;         // 0 = auto
+    // Threads of the K-loop: 1 (default) runs the experiments in sequence,
+    // 0 resolves to every core, the count is capped at K; negatives throw.
+    int n_threads = 1;
+    // Budget of the solvers' own regions (the step-length search): 1
+    // (default) serial, 0 every core. Serial inside a parallel K-loop.
+    int n_inner_threads = 1;
 };
 
 // ---------- Result ----------
@@ -133,6 +138,7 @@ private:
     TRexSDOptions opt_;
     double        rho_d_resolved_{0.0};
     std::size_t   k_resolved_{0};
+    int           n_inner_resolved_{1};   // the solvers' budget of this run
 
     // ---- Solver factory ----
     std::unique_ptr<tsolvers::sd::SDTSolver_Base> make_solver_(

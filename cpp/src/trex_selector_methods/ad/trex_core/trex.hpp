@@ -188,43 +188,45 @@ struct TRexControlParameter {
     std::size_t tloop_max_stagnant_steps = 5;
 
     // =================================
-    // Parallel random experiments
+    // Threads: one owner of the cores at a time
     // =================================
 
-    /** @brief If true, allows parallel execution of random experiments (default: false). */
+    /** @brief Run the K random experiments in parallel (default: false, the
+     *  experiments run in sequence). Inside a parallel K-loop every solver
+     *  runs serially; nested teams are never formed. The lean L-loop
+     *  strategies (SEEDED, PERMUTATION, PERMUTATION_SEEDED) always run their
+     *  experiments in sequence. */
     bool parallel_rnd_experiments = false;
 
-    /** @brief Computed number of threads for the outer loop (experiments) (default: 1). */
+    /** @brief Threads of the parallel K-loop (default: 1). 0 resolves to
+     *  every core at construction, the count is capped at K. Ignored while
+     *  parallel_rnd_experiments is false. */
     int max_outer_threads = 1;
 
-    /** @brief Computed number of threads for the inner loop (solvers/Eigen) (default: 1). */
+    /** @brief Thread budget of the solvers' own regions, passed as
+     *  SolverOptions::n_threads (default: 1, serial). 0 resolves to every
+     *  core at construction. Live when the experiments run in sequence;
+     *  inside a parallel K-loop the solvers stay serial whatever the budget
+     *  says. */
     int max_inner_threads = 1;
 
-    /** @brief Automatically configure thread resources based on K and hardware. */
-    void autoConfigResources() {
-#ifdef _OPENMP
-        if (parallel_rnd_experiments) {
-            int total_cores = omp_get_max_threads();
-            int k_exp = static_cast<int>(K);
-            if (k_exp > 1) {
-                max_outer_threads = std::min(total_cores, k_exp);
-                max_inner_threads = std::max(1, total_cores / max_outer_threads);
-            } else {
-                max_outer_threads = 1;
-                max_inner_threads = total_cores;
+    /** @brief Resolve the two thread options: a negative value throws, 0
+     *  becomes the core count, the outer count is capped at K. The selector
+     *  constructor calls it on its copy of the control. */
+    void resolveThreadOptions() {
+        auto resolve = [](int& value, const char* name) {
+            if (value < 0) {
+                throw std::invalid_argument(
+                    std::string(name) + " must be >= 0 (0 = every core). Got: "
+                    + std::to_string(value));
             }
-        } else {
-            // Serial experiments: the solvers may use every core — unless
-            // the selector is being constructed INSIDE a caller's parallel
-            // region (a Monte Carlo loop over trials), where an inner team
-            // per outer thread oversubscribes the machine.
-            max_outer_threads = 1;
-            max_inner_threads = omp_in_parallel() ? 1 : omp_get_max_threads();
+            if (value == 0) { value = std::max(1, omp_get_num_procs()); }
+        };
+        resolve(max_outer_threads, "max_outer_threads");
+        resolve(max_inner_threads, "max_inner_threads");
+        if (K > 0) {
+            max_outer_threads = std::min(max_outer_threads, static_cast<int>(K));
         }
-#else
-        max_outer_threads = 1;
-        max_inner_threads = 1;
-#endif
     }
 
     // ===================================

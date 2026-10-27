@@ -104,7 +104,7 @@ protected:
      *  (OMP/AFS); LARS maintains them incrementally. No-op under the
      *  Geometric policy (the pool stays virtual). */
     void refreshPoolCorrelations() {
-        #pragma omp parallel for
+        // An O(pool) loop: serial
         for (std::size_t i = 0; i < pool_.size(); ++i) {
             pool_[i].corr = dummy_scale_ * (r_(pool_[i].i) - r_(pool_[i].j));
         }

@@ -69,16 +69,14 @@ void SD_TLARS_Solver::executeStep(std::size_t T_stop, bool early_stop) {
 
         r_ -= gamma * u;
 
-        // Fast Correlation Update (Standard Variables)
-        #pragma omp parallel for
+        // Fast Correlation Update (Standard Variables): an O(m) loop, serial
         for (std::size_t i = 0; i < inactives_.size(); ++i) {
             std::size_t j = inactives_[i];
             correlations_(j) -= gamma * a(i);
         }
 
         // Fast Correlation Update (Pool Dummies): exact, since c_j = d^T r
-        // and r <- r - gamma*u  =>  c_j <- c_j - gamma * <d, u>.
-        #pragma omp parallel for
+        // and r <- r - gamma*u  =>  c_j <- c_j - gamma * <d, u>. Serial.
         for (std::size_t i = 0; i < pool_Q_.size(); ++i) {
             pool_Q_[i].current_correlation -= gamma * pool_Q_[i].current_a;
         }
@@ -126,7 +124,10 @@ std::pair<double, Eigen::VectorXd> SD_TLARS_Solver::computeStepSize(double Cmax,
     Eigen::VectorXd a(inactives_.size());
     double gamma = std::numeric_limits<double>::max();
 
-    #pragma omp parallel
+    // The step-length search is a pass over the inactive columns
+    [[maybe_unused]] const int nt = threadsFor(
+        static_cast<double>(X_->rows()) * static_cast<double>(inactives_.size()));
+    #pragma omp parallel num_threads(nt) if (nt > 1)
     {
         double local_gamma = std::numeric_limits<double>::max();
 

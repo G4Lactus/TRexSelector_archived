@@ -69,8 +69,60 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
 - A T-solver used directly runs its OpenMP regions serially by default
   (`SolverOptions::n_threads = 1`, 0 = every core); before, the regions took
   every core OpenMP offered. `EigenSingleThreadGuard` in `tsolver_base.hpp` is
-  `EigenThreadBudgetGuard(n_threads)`. The selectors keep their behaviour in
-  this step. See the 2026-10-26 entry.
+  `EigenThreadBudgetGuard(n_threads)`. See the 2026-10-26 entry.
+- The selectors run serially by default: the random experiments in sequence
+  and every solver on one thread. `TRexControlParameter::max_outer_threads`
+  and `max_inner_threads` are honoured as set (defaults 1 and 1, 0 = every
+  core, negatives throw) where `autoConfigResources()` used to overwrite them
+  with the core count; that method is gone, and so is the `EigenThreadScope`
+  class of the experiment runner. In R, `trex_control(use_openmp = )` is
+  `parallel_rnd_experiments` (the C++ and Python name), and the two thread
+  options now reach the backend. `TRexSDOptions::n_threads` and
+  `TRexVDOptions::n_threads` default to 1 instead of "auto" (0 keeps that
+  meaning as every core). See the 2026-10-27 entry.
+
+### 2026-10-27
+
+#### Selectors: the thread options are honoured, serial by default (WP15 step 2)
+
+- One owner of the cores at a time. `parallel_rnd_experiments` (default false)
+  runs the K random experiments on `max_outer_threads` threads (default 1, 0 =
+  every core, capped at K) and keeps every solver serial inside the team. With
+  the experiments in sequence (the default, and always for the lean strategies
+  SEEDED, PERMUTATION and PERMUTATION_SEEDED) the solvers get
+  `max_inner_threads` as their budget (default 1, 0 = every core), which their
+  regions split only above the work threshold of step 1. Nested teams are never
+  formed: the K-loop carries an explicit `num_threads` clause, and the solvers'
+  regions test `omp_in_parallel()`.
+- Gone: `TRexControlParameter::autoConfigResources()`, which overwrote both
+  options with the core count (every core for the inner solvers whenever the
+  experiments ran in sequence, so a serial selector in an R session took all
+  cores above the threshold), the `omp_set_max_active_levels(2)` and the
+  per-worker `omp_set_num_threads()` of the K-loops, and the runner's
+  `EigenThreadScope`: the solvers pin Eigen's count to their own budget per
+  call (step 1), outside a team only. `resolveThreadOptions()` validates and
+  resolves the two options at construction.
+- The R binding passed `parallel_rnd_experiments` and `use_memory_mapping` to
+  the backend but not the two thread counts, so `trex_control(max_outer_threads
+  = )` never reached C++. Both are parsed now. `trex_control()` accepts 0 for
+  both and rejects negatives. `use_openmp` is renamed `parallel_rnd_experiments`
+  (breaking, see the release block). The parallelism vignette describes the
+  options; the Python docstrings of the three fields follow.
+- SD and VD: `TRexSDOptions::n_threads` and `TRexVDOptions::n_threads` are the
+  K-loop threads with the same semantics (1 default, 0 every core, capped at K,
+  negatives throw) instead of "0 = auto, every core". `TRexSDOptions` gains
+  `n_inner_threads`, the budget of the SD solvers' step-length search, passed
+  through `SDTSolver_Base::setNumThreads()`; the O(m) correlation updates and
+  the pool refreshes of the SD solvers lost their pragmas (they never paid), the
+  step-length search is gated like the ad solvers.
+- Tests: `TRexCoreTest.ThreadOptionsResolveAtConstruction` (defaults 1 / 1, 0
+  resolves to the core count, the outer count is capped at K, negatives throw at
+  resolution and at construction) and `ParallelExperimentsSelectAsSerial` (a
+  seeded selector selects the same variables in sequence, with parallel
+  experiments and with a solver budget of 2). The thread hygiene tests keep
+  their meaning: nothing writes the host's OpenMP or Eigen count any more.
+  C++ suite 672 tests.
+- R vendored copy re-synced.
 
 ### 2026-10-26
 

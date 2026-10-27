@@ -46,10 +46,20 @@
 #'   TENET_AUG, TIKNET, and the CD family TCDLASSO/TCDENET/TCDIENET/
 #'   TCDTIKNET), TRUE for all others.
 #' @param tloop_max_stagnant_steps Steps before stagnation trigger (default: 5).
-#' @param use_openmp Whether to use OpenMP parallelization (default: FALSE).
+#' @param parallel_rnd_experiments Run the K random experiments in parallel
+#'   (default: \code{FALSE}, the experiments run in sequence). Inside a
+#'   parallel run every solver runs serially; the lean L-loop strategies
+#'   (\code{"SEEDED"}, \code{"PERMUTATION"}, \code{"PERMUTATION_SEEDED"})
+#'   always run their experiments in sequence. Was \code{use_openmp}.
 #' @param use_memory_mapping Use out-of-core memory mapping (default: FALSE).
-#' @param max_outer_threads Thread count for K repetitions (default: 1).
-#' @param max_inner_threads Thread count for inner solvers (default: 1).
+#' @param max_outer_threads Threads of the parallel K-loop (default: 1).
+#'   \code{0} resolves to every core, the count is capped at \code{K}.
+#'   Ignored while \code{parallel_rnd_experiments} is \code{FALSE}.
+#' @param max_inner_threads Thread budget of the solvers' own passes over
+#'   the design (default: 1, serial). \code{0} resolves to every core. Live
+#'   when the experiments run in sequence; inside a parallel run the
+#'   solvers stay serial. A pass splits only above about a million entries
+#'   of the design, so small problems run serially whatever the budget.
 #' @param max_dummy_multiplier Maximum dummy features multiplier (default: 10).
 #' @param use_max_T_stop Whether to bound max T_stop (default: TRUE).
 #' @param opt_threshold Optimization threshold (default: 0.75).
@@ -133,7 +143,7 @@ trex_control <- function(solver = "TLARS",
                          K = 20,
                          tloop_stagnation_stop = NULL,
                          tloop_max_stagnant_steps = 5,
-                         use_openmp = FALSE,
+                         parallel_rnd_experiments = FALSE,
                          use_memory_mapping = FALSE,
                          max_outer_threads = 1,
                          max_inner_threads = 1,
@@ -169,11 +179,11 @@ trex_control <- function(solver = "TLARS",
   if (tloop_max_stagnant_steps < 0) {
     stop("tloop_max_stagnant_steps must be >= 0. Got: ", tloop_max_stagnant_steps)
   }
-  if (max_outer_threads < 1) {
-    stop("max_outer_threads must be >= 1. Got: ", max_outer_threads)
+  if (max_outer_threads < 0) {
+    stop("max_outer_threads must be >= 0 (0 = every core). Got: ", max_outer_threads)
   }
-  if (max_inner_threads < 1) {
-    stop("max_inner_threads must be >= 1. Got: ", max_inner_threads)
+  if (max_inner_threads < 0) {
+    stop("max_inner_threads must be >= 0 (0 = every core). Got: ", max_inner_threads)
   }
   # The C++ side applies the certify/probe pair only when BOTH are > 0;
   # fail loudly here instead of silently ignoring a half-set pair.
@@ -204,7 +214,7 @@ trex_control <- function(solver = "TLARS",
     lloop_strategy          = lloop_strategy,
     tloop_stagnation_stop   = tloop_stagnation_stop,
     tloop_max_stagnant_steps = tloop_max_stagnant_steps,
-    parallel_rnd_experiments = use_openmp,
+    parallel_rnd_experiments = as.logical(parallel_rnd_experiments),
     use_memory_mapping      = use_memory_mapping,
     max_outer_threads       = max_outer_threads,
     max_inner_threads       = max_inner_threads,

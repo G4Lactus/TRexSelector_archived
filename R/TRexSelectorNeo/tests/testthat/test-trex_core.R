@@ -57,7 +57,7 @@ test_that("TRexSelector handles concurrent execution properly (OpenMP)", {
   # Ensure the object can be created and bound appropriately with concurrency settings
   selector_openmp <- expect_no_error(
     TRexSelector$new(X, y, verbose = FALSE,
-                     control = trex_control(use_openmp = TRUE, max_outer_threads = 2))
+                     control = trex_control(parallel_rnd_experiments = TRUE, max_outer_threads = 2))
   )
 
   # Run the algorithm targeting out threaded branches in C++ and falls back cleanly
@@ -66,6 +66,30 @@ test_that("TRexSelector handles concurrent execution properly (OpenMP)", {
 
   expect_type(res_openmp, "environment")
   expect_true("selected_indices" %in% names(res_openmp))
+})
+
+
+test_that("a seeded selector selects the same variables whatever the thread options", {
+  set.seed(7)
+  n <- 80
+  p <- 30
+  X <- matrix(rnorm(n * p), n, p)
+  y <- as.numeric(X[, 1] * 3 - X[, 2] * 2 + rnorm(n))
+  run <- function(ctrl) {
+    sel <- TRexSelector$new(X, y, tFDR = 0.1, seed = 11, verbose = FALSE, control = ctrl)
+    sel$select()
+    sel$selected_indices
+  }
+  serial   <- run(trex_control(K = 4))
+  parallel <- run(trex_control(K = 4, parallel_rnd_experiments = TRUE, max_outer_threads = 2))
+  budget   <- run(trex_control(K = 4, max_inner_threads = 2))
+  every    <- run(trex_control(K = 4, max_outer_threads = 0, max_inner_threads = 0))
+  expect_identical(parallel, serial)
+  expect_identical(budget, serial)
+  expect_identical(every, serial)
+
+  # use_openmp was renamed parallel_rnd_experiments
+  expect_error(trex_control(use_openmp = TRUE), "unused argument")
 })
 
 
@@ -111,7 +135,7 @@ test_that("TRexSelector correctly guards against edge-case hyperparameter inputs
     "tloop_max_stagnant_steps"
   )
 
-  # OpenMP threads cannot be negative
+  # The thread options reject negatives; 0 means every core and is accepted
   expect_error(
     TRexSelector$new(X, y, verbose = FALSE, control = trex_control(max_outer_threads = -1)),
     "max_outer_threads"
@@ -120,6 +144,9 @@ test_that("TRexSelector correctly guards against edge-case hyperparameter inputs
     TRexSelector$new(X, y, verbose = FALSE, control = trex_control(max_inner_threads = -1)),
     "max_inner_threads"
   )
+  ctrl_zero <- trex_control(max_outer_threads = 0, max_inner_threads = 0)
+  ctrl_zero$max_outer_threads <- -3   # bypass the R check: the backend rejects it too
+  expect_error(TRexSelector$new(X, y, verbose = FALSE, control = ctrl_zero), "max_outer_threads")
 
   # lambda2 (ENET constraint) and rho_afs (AFS constraint) bounds
   expect_error(
