@@ -87,8 +87,40 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   storage-free twin of HCONCAT in the i.i.d. case. A seeded SEEDED run, and a
   seeded screening run with STANDARD or SEEDED, selects differently from before
   under the same law; unseeded runs are unaffected. See the 2026-10-27 entry.
+- T-Stagewise takes fewer steps: a variable its NNLS reduction removes within a
+  step is no candidate for that step's move, so the rounding-noise re-entries
+  are gone and the path no longer depends on the build. Recorded step counts
+  change; coefficients and supports below saturation do not. See the 2026-10-27
+  entry.
 
 ### 2026-10-27
+
+#### T-Stagewise: a variable removed within a step is no candidate for that step's move
+
+- The 60 / 56 / 50 steps that T-Stagewise took on bit-identical data in the
+  C++, Python and R builds (n = 50, p = L = 1,000, T = 10) were rounding, not
+  a tie. A variable the NNLS reduction removes still sits at the active level,
+  so its root in the step-size formula is rounding noise over a nonzero
+  denominator. A noise root above machine epsilon gave a near-zero step after
+  which the variable re-entered as the maximum and was removed again, until the
+  noise changed sign. The BLAS and the no-BLAS build of the same machine
+  disagreed on 75 of 100 seeds at n = 50 and 100, on 15 at n = 200; T-LARS and
+  T-LASSO on none.
+- Now the variables removed within a step are excluded from the candidates of
+  that step and rejoin with exact correlations after the move, the
+  drop-breakpoint rule the lasso-family solvers apply in their recovery step.
+  The rule is exact: by the Schur complement the removed variable's correlation
+  falls faster than the active level, so it cannot catch up within the step.
+- Effect: the two builds agree on every seed; the path equals the old path
+  without the pure cycle steps (100 of 100); the coefficients and the supports
+  at T are unchanged below saturation (100 of 100 at n = 50, T = 10); the mean
+  step count at n = 50 falls from 38.7 to 34.3; runs that the old code
+  truncated at the step limit after spending it on cycles now reach T. Genuine
+  cycling at saturation remains (the decision of 2026-09-27 stands). Breaking
+  for the recorded T-Stagewise step counts only (see the release block).
+- Test `TStagewiseSelection.NoRoundingNoiseStepsAfterNNLSRemoval`: every step
+  lowers the active level by a relative margin above 1e-12 (the old code
+  failed it in most runs, with decreases of exactly zero).
 
 #### The clustering refuses a RAM buffer beyond the physical memory and scans in parallel
 

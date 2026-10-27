@@ -44,8 +44,12 @@ namespace trex::tsolvers::ad::linear_model::lars_based {
  * coefficient (frozen), so the support of the coefficient path can exceed the
  * active set. The selection is read from the coefficient path, as the T-Rex
  * selector and cdiagnostics::selected_variables() do; getActives() lists the
- * active set only. At saturation the path cycles through removals and
- * re-entries up to the step limit.
+ * active set only. A variable removed within a step is no candidate for that
+ * step's move and rejoins with an exact correlation after it (the
+ * drop-breakpoint rule of the lasso-family solvers); its correlation then lies
+ * strictly below the active level, so the move is never a rounding-noise step.
+ * At saturation the path still cycles through removals and re-entries up to
+ * the step limit.
  *
  *  References:
  *  -----------
@@ -66,6 +70,9 @@ protected:
     // STAGEWISE specific states
     // ========================================================================
 
+    /** @brief Variables the NNLS reduction removed in the current step
+     *  (transient, empty between steps, not serialized). */
+    std::vector<std::size_t> nnls_dropped_step_;
 
 public:
     // ========================================================================

@@ -79,6 +79,7 @@ void TSTAGEWISE_Solver::executeStep(std::size_t T_stop, bool early_stop) {
         // ========================================================
         // Step 3: T-Stagewise NNLS Direction Check Loop
         // ========================================================
+        nnls_dropped_step_.clear();
         Eigen::VectorXd w_A = computeStagewiseDirection();
 
         if (actives_.empty()) {
@@ -104,6 +105,16 @@ void TSTAGEWISE_Solver::executeStep(std::size_t T_stop, bool early_stop) {
         // before computeStepSize
         updateInactiveSet();
 
+        // The variables removed in this step still sit at Cmax, so their step
+        // roots are rounding noise (a noise root above eps gives a near-zero
+        // step, re-entry and removal again). Their correlation falls faster
+        // than the active level, so they cannot catch up within the step:
+        // no candidates here, re-admitted with exact correlations after the move.
+        std::vector<std::size_t> excluded;
+        for (std::size_t v : nnls_dropped_step_) {
+            if (std::erase(inactives_, v) > 0) { excluded.push_back(v); }
+        }
+
         // ========================================================
         // Step 5: Equi-angular projection and Step Size
         // ========================================================
@@ -123,6 +134,11 @@ void TSTAGEWISE_Solver::executeStep(std::size_t T_stop, bool early_stop) {
         // Step 7: Update Correlations
         // ========================================================
         updateCorrelations(gamma, a);
+        // Re-admit the variables removed in this step with exact correlations
+        for (std::size_t v : excluded) {
+            inactives_.push_back(v);
+            refreshDroppedCorrelation(v);
+        }
 
         // ========================================================
         // Step 8: Update diagnostics and dummy tracking
@@ -213,6 +229,7 @@ void TSTAGEWISE_Solver::processStagewiseNNLS(const Eigen::Ref<const Eigen::Vecto
     // 7. Mark for inactive set rebuild at the end of the step
     any_dropped_ = true;
     num_removals_++;
+    nnls_dropped_step_.push_back(dropped_var);
 }
 
 // ============================================================================

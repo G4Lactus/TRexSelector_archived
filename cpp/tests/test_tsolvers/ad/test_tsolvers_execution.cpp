@@ -591,6 +591,41 @@ TEST(TStagewiseSelection, FrozenCoefficientsAreSelected) {
     EXPECT_GT(runs_with_frozen, 0) << "no T-Stagewise run froze a coefficient";
 }
 
+/**
+ * @brief A variable the NNLS reduction removes within a step is no candidate
+ *        for that step's move: it still sits at the level it just left, so its
+ *        step root is rounding noise. Without the exclusion a noise root above
+ *        eps gives a near-zero step, re-entry and removal again, and the path
+ *        depends on the rounding of the build (BLAS against no BLAS). With it,
+ *        every step lowers the active level by a visible fraction.
+ */
+TEST(TStagewiseSelection, NoRoundingNoiseStepsAfterNNLSRemoval) {
+    constexpr Eigen::Index n = 50, p = 300, L = 300;
+    int runs_with_removals = 0;
+    for (int seed = 1; seed <= 10; ++seed) {
+        SyntheticData data(n, p, L, {2, 11, 23, 37, 49, 60, 71, 83, 97, 110}, std::vector<double>(10, 3.0),
+                           90.0, seed, -1, -1, predictor_policy::Normal(), dummygen::Distribution::Normal(),
+                           noisegen::noise_policy::Normal());
+        Eigen::MatrixXd Xs = data.getX(), Ds = data.getD();
+        Eigen::VectorXd ys = data.getY();
+        Eigen::Map<Eigen::MatrixXd> X_map(Xs.data(), n, p), D_map(Ds.data(), n, L);
+        Eigen::Map<Eigen::VectorXd> y_map(ys.data(), n);
+        TSTAGEWISE_Solver solver(X_map, D_map, y_map, trex::tsolvers::ad::SolverOptions{.tie_seed = seed});
+        solver.executeStep(10, true);
+
+        const auto& lambda = solver.getLambda();
+        for (std::size_t s = 1; s < lambda.size(); ++s) {
+            EXPECT_GT((lambda[s - 1] - lambda[s]) / lambda[s - 1], 1e-12) << "seed " << seed << ", step " << s;
+        }
+        bool removed = false;
+        for (const auto& step : solver.getActions()) {
+            removed = removed || std::any_of(step.begin(), step.end(), [](int a) { return a < 0; });
+        }
+        runs_with_removals += removed;
+    }
+    EXPECT_GT(runs_with_removals, 0) << "no T-Stagewise run removed a variable";
+}
+
 
 /**
  * @brief The tie seed reaches the inner solver of the augmented wrappers on
