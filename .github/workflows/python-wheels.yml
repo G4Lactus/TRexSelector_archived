@@ -52,9 +52,11 @@ jobs:
       - name: Stage LLVM OpenMP runtime (Windows)
         if: runner.os == 'Windows'
         run: |
-          $dll = Get-Item "C:\Program Files\Microsoft Visual Studio\*\*\VC\Redist\MSVC\*\x64\*OpenMP*\libomp140*.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
+          $pattern = "C:\Program Files\Microsoft Visual Studio\*\*\VC\Redist\MSVC\*\x64\*OpenMP*\libomp140*.dll"
+          $dll = Get-Item $pattern -ErrorAction SilentlyContinue | Select-Object -First 1
           if (-not $dll) {
-            $dll = Get-ChildItem "C:\Program Files\Microsoft Visual Studio" -Recurse -Filter "libomp140.x86_64.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
+            $dll = Get-ChildItem "C:\Program Files\Microsoft Visual Studio" -Recurse `
+              -Filter "libomp140.x86_64.dll" -ErrorAction SilentlyContinue | Select-Object -First 1
           }
           if (-not $dll) { throw "libomp140.x86_64.dll not found in the Visual Studio installation" }
           New-Item -ItemType Directory -Force -Path C:\libomp | Out-Null
@@ -101,7 +103,8 @@ jobs:
             # Eigen would add install rules for libeigen_blas_static.a etc., which the
             # (non-building) `cmake --install` step then can't find.
             curl -fsSL https://gitlab.com/libeigen/eigen/-/archive/5.0.1/eigen-5.0.1.tar.gz | tar xz -C /tmp
-            cmake -S /tmp/eigen-5.0.1 -B /tmp/eigen-build -DEIGEN_BUILD_BLAS=OFF -DEIGEN_BUILD_LAPACK=OFF -DEIGEN_BUILD_DOC=OFF -DEIGEN_BUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=/usr/local
+            cmake -S /tmp/eigen-5.0.1 -B /tmp/eigen-build -DEIGEN_BUILD_BLAS=OFF -DEIGEN_BUILD_LAPACK=OFF \
+              -DEIGEN_BUILD_DOC=OFF -DEIGEN_BUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=/usr/local
             cmake --install /tmp/eigen-build
             # cereal — install via its CMake so cerealConfig.cmake exists for find_package(cereal).
             curl -fsSL https://github.com/USCiLab/cereal/archive/refs/tags/v1.3.2.tar.gz | tar xz -C /tmp

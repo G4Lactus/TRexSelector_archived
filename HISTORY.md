@@ -109,6 +109,23 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
 
 ### 2026-10-27
 
+#### The 120-character ruler holds project wide (D8)
+
+- `tools/check_line_length.py` lists every tracked text line over 120
+  characters and exits with status 1 when it finds one; the workflow
+  `line-ruler.yml` runs it on every push and pull request, without a path
+  filter. Exempt: data and binary files, generated files (the pybind11 stubs,
+  the roxygen pages, RcppExports, inst/CITATION, the vendored copy and the
+  Makevars of the R package), the clang-tidy check list, Markdown table rows
+  and lines that carry a URL or a DOI.
+- 394 lines in 52 files were continued on a new line, one mechanical
+  rule per kind: pybind11 docstrings split into adjacent literals (the stubs
+  stay byte-identical), C++ and R call lines wrapped at commas, the one-line
+  Rcpp getters expanded to three lines with `NOLINTNEXTLINE`, Markdown prose
+  wrapped at spaces, and a few CMake, YAML, shell and JSON lines by hand. The
+  CITATION.cff titles use folded scalars, the reference map holds one key per
+  line where an array was long.
+
 #### The READMEs describe the dummy strategies
 
 - The C++, R and Python READMEs gain a "Dummy Strategies" section before their
@@ -1549,7 +1566,8 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   single-phenotype (vector `Y`) return. No information is lost — every
   `$statistics` column and index list is a field of each record — and the
   summary table is a one-line projection:
-  `do.call(rbind, lapply(res, function(r) as.data.frame(r[c("phenotype_index", "estimated_FDR", "method_used", "used_fallback_trex")])))`.
+  `do.call(rbind, lapply(res, function(r) as.data.frame(r[c("phenotype_index", "estimated_FDR",
+  "method_used", "used_fallback_trex")])))`.
   This matches Python, which returns one `BiobankScreenTRexResult` (vector) or a
   list of them (matrix).
 - R gains `prior_groups` + `rho_grid_labels` in `trex_da_control()` — the

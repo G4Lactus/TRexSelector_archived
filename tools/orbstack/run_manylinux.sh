@@ -33,7 +33,8 @@ export CIBW_MANYLINUX_X86_64_IMAGE="manylinux_2_28"
 # Verbatim from python-wheels.yml (CIBW_BEFORE_ALL_LINUX).
 export CIBW_BEFORE_ALL_LINUX='set -e
 curl -fsSL https://gitlab.com/libeigen/eigen/-/archive/5.0.1/eigen-5.0.1.tar.gz | tar xz -C /tmp
-cmake -S /tmp/eigen-5.0.1 -B /tmp/eigen-build -DEIGEN_BUILD_BLAS=OFF -DEIGEN_BUILD_LAPACK=OFF -DEIGEN_BUILD_DOC=OFF -DEIGEN_BUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=/usr/local
+cmake -S /tmp/eigen-5.0.1 -B /tmp/eigen-build -DEIGEN_BUILD_BLAS=OFF -DEIGEN_BUILD_LAPACK=OFF \
+  -DEIGEN_BUILD_DOC=OFF -DEIGEN_BUILD_TESTING=OFF -DCMAKE_INSTALL_PREFIX=/usr/local
 cmake --install /tmp/eigen-build
 curl -fsSL https://github.com/USCiLab/cereal/archive/refs/tags/v1.3.2.tar.gz | tar xz -C /tmp
 cmake -S /tmp/cereal-1.3.2 -B /tmp/cereal-build -DJUST_INSTALL_CEREAL=ON -DCMAKE_INSTALL_PREFIX=/usr/local

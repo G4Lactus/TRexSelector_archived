@@ -49,7 +49,9 @@ if [ "${1:-}" != "--no-apt" ]; then
     say "r_deps: exit $?"
 fi
 say "    $(cmake --version | head -1); $(g++ --version | head -1); $(R --version | head -1); $(python3 --version)"
-say "    eigen: $(pkg-config --modversion eigen3 2>/dev/null || echo '?'); boost: $(grep 'define BOOST_LIB_VERSION' /usr/include/boost/version.hpp | awk '{print $3}')"
+eigen_version=$(pkg-config --modversion eigen3 2>/dev/null || echo '?')
+boost_version=$(grep 'define BOOST_LIB_VERSION' /usr/include/boost/version.hpp | awk '{print $3}')
+say "    eigen: $eigen_version; boost: $boost_version"
 
 # ---------------------------------------------------------------- 2. C++
 run cpp_configure cmake -S cpp -B cpp/build/ci -DCMAKE_BUILD_TYPE=Release -DTREX_PORTABLE_BUILD=ON
@@ -65,7 +67,8 @@ step r_testthat
 ( cd "$REPO/R/TRexSelectorNeo" && Rscript -e 'library(TRexSelectorNeo)
     res <- testthat::test_dir("tests/testthat", stop_on_failure = TRUE)
     df <- as.data.frame(res)
-    cat(sprintf("TOTAL: %d passed, %d failed, %d skipped\n", sum(df$passed), sum(df$failed), sum(df$skipped)))' ) > "$LOG/r_testthat.log" 2>&1
+    cat(sprintf("TOTAL: %d passed, %d failed, %d skipped\n",
+                sum(df$passed), sum(df$failed), sum(df$skipped)))' ) > "$LOG/r_testthat.log" 2>&1
 say "r_testthat: exit $?"
 grep -E "^TOTAL:|Error|FAIL" "$LOG/r_testthat.log" | tail -3 | sed 's/^/    /' | tee -a "$SUM"
 # The CRAN-shaped check on the built tarball (vignettes skipped: the
@@ -84,11 +87,13 @@ grep -E "^Status:|WARNING|ERROR|NOTE" "$LOG/r_check.log" | sed 's/^/    /' | tee
 
 # ---------------------------------------------------------------- 4. Python
 step py_venv
-python3 -m venv /work/venv > "$LOG/py_venv.log" 2>&1 && /work/venv/bin/pip install -q --upgrade pip numpy pytest >> "$LOG/py_venv.log" 2>&1
+python3 -m venv /work/venv > "$LOG/py_venv.log" 2>&1 \
+  && /work/venv/bin/pip install -q --upgrade pip numpy pytest >> "$LOG/py_venv.log" 2>&1
 say "py_venv: exit $?"
 run py_build /work/venv/bin/pip install -v Python/TRexSelectorNeo
 step py_pytest
-( cd "$REPO/Python/TRexSelectorNeo" && /work/venv/bin/python -X faulthandler -m pytest tests -x -q ) > "$LOG/py_pytest.log" 2>&1
+( cd "$REPO/Python/TRexSelectorNeo" \
+  && /work/venv/bin/python -X faulthandler -m pytest tests -x -q ) > "$LOG/py_pytest.log" 2>&1
 say "py_pytest: exit $?"
 tail -n 2 "$LOG/py_pytest.log" | sed 's/^/    /' | tee -a "$SUM"
 

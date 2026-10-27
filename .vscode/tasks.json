@@ -165,7 +165,7 @@
             "options": {"cwd": "${workspaceFolder}/Python/TRexSelectorNeo"},
             "group": {"kind": "build"},
             "problemMatcher": [],
-            "detail": "Editable install in the trex-dev env; builds C++ extension via scikit-build-core. Extras quoted so zsh does not glob '.[dev]'."
+            "detail": "Editable install in the trex-dev env (scikit-build-core); the extras are quoted for zsh."
         },
         // Build a distributable wheel (Release, via scikit-build-core)
         {

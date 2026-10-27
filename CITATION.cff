@@ -21,7 +21,9 @@ keywords:
   - T-Rex selector
 preferred-citation:
   type: article
-  title: "The Terminating-Random Experiments Selector: Fast High-Dimensional Variable Selection with False Discovery Rate Control"
+  title: >-
+    The Terminating-Random Experiments Selector: Fast High-Dimensional Variable Selection with False
+    Discovery Rate Control
   authors:
     - family-names: Machkour
       given-names: Jasin
@@ -48,7 +50,9 @@ references:
     year: 2025
     doi: 10.1016/j.sigpro.2025.109990
   - type: conference-paper
-    title: "False Discovery Rate Control for Grouped Variable Selection in High-Dimensional Linear Models Using the T-Knock Filter"
+    title: >-
+      False Discovery Rate Control for Grouped Variable Selection in High-Dimensional Linear Models Using
+      the T-Knock Filter
     authors:
       - family-names: Machkour
         given-names: Jasin
@@ -128,7 +132,9 @@ references:
     end: 2515
     year: 2026
   - type: article
-    title: "Virtual Dummies: Enabling Scalable FDR-Controlled Variable Selection via Sequential Sampling of Null Features"
+    title: >-
+      Virtual Dummies: Enabling Scalable FDR-Controlled Variable Selection via Sequential Sampling of Null
+      Features
     authors:
       - family-names: Koka
         given-names: Taulant
