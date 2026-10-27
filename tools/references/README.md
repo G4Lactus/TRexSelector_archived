@@ -19,8 +19,13 @@ Render a block:
 python3 tools/references/render_references.py --format cpp efron2004lars machkour2025trex
 python3 tools/references/render_references.py --format r --width 110 efron2004lars
 python3 tools/references/render_references.py --format pylit --width 100 efron2004lars
+python3 tools/references/render_references.py --format md machkour2025trex   # a Markdown bullet, DOI linked
 python3 tools/references/render_references.py --list        # every key
 ```
+
+The reference list of the root README is rendered with `--format md` (one unwrapped bullet per entry, the DOI
+or the arXiv id as a link); the command stands in an HTML comment above the list. The two application papers
+of the README's opening story live in the bibliography's "Application references" section.
 
 One reference line reads: initials and surnames, "title," venue, volume, number, pages, year, DOI. The entries
 of a class follow the order of `references_map.json`: the origin papers of the method first, then the T-Rex paper

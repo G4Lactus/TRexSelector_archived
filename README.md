@@ -9,9 +9,9 @@ A C++20 library with R and Python bindings.**
 
 False discoveries plague science and engineering.
 In genomics, a single false discovery can wrongly tie a gene to a disease, contributing to the
-reproducibility crisis and derailing years of research and clinical effort [(Huffman et al., 2018)](https://www.nature.com/articles/s41467-018-07348-x).
+reproducibility crisis and derailing years of research and clinical effort [(Huffman, 2018)](https://doi.org/10.1038/s41467-018-07348-x).
 In finance, hundreds of studies claim to have found factors that explain stock returns, yet most of
-these findings are likely false [(Harvey, Liu, and Zhu, 2016)](https://academic.oup.com/rfs/article-abstract/29/1/5/1843824?redirectedFrom=fulltext).
+these findings are likely false [(Harvey, Liu, and Zhu, 2016)](https://doi.org/10.1093/rfs/hhv059).
 
 The T-Rex Selector performs high-dimensional variable selection while controlling the rate of false
 discoveries at a level you choose, with rigorous finite-sample guarantees, and fast and
@@ -62,18 +62,22 @@ documentation:
 
 ## References
 
-* Machkour, Muma, Palomar - *The Terminating-Random Experiments Selector: Fast High-Dimensional Variable Selection with False Discovery Rate Control*, Signal Processing, vol. 231, pp. 109894, 2025. [DOI link](https://www.sciencedirect.com/science/article/pii/S016516842500009X)
-* Machkour, Muma, Palomar - *High-dimensional false discovery rate control for dependent variables*, Signal Processing, vol. 234, pp. 109990, 2025. [DOI link](https://www.sciencedirect.com/science/article/pii/S0165168425001045)
-* Taulant Koka, Jasin Machkour, Daniel P. Palomar, and Michael Muma, “Virtual Dummies: Enabling Scalable FDR-Controlled Variable Selection via Sequential Sampling of Null Features,” arXiv:2604.07464, 2026. [DOI link](https://arxiv.org/abs/2604.07464)
-* Huffman, J. E., et al. - *Examining the current standards for genetic discovery and replication in the era of mega-biobanks*, Nature Communications, 9(1), 5054 (2018). [DOI link](https://www.nature.com/articles/s41467-018-07348-x)
-* Harvey, C. R., Liu, Y., and Zhu, H. - *… and the Cross-Section of Expected Returns*, The Review of Financial Studies, 29(1), 5–68 (2016). [DOI link](https://academic.oup.com/rfs/article-abstract/29/1/5/1843824?redirectedFrom=fulltext)
+<!-- Rendered from references.bib:
+     python3 tools/references/render_references.py --format md machkour2025trex machkour2025datrex
+         koka2026vdtrex huffman2018biobanks harvey2016crosssection -->
+* J. Machkour, M. Muma, and D. P. Palomar, "The Terminating-Random Experiments Selector: Fast High-Dimensional Variable Selection with False Discovery Rate Control," Signal Process., vol. 231, Art. no. 109894, 2025, [doi: 10.1016/j.sigpro.2025.109894](https://doi.org/10.1016/j.sigpro.2025.109894).
+* J. Machkour, M. Muma, and D. P. Palomar, "High-Dimensional False Discovery Rate Control for Dependent Variables," Signal Process., vol. 234, Art. no. 109990, 2025, [doi: 10.1016/j.sigpro.2025.109990](https://doi.org/10.1016/j.sigpro.2025.109990).
+* T. Koka, J. Machkour, D. P. Palomar, and M. Muma, "Virtual Dummies: Enabling Scalable FDR-Controlled Variable Selection via Sequential Sampling of Null Features," [arXiv:2604.07464](https://arxiv.org/abs/2604.07464), 2026 (Submitted to J. Mach. Learn. Res.).
+* J. E. Huffman, "Examining the current standards for genetic discovery and replication in the era of mega-biobanks," Nat. Commun., vol. 9, no. 1, Art. no. 5054, 2018, [doi: 10.1038/s41467-018-07348-x](https://doi.org/10.1038/s41467-018-07348-x).
+* C. R. Harvey, Y. Liu, and H. Zhu, "… and the Cross-Section of Expected Returns," Rev. Financ. Stud., vol. 29, no. 1, pp. 5-68, 2016, [doi: 10.1093/rfs/hhv059](https://doi.org/10.1093/rfs/hhv059).
 
 ## Citing
 
 [CITATION.cff](CITATION.cff) carries the citation metadata of the repository, and the R package answers
 `citation("TRexSelectorNeo")`. Every paper the class documentation credits is listed in
 [references.bib](references.bib), the master file from which the reference blocks of the C++, R and Python
-documentation are rendered with the scripts in [tools/references/](tools/references/).
+documentation are rendered with the scripts in [tools/references/](tools/references/). The reference list
+above is rendered from it as well, the two application papers of the opening story included.
 
 ## Acknowledgements
 

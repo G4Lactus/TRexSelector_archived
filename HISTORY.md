@@ -95,12 +95,18 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
 - R: `MLRidgeCV$fit(num_folds = )` is `n_folds`. C++ `ridge_cv_svd::fit()` and
   Python `RidgeCV.fit()` default to `n_lambda = 100` instead of 1,000 (R's
   default, the glmnet convention). See the 2026-10-27 entry.
-- T-Stagewise stops when the support holds T dummies, frozen coefficients
-  included; before, only the active dummies counted and the path ran on after a
-  removal. Selections and step counts of T-Stagewise runs change. See the
-  2026-10-27 entry.
-
 ### 2026-10-27
+
+#### The root README's reference list is rendered from the master bibliography
+
+- `references.bib` gains an "Application references" section with the two
+  papers of the README's opening story (Huffman 2018, Nature Communications,
+  a single-author comment article; Harvey, Liu and Zhu 2016, Review of
+  Financial Studies), fields verified against their Crossref records.
+- `render_references.py` gains `--format md`: one unwrapped Markdown bullet per
+  entry with the DOI or the arXiv id as a link. The README's reference list is
+  rendered with it (the command stands in an HTML comment above the list) and
+  the inline citations of the opening story link the DOIs.
 
 #### R MLRidgeCV aligned with C++ and Python, the clustering's backend line on request, acknowledgements
 

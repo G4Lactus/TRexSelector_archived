@@ -9,7 +9,7 @@ that the three languages carry identical text.
 
 Usage:
     render_references.py --list
-    render_references.py [--format plain|cpp|r|py] [--width N] KEY [KEY ...]
+    render_references.py [--format plain|cpp|r|py|pylit|md] [--width N] KEY [KEY ...]
     render_references.py --all
 
 No third-party dependency: the parser covers the subset of BibTeX used in
@@ -208,8 +208,18 @@ def _lower_first(text):
 # Line prefix per output format. "cpp" is the Doxygen block style of the headers
 # (" * " lines, references indented by two more spaces, continuation by two
 # more), "r" the roxygen style, "pylit" C++ string literals for a pybind11
-# docstring, "py" an indented plain block.
-_PREFIXES = {"plain": "", "cpp": " *   ", "r": "#' ", "py": "    ", "pylit": "        "}
+# docstring, "py" an indented plain block, "md" one Markdown bullet per entry
+# with the DOI (or arXiv id) as a link, unwrapped (the README lists).
+_PREFIXES = {"plain": "", "cpp": " *   ", "r": "#' ", "py": "    ", "pylit": "        ", "md": "* "}
+
+_DOI_RE = re.compile(r"doi: (\S+?)(\.?)$")
+_ARXIV_RE = re.compile(r"arXiv:(\d{4}\.\d{4,5}(?:v\d+)?)")
+
+
+def _markdown(line):
+    """Link the DOI or the arXiv id of a rendered line."""
+    line = _DOI_RE.sub(lambda m: f"[doi: {m.group(1)}](https://doi.org/{m.group(1)}){m.group(2)}", line)
+    return _ARXIV_RE.sub(lambda m: f"[arXiv:{m.group(1)}](https://arxiv.org/abs/{m.group(1)})", line)
 
 # Tokens that must stay on one line with the word that follows them.
 _GLUE = ("vol.", "no.", "pp.", "Art.", "doi:")
@@ -234,6 +244,9 @@ def render_block(entries, keys, fmt, width, prefix=None):
     for key in keys:
         if key not in entries:
             sys.exit(f"unknown key: {key}")
+        if fmt == "md":
+            blocks.append(prefix + _markdown(render(entries[key])))
+            continue
         wrapped = _wrap(render(entries[key]), width - len(prefix) - (4 if fmt == "pylit" else 0))
         if fmt == "pylit":
             blocks.append("\n".join(prefix + _literal(w) for w in wrapped))
