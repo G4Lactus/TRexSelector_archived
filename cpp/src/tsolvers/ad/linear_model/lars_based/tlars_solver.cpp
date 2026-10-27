@@ -240,7 +240,9 @@ std::vector<int> TLARS_Solver::updateActiveSet (const std::vector<std::size_t>& 
             num_additions_++;
             std::erase(inactives_, j_new);
 
-            if (j_new >= dummy_start_idx_) count_active_dummies_++;
+            // A dummy counts toward T while it is active or carries a frozen
+            // nonzero coefficient; one that re-enters frozen is counted already
+            if (j_new >= dummy_start_idx_ && runningBeta(j_new) == 0.0) count_active_dummies_++;
         }
     }
     return actions_this_step;

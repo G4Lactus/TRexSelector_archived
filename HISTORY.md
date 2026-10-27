@@ -95,6 +95,15 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
 - R: `MLRidgeCV$fit(num_folds = )` is `n_folds`. C++ `ridge_cv_svd::fit()` and
   Python `RidgeCV.fit()` default to `n_lambda = 100` instead of 1,000 (R's
   default, the glmnet convention). See the 2026-10-27 entry.
+- T-Stagewise stops when the support holds T dummies, frozen coefficients
+  included; before, only the active dummies counted and the path ran on after a
+  removal. Selections and step counts of T-Stagewise runs change. See the
+  2026-10-27 entry.
+
+### 2026-10-27
+
+#### R MLRidgeCV aligned with C++ and Python, the clustering's backend line on request, acknowledgements
+
 - `MLRidgeCV$fit()` takes `n_folds` (was `num_folds`; MLElasticNetCV, Python and
   C++ already used that name). The ridge CV grid default is 100 points on every
   surface: C++ `ridge_cv_svd::fit()` and Python `RidgeCV.fit()` come down from
@@ -117,6 +126,25 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
 - Vignette page 2 carries the SKIPL caveat: under a large fixed L the FDP
   estimate is anti-conservative (an FDR of 0.137 at a target of 0.1 in the
   Examples demo 04).
+
+#### T-Stagewise: the dummies of the support count toward T (D10)
+
+- The early stop at T_stop and the tie budget of the LARS family count a dummy
+  while it is active or carries a frozen nonzero coefficient. Before, the count
+  followed the active set only: a dummy the NNLS reduction of T-Stagewise
+  removed stopped counting although its frozen coefficient kept it selected,
+  so the path ran on until T dummies were active again while the removed null
+  variables stayed counted. The included nulls at T then exceeded the
+  hypergeometric count the FDP estimate assumes (Examples demo_ts_perf_05: a
+  mean of 21.35 against 19.60 at T = 20, Kolmogorov distance 0.10 against at
+  most 0.014 for the other solver configurations). Now the path stops at the
+  first step whose support holds T_stop dummies, the step the T-Rex runner maps
+  to t = T_stop, and a frozen dummy that re-enters is not counted twice. The
+  lasso-family solvers are unchanged in effect, since a lasso drop zeroes the
+  coefficient. T-Stagewise results move (see the release block).
+- Test `TStagewiseSelection.FrozenDummiesCountTowardT`: the support of the last
+  step holds at least T_stop dummies and the step before fewer, in runs with
+  frozen dummies.
 
 #### T-Stagewise: a variable removed within a step is no candidate for that step's move
 

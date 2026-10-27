@@ -352,7 +352,8 @@ std::vector<int> TIENET_Solver::updateActiveSetIEN(
             num_additions_++;
             std::erase(inactives_, j_new);
 
-            if (j_new >= dummy_start_idx_) count_active_dummies_++;
+            // Counted while active or frozen nonzero (see TLARS_Solver::updateActiveSet)
+            if (j_new >= dummy_start_idx_ && runningBeta(j_new) == 0.0) count_active_dummies_++;
         }
     }
     return actions_this_step;

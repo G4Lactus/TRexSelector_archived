@@ -203,12 +203,20 @@ void TSTAGEWISE_Solver::processStagewiseNNLS(const Eigen::Ref<const Eigen::Vecto
 
     std::size_t dropped_var = actives_[drop_idx];
 
-    // 2. Update dummy tracking
+    // 2. Update dummy tracking: a dummy removed with a frozen nonzero
+    // coefficient stays in the support and keeps counting toward T; one
+    // removed before any move (coefficient zero) leaves the count
     if (dropped_var >= dummy_start_idx_ && count_active_dummies_ > 0) {
-        count_active_dummies_--;
-        logInfo(concatMsg("Dummy variable ", dropped_var,
-                          " removed during NNLS reduction (count: ",
-                          count_active_dummies_, ")\n"));
+        if (runningBeta(dropped_var) == 0.0) {
+            count_active_dummies_--;
+            logInfo(concatMsg("Dummy variable ", dropped_var,
+                              " removed during NNLS reduction (count: ",
+                              count_active_dummies_, ")\n"));
+        } else {
+            logInfo(concatMsg("Dummy variable ", dropped_var,
+                              " removed during NNLS reduction, frozen coefficient keeps counting (count: ",
+                              count_active_dummies_, ")\n"));
+        }
     }
 
     // 3. Downdate Cholesky factor R_

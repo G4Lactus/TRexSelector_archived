@@ -44,7 +44,11 @@ namespace trex::tsolvers::ad::linear_model::lars_based {
  * coefficient (frozen), so the support of the coefficient path can exceed the
  * active set. The selection is read from the coefficient path, as the T-Rex
  * selector and cdiagnostics::selected_variables() do; getActives() lists the
- * active set only. A variable removed within a step is no candidate for that
+ * active set only. The dummy count that stops the path at T_stop follows the
+ * support as well: a dummy removed with a frozen nonzero coefficient keeps
+ * counting, and a frozen dummy that re-enters is not counted twice, so the
+ * path stops at the first step whose support holds T_stop dummies, the step
+ * the T-Rex runner maps to t = T_stop. A variable removed within a step is no candidate for that
  * step's move and rejoins with an exact correlation after it (the
  * drop-breakpoint rule of the lasso-family solvers); its correlation then lies
  * strictly below the active level, so the move is never a rounding-noise step.

@@ -626,6 +626,55 @@ TEST(TStagewiseSelection, NoRoundingNoiseStepsAfterNNLSRemoval) {
     EXPECT_GT(runs_with_removals, 0) << "no T-Stagewise run removed a variable";
 }
 
+/**
+ * @brief T counts the dummies of the support: a dummy the NNLS reduction
+ *        removes keeps its frozen coefficient and stays selected, so it keeps
+ *        counting toward T_stop, and a frozen dummy that re-enters is not
+ *        counted twice. The path therefore stops at the first step whose
+ *        support holds T_stop dummies, the step the T-Rex runner maps to
+ *        t = T_stop; counting the active dummies only ran the path on past
+ *        that step whenever a dummy had been removed.
+ */
+TEST(TStagewiseSelection, FrozenDummiesCountTowardT) {
+    constexpr Eigen::Index n = 60, p = 60, L = 60;
+    constexpr std::size_t T_stop = 10;
+    const double eps = std::numeric_limits<double>::epsilon();
+    int runs_with_frozen_dummies = 0;
+    for (int seed = 1; seed <= 20; ++seed) {
+        SyntheticData data(n, p, L, {2, 11, 23, 37, 49}, {3.0, -2.0, 2.0, -3.0, 2.5}, 10.0, seed,
+                           -1, -1, predictor_policy::Normal(), dummygen::Distribution::Normal(),
+                           noisegen::noise_policy::Normal());
+        Eigen::MatrixXd Xs = data.getX(), Ds = data.getD();
+        Eigen::VectorXd ys = data.getY();
+        Eigen::Map<Eigen::MatrixXd> X_map(Xs.data(), n, p), D_map(Ds.data(), n, L);
+        Eigen::Map<Eigen::VectorXd> y_map(ys.data(), n);
+        TSTAGEWISE_Solver solver(X_map, D_map, y_map, trex::tsolvers::ad::SolverOptions{.tie_seed = seed});
+        solver.executeStep(T_stop, true);
+
+        const auto path = solver.getBetaPathSparse();
+        const auto dummies_in_support = [&](const auto& st) {
+            std::size_t count = 0;
+            for (std::size_t k = 0; k < st.idx.size(); ++k) {
+                count += (st.idx[k] >= static_cast<std::size_t>(p) && std::abs(st.val[k]) > eps);
+            }
+            return count;
+        };
+        ASSERT_GE(path.steps.size(), 2u) << "seed " << seed;
+        const std::size_t last = path.steps.size() - 1;
+        EXPECT_GE(dummies_in_support(path.steps[last]), T_stop) << "seed " << seed;
+        EXPECT_LT(dummies_in_support(path.steps[last - 1]), T_stop) << "seed " << seed;
+
+        const auto& actives = solver.getActives();
+        const auto& st = path.steps[last];
+        for (std::size_t k = 0; k < st.idx.size(); ++k) {
+            const bool frozen_dummy = st.idx[k] >= static_cast<std::size_t>(p) && std::abs(st.val[k]) > eps &&
+                                      std::find(actives.begin(), actives.end(), st.idx[k]) == actives.end();
+            if (frozen_dummy) { ++runs_with_frozen_dummies; break; }
+        }
+    }
+    EXPECT_GT(runs_with_frozen_dummies, 0) << "no run removed a dummy with a frozen coefficient";
+}
+
 
 /**
  * @brief The tie seed reaches the inner solver of the augmented wrappers on
