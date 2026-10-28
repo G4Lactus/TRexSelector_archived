@@ -36,6 +36,5 @@ target_sources(trex_tsolvers PUBLIC
 # 3. Subdirectories
 # ==============================================================================
 add_subdirectory(linear_model)
-add_subdirectory(logistic_model)
 add_subdirectory(solver_utils)
 # ==============================================================================

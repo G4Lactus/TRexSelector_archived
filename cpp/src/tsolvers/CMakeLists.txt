@@ -50,7 +50,6 @@
 # |-- ad/                       augmented (appended) dummies: solvers run on [X, D]
 #     |-- tsolver_base.{hpp,cpp}, solver_options.hpp, solver_utils/
 #     |-- linear_model/{lars_based, omp_based, afs_based, cd_based}/
-#     |-- logistic_model/       (future)
 # |
 # |-- vd/                       virtual dummies, realized on demand (VD_Base root)
 # |

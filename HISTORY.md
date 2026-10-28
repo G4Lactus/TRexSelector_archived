@@ -109,6 +109,13 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
 
 ### 2026-10-28
 
+#### The logistic_model placeholder is gone
+
+- `cpp/src/tsolvers/ad/logistic_model/` held one CMakeLists.txt with no
+  sources and no target. The folder and its `add_subdirectory` are removed;
+  a logistic T-solver, if it comes, belongs to the virtual-dummy family and
+  is not part of this release.
+
 #### OrbStack: the R check runs in a UTF-8 locale the image has
 
 - `tools/orbstack/stage_ubuntu.sh` picks `en_US.UTF-8` when the image has it
