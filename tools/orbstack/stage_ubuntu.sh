@@ -77,9 +77,11 @@ rm -rf "$REPO"/TRexSelectorNeo_*.tar.gz "$REPO"/TRexSelectorNeo.Rcheck
 run r_build R CMD build --no-build-vignettes --no-manual R/TRexSelectorNeo
 TARBALL=$(ls -t "$REPO"/TRexSelectorNeo_*.tar.gz 2>/dev/null | head -1)
 step r_check
-# en_US.UTF-8 (generated in the apt step): the syntax check sets that locale
-# and a bare ubuntu:24.04 image has none, which surfaces as a WARNING.
-( cd "$REPO" && LANG=en_US.UTF-8 LC_ALL=en_US.UTF-8 \
+# A UTF-8 session: en_US.UTF-8 (generated in the apt step) or the C.UTF-8 every
+# image has (a snapshot taken before locale-gen holds only that one). An ASCII
+# session makes the DESCRIPTION meta-information check fail with a bare ERROR.
+UTF8_LOCALE=$(locale -a 2>/dev/null | grep -qiE '^en_US\.utf-?8$' && echo en_US.UTF-8 || echo C.UTF-8)
+( cd "$REPO" && LANG=$UTF8_LOCALE LC_ALL=$UTF8_LOCALE \
     _R_CHECK_CRAN_INCOMING_=false _R_CHECK_FORCE_SUGGESTS_=false \
     R CMD check --no-manual --ignore-vignettes --no-build-vignettes "$TARBALL" ) > "$LOG/r_check.log" 2>&1
 say "r_check: exit $?"

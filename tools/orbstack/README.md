@@ -19,9 +19,10 @@ logs to `<workdir>/logs/`, the summary to `<workdir>/logs/summary.log`. The
 provisioned container is committed as the image `trex-orb-ubuntu:deps`, so a
 rerun of one step (`run_ubuntu.sh --reuse`) skips apt.
 
-Expected noise in the check: a locale WARNING (no `en_US.UTF-8` in the
-image), a `patchwork` NOTE (Suggests, not installable from apt) and the
-Ubuntu `BH` NOTE (the apt package strips its headers).
+Expected noise in the check: the installed-size NOTE (the shared object)
+and the Ubuntu `BH` NOTE (the apt package strips its headers). The check
+runs in `en_US.UTF-8` (generated in the apt step) or in the image's
+`C.UTF-8`; an ASCII session turns the `BH` NOTE into a bare ERROR.
 
 ## Stage B: manylinux_2_28 x86_64 wheels through cibuildwheel
 

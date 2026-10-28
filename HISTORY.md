@@ -107,6 +107,19 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   removal. Selections and step counts of T-Stagewise runs change. See the
   2026-10-27 entry.
 
+### 2026-10-28
+
+#### OrbStack: the R check runs in a UTF-8 locale the image has
+
+- `tools/orbstack/stage_ubuntu.sh` picks `en_US.UTF-8` when the image has it
+  (the apt step generates it) and the image's `C.UTF-8` otherwise. A snapshot
+  taken before `locale-gen` fell back to an ASCII session, where `R CMD check`
+  ends with a bare ERROR at the DESCRIPTION meta-information step instead of
+  the BH NOTE. The Linux run of the dev_beyond batch at 09debc6 is green: C++
+  688 tests and the install smoke, R 1,531 tests and the check with two NOTEs
+  (installed size, Ubuntu's BH), Python 624 tests, the manylinux cp312 wheel
+  with 624 tests.
+
 ### 2026-10-27
 
 #### The 120-character ruler holds project wide (D8)
