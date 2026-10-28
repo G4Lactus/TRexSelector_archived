@@ -8,9 +8,11 @@
 
 // std includes
 #include <string>
+#include <utility>
 #include <vector>
 
-// project utils includes
+// project includes
+#include <trex_selector_methods/ad/trex_tikhonov/tik_lambda2_power_rule.hpp>
 #include <utils/memmap/memory_mapped_matrix.hpp>
 
 // =========================================================================================
@@ -74,15 +76,13 @@ TRexTikhonovControlParameter parse_tikhonov_parameter(const Rcpp::List& control)
             params.lambda2_method = TikLambda2Method::CV_1SE_TIK_SVD;
         } else if (method_str == "CV_MIN_TIK_SVD") {
             params.lambda2_method = TikLambda2Method::CV_MIN_TIK_SVD;
-        } else if (method_str == "PILOT_MAX") {
-            params.lambda2_method = TikLambda2Method::PILOT_MAX;
         } else if (method_str == "PILOT_KNEE") {
             params.lambda2_method = TikLambda2Method::PILOT_KNEE;
         } else {
             Rcpp::stop("Unknown lambda2_method: '" + method_str +
-                       "'. Use 'CV_1SE_IEN_CCD', 'CV_MIN_IEN_CCD', "
-                       "'CV_1SE_TIK_SVD', 'CV_MIN_TIK_SVD', 'PILOT_MAX', "
-                       "or 'PILOT_KNEE'.");
+                       "'. Use 'PILOT_KNEE', 'CV_1SE_IEN_CCD', "
+                       "'CV_MIN_IEN_CCD', 'CV_1SE_TIK_SVD' or "
+                       "'CV_MIN_TIK_SVD'.");
         }
     }
 
@@ -108,7 +108,7 @@ TRexTikhonovControlParameter parse_tikhonov_parameter(const Rcpp::List& control)
         params.cv_seed = Rcpp::as<int>(control["cv_seed"]);
     }
 
-    // ---- Pilot rule (PILOT_MAX / PILOT_KNEE) --------------------------------
+    // ---- Pilot rule (PILOT_KNEE) --------------------------------------------
     // Negative counts would wrap through size_t; refuse them here (the C++
     // constructor gates the rest: pilot_K >= 2, pilot_T >= 1, ...).
     auto as_count = [&](const char* name) -> std::size_t {
@@ -333,6 +333,70 @@ Rcpp::List trex_tikhonov_get_lambda2_pilot_result(
         Rcpp::Named("T_pilot")           = static_cast<double>(r.T_pilot),
         Rcpp::Named("L_0")               = static_cast<double>(r.L_0),
         Rcpp::Named("seconds")           = r.seconds
+    );
+}
+
+
+//' @title The knee of the full lambda_2 profile: one selection per grid value
+//' @noRd
+// [[Rcpp::export]]
+Rcpp::List trex_tikhonov_lambda2_power_rule_impl(
+    Rcpp::NumericMatrix X,
+    Rcpp::NumericVector y,
+    double tFDR,
+    Rcpp::List tik_control_list,
+    Rcpp::List trex_control_list,
+    int seed,
+    std::vector<double> grid,
+    double knee_tolerance,
+    bool verbose
+) {
+    // Every probe normalizes X in place and hands it back on return, so X
+    // and y are read through their maps and never copied.
+    Eigen::Map<Eigen::MatrixXd> X_map(X.begin(), X.nrow(), X.ncol());
+    Eigen::Map<Eigen::VectorXd> y_map(y.begin(), y.size());
+    const TRexTikhonovControlParameter tik_ctrl = merge_tikhonov_control(
+        parse_tikhonov_parameter(tik_control_list),
+        parse_control_parameter(trex_control_list));
+    Lambda2PowerRuleConfig cfg;
+    cfg.grid           = std::move(grid);
+    cfg.knee_tolerance = knee_tolerance;
+    const Lambda2PowerRuleResult r = tikhonov_lambda2_power_rule(
+        X_map, y_map, tFDR, tik_ctrl, seed, cfg, verbose);
+
+    auto one_based = [](const std::vector<std::size_t>& v) {
+        Rcpp::IntegerVector out(static_cast<R_xlen_t>(v.size()));
+        for (std::size_t i = 0; i < v.size(); ++i) {
+            out[static_cast<R_xlen_t>(i)] = static_cast<int>(v[i]) + 1;
+        }
+        return out;
+    };
+    const auto G = static_cast<R_xlen_t>(r.probes.size());
+    Rcpp::List          probes(G);
+    Rcpp::NumericVector lambdas(G);
+    Rcpp::NumericVector counts(G);
+    for (R_xlen_t k = 0; k < G; ++k) {
+        const Lambda2Probe& pr = r.probes[static_cast<std::size_t>(k)];
+        probes[k] = Rcpp::List::create(
+            Rcpp::Named("lambda2")  = pr.lambda2,
+            Rcpp::Named("selected") = one_based(pr.selected),
+            Rcpp::Named("T_stop")   = static_cast<double>(pr.T_stop),
+            Rcpp::Named("seconds")  = pr.seconds);
+        lambdas[k] = pr.lambda2;
+        counts[k]  = static_cast<double>(pr.selected.size());
+    }
+    return Rcpp::List::create(
+        Rcpp::Named("lambda2")      = r.lambda2,
+        Rcpp::Named("index")        = static_cast<int>(r.index) + 1,  // 1-based
+        Rcpp::Named("selected")     = one_based(r.selection()),
+        Rcpp::Named("grid")         = lambdas,
+        Rcpp::Named("counts")       = counts,
+        Rcpp::Named("probes")       = probes,
+        Rcpp::Named("max_selected") = static_cast<double>(r.pick.max_selected),
+        Rcpp::Named("n_ties")       = static_cast<double>(r.pick.n_ties),
+        Rcpp::Named("at_lower_end") = r.at_lower_end,
+        Rcpp::Named("at_upper_end") = r.at_upper_end,
+        Rcpp::Named("seconds")      = r.seconds
     );
 }
 

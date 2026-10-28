@@ -8,7 +8,7 @@ trex_tikhonov_control(
   tikhonov_K = NULL,
   penalty_structure = "SPARSE_GENERAL",
   lambda_2 = -1,
-  lambda2_method = "CV_1SE_IEN_CCD",
+  lambda2_method = "PILOT_KNEE",
   cv_n_folds = 10,
   cv_n_lambda = 100,
   cv_n_lambda1 = 40,
@@ -52,16 +52,17 @@ fallback) carry the tag \code{[TCDIENET]}.}
 as-is.}
 
 \item{lambda2_method}{Auto-determination strategy when
-\code{lambda_2 < 0}. The CV rules consume K and return lambda_2 on
+\code{lambda_2 < 0}. \code{"PILOT_KNEE"} (default) reads lambda_2 off
+a few random experiments per candidate of \code{pilot_grid}, by the
+selector's own principle: the smallest lambda_2 whose pilot selection
+count is within \code{pilot_knee_tolerance} of the largest (the knee
+of the profile). The pilot record is available as \code{lambda2_pilot}
+on the selector. The k-fold CV rules consume K and return lambda_2 on
 the solver scale (no p/2 conversion): \code{"CV_1SE_IEN_CCD"}
-(default; well-posed in any p/n regime), \code{"CV_MIN_IEN_CCD"},
-\code{"CV_1SE_TIK_SVD"}, \code{"CV_MIN_TIK_SVD"}. The PILOT rules read
-lambda_2 off a few random experiments per candidate of
-\code{pilot_grid}, by the selector's own principle (the largest
-FDR-controlled selection): \code{"PILOT_MAX"} takes the largest pilot
-count (ties toward the smallest lambda_2), \code{"PILOT_KNEE"} the
-smallest lambda_2 within \code{pilot_knee_tolerance} of it. The pilot
-record is available as \code{lambda2_pilot} on the selector.}
+(well-posed in any p/n regime), \code{"CV_MIN_IEN_CCD"},
+\code{"CV_1SE_TIK_SVD"}, \code{"CV_MIN_TIK_SVD"}. The knee of the full
+selection profile, one selection per grid value, is
+\code{\link{trex_tikhonov_lambda2_power_rule}}.}
 
 \item{cv_n_folds}{Folds for the CV paths (default: 10).}
 
@@ -85,26 +86,26 @@ Must be finite.}
 derives it from the selector seed, \code{>= 0} overrides it for CV
 folds only.}
 
-\item{pilot_grid}{PILOT rules: lambda_2 candidates on the working column
+\item{pilot_grid}{Pilot rule: lambda_2 candidates on the working column
 scale (default \code{c(0, 1, 3, 10, 30, 100, 300, 1000, 3000)}),
 sorted and de-duplicated internally. Keep 0 on it so that "no
 penalty" is an admissible answer.}
 
-\item{pilot_K}{PILOT rules: pilot experiments per grid point (default:
+\item{pilot_K}{Pilot rule: pilot experiments per grid point (default:
 10; at least 2, capped at \code{K} of \code{\link{trex_control}}).}
 
-\item{pilot_T}{PILOT rules: stopping time of the pilot paths (default:
+\item{pilot_T}{Pilot rule: stopping time of the pilot paths (default:
 5; at least 1, capped at \code{min(L_0, ceiling(n / 2))}).}
 
-\item{pilot_L_multiplier}{PILOT rules: pilot dummies
+\item{pilot_L_multiplier}{Pilot rule: pilot dummies
 \code{L_0 = pilot_L_multiplier * p} (default: 1; at most
 \code{max_dummy_multiplier}).}
 
-\item{pilot_knee_tolerance}{\code{"PILOT_KNEE"}: selections below the
-largest pilot count that still count as "on the plateau"
-(default: 1).}
+\item{pilot_knee_tolerance}{Pilot rule: selections below the largest
+pilot count that still count as "on the plateau" (default: 1; 0
+reads the largest count, ties toward the smallest lambda_2).}
 
-\item{pilot_statistic}{PILOT rules, the count the pick is read off:
+\item{pilot_statistic}{Pilot rule, the count the pick is read off:
 \code{"MAJORITY"} (default; originals ahead of the T-th dummy in more
 than half of the pilot experiments), \code{"CALIBRATED"} (the T-Rex
 selection rule applied to the pilot data), or \code{"GROUP_MAJORITY"}
@@ -167,7 +168,9 @@ the members of a group share a coefficient).
 trex_tikhonov_control(tikhonov_K = diag(10))
 trex_tikhonov_control(penalty_structure = "GROUP_CENTERING",
                       prior_groups = rep(1:2, each = 5),
-                      lambda2_method = "PILOT_MAX")
+                      pilot_grid = c(0, 1, 10, 100))
+trex_tikhonov_control(tikhonov_K = diag(10),
+                      lambda2_method = "CV_1SE_IEN_CCD")
 
 }
 \seealso{
@@ -194,6 +197,7 @@ Other T-Rex selectors and controls:
 \code{\link[=trex_recall]{trex_recall()}},
 \code{\link[=trex_screen_control]{trex_screen_control()}},
 \code{\link[=trex_spca_control]{trex_spca_control()}},
+\code{\link[=trex_tikhonov_lambda2_power_rule]{trex_tikhonov_lambda2_power_rule()}},
 \code{\link[=trex_tpp]{trex_tpp()}},
 \code{\link[=trex_tpp_dense]{trex_tpp_dense()}}
 }

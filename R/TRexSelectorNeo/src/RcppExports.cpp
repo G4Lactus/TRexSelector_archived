@@ -1938,6 +1938,25 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// trex_tikhonov_lambda2_power_rule_impl
+Rcpp::List trex_tikhonov_lambda2_power_rule_impl(Rcpp::NumericMatrix X, Rcpp::NumericVector y, double tFDR, Rcpp::List tik_control_list, Rcpp::List trex_control_list, int seed, std::vector<double> grid, double knee_tolerance, bool verbose);
+RcppExport SEXP _TRexSelectorNeo_trex_tikhonov_lambda2_power_rule_impl(SEXP XSEXP, SEXP ySEXP, SEXP tFDRSEXP, SEXP tik_control_listSEXP, SEXP trex_control_listSEXP, SEXP seedSEXP, SEXP gridSEXP, SEXP knee_toleranceSEXP, SEXP verboseSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type X(XSEXP);
+    Rcpp::traits::input_parameter< Rcpp::NumericVector >::type y(ySEXP);
+    Rcpp::traits::input_parameter< double >::type tFDR(tFDRSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type tik_control_list(tik_control_listSEXP);
+    Rcpp::traits::input_parameter< Rcpp::List >::type trex_control_list(trex_control_listSEXP);
+    Rcpp::traits::input_parameter< int >::type seed(seedSEXP);
+    Rcpp::traits::input_parameter< std::vector<double> >::type grid(gridSEXP);
+    Rcpp::traits::input_parameter< double >::type knee_tolerance(knee_toleranceSEXP);
+    Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(trex_tikhonov_lambda2_power_rule_impl(X, y, tFDR, tik_control_list, trex_control_list, seed, grid, knee_tolerance, verbose));
+    return rcpp_result_gen;
+END_RCPP
+}
 // trex_tikhonov_gamma_to_k
 Eigen::SparseMatrix<double> trex_tikhonov_gamma_to_k(SEXP gamma);
 RcppExport SEXP _TRexSelectorNeo_trex_tikhonov_gamma_to_k(SEXP gammaSEXP) {
@@ -3542,6 +3561,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_TRexSelectorNeo_trex_tikhonov_get_lambda2_used", (DL_FUNC) &_TRexSelectorNeo_trex_tikhonov_get_lambda2_used, 1},
     {"_TRexSelectorNeo_trex_tikhonov_get_lambda2_cv_diagnostics", (DL_FUNC) &_TRexSelectorNeo_trex_tikhonov_get_lambda2_cv_diagnostics, 1},
     {"_TRexSelectorNeo_trex_tikhonov_get_lambda2_pilot_result", (DL_FUNC) &_TRexSelectorNeo_trex_tikhonov_get_lambda2_pilot_result, 1},
+    {"_TRexSelectorNeo_trex_tikhonov_lambda2_power_rule_impl", (DL_FUNC) &_TRexSelectorNeo_trex_tikhonov_lambda2_power_rule_impl, 9},
     {"_TRexSelectorNeo_trex_tikhonov_gamma_to_k", (DL_FUNC) &_TRexSelectorNeo_trex_tikhonov_gamma_to_k, 1},
     {"_TRexSelectorNeo_tsolver_lars_create", (DL_FUNC) &_TRexSelectorNeo_tsolver_lars_create, 4},
     {"_TRexSelectorNeo_tsolver_tlasso_create", (DL_FUNC) &_TRexSelectorNeo_tsolver_tlasso_create, 4},

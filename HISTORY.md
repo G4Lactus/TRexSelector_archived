@@ -106,8 +106,71 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   included; before, only the active dummies counted and the path ran on after a
   removal. Selections and step counts of T-Stagewise runs change. See the
   2026-10-27 entry.
+- The FDP estimate keeps negative calibrated occurrences `Phi_prime` (only the
+  upper clamp at 1 remains): FDP_hat can only rise, so the L-loop may calibrate
+  a larger L, the T-loop may stop earlier and selections can only shrink.
+  Results move where a selected variable had Phi' < 0, in long T-loops at
+  tFDR 0.3 and above. See the 2026-10-24 entry.
+- `TRexSPCASelector` rejects `gvs_type` IEN (`std::invalid_argument`; R
+  `trex_spca_control()` stops, Python raises `ValueError`) where the core
+  silently ran the elastic net. See the 2026-10-22 entry.
+- Two guards throw early with a remedy where a run used to fail late: the
+  clustering refuses a RAM buffer beyond the physical memory (`use_mmap`), and
+  a memory-mapped file is refused when the disk lacks the space. See the
+  2026-10-27 and 2026-10-20 entries.
+- The Tikhonov selector's default `lambda2_method` is the pilot knee
+  `PILOT_KNEE` (was the CV tuner `CV_1SE_IEN_CCD`), so a Tikhonov selection
+  without a user lambda_2 changes. `PILOT_MAX` is removed from
+  `TikLambda2Method` (R `trex_tikhonov_control()`, Python
+  `TikLambda2Method`), and the power rule's `Lambda2PowerRule` enum with
+  `MAX_SELECTION` is gone; the knee with tolerance 0 is the largest
+  selection. See the 2026-10-28 entry.
 
 ### 2026-10-28
+
+#### The Tikhonov selector's lambda_2 rules: k-fold CV, the pilot knee, the full-profile knee (D14)
+
+- The Tikhonov T-Rex offers exactly three ways to set lambda_2 when none is
+  given: the k-fold CV tuners (`CV_1SE_IEN_CCD`, `CV_MIN_IEN_CCD`,
+  `CV_1SE_TIK_SVD`, `CV_MIN_TIK_SVD`), the pilot knee `PILOT_KNEE` inside the
+  selector, and the full-profile knee of `tik_lambda2_power_rule.hpp`, one
+  FDR-controlled selection per grid value with common dummies. The knee is
+  the smallest lambda_2 whose selection count is within a tolerance of the
+  largest; a tolerance of 0 reads the largest selection, ties toward the
+  smallest lambda_2.
+- `PILOT_KNEE` is the default `lambda2_method` (was `CV_1SE_IEN_CCD`) on the
+  three surfaces: in the Tikhonov study it reaches the oracle pin's power
+  within 0.02 at an FDR below the full-profile knee's, at 13 to 26 % of its
+  cost, while the prediction tuners pick the edges of their own grid on
+  structured designs. The pilot defaults (grid 0 to 3,000 in nine steps,
+  K 10, T 5, tolerance 1, the majority count) are the study's.
+- The argmax variants are gone: `TikLambda2Method::PILOT_MAX` leaves the
+  enum (`PILOT_KNEE` takes its integer value), and the power rule's
+  `Lambda2PowerRule` enum with `MAX_SELECTION` leaves `tik_lambda2_pick.hpp`;
+  `pick_lambda2_index(counts, knee_tolerance)` and
+  `Lambda2PowerRuleConfig` carry the tolerance alone. The study found the
+  argmax's FDR rising with the SNR (the winner's curse of the largest
+  selection) where the knee halves that excess.
+- R: `trex_tikhonov_control(lambda2_method = )` defaults to `"PILOT_KNEE"`
+  and no longer accepts `"PILOT_MAX"`; `trex_tikhonov_lambda2_power_rule()`
+  runs the full-profile knee on the caller's matrix (every probe normalizes
+  X in place and hands it back, nothing is copied) and returns the pick,
+  every probe's selection and stopping time, the counts and the boundary
+  flags. Vignette page 7 shows the three rules. Python:
+  `TikLambda2Method.PILOT_MAX` is gone, `tikhonov_lambda2_power_rule()` is
+  bound at the root and in `trex_selector_methods.ad` with `Lambda2Probe`
+  and `Lambda2PowerRuleResult`; the stubs are regenerated. The C++ header
+  gains the `Eigen::Map` overloads the bindings call; the owned-matrix
+  overloads copy once and delegate.
+- Tests: the pick tests read the argmax as tolerance 0, the pilot tests run
+  PILOT_KNEE, R and Python test the full-profile knee against a fixed
+  lambda_2 run at the pick; the full suites pass.
+- Found on the way: the ruler reflow of 0668de0 had put a `NOLINTNEXTLINE`
+  comment between `// [[Rcpp::export]]` and the signature of twelve R
+  getters, which `Rcpp::compileAttributes()` reads as the signature; the
+  committed RcppExports predated the reflow, so the package still built.
+  The suppressions are `NOLINTBEGIN` / `NOLINTEND` blocks around those
+  functions now, and the generated files are regenerated.
 
 #### The logistic_model placeholder is gone
 

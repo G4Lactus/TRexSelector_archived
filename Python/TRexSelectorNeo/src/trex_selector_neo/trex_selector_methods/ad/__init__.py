@@ -44,10 +44,13 @@ from ..._core.trex_selector_methods.ad import (
     TikPenaltyStructure,
     Lambda2PickInfo,
     Lambda2PilotResult,
+    Lambda2Probe,
+    Lambda2PowerRuleResult,
     TRexTikhonovControlParameter,
     TRexTikhonovSelector,
     gamma_to_k,
     build_group_centering_k,
+    tikhonov_lambda2_power_rule,
 )
 
 __all__ = [
@@ -88,8 +91,11 @@ __all__ = [
     "TikPenaltyStructure",
     "Lambda2PickInfo",
     "Lambda2PilotResult",
+    "Lambda2Probe",
+    "Lambda2PowerRuleResult",
     "TRexTikhonovControlParameter",
     "TRexTikhonovSelector",
     "gamma_to_k",
     "build_group_centering_k",
+    "tikhonov_lambda2_power_rule",
 ]

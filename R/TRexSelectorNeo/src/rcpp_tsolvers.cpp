@@ -1699,12 +1699,13 @@ NumericVector tsolver_cd_get_record_gaps(XPtr<TSolverRcpp> ptr) { // NOLINT(perf
 
 //' @title CD family: KKT violation at every recorded step
 //' @noRd
+// NOLINTBEGIN(performance-unnecessary-value-param)
 // [[Rcpp::export]]
-// NOLINTNEXTLINE(performance-unnecessary-value-param)
 NumericVector tsolver_cd_get_record_kkt_violations(XPtr<TSolverRcpp> ptr) {
     if (auto* p = dynamic_cast<TCDLASSO_Solver*>(ptr->solver_)) return wrap(p->getRecordKktViolations());
     stop("tsolver_cd_get_record_kkt_violations: Solver is not a CD-family solver.");
 }
+// NOLINTEND(performance-unnecessary-value-param)
 
 //' @title Sparse-K solvers: quadratic penalty weight lambda_2
 //' @noRd
@@ -1754,25 +1755,28 @@ std::string tsolver_solver_type_to_string(XPtr<TSolverRcpp> ptr) { // NOLINT(per
 }
 
 //' @noRd
+// NOLINTBEGIN(performance-unnecessary-value-param)
 // [[Rcpp::export]]
-// NOLINTNEXTLINE(performance-unnecessary-value-param)
 std::vector<std::size_t> tsolver_get_dropped_indices(XPtr<TSolverRcpp> ptr) {
     return ptr->solver_->getDroppedIndices();
 }
+// NOLINTEND(performance-unnecessary-value-param)
 
 //' @noRd
+// NOLINTBEGIN(performance-unnecessary-value-param)
 // [[Rcpp::export]]
-// NOLINTNEXTLINE(performance-unnecessary-value-param)
 std::vector<std::size_t> tsolver_get_active_predictor_indices(XPtr<TSolverRcpp> ptr) {
     return ptr->solver_->getActivePredictorIndices();
 }
+// NOLINTEND(performance-unnecessary-value-param)
 
 //' @noRd
+// NOLINTBEGIN(performance-unnecessary-value-param)
 // [[Rcpp::export]]
-// NOLINTNEXTLINE(performance-unnecessary-value-param)
 std::vector<std::size_t> tsolver_get_active_dummy_indices(XPtr<TSolverRcpp> ptr) {
     return ptr->solver_->getActiveDummyIndices();
 }
+// NOLINTEND(performance-unnecessary-value-param)
 
 //' @noRd
 // [[Rcpp::export]]
@@ -1863,12 +1867,13 @@ double tsolver_tenet_get_alpha(XPtr<TSolverRcpp> ptr) { // NOLINT(performance-un
 }
 
 //' @noRd
+// NOLINTBEGIN(performance-unnecessary-value-param)
 // [[Rcpp::export]]
-// NOLINTNEXTLINE(performance-unnecessary-value-param)
 Eigen::SparseMatrix<double> tsolver_tik_get_tikhonov_k(XPtr<TSolverRcpp> ptr) {
     if (auto* a = dynamic_cast<TIKNET_Solver*>(ptr->solver_)) return a->getTikhonovK();
     stop("get_tikhonov_k: not a TIKNET solver.");
 }
+// NOLINTEND(performance-unnecessary-value-param)
 
 //' @noRd
 // [[Rcpp::export]]

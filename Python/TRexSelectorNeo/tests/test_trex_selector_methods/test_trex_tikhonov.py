@@ -69,7 +69,8 @@ def test_control_fields_roundtrip():
     # defaults mirror the C++ struct
     assert ctrl.penalty_structure == tsn.TikPenaltyStructure.SPARSE_GENERAL
     assert ctrl.lambda_2 == pytest.approx(-1.0)
-    assert ctrl.lambda2_method == tsn.TikLambda2Method.CV_1SE_IEN_CCD
+    assert ctrl.lambda2_method == tsn.TikLambda2Method.PILOT_KNEE
+    assert not hasattr(tsn.TikLambda2Method, "PILOT_MAX")   # the argmax variant is gone
     assert ctrl.cluster_dummies is True
     assert ctrl.fold_dummy_coupling is True
     assert ctrl.trex_ctrl.solver_type == tsn.SolverTypeForTRex.TCDTIKNET
@@ -262,6 +263,7 @@ def test_build_group_centering_k():
 def test_lambda2_resolves_via_the_ien_tuner():
     X, y, groups = _grouped_data(seed=3)
     tik = _tik_control(_group_mean_k(groups), -1.0, prior_groups=groups,
+                       lambda2_method=tsn.TikLambda2Method.CV_1SE_IEN_CCD,
                        cv_n_folds=5, cv_n_lambda1=15, cv_n_lambda2=12, cv_seed=1,
                        cv_dfmax_ratio=0.9)
     sel = tsn.TRexTikhonovSelector(X, y, tik_control=tik,
@@ -293,7 +295,7 @@ def test_lambda2_resolves_via_the_pilot_rule():
     X, y, groups = _grouped_data(seed=3)
     grid = [0.0, 1.0, 10.0, 100.0]
     tik = _tik_control(_group_mean_k(groups), -1.0, prior_groups=groups,
-                       lambda2_method=tsn.TikLambda2Method.PILOT_MAX,
+                       lambda2_method=tsn.TikLambda2Method.PILOT_KNEE,
                        pilot_grid=grid, pilot_K=3, pilot_T=2, pilot_L_multiplier=1)
     sel = tsn.TRexTikhonovSelector(X, y, tik_control=tik,
                                    trex_control=_base_control(), seed=1, verbose=False)
@@ -315,3 +317,51 @@ def test_lambda2_resolves_via_the_pilot_rule():
     diag = sel.lambda2_cv_diagnostics
     assert diag.ran is True
     assert diag.grid_size == 0 and diag.grid_index == -1
+
+
+# ---------------------------------------------------------------------------
+# The full-profile knee (one selection per grid value)
+# ---------------------------------------------------------------------------
+
+def test_lambda2_power_rule_profiles_the_grid_and_keeps_the_contract():
+    X, y, groups = _grouped_data(seed=3)
+    X_before = X.copy()
+    tik = _tik_control(_group_mean_k(groups), -1.0, prior_groups=groups)
+    base = _base_control()
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        prof = tsn.tikhonov_lambda2_power_rule(X, y, tFDR=0.2, tik_control=tik, trex_control=base,
+                                               seed=1, grid=[10.0, 0.0, 1.0, 10.0])
+    grid = [p.lambda2 for p in prof.probes]
+    assert grid == [0.0, 1.0, 10.0]                       # sorted, de-duplicated
+    counts = list(prof.counts())
+    assert counts == [len(p.selected) for p in prof.probes]
+    assert prof.index == next(k for k, c in enumerate(counts) if c >= max(counts) - 1)   # the knee
+    assert prof.lambda2 == grid[prof.index]
+    assert list(prof.selection()) == list(prof.probes[prof.index].selected)
+    assert prof.pick.max_selected == max(counts)
+    assert prof.seconds > 0
+    np.testing.assert_array_equal(X, X_before)            # every probe hands X back
+
+    # Tolerance 0 reads the largest selection, ties toward the smallest lambda_2.
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        argmax = tsn.tikhonov_lambda2_power_rule(X, y, tFDR=0.2, tik_control=tik, trex_control=base,
+                                                 seed=1, grid=[0.0, 1.0, 10.0], knee_tolerance=0.0)
+    assert argmax.index == counts.index(max(counts))
+
+    # The contract: a fixed-lambda_2 run at the pick with the same seed selects the same variables.
+    tik_fixed = _tik_control(_group_mean_k(groups), prof.lambda2, prior_groups=groups)
+    sel = tsn.TRexTikhonovSelector(X, y, tFDR=0.2, tik_control=tik_fixed, trex_control=base,
+                                   seed=1, verbose=False)
+    with warnings.catch_warnings():
+        warnings.simplefilter("ignore")
+        sel.select()
+    assert sorted(sel.selected_indices) == list(prof.selection())
+
+    with pytest.raises(ValueError, match="seed"):
+        tsn.tikhonov_lambda2_power_rule(X, y, tik_control=tik, trex_control=base, seed=-1)
+    with pytest.raises(ValueError):
+        tsn.tikhonov_lambda2_power_rule(X, y, tik_control=tik, trex_control=base, knee_tolerance=-1.0)
+    with pytest.raises(ValueError, match="tik_control"):
+        tsn.tikhonov_lambda2_power_rule(X, y)

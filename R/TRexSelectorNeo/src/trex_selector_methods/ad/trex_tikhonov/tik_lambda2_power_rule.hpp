@@ -9,8 +9,8 @@
  *
  * @brief Data-driven lambda_2 for the Tikhonov T-Rex (and for the elastic-net
  *        ridge weight of the GVS T-Rex) by the selector's own principle: on a
- *        grid of lambda_2 values, take the one at which the FDR-controlled
- *        selection is LARGEST.
+ *        grid of lambda_2 values, take the smallest one whose FDR-controlled
+ *        selection is within a tolerance of the LARGEST (the knee).
  *
  * @details
  *   **Why not a fit criterion.** In the Tikhonov T-Rex the quadratic weight
@@ -30,13 +30,13 @@
  *   **The rule.** For every lambda_2 on a user grid one full selection is run
  *   with the SAME seed, so the probes differ by the penalty alone (common
  *   dummies: the base DummyGenerator's HCONCAT streams are prefix-stable in
- *   the seed). With `n_k = |selection at grid point k|`:
- *
- *     - MAX_SELECTION : k* = argmax_k n_k, ties resolved toward the SMALLEST
- *                       lambda_2 (the least reliance on the prior);
- *     - KNEE          : the smallest k with n_k >= max_k n_k - knee_tolerance
- *                       (the "minimum sufficient shrinkage" reading of the
- *                       same profile).
+ *   the seed). With `n_k = |selection at grid point k|` the pick is the knee,
+ *   the smallest k with n_k >= max_k n_k - knee_tolerance (the "minimum
+ *   sufficient shrinkage" reading of the profile); `knee_tolerance = 0`
+ *   reads the largest selection, ties resolved toward the smallest lambda_2
+ *   (the least reliance on the prior). The knee at tolerance 1 is the rule
+ *   the Tikhonov study adopted: it keeps the power of the largest selection
+ *   and halves the excess FDR the largest selection pays at high SNR.
  *
  *   The result carries the whole profile — every probe's selection, stopping
  *   time and cost — so criteria that need the selections (a refit, an
@@ -90,11 +90,8 @@ struct Lambda2PowerRuleConfig {
      *  monotonically and the rule then switches it off. */
     std::vector<double> grid;
 
-    /** @brief The pick rule. Default: MAX_SELECTION. */
-    Lambda2PowerRule rule = Lambda2PowerRule::MAX_SELECTION;
-
-    /** @brief KNEE only: how many selections below the maximum still count
-     *  as "on the plateau". Default: 1. */
+    /** @brief How many selections below the maximum still count as "on the
+     *  plateau". Default: 1; 0 reads the largest selection. */
     double knee_tolerance = 1.0;
 };
 
@@ -195,7 +192,7 @@ Lambda2PowerRuleResult run_lambda2_power_rule(const Lambda2PowerRuleConfig& cfg,
         res.probes.push_back(std::move(pr));
     }
 
-    res.pick         = pick_lambda2_index(res.counts(), cfg.rule, cfg.knee_tolerance);
+    res.pick         = pick_lambda2_index(res.counts(), cfg.knee_tolerance);
     res.index        = res.pick.index;
     res.lambda2      = res.probes[res.index].lambda2;
     res.at_lower_end = (res.index == 0);
@@ -210,19 +207,41 @@ Lambda2PowerRuleResult run_lambda2_power_rule(const Lambda2PowerRuleConfig& cfg,
 // ===================================================================================
 
 /**
- * @brief The rule on a TRexTikhonovSelector.
+ * @brief The rule on a TRexTikhonovSelector, on the caller's buffers.
  *
- * @param X     Design (n x p); copied once, the copy is normalized in place
- *              per probe and restored (base-class contract).
- * @param y     Response (n).
+ * @param X     Design (n x p), mapped: every probe normalizes it in place
+ *              and hands it back on return (the selector's select()
+ *              contract), so X is unchanged after the call and never copied.
+ * @param y     Response (n), mapped.
  * @param tFDR  Target FDR.
  * @param ctrl  Tikhonov control; `lambda_2` is overwritten per probe, the
  *              rest (penalty structure, K, groups, dummies, base control)
  *              is shared by every probe.
  * @param seed  Selector seed, the SAME for every probe (common dummies).
- * @param cfg   Grid and rule.
+ * @param cfg   Grid and tolerance.
  * @param verbose Selector verbosity.
  */
+inline Lambda2PowerRuleResult tikhonov_lambda2_power_rule(Eigen::Map<Eigen::MatrixXd> X,
+                                                          Eigen::Map<Eigen::VectorXd> y,
+                                                          double tFDR,
+                                                          TRexTikhonovControlParameter ctrl,
+                                                          int seed,
+                                                          const Lambda2PowerRuleConfig& cfg,
+                                                          bool verbose = false)
+{
+    return run_lambda2_power_rule(cfg, [&](double l2) {
+        ctrl.lambda_2 = l2;
+        TRexTikhonovSelector selector(X, y, tFDR, ctrl, seed, verbose);
+        selector.select();
+        Lambda2Probe pr;
+        pr.selected = selector.getSelectedIndices();
+        pr.T_stop   = selector.getTStop();
+        return pr;
+    });
+}
+
+/** @brief The rule on owned matrices: X and y are copied once, the copies
+ *  carry the probes. */
 inline Lambda2PowerRuleResult tikhonov_lambda2_power_rule(const Eigen::MatrixXd& X,
                                                           const Eigen::VectorXd& y,
                                                           double tFDR,
@@ -235,22 +254,35 @@ inline Lambda2PowerRuleResult tikhonov_lambda2_power_rule(const Eigen::MatrixXd&
     Eigen::VectorXd yc = y;
     Eigen::Map<Eigen::MatrixXd> X_map(Xc.data(), Xc.rows(), Xc.cols());
     Eigen::Map<Eigen::VectorXd> y_map(yc.data(), yc.size());
-    return run_lambda2_power_rule(cfg, [&](double l2) {
-        ctrl.lambda_2 = l2;
-        TRexTikhonovSelector selector(X_map, y_map, tFDR, ctrl, seed, verbose);
-        selector.select();
-        Lambda2Probe pr;
-        pr.selected = selector.getSelectedIndices();
-        pr.T_stop   = selector.getTStop();
-        return pr;
-    });
+    return tikhonov_lambda2_power_rule(X_map, y_map, tFDR, std::move(ctrl), seed, cfg, verbose);
 }
 
 /**
  * @brief The rule on a TRexGVSSelector (the elastic-net / informed-elastic-net
- *        ridge weight). Same contract as the Tikhonov overload; `lambda_2 = 0`
- *        on the grid is the plain lasso T-Rex.
+ *        ridge weight), on the caller's buffers. Same contract as the
+ *        Tikhonov overload; `lambda_2 = 0` on the grid is the plain lasso
+ *        T-Rex.
  */
+inline Lambda2PowerRuleResult gvs_lambda2_power_rule(Eigen::Map<Eigen::MatrixXd> X,
+                                                     Eigen::Map<Eigen::VectorXd> y,
+                                                     double tFDR,
+                                                     trex_gvs::TRexGVSControlParameter ctrl,
+                                                     int seed,
+                                                     const Lambda2PowerRuleConfig& cfg,
+                                                     bool verbose = false)
+{
+    return run_lambda2_power_rule(cfg, [&](double l2) {
+        ctrl.lambda_2 = l2;
+        trex_gvs::TRexGVSSelector selector(X, y, tFDR, ctrl, seed, verbose);
+        selector.select();
+        Lambda2Probe pr;
+        pr.selected = selector.getSelectedIndices();
+        pr.T_stop   = selector.getGVSResult().T_stop;
+        return pr;
+    });
+}
+
+/** @brief The GVS rule on owned matrices: X and y are copied once. */
 inline Lambda2PowerRuleResult gvs_lambda2_power_rule(const Eigen::MatrixXd& X,
                                                      const Eigen::VectorXd& y,
                                                      double tFDR,
@@ -263,15 +295,7 @@ inline Lambda2PowerRuleResult gvs_lambda2_power_rule(const Eigen::MatrixXd& X,
     Eigen::VectorXd yc = y;
     Eigen::Map<Eigen::MatrixXd> X_map(Xc.data(), Xc.rows(), Xc.cols());
     Eigen::Map<Eigen::VectorXd> y_map(yc.data(), yc.size());
-    return run_lambda2_power_rule(cfg, [&](double l2) {
-        ctrl.lambda_2 = l2;
-        trex_gvs::TRexGVSSelector selector(X_map, y_map, tFDR, ctrl, seed, verbose);
-        selector.select();
-        Lambda2Probe pr;
-        pr.selected = selector.getSelectedIndices();
-        pr.T_stop   = selector.getGVSResult().T_stop;
-        return pr;
-    });
+    return gvs_lambda2_power_rule(X_map, y_map, tFDR, std::move(ctrl), seed, cfg, verbose);
 }
 
 }  // namespace trex_tikhonov

@@ -138,7 +138,7 @@ TRexTikhonovSelector <- R6::R6Class("TRexTikhonovSelector",
     #'   \code{at_grid_edge}, \code{profile_at_edge},
     #'   \code{profile_at_support_cap} and \code{boundary_pick} (see
     #'   \code{TRexGVSSelector}; the CV methods warn once on a boundary pick
-    #'   and return it unchanged; the pilot rules leave them at their
+    #'   and return it unchanged; the pilot rule leaves them at their
     #'   defaults).
     lambda2_cv_diagnostics = function(value) {
       if (!missing(value)) {
@@ -166,6 +166,111 @@ TRexTikhonovSelector <- R6::R6Class("TRexTikhonovSelector",
     }
   )
 )
+
+
+#' @name trex_tikhonov_lambda2_power_rule
+#'
+#' @title The knee of the full lambda_2 profile of the Tikhonov T-Rex
+#'
+#' @description Runs one FDR-controlled Tikhonov T-Rex selection per value of
+#'   \code{grid} with the same seed, so the probes share their dummies and
+#'   differ by the penalty weight alone, and picks the smallest lambda_2 whose
+#'   selection is within \code{knee_tolerance} selections of the largest (the
+#'   knee of the profile). This is the reference rule behind the default
+#'   \code{lambda2_method = "PILOT_KNEE"} of
+#'   \code{\link{trex_tikhonov_control}}, which reads the same knee off a few
+#'   random experiments per grid value at a fraction of the cost; the full
+#'   profile costs one selection per grid value and returns every probe's
+#'   selection. The pick depends on y and lies outside the fixed-lambda_2 FDR
+#'   guarantee that each probe carries.
+#'
+#' @param X Feature matrix (n x p). Every probe normalizes it in place and
+#'   hands it back, so \code{X} is unchanged on return and never copied.
+#' @param y Response vector (length n).
+#' @param tFDR Target FDR level (default: 0.1).
+#' @param tik_control A Tikhonov control list from
+#'   \code{\link{trex_tikhonov_control}()}; its \code{lambda_2} is
+#'   overwritten per probe, everything else is shared by every probe.
+#' @param control A control list from \code{\link{trex_control}()} (default:
+#'   \code{trex_control()}); the solver maps as in
+#'   \code{\link{TRexTikhonovSelector}}.
+#' @param seed Selector seed, the same for every probe (default: 0). A
+#'   negative seed would draw fresh dummies per probe and is refused.
+#' @param grid lambda_2 candidates on the solver scale (default
+#'   \code{c(0, 1, 3, 10, 30, 100, 300, 1000, 3000)}), sorted and
+#'   de-duplicated. Keep 0 on it so that "no penalty" is an admissible
+#'   answer.
+#' @param knee_tolerance Selections below the largest count that still
+#'   count as "on the plateau" (default: 1); 0 reads the largest selection,
+#'   ties toward the smallest lambda_2.
+#' @param verbose Whether the probes print their progress (default:
+#'   \code{FALSE}).
+#'
+#' @return A list: \code{lambda2} (the pick), \code{index} (1-based, into
+#'   \code{grid}), \code{selected} (the 1-based selection at the pick),
+#'   \code{grid} (ascending, de-duplicated), \code{counts} (selection sizes
+#'   per grid value), \code{probes} (one list per grid value with
+#'   \code{lambda2}, \code{selected}, \code{T_stop} and \code{seconds}),
+#'   \code{max_selected}, \code{n_ties} (grid values within the tolerance
+#'   of the maximum), the boundary flags \code{at_lower_end} /
+#'   \code{at_upper_end} (widen the grid before trusting a boundary pick)
+#'   and \code{seconds}.
+#'
+#' @examples
+#' \donttest{
+#' data(Gauss_data)
+#' X <- Gauss_data$X
+#' y <- Gauss_data$y
+#' ctrl <- trex_tikhonov_control(tikhonov_K = diag(ncol(X)))
+#' prof <- trex_tikhonov_lambda2_power_rule(X, y, tFDR = 0.1, tik_control = ctrl,
+#'                                          grid = c(0, 1, 10), seed = 1)
+#' prof$lambda2
+#' prof$counts
+#' }
+#' @family T-Rex selectors and controls
+#' @export
+trex_tikhonov_lambda2_power_rule <- function(X, y,
+                                             tFDR = 0.1,
+                                             tik_control,
+                                             control = trex_control(),
+                                             seed = 0,
+                                             grid = c(0, 1, 3, 10, 30, 100,
+                                                      300, 1000, 3000),
+                                             knee_tolerance = 1,
+                                             verbose = FALSE) {
+  if (missing(tik_control)) {
+    stop("tik_control is required (build it with trex_tikhonov_control(); ",
+         "it carries the penalty matrix K or the penalty structure).")
+  }
+  if (inherits(X, "MemoryMappedMatrix")) {
+    stop("trex_tikhonov_lambda2_power_rule() takes an in-memory matrix X.")
+  }
+  if (!is.numeric(seed) || length(seed) != 1 || !is.finite(seed) || seed < 0) {
+    stop("seed must be a single non-negative integer: the probes share ",
+         "their dummies. Got: ", format(seed))
+  }
+  if (!is.numeric(grid) || length(grid) == 0 || any(!is.finite(grid)) ||
+      any(grid < 0)) {
+    stop("grid must be a non-empty vector of finite values >= 0.")
+  }
+  if (!is.numeric(knee_tolerance) || length(knee_tolerance) != 1 ||
+      !is.finite(knee_tolerance) || knee_tolerance < 0) {
+    stop("knee_tolerance must be a single number >= 0. Got: ",
+         format(knee_tolerance))
+  }
+  tik_family <- c("TCDTIKNET", "TIKNET")
+  if (!(control$solver %in% c("TLARS", tik_family))) {
+    warning("control$solver = \"", control$solver,
+            "\" is not a Tikhonov-family solver; the Tikhonov T-Rex ",
+            "accepts \"TCDTIKNET\" or \"TIKNET\". Using \"TCDTIKNET\".")
+    control$solver <- "TLARS"  # the C++ glue defaults it to TCDTIKNET
+  }
+  X <- .as_double_matrix(X)
+  y <- .as_double_vector(y)
+  trex_tikhonov_lambda2_power_rule_impl(X, y, tFDR, tik_control, control,
+                                        as.integer(seed), as.numeric(grid),
+                                        as.numeric(knee_tolerance), verbose)
+}
 
 
 #' @name trex_gamma_to_k

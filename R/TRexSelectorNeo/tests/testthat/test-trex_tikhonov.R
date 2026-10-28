@@ -45,7 +45,11 @@ test_that("trex_tikhonov_control validates its arguments", {
     "arg"  # match.arg rejects the EN-shaped name: only IEN-geometry tuners
   )
   ctrl <- trex_tikhonov_control(tikhonov_K = diag(4))
-  expect_identical(ctrl$lambda2_method, "CV_1SE_IEN_CCD")
+  expect_identical(ctrl$lambda2_method, "PILOT_KNEE")
+  expect_error(
+    trex_tikhonov_control(tikhonov_K = diag(4), lambda2_method = "PILOT_MAX"),
+    "arg"  # the argmax variant is gone; the knee with tolerance 0 reads it
+  )
   expect_identical(ctrl$penalty_structure, "SPARSE_GENERAL")
   expect_true(ctrl$fold_dummy_coupling)
   expect_true(ctrl$cluster_dummies)
@@ -166,7 +170,7 @@ test_that("the pilot rule picks lambda_2 from its grid and records the profile",
     d$X, d$y, tFDR = 0.2, seed = 42, verbose = FALSE,
     tik_control = trex_tikhonov_control(
       tikhonov_K = .group_mean_k(d$p), prior_groups = d$groups,
-      lambda_2 = -1, lambda2_method = "PILOT_MAX",
+      lambda_2 = -1, lambda2_method = "PILOT_KNEE",
       pilot_grid = c(10, 0, 1), pilot_K = 5, pilot_T = 3),
     control = trex_control(K = 5, max_dummy_multiplier = 2))
   sel$select()
@@ -271,7 +275,7 @@ test_that("lambda_2 auto-resolves via the IEN-geometry tuner", {
     d$X, d$y, tFDR = 0.2, seed = 42, verbose = FALSE,
     tik_control = trex_tikhonov_control(
       tikhonov_K = .group_mean_k(d$p), lambda_2 = -1,
-      prior_groups = d$groups,
+      prior_groups = d$groups, lambda2_method = "CV_1SE_IEN_CCD",
       cv_n_lambda1 = 20, cv_n_lambda2 = 10, cv_dfmax_ratio = 0.9),
     control = trex_control(K = 5, max_dummy_multiplier = 2))
   sel$select()
@@ -306,4 +310,55 @@ test_that("trex_gamma_to_k builds the chain Laplacian from a first-difference Ga
   # A sparse dgCMatrix Gamma is accepted too.
   K2 <- trex_gamma_to_k(Matrix::Matrix(gamma, sparse = TRUE))
   expect_equal(as.matrix(K2), Kd)
+})
+
+
+test_that("the full-profile knee runs one selection per grid value and keeps the contract", {
+  d <- .make_tik_data()
+  X_before <- d$X + 0  # a private copy: the probes hand X back unchanged
+  tik <- trex_tikhonov_control(tikhonov_K = .group_mean_k(d$p),
+                               prior_groups = d$groups)
+  ctrl <- trex_control(K = 5, max_dummy_multiplier = 2)
+
+  prof <- trex_tikhonov_lambda2_power_rule(d$X, d$y, tFDR = 0.2, tik_control = tik,
+                                           control = ctrl, seed = 42,
+                                           grid = c(10, 0, 1, 10))
+  expect_identical(prof$grid, c(0, 1, 10))          # sorted, de-duplicated
+  expect_length(prof$probes, 3)
+  expect_identical(prof$counts, vapply(prof$probes, function(p) length(p$selected), 1))
+  expect_true(prof$index %in% 1:3)
+  expect_identical(prof$lambda2, prof$grid[prof$index])
+  expect_identical(prof$selected, prof$probes[[prof$index]]$selected)
+  expect_identical(prof$max_selected, max(prof$counts))
+  expect_true(prof$seconds > 0)
+  expect_equal(d$X, X_before)
+
+  # The knee: the smallest grid value within one selection of the largest.
+  knee <- which(prof$counts >= max(prof$counts) - 1)[1]
+  expect_identical(prof$index, knee)
+
+  # Tolerance 0 reads the largest selection, ties toward the smallest lambda_2.
+  argmax <- trex_tikhonov_lambda2_power_rule(d$X, d$y, tFDR = 0.2, tik_control = tik,
+                                             control = ctrl, seed = 42,
+                                             grid = c(0, 1, 10), knee_tolerance = 0)
+  expect_identical(argmax$index, which.max(prof$counts))
+
+  # The contract: a fixed-lambda_2 run at the pick with the same seed selects
+  # the same variables.
+  tik_fixed <- tik
+  tik_fixed$lambda_2 <- prof$lambda2
+  sel <- TRexTikhonovSelector$new(d$X, d$y, tFDR = 0.2, seed = 42, verbose = FALSE,
+                                  tik_control = tik_fixed, control = ctrl)
+  sel$select()
+  expect_identical(sort(sel$selected_indices), prof$selected)
+
+  # Gates.
+  expect_error(trex_tikhonov_lambda2_power_rule(d$X, d$y, tik_control = tik, seed = -1),
+               "seed")
+  expect_error(trex_tikhonov_lambda2_power_rule(d$X, d$y, tik_control = tik, grid = c(-1, 1)),
+               "grid")
+  expect_error(trex_tikhonov_lambda2_power_rule(d$X, d$y, tik_control = tik,
+                                                knee_tolerance = -1),
+               "knee_tolerance")
+  expect_error(trex_tikhonov_lambda2_power_rule(d$X, d$y), "tik_control")
 })

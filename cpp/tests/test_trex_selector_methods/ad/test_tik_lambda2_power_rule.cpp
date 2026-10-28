@@ -169,9 +169,9 @@ std::size_t truePositives(const std::vector<std::size_t>& sel, const std::vector
 // The pick on synthetic profiles
 // ========================================================================================
 
-TEST(TikLambda2PowerRule, PickIndex_MaxRuleTiesToSmallest) {
+TEST(TikLambda2PowerRule, PickIndex_ToleranceZeroTiesToSmallest) {
     const std::vector<std::size_t> counts = {3, 5, 5, 4};
-    const auto pick = pick_lambda2_index(counts, Lambda2PowerRule::MAX_SELECTION);
+    const auto pick = pick_lambda2_index(counts, 0.0);
     EXPECT_EQ(pick.index, 1U);
     EXPECT_EQ(pick.max_selected, 5U);
     EXPECT_EQ(pick.n_ties, 2U);
@@ -179,19 +179,19 @@ TEST(TikLambda2PowerRule, PickIndex_MaxRuleTiesToSmallest) {
 
 TEST(TikLambda2PowerRule, PickIndex_KneeTakesTheFirstOnThePlateau) {
     const std::vector<std::size_t> a = {3, 5, 5, 4};
-    const auto pa = pick_lambda2_index(a, Lambda2PowerRule::KNEE, 1.0);
+    const auto pa = pick_lambda2_index(a, 1.0);
     EXPECT_EQ(pa.index, 1U);
     EXPECT_EQ(pa.n_ties, 3U);   // 5, 5, 4 are within one selection of the maximum
 
     const std::vector<std::size_t> b = {4, 5, 5, 4};
-    EXPECT_EQ(pick_lambda2_index(b, Lambda2PowerRule::KNEE, 1.0).index, 0U);
-    EXPECT_EQ(pick_lambda2_index(b, Lambda2PowerRule::KNEE, 0.0).index, 1U);
-    EXPECT_EQ(pick_lambda2_index(b, Lambda2PowerRule::MAX_SELECTION).index, 1U);
+    EXPECT_EQ(pick_lambda2_index(b, 1.0).index, 0U);
+    EXPECT_EQ(pick_lambda2_index(b, 0.0).index, 1U);
+    EXPECT_EQ(pick_lambda2_index(b).index, 0U);   // the default tolerance is one selection
 }
 
 TEST(TikLambda2PowerRule, PickIndex_Validation) {
-    EXPECT_THROW(pick_lambda2_index({}, Lambda2PowerRule::MAX_SELECTION), std::invalid_argument);
-    EXPECT_THROW(pick_lambda2_index({1, 2}, Lambda2PowerRule::KNEE, -1.0), std::invalid_argument);
+    EXPECT_THROW(pick_lambda2_index({}, 0.0), std::invalid_argument);
+    EXPECT_THROW(pick_lambda2_index({1, 2}, -1.0), std::invalid_argument);
 }
 
 
@@ -205,6 +205,7 @@ TEST(TikLambda2PowerRule, PickIndex_Validation) {
 TEST(TikLambda2PowerRule, Driver_SortsDeduplicatesAndFlagsBoundaries) {
     Lambda2PowerRuleConfig cfg;
     cfg.grid = {10.0, 0.0, 1.0, 10.0, 100.0};
+    cfg.knee_tolerance = 0.0;   // the largest selection, ties toward the smallest lambda_2
     const std::map<double, std::size_t> counts = {{0.0, 2}, {1.0, 6}, {10.0, 7}, {100.0, 7}};
 
     std::vector<double> visited;
@@ -232,8 +233,7 @@ TEST(TikLambda2PowerRule, Driver_SortsDeduplicatesAndFlagsBoundaries) {
     EXPECT_GE(res.seconds, 0.0);
     for (const auto& pr : res.probes) { EXPECT_EQ(pr.T_stop, 3U); }
 
-    cfg.rule = Lambda2PowerRule::KNEE;
-    cfg.knee_tolerance = 1.0;
+    cfg.knee_tolerance = 1.0;   // the knee: within one selection of the maximum
     const auto knee = run_lambda2_power_rule(cfg, [&](double l2) {
         Lambda2Probe pr;
         pr.selected.assign(counts.at(l2), 0);
@@ -385,7 +385,7 @@ TEST(PostSelectionCriteria, OlsRefit_RecoversAndValidates) {
 
 
 // ========================================================================================
-// The in-selector pilot rule (PILOT_MAX / PILOT_KNEE)
+// The in-selector pilot rule (PILOT_KNEE)
 // ========================================================================================
 
 namespace {
@@ -482,7 +482,7 @@ TEST(TikLambda2Pilot, MainRunEqualsFixedLambda2Run) {
 /** @brief The same seed reproduces the pilot and the selection. */
 TEST(TikLambda2Pilot, SeedReproduces) {
     const BlockData d = testDesign();
-    const auto ctrl = pilotControl(centeringControl(d.groups), TikLambda2Method::PILOT_MAX, kPilotGrid, 5);
+    const auto ctrl = pilotControl(centeringControl(d.groups), TikLambda2Method::PILOT_KNEE, kPilotGrid, 5);
     const SelectorRun a = runSelector(d, ctrl, 7);
     const SelectorRun b = runSelector(d, ctrl, 7);
     EXPECT_EQ(a.pilot.counts, b.pilot.counts);
@@ -495,11 +495,10 @@ TEST(TikLambda2Pilot, SeedReproduces) {
  *  recorded counts, and the result echoes its budget. */
 TEST(TikLambda2Pilot, PickConsistentWithPickIndex) {
     const BlockData d = testDesign();
-    for (const auto method : {TikLambda2Method::PILOT_MAX, TikLambda2Method::PILOT_KNEE}) {
-        const SelectorRun r = runSelector(d, pilotControl(centeringControl(d.groups), method, kPilotGrid, 5), 2026);
-        const auto rule = (method == TikLambda2Method::PILOT_KNEE) ? Lambda2PowerRule::KNEE
-                                                                   : Lambda2PowerRule::MAX_SELECTION;
-        EXPECT_EQ(r.pilot.pick.index, pick_lambda2_index(r.pilot.counts, rule, 1.0).index);
+    {
+        const SelectorRun r = runSelector(d, pilotControl(centeringControl(d.groups), TikLambda2Method::PILOT_KNEE,
+                                                          kPilotGrid, 5), 2026);
+        EXPECT_EQ(r.pilot.pick.index, pick_lambda2_index(r.pilot.counts, 1.0).index);
         EXPECT_EQ(r.pilot.index, r.pilot.pick.index);
         EXPECT_DOUBLE_EQ(r.pilot.lambda2, r.pilot.grid[r.pilot.index]);
         EXPECT_DOUBLE_EQ(r.lambda2, r.pilot.lambda2);
@@ -516,11 +515,13 @@ TEST(TikLambda2Pilot, PickConsistentWithPickIndex) {
 }
 
 /** @brief Under the global null every count is zero and the pick is the
- *  smallest lambda_2 under both rules. */
+ *  smallest lambda_2 at any tolerance. */
 TEST(TikLambda2Pilot, NullCountsPickSmallestLambda2) {
     const BlockData d(100, 200, 5, 0.7, 0, 1.0, std::sqrt(38.0), 11);
-    for (const auto method : {TikLambda2Method::PILOT_MAX, TikLambda2Method::PILOT_KNEE}) {
-        const SelectorRun r = runSelector(d, pilotControl(centeringControl(d.groups), method, kPilotGrid, 5), 2026);
+    for (const double tol : {0.0, 1.0}) {
+        auto ctrl = pilotControl(centeringControl(d.groups), TikLambda2Method::PILOT_KNEE, kPilotGrid, 5);
+        ctrl.pilot_knee_tolerance = tol;
+        const SelectorRun r = runSelector(d, ctrl, 2026);
         for (const std::size_t c : r.pilot.counts) { EXPECT_EQ(c, 0U); }
         EXPECT_DOUBLE_EQ(r.lambda2, 0.0);
     }
@@ -534,16 +535,16 @@ TEST(TikLambda2Pilot, KneeToleranceMaps) {
     EXPECT_EQ(runSelector(d, loose, 2026).pilot.index, 0U);
 
     auto tight = loose;
-    tight.pilot_knee_tolerance = 0.0;
-    const auto max_run = runSelector(d, pilotControl(centeringControl(d.groups), TikLambda2Method::PILOT_MAX,
-                                                     kPilotGrid, 5), 2026);
-    EXPECT_EQ(runSelector(d, tight, 2026).pilot.index, max_run.pilot.index);
+    tight.pilot_knee_tolerance = 0.0;   // the largest count, ties toward the smallest lambda_2
+    const SelectorRun t   = runSelector(d, tight, 2026);
+    const auto first_max  = std::max_element(t.pilot.counts.begin(), t.pilot.counts.end());
+    EXPECT_EQ(t.pilot.index, static_cast<std::size_t>(std::distance(t.pilot.counts.begin(), first_max)));
 }
 
 /** @brief A user value bypasses the pilot. */
 TEST(TikLambda2Pilot, UserLambda2Bypasses) {
     const BlockData d = testDesign();
-    auto ctrl = pilotControl(centeringControl(d.groups), TikLambda2Method::PILOT_MAX, kPilotGrid, 5);
+    auto ctrl = pilotControl(centeringControl(d.groups), TikLambda2Method::PILOT_KNEE, kPilotGrid, 5);
     ctrl.lambda_2 = 3.0;
     const SelectorRun r = runSelector(d, ctrl, 2026);
     EXPECT_DOUBLE_EQ(r.lambda2, 3.0);
@@ -619,7 +620,7 @@ TEST(TikLambda2Pilot, GroupMajorityStatistic) {
         EXPECT_LE(r.pilot.group_majority[g], r.pilot.curve_majority[g][r.pilot.T_pilot - 1]);
         EXPECT_EQ(r.pilot.counts[g], r.pilot.group_majority[g]);
     }
-    EXPECT_EQ(r.pilot.pick.index, pick_lambda2_index(r.pilot.counts, Lambda2PowerRule::KNEE, 1.0).index);
+    EXPECT_EQ(r.pilot.pick.index, pick_lambda2_index(r.pilot.counts, 1.0).index);
     EXPECT_GT(r.lambda2, 0.0);   // whole active blocks enter as majorities: the prior still wins
 
     // the member statistic on the same seed records the same group counts (diagnostic columns)

@@ -85,27 +85,39 @@ tik$lambda2_used
 
 # Choosing lambda_2
 
-`lambda_2 < 0` (the default) hands the choice to `lambda2_method`.
+`lambda_2 < 0` (the default) hands the choice to `lambda2_method`. Three rules exist.
 
-- The cross-validation rules consume $\boldsymbol K$ and return $\lambda_2$ on the solver scale:
-  `"CV_1SE_IEN_CCD"` (default), `"CV_MIN_IEN_CCD"`, `"CV_1SE_TIK_SVD"` and `"CV_MIN_TIK_SVD"`.
-  `cv_n_folds`, `cv_n_lambda1`, `cv_n_lambda2`, `cv_dfmax_ratio` and `cv_seed` control them.
-- The pilot rules read $\lambda_2$ off a few random experiments per candidate of `pilot_grid`, by the
-  selector's own principle: the candidate with the largest FDR-controlled selection wins. `"PILOT_MAX"`
-  takes the largest pilot count (ties toward the smallest $\lambda_2$), `"PILOT_KNEE"` the smallest
-  $\lambda_2$ within `pilot_knee_tolerance` of it. `pilot_K`, `pilot_T` and `pilot_L_multiplier` size
-  the pilot, `pilot_statistic` names the count (`"MAJORITY"`, `"CALIBRATED"`, `"GROUP_MAJORITY"`).
+- `"PILOT_KNEE"` (the default) reads $\lambda_2$ off a few random experiments per candidate of `pilot_grid`,
+  by the selector's own principle: the smallest $\lambda_2$ whose pilot selection count is within
+  `pilot_knee_tolerance` of the largest, the knee of the profile. `pilot_K`, `pilot_T` and
+  `pilot_L_multiplier` size the pilot, `pilot_statistic` names the count (`"MAJORITY"`, `"CALIBRATED"`,
+  `"GROUP_MAJORITY"`).
+- The k-fold cross-validation rules consume $\boldsymbol K$ and return $\lambda_2$ on the solver scale:
+  `"CV_1SE_IEN_CCD"`, `"CV_MIN_IEN_CCD"`, `"CV_1SE_TIK_SVD"` and `"CV_MIN_TIK_SVD"`. `cv_n_folds`,
+  `cv_n_lambda1`, `cv_n_lambda2`, `cv_dfmax_ratio` and `cv_seed` control them. They judge a fitted
+  estimate, so on structured designs they tend to pick the edges of their grid.
+- `trex_tikhonov_lambda2_power_rule()` runs one full selection per grid value with common dummies and takes
+  the knee of that profile. It is the reference rule behind the pilot, at the cost of one selection per
+  grid value, and it returns every probe's selection.
 
 ```{r pilot}
 pilot <- TRexTikhonovSelector$new(X, y, tFDR = 0.1, seed = 4, verbose = FALSE,
                                   tik_control = trex_tikhonov_control(
-                                    tikhonov_K = K, lambda2_method = "PILOT_MAX",
+                                    tikhonov_K = K,
                                     pilot_grid = c(0, 1, 10), pilot_K = 4, pilot_T = 2),
                                   control = trex_control(K = 10))
 pilot$select()
 pilot$lambda2_used
 pilot$lambda2_pilot$grid
 pilot$lambda2_pilot$counts
+```
+
+```{r power-rule}
+profile <- trex_tikhonov_lambda2_power_rule(X, y, tFDR = 0.1, seed = 4,
+                                            tik_control = trex_tikhonov_control(tikhonov_K = K),
+                                            control = trex_control(K = 10), grid = c(0, 1, 10))
+profile$lambda2
+profile$counts
 ```
 
 # Dummies for a structured penalty

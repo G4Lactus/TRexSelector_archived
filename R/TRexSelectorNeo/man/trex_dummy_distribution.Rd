@@ -91,6 +91,7 @@ Other T-Rex selectors and controls:
 \code{\link[=trex_screen_control]{trex_screen_control()}},
 \code{\link[=trex_spca_control]{trex_spca_control()}},
 \code{\link[=trex_tikhonov_control]{trex_tikhonov_control()}},
+\code{\link[=trex_tikhonov_lambda2_power_rule]{trex_tikhonov_lambda2_power_rule()}},
 \code{\link[=trex_tpp]{trex_tpp()}},
 \code{\link[=trex_tpp_dense]{trex_tpp_dense()}}
 }

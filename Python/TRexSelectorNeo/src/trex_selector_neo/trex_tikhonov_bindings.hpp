@@ -27,6 +27,7 @@
 #include <ml_methods/model_selection/lambda2_cv_diagnostics.hpp>
 #include <trex_selector_methods/ad/trex_tikhonov/trex_tikhonov.hpp>
 #include <trex_selector_methods/ad/trex_tikhonov/tik_lambda2_pick.hpp>
+#include <trex_selector_methods/ad/trex_tikhonov/tik_lambda2_power_rule.hpp>
 #include "trex_core_bindings.hpp"
 
 // =====================================================================================
@@ -37,6 +38,31 @@ namespace tik_sd = trex::trex_selector_methods::ad::utils::solver_dispatch;
 using trex::trex_selector_methods::ad::trex_core::TRexControlParameter;
 
 // =====================================================================================
+
+/**
+ * @brief The nested base control merged into the Tikhonov control. The C++
+ *        constructor takes one control struct that nests the base parameters
+ *        as `trex_ctrl` and rejects any non-Tikhonov solver; the caller-facing
+ *        default (TLARS) is neutral, so anything outside TCDTIKNET / TIKNET
+ *        becomes TCDTIKNET, mirroring the R glue (the Python wrapper warns
+ *        first on an explicit mismatch).
+ */
+inline tik::TRexTikhonovControlParameter merge_tikhonov_control(
+    const tik::TRexTikhonovControlParameter& tik_control,
+    const TRexControlParameter& trex_control)
+{
+    tik::TRexTikhonovControlParameter tik_ctrl = tik_control;
+    tik_ctrl.trex_ctrl = trex_control;
+    const auto st = tik_ctrl.trex_ctrl.solver_type;
+    const bool tik_family =
+        st == tik_sd::SolverTypeForTRex::TCDTIKNET ||
+        st == tik_sd::SolverTypeForTRex::TIKNET;
+    if (!tik_family) {
+        tik_ctrl.trex_ctrl.solver_type = tik_sd::SolverTypeForTRex::TCDTIKNET;
+    }
+    return tik_ctrl;
+}
+
 
 /**
  * @brief Python wrapper class for TRexTikhonovSelector leveraging zero-copy references.
@@ -68,23 +94,8 @@ public:
                                                                   X.cols());
         this->y_map_ = std::make_unique<Eigen::Map<Eigen::VectorXd>>(y.data(),
                                                                   y.size());
-
-        // The C++ constructor takes a single control struct that nests the
-        // base algorithmic parameters as `trex_ctrl`. Merge the separately-
-        // supplied `trex_control`, then keep only a Tikhonov-family solver
-        // (TCDTIKNET / TIKNET, the general-K pair): the caller-facing
-        // default (TLARS) is neutral and becomes TCDTIKNET, mirroring the R
-        // glue (the Python wrapper warns first on an explicit mismatch).
-        tik::TRexTikhonovControlParameter tik_ctrl = tik_control;
-        tik_ctrl.trex_ctrl = trex_control;
-        const auto st = tik_ctrl.trex_ctrl.solver_type;
-        const bool tik_family =
-            st == tik_sd::SolverTypeForTRex::TCDTIKNET ||
-            st == tik_sd::SolverTypeForTRex::TIKNET;
-        if (!tik_family) {
-            tik_ctrl.trex_ctrl.solver_type = tik_sd::SolverTypeForTRex::TCDTIKNET;
-        }
-
+        const tik::TRexTikhonovControlParameter tik_ctrl =
+            merge_tikhonov_control(tik_control, trex_control);
         this->selector_ = std::make_unique<tik::TRexTikhonovSelector>(
             *(this->X_map_), *(this->y_map_), tFDR, tik_ctrl, seed, verbose
         );
@@ -103,7 +114,7 @@ public:
             ->getLambda2CVDiagnostics();
     }
 
-    /** @brief The lambda_2 pilot record of the last select() (PILOT_* rules). */
+    /** @brief The lambda_2 pilot record of the last select() (the pilot rule). */
     const tik::Lambda2PilotResult& getLambda2PilotResult() const {
         return static_cast<tik::TRexTikhonovSelector*>(this->selector_.get())
             ->getLambda2PilotResult();
@@ -119,22 +130,22 @@ public:
  */
 inline void bind_trex_tikhonov(py::module& m) {
     py::enum_<tik::TikLambda2Method>(m, "TikLambda2Method",
-        "Rule for resolving lambda_2 when tik_control.lambda_2 < 0.")
+        "Rule for resolving lambda_2 when tik_control.lambda_2 < 0: the pilot knee (default) or a k-fold CV tuner. "
+            "The knee of the full selection profile is tikhonov_lambda2_power_rule().")
         .value("CV_1SE_IEN_CCD", tik::TikLambda2Method::CV_1SE_IEN_CCD, "IEN-geometry coordinate-descent CV (lambda_1 "
-            "profiled), 1-SE rule (default).")
+            "profiled), 1-SE rule.")
         .value("CV_MIN_IEN_CCD", tik::TikLambda2Method::CV_MIN_IEN_CCD, "IEN-geometry coordinate-descent CV, minimum "
             "rule.")
         .value("CV_1SE_TIK_SVD", tik::TikLambda2Method::CV_1SE_TIK_SVD, "Generalized-Tikhonov SVD ridge CV, 1-SE rule.")
         .value("CV_MIN_TIK_SVD", tik::TikLambda2Method::CV_MIN_TIK_SVD, "Generalized-Tikhonov SVD ridge CV, minimum "
             "rule.")
-        .value("PILOT_MAX",      tik::TikLambda2Method::PILOT_MAX,      "Power rule read off a few random experiments: "
-            "the grid value with the largest selection count.")
-        .value("PILOT_KNEE",     tik::TikLambda2Method::PILOT_KNEE,     "Power rule: the smallest grid value within "
-            "pilot_knee_tolerance of the maximum count.")
+        .value("PILOT_KNEE",     tik::TikLambda2Method::PILOT_KNEE,     "The pilot knee (default): a few random "
+            "experiments per grid value, the smallest grid value whose selection count is within "
+            "pilot_knee_tolerance of the maximum.")
         .export_values();
 
     py::enum_<tik::PilotStatistic>(m, "PilotStatistic",
-        "Selection count the PILOT_* rules read per grid value.")
+        "Selection count the pilot rule reads per grid value.")
         .value("MAJORITY",       tik::PilotStatistic::MAJORITY,       "Variables selected in more than half of the "
             "pilot experiments.")
         .value("CALIBRATED",     tik::PilotStatistic::CALIBRATED,     "Calibrated count (soft curve).")
@@ -151,16 +162,42 @@ inline void bind_trex_tikhonov(py::module& m) {
         .export_values();
 
     py::class_<tik::Lambda2PickInfo>(m, "Lambda2PickInfo",
-        "How the pilot rule picked its grid value.")
+        "How the knee was read off a selection-count profile (the pilot rule and the power rule).")
         .def(py::init<>())
-        .def_readonly("index",        &tik::Lambda2PickInfo::index,        "0-based index of the pick on the pilot "
-            "grid.")
+        .def_readonly("index",        &tik::Lambda2PickInfo::index,        "0-based index of the pick on the grid.")
         .def_readonly("max_selected", &tik::Lambda2PickInfo::max_selected, "Largest selection count on the grid.")
-        .def_readonly("n_ties",       &tik::Lambda2PickInfo::n_ties,       "Grid values tied at the maximum.");
+        .def_readonly("n_ties",       &tik::Lambda2PickInfo::n_ties,       "Grid values within the tolerance of the "
+            "maximum (at tolerance 0: the values attaining it).");
+
+    py::class_<tik::Lambda2Probe>(m, "Lambda2Probe",
+        "One grid value's selection in the full lambda_2 profile of tikhonov_lambda2_power_rule().")
+        .def(py::init<>())
+        .def_readonly("lambda2",  &tik::Lambda2Probe::lambda2,  "The lambda_2 this probe ran at.")
+        .def_readonly("selected", &tik::Lambda2Probe::selected, "The selected variables (0-based, ascending).")
+        .def_readonly("T_stop",   &tik::Lambda2Probe::T_stop,   "The calibrated stopping time of the run.")
+        .def_readonly("seconds",  &tik::Lambda2Probe::seconds,  "Wall-clock seconds of the run.");
+
+    py::class_<tik::Lambda2PowerRuleResult>(m, "Lambda2PowerRuleResult",
+        "The full lambda_2 profile and its knee: every grid value's selection, the pick and the boundary flags.")
+        .def(py::init<>())
+        .def_readonly("lambda2",      &tik::Lambda2PowerRuleResult::lambda2,      "The chosen lambda_2.")
+        .def_readonly("index",        &tik::Lambda2PowerRuleResult::index,        "0-based index of the pick into "
+            "probes.")
+        .def_readonly("probes",       &tik::Lambda2PowerRuleResult::probes,       "Every grid value's selection, "
+            "ascending in lambda_2.")
+        .def_readonly("pick",         &tik::Lambda2PowerRuleResult::pick,         "Lambda2PickInfo of the pick.")
+        .def_readonly("at_lower_end", &tik::Lambda2PowerRuleResult::at_lower_end, "The pick is the first grid value "
+            "(widen the grid before trusting it).")
+        .def_readonly("at_upper_end", &tik::Lambda2PowerRuleResult::at_upper_end, "The pick is the last grid value.")
+        .def_readonly("seconds",      &tik::Lambda2PowerRuleResult::seconds,      "Wall-clock seconds of the whole "
+            "profile.")
+        .def("selection", [](const tik::Lambda2PowerRuleResult& r) { return r.selection(); },
+             "The selection at the chosen lambda_2 (0-based, ascending).")
+        .def("counts", &tik::Lambda2PowerRuleResult::counts, "The selection counts, ascending in lambda_2.");
 
     py::class_<tik::Lambda2PilotResult>(m, "Lambda2PilotResult",
-        "Record of a lambda_2 pilot run (PILOT_MAX / PILOT_KNEE): the grid, the per-value counts and curves, the pick, "
-            "and the pilot's size.")
+        "Record of a lambda_2 pilot run (PILOT_KNEE): the grid, the per-value counts and curves, the pick, and the "
+            "pilot's size.")
         .def(py::init<>())
         .def_readonly("ran",               &tik::Lambda2PilotResult::ran,               "A pilot ran (False: lambda_2 "
             "came from the caller or a CV tuner).")
@@ -217,7 +254,7 @@ inline void bind_trex_tikhonov(py::module& m) {
         .def_readwrite("lambda_2",        &tik::TRexTikhonovControlParameter::lambda_2,        "Tikhonov penalty "
             "(solver scale): < 0 = resolve by lambda2_method, 0 = no ridge, > 0 = fixed.")
         .def_readwrite("lambda2_method",  &tik::TRexTikhonovControlParameter::lambda2_method,  "Rule for resolving "
-            "lambda_2 when lambda_2 < 0 (default CV_1SE_IEN_CCD).")
+            "lambda_2 when lambda_2 < 0 (default PILOT_KNEE, the pilot knee; the CV tuners are the alternatives).")
         .def_readwrite("cv_n_folds",      &tik::TRexTikhonovControlParameter::cv_n_folds,      "Folds of the CV "
             "tuners.")
         .def_readwrite("cv_n_lambda",     &tik::TRexTikhonovControlParameter::cv_n_lambda,     "SVD tuners: points on "
@@ -236,14 +273,14 @@ inline void bind_trex_tikhonov(py::module& m) {
         .def_readwrite("cv_seed",         &tik::TRexTikhonovControlParameter::cv_seed,         "Seed for the CV fold "
             "permutation (-1 = derive from the T-Rex seed).")
         .def_readwrite("pilot_grid",      &tik::TRexTikhonovControlParameter::pilot_grid,      "lambda_2 grid of the "
-            "PILOT_* rules.")
+            "pilot rule (keep 0 on it so that no penalty is an admissible answer).")
         .def_readwrite("pilot_K",         &tik::TRexTikhonovControlParameter::pilot_K,         "Pilot experiments per "
             "grid value.")
         .def_readwrite("pilot_T",         &tik::TRexTikhonovControlParameter::pilot_T,         "Pilot T-steps.")
         .def_readwrite("pilot_L_multiplier", &tik::TRexTikhonovControlParameter::pilot_L_multiplier, "Pilot dummy "
             "multiplier (in [1, trex_control.max_dummy_multiplier]).")
-        .def_readwrite("pilot_knee_tolerance", &tik::TRexTikhonovControlParameter::pilot_knee_tolerance, "PILOT_KNEE: "
-            "count tolerance below the maximum.")
+        .def_readwrite("pilot_knee_tolerance", &tik::TRexTikhonovControlParameter::pilot_knee_tolerance, "Pilot rule: "
+            "selections below the largest count that still count as on the plateau (0 reads the largest count).")
         .def_readwrite("pilot_statistic", &tik::TRexTikhonovControlParameter::pilot_statistic, "Selection count the "
             "pilot reads (MAJORITY, CALIBRATED, GROUP_MAJORITY).")
         .def_readwrite("pilot_group_fraction", &tik::TRexTikhonovControlParameter::pilot_group_fraction,
@@ -278,6 +315,35 @@ inline void bind_trex_tikhonov(py::module& m) {
           },
           py::arg("prior_groups"),
           "Build the GROUP_CENTERING penalty K = blockdiag(I - J/p_m) from a 0-based group assignment (dense out).");
+
+    m.def("tikhonov_lambda2_power_rule",
+          [](Eigen::Ref<Eigen::MatrixXd> X, Eigen::Ref<Eigen::VectorXd> y, double tFDR,
+             const tik::TRexTikhonovControlParameter& tik_control, const TRexControlParameter& trex_control,
+             int seed, const std::vector<double>& grid, double knee_tolerance, bool verbose) {
+              // Every probe normalizes X in place and hands it back on return,
+              // so X and y are read through maps and never copied.
+              Eigen::Map<Eigen::MatrixXd> X_map(X.data(), X.rows(), X.cols());
+              Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
+              tik::Lambda2PowerRuleConfig cfg;
+              cfg.grid           = grid;
+              cfg.knee_tolerance = knee_tolerance;
+              return tik::tikhonov_lambda2_power_rule(X_map, y_map, tFDR,
+                                                      merge_tikhonov_control(tik_control, trex_control),
+                                                      seed, cfg, verbose);
+          },
+          py::arg("X"), py::arg("y"), py::arg("tFDR") = 0.1,
+          py::arg("tik_control") = tik::TRexTikhonovControlParameter(),
+          py::arg("trex_control") = TRexControlParameter(),
+          py::arg("seed") = 0,
+          py::arg("grid") = std::vector<double>{0.0, 1.0, 3.0, 10.0, 30.0, 100.0, 300.0, 1000.0, 3000.0},
+          py::arg("knee_tolerance") = 1.0, py::arg("verbose") = false,
+          "The knee of the full lambda_2 profile of the Tikhonov T-Rex: one FDR-controlled selection per grid value "
+          "with the same seed (common dummies), then the smallest lambda_2 whose selection is within knee_tolerance "
+          "selections of the largest (0 reads the largest selection, ties toward the smallest lambda_2). This is the "
+          "reference rule behind TikLambda2Method.PILOT_KNEE at the cost of one selection per grid value; it returns "
+          "every probe's selection. X (F-contiguous float64) and y are accessed zero-copy: every probe normalizes X "
+          "in place and hands it back, so X is unchanged on return. The pick depends on y and lies outside the "
+          "fixed-lambda_2 FDR guarantee that each probe carries.");
 
     py::class_<PyTRexTikhonovSelector, PyTRexSelector>(m, "TRexTikhonovSelector",
         "T-Rex selector with a general Tikhonov penalty (TCDTIKNET / TIKNET) and "

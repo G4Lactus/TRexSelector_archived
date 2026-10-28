@@ -1065,6 +1065,27 @@ trex_screening_get_selected_indices <- function(r_ptr) {
 NULL
 
 #' @noRd
+NULL
+
+#' @noRd
+NULL
+
+#' @noRd
+NULL
+
+#' @noRd
+NULL
+
+#' @noRd
+NULL
+
+#' @noRd
+NULL
+
+#' @noRd
+NULL
+
+#' @noRd
 trex_selector_create <- function(X, y, tFDR, control_list, seed, verbose) {
     .Call(`_TRexSelectorNeo_trex_selector_create`, X, y, tFDR, control_list, seed, verbose)
 }
@@ -1186,37 +1207,30 @@ trex_selector_get_y_mean <- function(r_ptr) {
     .Call(`_TRexSelectorNeo_trex_selector_get_y_mean`, r_ptr)
 }
 
-#' @noRd
 trex_selector_get_tfdr <- function(r_ptr) {
     .Call(`_TRexSelectorNeo_trex_selector_get_tfdr`, r_ptr)
 }
 
-#' @noRd
 trex_selector_get_k <- function(r_ptr) {
     .Call(`_TRexSelectorNeo_trex_selector_get_k`, r_ptr)
 }
 
-#' @noRd
 trex_selector_get_max_num_dummies <- function(r_ptr) {
     .Call(`_TRexSelectorNeo_trex_selector_get_max_num_dummies`, r_ptr)
 }
 
-#' @noRd
 trex_selector_get_max_t_stop <- function(r_ptr) {
     .Call(`_TRexSelectorNeo_trex_selector_get_max_t_stop`, r_ptr)
 }
 
-#' @noRd
 trex_selector_get_stagnation_check <- function(r_ptr) {
     .Call(`_TRexSelectorNeo_trex_selector_get_stagnation_check`, r_ptr)
 }
 
-#' @noRd
 trex_selector_get_num_selected <- function(r_ptr) {
     .Call(`_TRexSelectorNeo_trex_selector_get_num_selected`, r_ptr)
 }
 
-#' @noRd
 trex_selector_get_num_dummies <- function(r_ptr) {
     .Call(`_TRexSelectorNeo_trex_selector_get_num_dummies`, r_ptr)
 }
@@ -1294,11 +1308,33 @@ trex_tikhonov_get_lambda2_pilot_result <- function(r_ptr) {
     .Call(`_TRexSelectorNeo_trex_tikhonov_get_lambda2_pilot_result`, r_ptr)
 }
 
+#' @title The knee of the full lambda_2 profile: one selection per grid value
+#' @noRd
+trex_tikhonov_lambda2_power_rule_impl <- function(X, y, tFDR, tik_control_list, trex_control_list, seed, grid, knee_tolerance, verbose) {
+    .Call(`_TRexSelectorNeo_trex_tikhonov_lambda2_power_rule_impl`, X, y, tFDR, tik_control_list, trex_control_list, seed, grid, knee_tolerance, verbose)
+}
+
 #' @title Build K = Gamma^T Gamma from a Tikhonov operator Gamma
 #' @noRd
 trex_tikhonov_gamma_to_k <- function(gamma) {
     .Call(`_TRexSelectorNeo_trex_tikhonov_gamma_to_k`, gamma)
 }
+
+#' @title CD family: KKT violation at every recorded step
+#' @noRd
+NULL
+
+#' @noRd
+NULL
+
+#' @noRd
+NULL
+
+#' @noRd
+NULL
+
+#' @noRd
+NULL
 
 #' @title Create TLARS_Solver
 #'
@@ -2051,8 +2087,6 @@ tsolver_cd_get_record_gaps <- function(ptr) {
     .Call(`_TRexSelectorNeo_tsolver_cd_get_record_gaps`, ptr)
 }
 
-#' @title CD family: KKT violation at every recorded step
-#' @noRd
 tsolver_cd_get_record_kkt_violations <- function(ptr) {
     .Call(`_TRexSelectorNeo_tsolver_cd_get_record_kkt_violations`, ptr)
 }
@@ -2089,17 +2123,14 @@ tsolver_solver_type_to_string <- function(ptr) {
     .Call(`_TRexSelectorNeo_tsolver_solver_type_to_string`, ptr)
 }
 
-#' @noRd
 tsolver_get_dropped_indices <- function(ptr) {
     .Call(`_TRexSelectorNeo_tsolver_get_dropped_indices`, ptr)
 }
 
-#' @noRd
 tsolver_get_active_predictor_indices <- function(ptr) {
     .Call(`_TRexSelectorNeo_tsolver_get_active_predictor_indices`, ptr)
 }
 
-#' @noRd
 tsolver_get_active_dummy_indices <- function(ptr) {
     .Call(`_TRexSelectorNeo_tsolver_get_active_dummy_indices`, ptr)
 }
@@ -2169,7 +2200,6 @@ tsolver_tenet_get_alpha <- function(ptr) {
     .Call(`_TRexSelectorNeo_tsolver_tenet_get_alpha`, ptr)
 }
 
-#' @noRd
 tsolver_tik_get_tikhonov_k <- function(ptr) {
     .Call(`_TRexSelectorNeo_tsolver_tik_get_tikhonov_k`, ptr)
 }

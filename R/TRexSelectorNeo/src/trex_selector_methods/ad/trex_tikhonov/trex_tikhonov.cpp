@@ -486,10 +486,9 @@ double TRexTikhonovSelector::computeLambda2() const {
                                l2 * scale_adjust);
             return l2 * scale_adjust;
         }
-        case TikLambda2Method::PILOT_MAX:
         case TikLambda2Method::PILOT_KNEE:
             throw std::logic_error(
-                "TRexTikhonovSelector::computeLambda2: the pilot rules are "
+                "TRexTikhonovSelector::computeLambda2: the pilot rule is "
                 "resolved by runLambda2Pilot(), not here.");
     }
     throw std::invalid_argument(
@@ -503,8 +502,7 @@ double TRexTikhonovSelector::computeLambda2() const {
 
 bool TRexTikhonovSelector::pilotRequested() const noexcept {
     return trex_tik_ctrl_.lambda_2 < 0.0 &&
-           (trex_tik_ctrl_.lambda2_method == TikLambda2Method::PILOT_MAX ||
-            trex_tik_ctrl_.lambda2_method == TikLambda2Method::PILOT_KNEE);
+           trex_tik_ctrl_.lambda2_method == TikLambda2Method::PILOT_KNEE;
 }
 
 
@@ -615,10 +613,7 @@ double TRexTikhonovSelector::runLambda2Pilot() {
             std::chrono::steady_clock::now() - t0).count();
     }
 
-    const Lambda2PowerRule rule =
-        (c.lambda2_method == TikLambda2Method::PILOT_KNEE)
-            ? Lambda2PowerRule::KNEE : Lambda2PowerRule::MAX_SELECTION;
-    res.pick         = pick_lambda2_index(res.counts, rule, c.pilot_knee_tolerance);
+    res.pick         = pick_lambda2_index(res.counts, c.pilot_knee_tolerance);
     res.index        = res.pick.index;
     res.lambda2      = grid[res.index];
     res.at_lower_end = (res.index == 0);

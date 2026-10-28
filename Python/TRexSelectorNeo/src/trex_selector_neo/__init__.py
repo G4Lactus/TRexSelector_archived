@@ -36,9 +36,11 @@ from .trex_selector_methods.ad import (
     TRexSPCASelector as PyTRexSPCASelector,
     Lambda2CVDiagnostics,
     TikLambda2Method, PilotStatistic, TikPenaltyStructure,
-    Lambda2PickInfo, Lambda2PilotResult, TRexTikhonovControlParameter,
+    Lambda2PickInfo, Lambda2PilotResult, Lambda2Probe, Lambda2PowerRuleResult,
+    TRexTikhonovControlParameter,
     TRexTikhonovSelector as PyTRexTikhonovSelector,
     gamma_to_k, build_group_centering_k,
+    tikhonov_lambda2_power_rule as _tikhonov_lambda2_power_rule,
     normalize_design,
 )
 
@@ -370,9 +372,61 @@ class TRexTikhonovSelector(TRexSelector):
 
     @property
     def lambda2_pilot(self) -> Lambda2PilotResult:
-        """Record of the lambda_2 pilot of the last select() (Lambda2PilotResult; ``ran`` is False unless a
-        PILOT_* rule resolved lambda_2)."""
+        """Record of the lambda_2 pilot of the last select() (Lambda2PilotResult; ``ran`` is False unless the
+        pilot rule resolved lambda_2)."""
         return self._selector.getLambda2PilotResult()
+
+
+def tikhonov_lambda2_power_rule(X: np.ndarray, y: np.ndarray, tFDR: float = 0.1,
+                                tik_control: TRexTikhonovControlParameter | None = None,
+                                trex_control: TRexControlParameter | None = None,
+                                seed: int = 0,
+                                grid: "list[float] | np.ndarray" = (0.0, 1.0, 3.0, 10.0, 30.0, 100.0, 300.0,
+                                                                   1000.0, 3000.0),
+                                knee_tolerance: float = 1.0,
+                                verbose: bool = False) -> Lambda2PowerRuleResult:
+    """
+    The knee of the full lambda_2 profile of the Tikhonov T-Rex.
+
+    Runs one FDR-controlled Tikhonov T-Rex selection per value of ``grid`` with
+    the same seed, so the probes share their dummies and differ by the penalty
+    weight alone, and picks the smallest lambda_2 whose selection is within
+    ``knee_tolerance`` selections of the largest (the knee of the profile; 0
+    reads the largest selection, ties toward the smallest lambda_2). This is
+    the reference rule behind the default ``TikLambda2Method.PILOT_KNEE``,
+    which reads the same knee off a few random experiments per grid value at a
+    fraction of the cost; the full profile costs one selection per grid value
+    and returns every probe's selection (``Lambda2PowerRuleResult``). The pick
+    depends on y and lies outside the fixed-lambda_2 FDR guarantee that each
+    probe carries.
+
+    ``X`` and ``y`` are converted to Fortran-ordered float64 arrays once (no
+    copy when they already are) and accessed zero-copy: every probe normalizes
+    X in place and hands it back, so X is unchanged on return. ``tik_control``
+    is required; its ``lambda_2`` is overwritten per probe. A negative seed
+    would draw fresh dummies per probe and is refused.
+    """
+    if tik_control is None:
+        raise ValueError(
+            "tik_control is required (a TRexTikhonovControlParameter; it "
+            "carries the penalty matrix tikhonov_K or the penalty structure).")
+    if trex_control is None:
+        trex_control = TRexControlParameter()
+    if seed < 0:
+        raise ValueError("seed must be non-negative: the probes share their dummies.")
+    _tik_family = (SolverTypeForTRex.TCDTIKNET, SolverTypeForTRex.TIKNET)
+    if trex_control.solver_type not in (SolverTypeForTRex.TLARS,) + _tik_family:
+        warnings.warn(
+            f"trex_control.solver_type = {trex_control.solver_type.name} "
+            f"is not a Tikhonov-family solver; the Tikhonov T-Rex accepts "
+            f"TCDTIKNET or TIKNET. Using TCDTIKNET.",
+            UserWarning,
+            stacklevel=2,
+        )
+    X = np.asfortranarray(X, dtype=np.float64)
+    y = np.asfortranarray(y, dtype=np.float64)
+    return _tikhonov_lambda2_power_rule(X, y, tFDR, tik_control, trex_control, int(seed),
+                                        [float(v) for v in grid], float(knee_tolerance), verbose)
 
 
 class TRexScreeningSelector(TRexSelector):
@@ -616,6 +670,9 @@ __all__ = [
     "TRexTikhonovSelector",
     "gamma_to_k",
     "build_group_centering_k",
+    "Lambda2Probe",
+    "Lambda2PowerRuleResult",
+    "tikhonov_lambda2_power_rule",
     # Submodules
     "ml_methods",
     "tsolvers",

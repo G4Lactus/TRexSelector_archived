@@ -74,6 +74,7 @@ Other T-Rex selectors and controls:
 \code{\link[=trex_screen_control]{trex_screen_control()}},
 \code{\link[=trex_spca_control]{trex_spca_control()}},
 \code{\link[=trex_tikhonov_control]{trex_tikhonov_control()}},
+\code{\link[=trex_tikhonov_lambda2_power_rule]{trex_tikhonov_lambda2_power_rule()}},
 \code{\link[=trex_tpp]{trex_tpp()}},
 \code{\link[=trex_tpp_dense]{trex_tpp_dense()}}
 }
@@ -99,7 +100,7 @@ boundary-pick guard fields \code{grid_index} / \code{grid_size},
 \code{at_grid_edge}, \code{profile_at_edge},
 \code{profile_at_support_cap} and \code{boundary_pick} (see
 \code{TRexGVSSelector}; the CV methods warn once on a boundary pick
-and return it unchanged; the pilot rules leave them at their
+and return it unchanged; the pilot rule leaves them at their
 defaults).}
 
     \item{\code{lambda2_pilot}}{Record of the lambda_2 pilot rule of the last

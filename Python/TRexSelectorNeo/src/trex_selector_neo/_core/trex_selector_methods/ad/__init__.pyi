@@ -6,7 +6,7 @@ import collections.abc
 import numpy
 import numpy.typing
 import typing
-__all__: list[str] = ['AR1', 'ActiveSet', 'BT', 'BTSelectionMode', 'BiobankScreenTRexControl', 'BiobankScreenTRexResult', 'CALIBRATED', 'CV_1SE_CCD', 'CV_1SE_IEN_CCD', 'CV_1SE_SVD', 'CV_1SE_TIK_SVD', 'CV_MIN_CCD', 'CV_MIN_IEN_CCD', 'CV_MIN_SVD', 'CV_MIN_TIK_SVD', 'DAMethod', 'DASelectionResult', 'DummyDistribution', 'EN', 'ENSolverType', 'EQUI', 'FeasibleOnly', 'GROUP_CENTERING', 'GROUP_MAJORITY', 'GVSSelectionResult', 'GVSType', 'HCONCAT', 'IEN', 'L2', 'LLoopStrategy', 'Lambda2CVDiagnostics', 'Lambda2PickInfo', 'Lambda2PilotResult', 'LambdaSelectionMethod', 'MAJORITY', 'NN', 'NONE', 'PERMUTATION', 'PERMUTATION_SEEDED', 'PILOT_KNEE', 'PILOT_MAX', 'PRIOR_GROUPS', 'PilotStatistic', 'RFaithful', 'SEEDED', 'SKIPL', 'SPARSE_GENERAL', 'SPCAMode', 'STANDARD', 'ScalingMode', 'ScreenTRexControlParameter', 'ScreenTRexMethod', 'ScreenTRexSelectionResult', 'SelectionResult', 'SolverHyperparameters', 'SolverTypeForTRex', 'TACGP', 'TAFS', 'TCDENET', 'TCDIENET', 'TCDLASSO', 'TCDTIKNET', 'TENET', 'TENET_AUG', 'TGP', 'TIENET', 'TIENET_AUG', 'TIKNET', 'TLARS', 'TLASSO', 'TMP', 'TNCGMP', 'TOMP', 'TOOLS', 'TREX', 'TREX_DA_AR1', 'TREX_DA_BLOCK_EQUI', 'TREX_DA_EQUI', 'TRexBiobankScreeningSelector', 'TRexControlParameter', 'TRexDAControlParameter', 'TRexDASelector', 'TRexGVSControlParameter', 'TRexGVSSelector', 'TRexSPCAControlParameter', 'TRexSPCAResult', 'TRexSPCASelector', 'TRexScreeningSelector', 'TRexSelector', 'TRexTikhonovControlParameter', 'TRexTikhonovSelector', 'TSTAGEWISE', 'TSTEPWISE', 'Thresholded', 'TikLambda2Method', 'TikPenaltyStructure', 'ZSCORE', 'build_group_centering_k', 'gamma_to_k', 'normalize_design']
+__all__: list[str] = ['AR1', 'ActiveSet', 'BT', 'BTSelectionMode', 'BiobankScreenTRexControl', 'BiobankScreenTRexResult', 'CALIBRATED', 'CV_1SE_CCD', 'CV_1SE_IEN_CCD', 'CV_1SE_SVD', 'CV_1SE_TIK_SVD', 'CV_MIN_CCD', 'CV_MIN_IEN_CCD', 'CV_MIN_SVD', 'CV_MIN_TIK_SVD', 'DAMethod', 'DASelectionResult', 'DummyDistribution', 'EN', 'ENSolverType', 'EQUI', 'FeasibleOnly', 'GROUP_CENTERING', 'GROUP_MAJORITY', 'GVSSelectionResult', 'GVSType', 'HCONCAT', 'IEN', 'L2', 'LLoopStrategy', 'Lambda2CVDiagnostics', 'Lambda2PickInfo', 'Lambda2PilotResult', 'Lambda2PowerRuleResult', 'Lambda2Probe', 'LambdaSelectionMethod', 'MAJORITY', 'NN', 'NONE', 'PERMUTATION', 'PERMUTATION_SEEDED', 'PILOT_KNEE', 'PRIOR_GROUPS', 'PilotStatistic', 'RFaithful', 'SEEDED', 'SKIPL', 'SPARSE_GENERAL', 'SPCAMode', 'STANDARD', 'ScalingMode', 'ScreenTRexControlParameter', 'ScreenTRexMethod', 'ScreenTRexSelectionResult', 'SelectionResult', 'SolverHyperparameters', 'SolverTypeForTRex', 'TACGP', 'TAFS', 'TCDENET', 'TCDIENET', 'TCDLASSO', 'TCDTIKNET', 'TENET', 'TENET_AUG', 'TGP', 'TIENET', 'TIENET_AUG', 'TIKNET', 'TLARS', 'TLASSO', 'TMP', 'TNCGMP', 'TOMP', 'TOOLS', 'TREX', 'TREX_DA_AR1', 'TREX_DA_BLOCK_EQUI', 'TREX_DA_EQUI', 'TRexBiobankScreeningSelector', 'TRexControlParameter', 'TRexDAControlParameter', 'TRexDASelector', 'TRexGVSControlParameter', 'TRexGVSSelector', 'TRexSPCAControlParameter', 'TRexSPCAResult', 'TRexSPCASelector', 'TRexScreeningSelector', 'TRexSelector', 'TRexTikhonovControlParameter', 'TRexTikhonovSelector', 'TSTAGEWISE', 'TSTEPWISE', 'Thresholded', 'TikLambda2Method', 'TikPenaltyStructure', 'ZSCORE', 'build_group_centering_k', 'gamma_to_k', 'normalize_design', 'tikhonov_lambda2_power_rule']
 class BTSelectionMode:
     """
     Cell-selection policy for the BT (binary-tree) DA method.
@@ -749,14 +749,14 @@ class Lambda2CVDiagnostics:
         """
 class Lambda2PickInfo:
     """
-    How the pilot rule picked its grid value.
+    How the knee was read off a selection-count profile (the pilot rule and the power rule).
     """
     def __init__(self) -> None:
         ...
     @property
     def index(self) -> int:
         """
-        0-based index of the pick on the pilot grid.
+        0-based index of the pick on the grid.
         """
     @property
     def max_selected(self) -> int:
@@ -766,11 +766,11 @@ class Lambda2PickInfo:
     @property
     def n_ties(self) -> int:
         """
-        Grid values tied at the maximum.
+        Grid values within the tolerance of the maximum (at tolerance 0: the values attaining it).
         """
 class Lambda2PilotResult:
     """
-    Record of a lambda_2 pilot run (PILOT_MAX / PILOT_KNEE): the grid, the per-value counts and curves, the pick, and the pilot's size.
+    Record of a lambda_2 pilot run (PILOT_KNEE): the grid, the per-value counts and curves, the pick, and the pilot's size.
     """
     def __init__(self) -> None:
         ...
@@ -869,6 +869,81 @@ class Lambda2PilotResult:
         """
         Wall-clock seconds of the whole pilot.
         """
+class Lambda2PowerRuleResult:
+    """
+    The full lambda_2 profile and its knee: every grid value's selection, the pick and the boundary flags.
+    """
+    def __init__(self) -> None:
+        ...
+    def counts(self) -> list[int]:
+        """
+        The selection counts, ascending in lambda_2.
+        """
+    def selection(self) -> list[int]:
+        """
+        The selection at the chosen lambda_2 (0-based, ascending).
+        """
+    @property
+    def at_lower_end(self) -> bool:
+        """
+        The pick is the first grid value (widen the grid before trusting it).
+        """
+    @property
+    def at_upper_end(self) -> bool:
+        """
+        The pick is the last grid value.
+        """
+    @property
+    def index(self) -> int:
+        """
+        0-based index of the pick into probes.
+        """
+    @property
+    def lambda2(self) -> float:
+        """
+        The chosen lambda_2.
+        """
+    @property
+    def pick(self) -> Lambda2PickInfo:
+        """
+        Lambda2PickInfo of the pick.
+        """
+    @property
+    def probes(self) -> list[Lambda2Probe]:
+        """
+        Every grid value's selection, ascending in lambda_2.
+        """
+    @property
+    def seconds(self) -> float:
+        """
+        Wall-clock seconds of the whole profile.
+        """
+class Lambda2Probe:
+    """
+    One grid value's selection in the full lambda_2 profile of tikhonov_lambda2_power_rule().
+    """
+    def __init__(self) -> None:
+        ...
+    @property
+    def T_stop(self) -> int:
+        """
+        The calibrated stopping time of the run.
+        """
+    @property
+    def lambda2(self) -> float:
+        """
+        The lambda_2 this probe ran at.
+        """
+    @property
+    def seconds(self) -> float:
+        """
+        Wall-clock seconds of the run.
+        """
+    @property
+    def selected(self) -> list[int]:
+        """
+        The selected variables (0-based, ascending).
+        """
 class LambdaSelectionMethod:
     """
     Rule for auto-selecting the ridge parameter lambda_2 when lambda_2 < 0.
@@ -936,7 +1011,7 @@ class LambdaSelectionMethod:
         ...
 class PilotStatistic:
     """
-    Selection count the PILOT_* rules read per grid value.
+    Selection count the pilot rule reads per grid value.
     
     Members:
     
@@ -2245,7 +2320,7 @@ class TRexTikhonovControlParameter:
     @property
     def lambda2_method(self) -> TikLambda2Method:
         """
-        Rule for resolving lambda_2 when lambda_2 < 0 (default CV_1SE_IEN_CCD).
+        Rule for resolving lambda_2 when lambda_2 < 0 (default PILOT_KNEE, the pilot knee; the CV tuners are the alternatives).
         """
     @lambda2_method.setter
     def lambda2_method(self, arg0: TikLambda2Method) -> None:
@@ -2293,7 +2368,7 @@ class TRexTikhonovControlParameter:
     @property
     def pilot_grid(self) -> list[float]:
         """
-        lambda_2 grid of the PILOT_* rules.
+        lambda_2 grid of the pilot rule (keep 0 on it so that no penalty is an admissible answer).
         """
     @pilot_grid.setter
     def pilot_grid(self, arg0: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex]) -> None:
@@ -2309,7 +2384,7 @@ class TRexTikhonovControlParameter:
     @property
     def pilot_knee_tolerance(self) -> float:
         """
-        PILOT_KNEE: count tolerance below the maximum.
+        Pilot rule: selections below the largest count that still count as on the plateau (0 reads the largest count).
         """
     @pilot_knee_tolerance.setter
     def pilot_knee_tolerance(self, arg0: typing.SupportsFloat | typing.SupportsIndex) -> None:
@@ -2396,11 +2471,11 @@ class TRexTikhonovSelector(TRexSelector):
         """
 class TikLambda2Method:
     """
-    Rule for resolving lambda_2 when tik_control.lambda_2 < 0.
+    Rule for resolving lambda_2 when tik_control.lambda_2 < 0: the pilot knee (default) or a k-fold CV tuner. The knee of the full selection profile is tikhonov_lambda2_power_rule().
     
     Members:
     
-      CV_1SE_IEN_CCD : IEN-geometry coordinate-descent CV (lambda_1 profiled), 1-SE rule (default).
+      CV_1SE_IEN_CCD : IEN-geometry coordinate-descent CV (lambda_1 profiled), 1-SE rule.
     
       CV_MIN_IEN_CCD : IEN-geometry coordinate-descent CV, minimum rule.
     
@@ -2408,17 +2483,14 @@ class TikLambda2Method:
     
       CV_MIN_TIK_SVD : Generalized-Tikhonov SVD ridge CV, minimum rule.
     
-      PILOT_MAX : Power rule read off a few random experiments: the grid value with the largest selection count.
-    
-      PILOT_KNEE : Power rule: the smallest grid value within pilot_knee_tolerance of the maximum count.
+      PILOT_KNEE : The pilot knee (default): a few random experiments per grid value, the smallest grid value whose selection count is within pilot_knee_tolerance of the maximum.
     """
     CV_1SE_IEN_CCD: typing.ClassVar[TikLambda2Method]  # value = <TikLambda2Method.CV_1SE_IEN_CCD: 0>
     CV_1SE_TIK_SVD: typing.ClassVar[TikLambda2Method]  # value = <TikLambda2Method.CV_1SE_TIK_SVD: 2>
     CV_MIN_IEN_CCD: typing.ClassVar[TikLambda2Method]  # value = <TikLambda2Method.CV_MIN_IEN_CCD: 1>
     CV_MIN_TIK_SVD: typing.ClassVar[TikLambda2Method]  # value = <TikLambda2Method.CV_MIN_TIK_SVD: 3>
-    PILOT_KNEE: typing.ClassVar[TikLambda2Method]  # value = <TikLambda2Method.PILOT_KNEE: 5>
-    PILOT_MAX: typing.ClassVar[TikLambda2Method]  # value = <TikLambda2Method.PILOT_MAX: 4>
-    __members__: typing.ClassVar[dict[str, TikLambda2Method]]  # value = {'CV_1SE_IEN_CCD': <TikLambda2Method.CV_1SE_IEN_CCD: 0>, 'CV_MIN_IEN_CCD': <TikLambda2Method.CV_MIN_IEN_CCD: 1>, 'CV_1SE_TIK_SVD': <TikLambda2Method.CV_1SE_TIK_SVD: 2>, 'CV_MIN_TIK_SVD': <TikLambda2Method.CV_MIN_TIK_SVD: 3>, 'PILOT_MAX': <TikLambda2Method.PILOT_MAX: 4>, 'PILOT_KNEE': <TikLambda2Method.PILOT_KNEE: 5>}
+    PILOT_KNEE: typing.ClassVar[TikLambda2Method]  # value = <TikLambda2Method.PILOT_KNEE: 4>
+    __members__: typing.ClassVar[dict[str, TikLambda2Method]]  # value = {'CV_1SE_IEN_CCD': <TikLambda2Method.CV_1SE_IEN_CCD: 0>, 'CV_MIN_IEN_CCD': <TikLambda2Method.CV_MIN_IEN_CCD: 1>, 'CV_1SE_TIK_SVD': <TikLambda2Method.CV_1SE_TIK_SVD: 2>, 'CV_MIN_TIK_SVD': <TikLambda2Method.CV_MIN_TIK_SVD: 3>, 'PILOT_KNEE': <TikLambda2Method.PILOT_KNEE: 4>}
     @typing.overload
     def __eq__(self, other: TikLambda2Method) -> bool:
         ...
@@ -2512,6 +2584,10 @@ def normalize_design(X: typing.Annotated[numpy.typing.ArrayLike, numpy.float64, 
     """
     Apply the selectors' data normalization to copies of X and y and return a dict with keys 'X', 'y' (the normalized copies), 'X_means', 'X_scales' (the per-column divisors: L2 norms for L2, sample SDs for ZSCORE, ones for NONE) and 'y_mean'. Under ScalingMode.NONE the copies equal the inputs and the parameters are the identity. eps is the dead-column threshold on the working L2 norm (the selectors use the solver tolerance, default 1e-6). Raises ValueError on a non-finite entry or a dead column (constant under L2 / ZSCORE, all-zero under NONE), naming the column (0-based).
     """
+def tikhonov_lambda2_power_rule(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]", "flags.writeable"], tFDR: typing.SupportsFloat | typing.SupportsIndex = 0.1, tik_control: TRexTikhonovControlParameter = ..., trex_control: TRexControlParameter = ..., seed: typing.SupportsInt | typing.SupportsIndex = 0, grid: collections.abc.Sequence[typing.SupportsFloat | typing.SupportsIndex] = [0.0, 1.0, 3.0, 10.0, 30.0, 100.0, 300.0, 1000.0, 3000.0], knee_tolerance: typing.SupportsFloat | typing.SupportsIndex = 1.0, verbose: bool = False) -> Lambda2PowerRuleResult:
+    """
+    The knee of the full lambda_2 profile of the Tikhonov T-Rex: one FDR-controlled selection per grid value with the same seed (common dummies), then the smallest lambda_2 whose selection is within knee_tolerance selections of the largest (0 reads the largest selection, ties toward the smallest lambda_2). This is the reference rule behind TikLambda2Method.PILOT_KNEE at the cost of one selection per grid value; it returns every probe's selection. X (F-contiguous float64) and y are accessed zero-copy: every probe normalizes X in place and hands it back, so X is unchanged on return. The pick depends on y and lies outside the fixed-lambda_2 FDR guarantee that each probe carries.
+    """
 AR1: DAMethod  # value = <DAMethod.AR1: 0>
 ActiveSet: SPCAMode  # value = <SPCAMode.ActiveSet: 0>
 BT: DAMethod  # value = <DAMethod.BT: 2>
@@ -2537,8 +2613,7 @@ NN: DAMethod  # value = <DAMethod.NN: 3>
 NONE: ScalingMode  # value = <ScalingMode.NONE: 2>
 PERMUTATION: LLoopStrategy  # value = <LLoopStrategy.PERMUTATION: 3>
 PERMUTATION_SEEDED: LLoopStrategy  # value = <LLoopStrategy.PERMUTATION_SEEDED: 4>
-PILOT_KNEE: TikLambda2Method  # value = <TikLambda2Method.PILOT_KNEE: 5>
-PILOT_MAX: TikLambda2Method  # value = <TikLambda2Method.PILOT_MAX: 4>
+PILOT_KNEE: TikLambda2Method  # value = <TikLambda2Method.PILOT_KNEE: 4>
 PRIOR_GROUPS: DAMethod  # value = <DAMethod.PRIOR_GROUPS: 4>
 RFaithful: BTSelectionMode  # value = <BTSelectionMode.RFaithful: 1>
 SEEDED: LLoopStrategy  # value = <LLoopStrategy.SEEDED: 5>

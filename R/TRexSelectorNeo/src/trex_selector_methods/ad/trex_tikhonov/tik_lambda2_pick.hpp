@@ -14,12 +14,10 @@
  *        experiments per grid point).
  *
  * @details With `n_k` the selection count at the k-th grid point (ascending
- *   lambda_2):
- *
- *     - MAX_SELECTION : k* = argmax_k n_k, ties resolved toward the SMALLEST
- *                       lambda_2 (the least reliance on the prior);
- *     - KNEE          : the smallest k with n_k >= max_k n_k - tolerance
- *                       (the "minimum sufficient shrinkage" reading).
+ *   lambda_2), the pick is the knee of the profile: the smallest k with
+ *   n_k >= max_k n_k - tolerance (the "minimum sufficient shrinkage"
+ *   reading). A tolerance of 0 reads the largest selection, ties resolved
+ *   toward the smallest lambda_2 (the least reliance on the prior).
  *
  *   Selector-free on purpose: this header includes nothing of the T-Rex, so
  *   the selector can include it.
@@ -48,15 +46,6 @@ namespace trex_tikhonov {
 
 namespace fpc = trex::utils::fp_classify;
 
-/** @brief How the pick is read off the selection-count profile. */
-enum class Lambda2PowerRule {
-    /** @brief The largest selection; ties toward the smallest lambda_2. */
-    MAX_SELECTION,
-    /** @brief The smallest lambda_2 within a tolerance of the largest
-     *  selection. */
-    KNEE
-};
-
 /** @brief What the pick over the counts looked like. */
 struct Lambda2PickInfo {
 
@@ -66,8 +55,8 @@ struct Lambda2PickInfo {
     /** @brief The largest selection count on the grid. */
     std::size_t max_selected = 0;
 
-    /** @brief MAX_SELECTION: grid points attaining the maximum;
-     *  KNEE: grid points within the tolerance of it. */
+    /** @brief Grid points within the tolerance of the maximum (at
+     *  tolerance 0: the points attaining it). */
     std::size_t n_ties = 0;
 };
 
@@ -75,13 +64,12 @@ struct Lambda2PickInfo {
  * @brief Read the pick off a selection-count profile (ascending lambda_2).
  *
  * @param counts         Selection counts per grid point.
- * @param rule           MAX_SELECTION or KNEE.
- * @param knee_tolerance KNEE's plateau tolerance in selections (>= 0).
+ * @param knee_tolerance The plateau tolerance in selections (>= 0); 0 reads
+ *                       the largest selection.
  *
  * @throws std::invalid_argument on an empty profile or a negative tolerance.
  */
 inline Lambda2PickInfo pick_lambda2_index(const std::vector<std::size_t>& counts,
-                                          Lambda2PowerRule rule,
                                           double knee_tolerance = 1.0)
 {
     if (counts.empty()) {
@@ -92,9 +80,7 @@ inline Lambda2PickInfo pick_lambda2_index(const std::vector<std::size_t>& counts
     }
     Lambda2PickInfo info;
     info.max_selected = *std::max_element(counts.begin(), counts.end());
-    const double threshold = (rule == Lambda2PowerRule::KNEE)
-                                 ? static_cast<double>(info.max_selected) - knee_tolerance
-                                 : static_cast<double>(info.max_selected);
+    const double threshold = static_cast<double>(info.max_selected) - knee_tolerance;
     bool found = false;
     for (std::size_t k = 0; k < counts.size(); ++k) {
         if (static_cast<double>(counts[k]) >= threshold) {

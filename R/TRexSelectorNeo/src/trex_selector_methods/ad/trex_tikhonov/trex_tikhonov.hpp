@@ -83,23 +83,25 @@
  *  The selected lambda_2 is on the unit-L2 SOLVER scale (no p/2
  *  conversion); only the ZSCORE working-scale factor (n - 1) applies.
  *
- *  The PILOT rules (PILOT_MAX / PILOT_KNEE) decide lambda_2 from the random
+ *  The pilot rule (PILOT_KNEE, the default) decides lambda_2 from the random
  *  experiments themselves, still in `onSelectBegin()` and before the main
  *  L-loop: for every candidate of `pilot_grid` the shared ExperimentRunner
  *  runs `pilot_K` experiments with L_0 = p dummies to the stopping time
  *  `pilot_T`, on ONE dummy set common to every candidate, and the count of
  *  originals ahead of the T-th dummy in more than half of the experiments
  *  (the T-Rex's own count at voting level 1/2; or the calibrated pilot
- *  selection, `pilot_statistic`) is read off. The pick is the selector's
- *  own principle applied to lambda_2 — the largest FDR-controlled selection
- *  — at a fraction of the cost of one full selection per candidate: about
- *  |grid| x pilot_K paths at (L_0, pilot_T) against |grid| x K x (L-steps +
- *  T-steps) paths. The pilot dummies live in a reserved seed stream, so the
- *  main run is a standard T-Rex at a fixed lambda_2 whose dummies are
- *  independent of the pick; the pick itself depends on y and is outside
- *  the fixed-lambda_2 FDR proof — its cost was measured to be nil under the
- *  global null and within 0.01 of the oracle under the alternatives in the
- *  Tikhonov T-Rex workspace. The record is in `getLambda2PilotResult()`.
+ *  selection, `pilot_statistic`) is read off. The pick is the knee of that
+ *  profile, the smallest lambda_2 whose count is within
+ *  `pilot_knee_tolerance` of the largest — the selector's own principle
+ *  applied to lambda_2 — at a fraction of the cost of one full selection
+ *  per candidate: about |grid| x pilot_K paths at (L_0, pilot_T) against
+ *  |grid| x K x (L-steps + T-steps) paths. The pilot dummies live in a
+ *  reserved seed stream, so the main run is a standard T-Rex at a fixed
+ *  lambda_2 whose dummies are independent of the pick; the pick itself
+ *  depends on y and is outside the fixed-lambda_2 FDR proof — its cost was
+ *  measured to be nil under the global null and at most 0.02 of TPR
+ *  against the oracle pin under the alternatives in the Tikhonov T-Rex
+ *  workspace. The record is in `getLambda2PilotResult()`.
  */
 // ===================================================================================
 
@@ -145,7 +147,7 @@ namespace ms = trex::ml_methods::model_selection;
  *        user-supplied value is given. The four CV rules consume the penalty
  *        matrix K on the normalized data before the random experiments and
  *        return lambda_2 on the solver scale (no p/2 conversion; see the
- *        file header). The two PILOT rules read lambda_2 off a few random
+ *        file header). The pilot rule reads lambda_2 off a few random
  *        experiments per candidate of `pilot_grid` (see the file header,
  *        "lambda_2 selection").
  */
@@ -158,11 +160,9 @@ enum class TikLambda2Method {
     CV_1SE_TIK_SVD,
     /** @brief Generalized-Tikhonov SVD ridge CV (lambda1 = 0 backbone), min. */
     CV_MIN_TIK_SVD,
-    /** @brief Pilot rule: over `pilot_grid`, the lambda_2 with the LARGEST
-     *  pilot selection count (ties toward the smallest lambda_2). */
-    PILOT_MAX,
-    /** @brief Pilot rule: the smallest lambda_2 whose pilot selection count
-     *  is within `pilot_knee_tolerance` of the largest. */
+    /** @brief Pilot rule (the default): over `pilot_grid`, the smallest
+     *  lambda_2 whose pilot selection count is within
+     *  `pilot_knee_tolerance` of the largest. */
     PILOT_KNEE
 };
 
@@ -297,9 +297,9 @@ struct TRexTikhonovControlParameter {
     double lambda_2 = -1.0;
 
     /** @brief Selection rule for auto-computing `lambda_2` when
-     *  `lambda_2 < 0`. Default: CV_1SE_IEN_CCD (well-posed in any p/n
-     *  regime). */
-    TikLambda2Method lambda2_method = TikLambda2Method::CV_1SE_IEN_CCD;
+     *  `lambda_2 < 0`. Default: PILOT_KNEE, the knee of the pilot profile;
+     *  the CV tuners (well-posed in any p/n regime) are the alternatives. */
+    TikLambda2Method lambda2_method = TikLambda2Method::PILOT_KNEE;
 
     /** @brief Number of folds for the lambda_2 CV. Default: 10. */
     int cv_n_folds = 10;
@@ -339,7 +339,7 @@ struct TRexTikhonovControlParameter {
      *  - `>= 0`: explicit fold seed; overrides `seed` for CV only. */
     int cv_seed = -1;
 
-    // ----- Pilot rule (lambda2_method = PILOT_MAX / PILOT_KNEE) -----
+    // ----- Pilot rule (lambda2_method = PILOT_KNEE) -----
 
     /** @brief lambda_2 candidates on the WORKING column scale (the scale of
      *  `lambda_2`; the pilot runs the solver at these values verbatim, so no
@@ -363,8 +363,8 @@ struct TRexTikhonovControlParameter {
      *  [1, trex_ctrl.max_dummy_multiplier]). */
     std::size_t pilot_L_multiplier = 1;
 
-    /** @brief PILOT_KNEE: selections below the largest count that still
-     *  count as "on the plateau" (>= 0). */
+    /** @brief Selections below the largest pilot count that still count as
+     *  "on the plateau" (>= 0); 0 reads the largest count. */
     double pilot_knee_tolerance = 1.0;
 
     /** @brief The count the pick is read off. */
