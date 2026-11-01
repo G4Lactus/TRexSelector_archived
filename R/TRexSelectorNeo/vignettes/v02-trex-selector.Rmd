@@ -151,11 +151,14 @@ abline(h = sel$v_thresh, lty = 2, col = "red")
 | `"PERMUTATION_SEEDED"` | the permutation re-derived from the seed | none |
 | `"SKIPL"` | no L-loop, the cap `max_dummy_multiplier` is used directly | $K$ matrices |
 
-`"SKIPL"` skips the calibration of $L$ and runs with the cap at once. Under a large fixed $L$ its FDP
-estimate is anti-conservative, because the estimate does not count the null variables that enter during
-the T steps which add no new occurrence above the reference voting level. In the Examples demo 04 (signal
-to noise ratio 5, $T$ about 145) the strategy with twenty times $p$ dummies reached an FDR of 0.137 at a
-target of 0.1, so the calibrated strategies are the safe choice.
+`"SKIPL"` skips the calibration of $L$ and runs with the cap at once. Under a large fixed $L$ without the
+stagnation stop its FDP estimate is anti-conservative. The expected null inflow per T step shrinks with $L$,
+so the T-loop runs deep. There the same few null variables keep entering across the random experiments,
+because $X$ and $y$ are the same in all of them, and they collect more occurrence above the reference voting
+level than the estimate books as false. The total inflow itself stays about right. In the Examples demo 04
+(signal to noise ratio 5, $T$ about 145) the strategy with twenty times $p$ dummies under T-LARS reached an
+FDR of 0.133 at a target of 0.1, and 0.026 with the stagnation stop on. The selector warns from
+`max_dummy_multiplier = 10` on when the stop is off, and the calibrated strategies are the safe choice.
 
 The seeded strategies store nothing and suit designs where $K \cdot L \cdot p$ columns do not fit in
 memory. `"SEEDED"` selects exactly as `"STANDARD"` for the same seed, and `"PERMUTATION_SEEDED"` exactly as

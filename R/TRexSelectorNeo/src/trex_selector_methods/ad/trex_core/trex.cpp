@@ -320,6 +320,20 @@ void TRexSelector::validateTRexParameters() const {
                      "Convergence without stagnation detection is not guaranteed. Consider "
                      "re-enabling it." );
     }
+
+    // A fixed L of 10 p or more shrinks the expected null inflow per T-step, so a path
+    // solver without the stagnation stop runs deep into the T-loop. There the null mass
+    // above Phi = 0.5 exceeds what FDP_hat books (T-LARS at tFDR 0.1: FDR 0.09-0.10 at
+    // 10 p, 0.11-0.14 at 20 p). Greedy solvers are covered by the warning above.
+    if (trex_ctrl_.lloop_strategy == LLoopStrategy::SKIPL &&
+        trex_ctrl_.max_dummy_multiplier >= 10 &&
+        !trex_ctrl_.tloop_stagnation_stop.value_or(false) &&
+        !isGreedySolver(trex_ctrl_.solver_type)) {
+        TREX_WARN( "[TRexSelector Warning] lloop_strategy SKIPL with max_dummy_multiplier >= 10 "
+                     "and tloop_stagnation_stop disabled can exceed the target FDR, because the "
+                     "T-loop runs deep and FDP_hat falls below the realized FDP. Consider "
+                     "tloop_stagnation_stop = true or a calibrated L-loop strategy." );
+    }
 }
 
 

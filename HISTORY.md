@@ -126,6 +126,27 @@ version, `find_package(TRexSelector 1.0)`), the R package TRexSelectorNeo
   `MAX_SELECTION` is gone; the knee with tolerance 0 is the largest
   selection. See the 2026-10-28 entry.
 
+### 2026-11-01
+
+#### SKIPL warns under a large fixed L without the stagnation stop (WP21)
+
+- `TRexSelector` warns when `lloop_strategy` is SKIPL, `max_dummy_multiplier` is 10 or more
+  and `tloop_stagnation_stop` is off for a non-greedy solver. No selection moves, and the
+  estimate is unchanged.
+- The study (200 seeded trials per cell, T-LARS, tFDR 0.1, paired replays): the FDR is 0.136
+  at 20 p and 0.103 at 10 p (SNR 5), 0.113 at 20 p (SNR 2), 0.075 at 5 p. The clamps Phi' <= 1
+  and FDP_hat in [0, 1] have no share: they never activate, and selections are identical
+  without them. At 20 p, Phi' < 0 never occurs either, which is why 415484d did not move that row.
+- The cause: the total null inflow is about right (7.0 against 7.0 at 20 p), but it collects
+  on a few columns, because X and y are the same in every experiment (4.9 nulls above
+  Phi = 0.5, where independent experiments give about 1e-16). After step 20 all gain above 0.5
+  is false, while the estimate books 1.9 of the 2.9 realized. This corrects the vignette and the
+  reading of 2026-10-27, which blamed the steps without new occurrence. Carrying their inflow
+  forward restores control (0.079) but over-reads at low voting levels and under-reads at
+  v = 1, so it does not calibrate the estimate.
+- Vignette page 2 and the READMEs state the corrected reading. C++, R and Python tests cover
+  the warning, R vendored copy re-synced.
+
 ### 2026-10-28
 
 #### The Tikhonov selector's lambda_2 rules: k-fold CV, the pilot knee, the full-profile knee (D14)

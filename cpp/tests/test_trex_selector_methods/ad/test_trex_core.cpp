@@ -853,6 +853,34 @@ public:
     using TRexSelector::computeFDPHat;
 };
 
+
+/** @brief SKIPL with L >= 10 warns only for a path solver running without the stagnation stop. */
+TEST(TRexCoreTest, SkiplLargeBudgetWithoutStopWarns) {
+    SyntheticData data(20, 10, {0, 1, 2}, {5.0, -3.0, 2.0}, 1.0, 42);
+    auto X = data.getX();
+    auto y = data.getY();
+    Eigen::Map<Eigen::MatrixXd> X_map(X.data(), X.rows(), X.cols());
+    Eigen::Map<Eigen::VectorXd> y_map(y.data(), y.size());
+
+    const auto warns = [&](LLoopStrategy strategy, std::size_t multiplier, std::optional<bool> stop) {
+        TRexControlParameter ctrl;
+        ctrl.K = 5;
+        ctrl.solver_type = disp::SolverTypeForTRex::TLARS;
+        ctrl.lloop_strategy = strategy;
+        ctrl.max_dummy_multiplier = multiplier;
+        ctrl.tloop_stagnation_stop = stop;
+        testing::internal::CaptureStderr();
+        TRexSelector trex(X_map, y_map, 0.1, ctrl, 42, false);
+        return testing::internal::GetCapturedStderr().find("lloop_strategy SKIPL") != std::string::npos;
+    };
+
+    EXPECT_TRUE(warns(LLoopStrategy::SKIPL, 10, std::nullopt));
+    EXPECT_TRUE(warns(LLoopStrategy::SKIPL, 20, false));
+    EXPECT_FALSE(warns(LLoopStrategy::SKIPL, 5, std::nullopt));
+    EXPECT_FALSE(warns(LLoopStrategy::SKIPL, 20, true));
+    EXPECT_FALSE(warns(LLoopStrategy::STANDARD, 20, std::nullopt));
+}
+
 /** @brief A step in which the variables above Phi = 0.5 gain less mass than the
  *         expected number of null entries gives a negative Phi_prime. It stays
  *         negative, as in the T-Rex paper, so the variable carries more than one

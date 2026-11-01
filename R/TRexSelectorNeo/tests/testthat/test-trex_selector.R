@@ -246,3 +246,22 @@ test_that("the selector control getters and num_dummies are exposed", {
   expect_identical(sel$num_selected, length(sel$selected_indices))
   expect_true(sel$num_dummies >= p)
 })
+
+test_that("SKIPL with a large budget warns only without the stagnation stop", {
+  set.seed(42)
+  X <- matrix(rnorm(50 * 10), 50, 10)
+  y <- rnorm(50)
+  warns <- function(strategy, multiplier, stop = NULL) {
+    ctrl <- trex_control(solver = "TLARS", K = 3, lloop_strategy = strategy,
+                         max_dummy_multiplier = multiplier, tloop_stagnation_stop = stop)
+    out <- utils::capture.output(
+      TRexSelector$new(X, y, verbose = FALSE, control = ctrl)$select(),
+      type = "message"
+    )
+    any(grepl("lloop_strategy SKIPL", out, fixed = TRUE))
+  }
+  expect_true(warns("SKIPL", 10))
+  expect_false(warns("SKIPL", 5))
+  expect_false(warns("SKIPL", 20, TRUE))
+  expect_false(warns("STANDARD", 20))
+})

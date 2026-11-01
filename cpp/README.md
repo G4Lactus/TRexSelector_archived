@@ -134,7 +134,8 @@ not fit in memory. `SEEDED` selects exactly as `STANDARD` for the same seed, and
 `PERMUTATION_SEEDED` exactly as `PERMUTATION`. `HCONCAT` keeps the grown law, which calibrates a
 larger L and gains 0.6 percentage points of true positive rate (TPR) on average in a paired study
 of 500 trials, at the same false discovery rate (FDR). `SKIPL` fixes L at the cap and skips the
-calibration, and under a large fixed L its FDP estimate is anti-conservative, so the calibrated
+calibration, and under a large fixed L without the stagnation stop its FDP estimate is
+anti-conservative (the selector warns from `max_dummy_multiplier = 10` on), so the calibrated
 strategies are the safe choice. The dummies are standard Normal by default, and
 `dummy_distribution` offers the other laws. The enum `LLoopStrategy` in trex.hpp documents the
 keys the seeded strategies derive their draws from.

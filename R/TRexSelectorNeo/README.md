@@ -173,9 +173,10 @@ and `"PERMUTATION_SEEDED"` exactly as `"PERMUTATION"`. `"HCONCAT"` keeps
 the grown law, which calibrates a larger L and gains 0.6 percentage
 points of true positive rate (TPR) on average in a paired study of 500
 trials, at the same false discovery rate (FDR). `"SKIPL"` fixes L at the
-cap and skips the calibration, and under a large fixed L its FDP
-estimate is anti-conservative, so the calibrated strategies are the safe
-choice. The dummies are standard Normal by default, and
+cap and skips the calibration, and under a large fixed L without the
+stagnation stop its FDP estimate is anti-conservative (the selector
+warns from `max_dummy_multiplier = 10` on), so the calibrated strategies
+are the safe choice. The dummies are standard Normal by default, and
 `trex_dummy_distribution()` offers the other laws. Vignette page 2,
 `vignette("v02-trex-selector")`, carries the study and the seeds
 section.

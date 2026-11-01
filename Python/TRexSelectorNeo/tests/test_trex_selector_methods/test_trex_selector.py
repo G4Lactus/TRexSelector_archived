@@ -180,6 +180,24 @@ def test_lloop_strategy_variants(signal_data, strategy):
     assert res is not None
 
 
+@pytest.mark.parametrize("strategy,multiplier,stop,expected", [
+    (trex_selector_neo.LLoopStrategy.SKIPL, 10, None, True),
+    (trex_selector_neo.LLoopStrategy.SKIPL, 5, None, False),
+    (trex_selector_neo.LLoopStrategy.SKIPL, 20, True, False),
+    (trex_selector_neo.LLoopStrategy.STANDARD, 20, None, False),
+])
+def test_skipl_large_budget_without_stop_warns(signal_data, capfd, strategy, multiplier, stop, expected):
+    X, y, n, p = signal_data
+    ctrl = trex_selector_neo.TRexControlParameter()
+    ctrl.K = 3
+    ctrl.solver_type = SolverTypeForTRex.TLARS
+    ctrl.lloop_strategy = strategy
+    ctrl.max_dummy_multiplier = multiplier
+    ctrl.tloop_stagnation_stop = stop
+    trex_selector_neo.TRexSelector(X, y, trex_control=ctrl, verbose=False)
+    assert ("lloop_strategy SKIPL" in capfd.readouterr().err) == expected
+
+
 # ---------------------------------------------------------------------------
 # DummyDistribution integration
 # ---------------------------------------------------------------------------
