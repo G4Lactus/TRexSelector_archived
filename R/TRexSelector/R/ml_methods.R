@@ -381,7 +381,7 @@ MLLpNormScaler <- R6::R6Class("MLLpNormScaler",
 #'   Technometrics, vol. 42, no. 1, pp. 80-86, 2000 (Reprint of the 1970 article in the Special 40th
 #'   Anniversary Issue).
 #'
-#' G. Guennebaud, B. Jacob et al., Eigen v3, http://eigen.tuxfamily.org, 2010.
+#' G. Guennebaud, B. Jacob et al., Eigen v3, https://libeigen.gitlab.io/, 2010.
 #'
 #' @examples
 #' set.seed(1)
@@ -825,7 +825,7 @@ MLElasticNetCV <- R6::R6Class("MLElasticNetCV",
 #' @details Wraps the C++ \code{MLSVD::compute(X, M)} static method.
 #'
 #' @references
-#' G. Guennebaud, B. Jacob et al., Eigen v3, http://eigen.tuxfamily.org, 2010.
+#' G. Guennebaud, B. Jacob et al., Eigen v3, https://libeigen.gitlab.io/, 2010.
 #'
 #' @examples
 #' set.seed(42)
@@ -904,7 +904,7 @@ MLSVD <- R6::R6Class("MLSVD",
 #'   pass \code{X_new} to \code{transform()} for out-of-sample scoring.
 #'
 #' @references
-#' G. Guennebaud, B. Jacob et al., Eigen v3, http://eigen.tuxfamily.org, 2010.
+#' G. Guennebaud, B. Jacob et al., Eigen v3, https://libeigen.gitlab.io/, 2010.
 #'
 #' @examples
 #' set.seed(42)

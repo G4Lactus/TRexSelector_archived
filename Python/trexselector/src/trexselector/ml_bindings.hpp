@@ -307,7 +307,7 @@ inline void bind_ml_methods(py::module& m) {
         "A. E. Hoerl and R. W. Kennard, \"Ridge Regression: Biased Estimation for Nonorthogonal\n"
         "  Problems,\" Technometrics, vol. 42, no. 1, pp. 80-86, 2000 (Reprint of the 1970 article\n"
         "  in the Special 40th Anniversary Issue).\n"
-        "G. Guennebaud, B. Jacob et al., Eigen v3, http://eigen.tuxfamily.org, 2010.\n")
+        "G. Guennebaud, B. Jacob et al., Eigen v3, https://libeigen.gitlab.io/, 2010.\n")
         .def(py::init<>())
         .def(py::init<bool>(), py::arg("low_memory"),
              "low_memory=True: the dual (kernel) fold engine — n x n kernels accumulated "
@@ -513,7 +513,7 @@ inline void bind_ml_methods(py::module& m) {
         "\n"
         "References\n"
         "----------\n"
-        "G. Guennebaud, B. Jacob et al., Eigen v3, http://eigen.tuxfamily.org, 2010.\n")
+        "G. Guennebaud, B. Jacob et al., Eigen v3, https://libeigen.gitlab.io/, 2010.\n")
         .def(py::init<>())
         .def(py::init<Eigen::Index, Eigen::Index>(),
              py::arg("min_dim_thresh") = 10000, py::arg("block_size") = 1024,
@@ -559,7 +559,7 @@ inline void bind_ml_methods(py::module& m) {
         "\n"
         "References\n"
         "----------\n"
-        "G. Guennebaud, B. Jacob et al., Eigen v3, http://eigen.tuxfamily.org, 2010.\n")
+        "G. Guennebaud, B. Jacob et al., Eigen v3, https://libeigen.gitlab.io/, 2010.\n")
         .def(py::init<bool, bool>(), py::arg("center") = true, py::arg("normalize") = true)
         .def("fit",
             [](PyPCA& self, Eigen::Ref<Eigen::MatrixXd> X, Eigen::Index M) {

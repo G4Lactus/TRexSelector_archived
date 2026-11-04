@@ -56,7 +56,7 @@ struct SVDResult {
  *
  *  References:
  *  -----------
- *   G. Guennebaud, B. Jacob et al., Eigen v3, http://eigen.tuxfamily.org, 2010.
+ *   G. Guennebaud, B. Jacob et al., Eigen v3, https://libeigen.gitlab.io/, 2010.
  */
 class SVDSolver {
 public:

@@ -82,7 +82,7 @@ above is rendered from it as well, the two application papers of the opening sto
 ## Acknowledgements
 
 The library builds on the Eigen linear algebra library: G. Guennebaud, B. Jacob et al., Eigen v3,
-<http://eigen.tuxfamily.org>, 2010.
+<https://libeigen.gitlab.io/>, 2010.
 
 ---
 

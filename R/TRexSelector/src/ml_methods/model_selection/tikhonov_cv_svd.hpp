@@ -110,7 +110,7 @@ namespace model_selection {
  *   A. E. Hoerl and R. W. Kennard, "Ridge Regression: Biased Estimation for Nonorthogonal Problems,"
  *     Technometrics, vol. 42, no. 1, pp. 80-86, 2000 (Reprint of the 1970 article in the Special 40th
  *     Anniversary Issue).
- *   G. Guennebaud, B. Jacob et al., Eigen v3, http://eigen.tuxfamily.org, 2010.
+ *   G. Guennebaud, B. Jacob et al., Eigen v3, https://libeigen.gitlab.io/, 2010.
  */
 class tikhonov_cv_svd {
 

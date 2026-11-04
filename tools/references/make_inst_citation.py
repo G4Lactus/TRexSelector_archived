@@ -114,7 +114,7 @@ bibentry("Manual",
 '''
     blocks = [bibentry(entries[key]) for key in METHOD_KEYS]
     tail = '''
-citFooter("The library builds on Eigen: G. Guennebaud, B. Jacob et al., Eigen v3, http://eigen.tuxfamily.org, 2010.")
+citFooter("The library builds on Eigen: G. Guennebaud, B. Jacob et al., Eigen v3, https://libeigen.gitlab.io/, 2010.")
 '''
     return head + "\n" + "\n\n".join(blocks) + "\n" + tail
 

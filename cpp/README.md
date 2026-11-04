@@ -11,7 +11,7 @@ consuming it from your own C++ project.
 
 | Library                                        | Role                                      | Version    | Required |
 |------------------------------------------------|-------------------------------------------|------------|----------|
-| [Eigen3](https://eigen.tuxfamily.org)          | Linear algebra                            | any recent | Yes      |
+| [Eigen3](https://libeigen.gitlab.io/)          | Linear algebra                            | any recent | Yes      |
 | [Boost](https://www.boost.org)                 | Headers + iostreams (memory-mapped files) | ≥ 1.80     | Yes      |
 | [Cereal](https://uscilab.github.io/cereal)     | Serialization of solver state             | any recent | Yes      |
 | [OpenMP](https://www.openmp.org)               | Parallelisation of random experiments     | ≥ 3.1      | Optional |
@@ -31,7 +31,7 @@ OpenMP exists.*
 *The BLAS/LAPACK backend can be disabled at configure time with `-DTREX_USE_BLAS_LAPACK=OFF`.*
 
 The library builds on the Eigen linear algebra library: G. Guennebaud, B. Jacob et al., Eigen v3,
-<http://eigen.tuxfamily.org>, 2010. It also relies on cereal for serialization, on Boost.Interprocess for
+<https://libeigen.gitlab.io/>, 2010. It also relies on cereal for serialization, on Boost.Interprocess for
 memory mapping and on OpenMP for the threads, with an optional BLAS/LAPACK backend. The R package binds the
 library through Rcpp and RcppEigen, the Python package through pybind11.
 

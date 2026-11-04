@@ -240,7 +240,7 @@ Issues](https://github.com/G4Lactus/TRexSelector/issues)
 ## Acknowledgements
 
 The package builds on the Eigen linear algebra library: G. Guennebaud,
-B. Jacob et al., Eigen v3, <http://eigen.tuxfamily.org>, 2010. It binds
+B. Jacob et al., Eigen v3, <https://libeigen.gitlab.io/>, 2010. It binds
 the C++ core through Rcpp and RcppEigen and relies on cereal (Rcereal)
 for serialization and on Boost.Interprocess (BH) for memory mapping,
 with OpenMP for the threads where the toolchain provides it.

@@ -180,5 +180,5 @@ references:
       - family-names: Jacob
         given-names: Benoît
       - name: "the Eigen contributors"
-    url: "http://eigen.tuxfamily.org"
+    url: "https://libeigen.gitlab.io/"
     year: 2010

@@ -136,4 +136,4 @@ bibentry("InProceedings",
   textVersion = "J. Machkour, M. Muma, and D. P. Palomar, \"FDR-Controlled Sparse Index Tracking with Autoregressive Stock Dependency Models,\" in Proc. Eur. Signal Process. Conf. (EUSIPCO), 2024, pp. 2662-2666."
 )
 
-citFooter("The library builds on Eigen: G. Guennebaud, B. Jacob et al., Eigen v3, http://eigen.tuxfamily.org, 2010.")
+citFooter("The library builds on Eigen: G. Guennebaud, B. Jacob et al., Eigen v3, https://libeigen.gitlab.io/, 2010.")

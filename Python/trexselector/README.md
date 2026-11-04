@@ -156,7 +156,7 @@ T-solver and machine learning class ends with the papers it builds on.
 ## Acknowledgements
 
 The library builds on the Eigen linear algebra library: G. Guennebaud, B. Jacob et al., Eigen v3,
-<http://eigen.tuxfamily.org>, 2010. It binds the C++ core through pybind11 and relies on cereal for
+<https://libeigen.gitlab.io/>, 2010. It binds the C++ core through pybind11 and relies on cereal for
 serialization, on Boost.Interprocess for memory mapping and on OpenMP for the threads, with an optional
 BLAS/LAPACK backend.
 
