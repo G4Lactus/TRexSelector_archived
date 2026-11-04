@@ -66,7 +66,7 @@ jobs:
       - name: Build wheels
         uses: pypa/cibuildwheel@v2.21.3
         with:
-          package-dir: Python/TRexSelectorNeo
+          package-dir: Python/trexselector
           output-dir: wheelhouse
         env:
           # Build CPython 3.10–3.13 (matches requires-python >= 3.10); skip

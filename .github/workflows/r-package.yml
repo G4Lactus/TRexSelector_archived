@@ -14,7 +14,7 @@ on:
 
 jobs:
   # ---------------------------------------------------------------------------
-  # Guard: the vendored C++ sources under R/TRexSelectorNeo/src/ must match
+  # Guard: the vendored C++ sources under R/TRexSelector/src/ must match
   # cpp/src/ (content-based). This is the check bundle_for_cran.sh documents
   # as "run it in CI" — it goes red the moment a cpp/src change lands without
   # a re-vendor, which is exactly how the tree silently drifted before.
@@ -26,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - name: bundle_for_cran.sh --check
-        run: bash R/TRexSelectorNeo/tools/bundle_for_cran.sh --check
+        run: bash R/TRexSelector/tools/bundle_for_cran.sh --check
 
   # ---------------------------------------------------------------------------
   # Build the package from the vendored sources and run the testthat suite.
@@ -66,10 +66,10 @@ jobs:
       # fails the moment DESCRIPTION gains a LinkingTo entry.
       - uses: r-lib/actions/setup-r-dependencies@v2
         with:
-          working-directory: R/TRexSelectorNeo
+          working-directory: R/TRexSelector
 
       - name: Install package
-        run: R CMD INSTALL --no-docs R/TRexSelectorNeo 2>&1 | tee install.log
+        run: R CMD INSTALL --no-docs R/TRexSelector 2>&1 | tee install.log
 
       # The switch must reach every object: configure reports the sequential
       # build and no compile line carries an OpenMP flag.
@@ -83,9 +83,9 @@ jobs:
           fi
 
       - name: Run testthat suite
-        working-directory: R/TRexSelectorNeo
+        working-directory: R/TRexSelector
         run: |
-          Rscript -e 'library(TRexSelectorNeo)
+          Rscript -e 'library(TRexSelector)
                       res <- testthat::test_dir("tests/testthat", stop_on_failure = TRUE)
                       df <- as.data.frame(res)
                       cat(sprintf("TOTAL: %d passed, %d failed, %d skipped\n",
@@ -101,9 +101,9 @@ jobs:
           _R_CHECK_CRAN_INCOMING_: "false"
           _R_CHECK_FORCE_SUGGESTS_: "false"
         run: |
-          R CMD build --no-build-vignettes --no-manual R/TRexSelectorNeo
-          R CMD check --no-manual --ignore-vignettes --no-build-vignettes TRexSelectorNeo_*.tar.gz
-          if grep -Eq '^Status: .*(WARNING|ERROR)' TRexSelectorNeo.Rcheck/00check.log; then
+          R CMD build --no-build-vignettes --no-manual R/TRexSelector
+          R CMD check --no-manual --ignore-vignettes --no-build-vignettes TRexSelector_*.tar.gz
+          if grep -Eq '^Status: .*(WARNING|ERROR)' TRexSelector.Rcheck/00check.log; then
             echo "::error::R CMD check reported warnings or errors (see 00check.log above)"
             exit 1
           fi

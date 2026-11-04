@@ -19,10 +19,10 @@ EXEMPT_SUFFIXES = (".png", ".pdf", ".jpg", ".jpeg", ".svg", ".ico", ".bin", ".rd
                    ".csv", ".tsv", ".pyi", ".Rd", ".csl", ".lock")
 EXEMPT_PATTERNS = (
     re.compile(r"(^|/)RcppExports\.(R|cpp)$"),
-    re.compile(r"^R/TRexSelectorNeo/src/(ml_methods|trex_selector_methods|tsolvers|utils)/"),
-    re.compile(r"^R/TRexSelectorNeo/src/Makevars(\.in|\.win)?$"),
-    re.compile(r"^R/TRexSelectorNeo/configure$"),
-    re.compile(r"^R/TRexSelectorNeo/inst/CITATION$"),
+    re.compile(r"^R/TRexSelector/src/(ml_methods|trex_selector_methods|tsolvers|utils)/"),
+    re.compile(r"^R/TRexSelector/src/Makevars(\.in|\.win)?$"),
+    re.compile(r"^R/TRexSelector/configure$"),
+    re.compile(r"^R/TRexSelector/inst/CITATION$"),
     re.compile(r"^\.clang-tidy$"),
 )
 URL_RE = re.compile(r"https?://|doi\.org/|doi: 10\.")

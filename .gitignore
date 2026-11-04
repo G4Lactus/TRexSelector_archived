@@ -35,7 +35,7 @@ deprecated/
 __pycache__/
 dist/
 *.egg-info/
-R/TRexSelectorNeo/src/Makevars
+R/TRexSelector/src/Makevars
 
 ################################
 ############ C/C++ #############

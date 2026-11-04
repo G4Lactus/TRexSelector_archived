@@ -4,7 +4,7 @@
 /**
  * @file validation_trex_spca_07_matrix_dump.cpp
  *
- * @brief Dump the Neo GVS selector's internal calibration matrices per trial.
+ * @brief Dump the C++ GVS selector's internal calibration matrices per trial.
  *
  * @details Split-pipeline probe for the residual C++-vs-CRAN-R FDR gap on the
  *  SPCA benchmark: runs TRexGVSSelector (EN/TENET, R's lambda_2) on the

@@ -1,11 +1,11 @@
 # Citation metadata for GitHub's "Cite this repository" (Citation File Format 1.2.0).
 # The version is the one of the C++ library and the Python package; the R package carries its own
-# version in R/TRexSelectorNeo/DESCRIPTION. The method papers are listed as references; the master
+# version in R/TRexSelector/DESCRIPTION. The method papers are listed as references; the master
 # list with every reference of the class documentation is references.bib at the repository root.
 cff-version: 1.2.0
 message: "If you use this software, please cite the package and the paper of the method you used."
 type: software
-title: "TRexSelectorNeo"
+title: "TRexSelector"
 abstract: >-
   High-dimensional variable selection with false discovery rate (FDR) control through terminating
   random experiments (the T-Rex selector) in C++, R and Python.

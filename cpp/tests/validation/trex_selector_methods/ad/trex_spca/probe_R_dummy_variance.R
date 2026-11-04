@@ -4,11 +4,11 @@
 # seeds (which change the internal dummy realizations) and report the spread of
 # mean FDR. Stable mean -> systematic; wide spread -> MC dummy noise.
 #
-# MIGRATED: exercises the TRexSelectorNeo R binding (TRexGVSSelector) rather
+# MIGRATED: exercises the TRexSelector R binding (TRexGVSSelector) rather
 # than the CRAN TRexSelector package. The probed dummy-RNG seed is now passed
 # directly as the selector's `seed` argument (was a global set.seed()).
 
-suppressMessages(library(TRexSelectorNeo))
+suppressMessages(library(TRexSelector))
 
 get_script_dir <- function() {
   args <- commandArgs(trailingOnly = FALSE)

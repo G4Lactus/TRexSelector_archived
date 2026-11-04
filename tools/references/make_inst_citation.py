@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Write R/TRexSelectorNeo/inst/CITATION from references.bib.
+"""Write R/TRexSelector/inst/CITATION from references.bib.
 
 The package entry (author "TRexSelector Team", version from DESCRIPTION) is
 fixed here; the method papers are taken from the master bibliography so
@@ -20,7 +20,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from render_references import BIB_PATH, latex_to_text, parse_bib, render  # noqa: E402
 
 ROOT = BIB_PATH.parent
-PKG = ROOT / "R" / "TRexSelectorNeo"
+PKG = ROOT / "R" / "TRexSelector"
 OUT = PKG / "inst" / "CITATION"
 
 # Method papers of the T-Rex framework, in citation order.
@@ -97,14 +97,14 @@ def package_version():
 def build():
     entries = parse_bib(BIB_PATH.read_text(encoding="utf-8"))
     version = package_version()
-    pkg_text = ("TRexSelector Team, \\\"TRexSelectorNeo: T-Rex Selector: High-Dimensional Variable "
+    pkg_text = ("TRexSelector Team, \\\"TRexSelector: T-Rex Selector: High-Dimensional Variable "
                 f"Selection & FDR Control,\\\" 2026, R package version {version}. [Online]. "
                 "Available: https://github.com/G4Lactus/TRexSelector")
-    head = f'''citHeader("To cite 'TRexSelectorNeo' in publications, please use the package entry and the
+    head = f'''citHeader("To cite 'TRexSelector' in publications, please use the package entry and the
           paper of the method you used:")
 
 bibentry("Manual",
-  title       = "{{TRexSelectorNeo: T-Rex Selector: High-Dimensional Variable Selection & FDR Control}}",
+  title       = "{{TRexSelector: T-Rex Selector: High-Dimensional Variable Selection & FDR Control}}",
   author      = person(given = "TRexSelector Team"),
   note        = "R package version {version}",
   year        = "2026",

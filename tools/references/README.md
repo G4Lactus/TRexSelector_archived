@@ -11,7 +11,7 @@ three languages never drift apart and no citation machinery (Doxygen `\cite`, Rd
 | `../../references.bib` | Master bibliography. Comment lines above an entry record where its fields were read from. |
 | `references_map.json` | Which keys each documented class cites, in citation order (C++ class names). |
 | `render_references.py` | Renders keys as one-line plain-text references, wrapped for each language. |
-| `make_inst_citation.py` | Writes `R/TRexSelectorNeo/inst/CITATION` (package entry plus the T-Rex method papers). |
+| `make_inst_citation.py` | Writes `R/TRexSelector/inst/CITATION` (package entry plus the T-Rex method papers). |
 
 Render a block:
 
@@ -76,9 +76,9 @@ emits the lines as adjacent C++ string literals):
         "  Statist., vol. 32, no. 2, pp. 407-499, 2004.\n"
 ```
 
-After docstring edits the `.pyi` stubs under `Python/TRexSelectorNeo/src/trex_selector_neo/_core/` are
+After docstring edits the `.pyi` stubs under `Python/trexselector/src/trexselector/_core/` are
 regenerated with pybind11-stubgen, and after roxygen edits `man/` is regenerated with
-`roxygen2::roxygenise("R/TRexSelectorNeo", load_code = roxygen2::load_installed)`.
+`roxygen2::roxygenise("R/TRexSelector", load_code = roxygen2::load_installed)`.
 
 ## Rules
 

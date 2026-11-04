@@ -101,10 +101,10 @@ print_selection <- function(solver, true_support, p) {
 print_selection_quality <- function(solver, true_support, p) {
   sp <- .split_actives(solver, p)
   selected <- sp$predictors
-  tpp <- TRexSelectorNeo::compute_tpp(selected, true_support)
-  fdp <- TRexSelectorNeo::compute_fdp(selected, true_support)
-  prec <- TRexSelectorNeo::compute_precision(selected, true_support)
-  rec <- TRexSelectorNeo::compute_recall(selected, true_support)
+  tpp <- TRexSelector::compute_tpp(selected, true_support)
+  fdp <- TRexSelector::compute_fdp(selected, true_support)
+  prec <- TRexSelector::compute_precision(selected, true_support)
+  rec <- TRexSelector::compute_recall(selected, true_support)
   f1 <- if (prec + rec > 0) 2 * prec * rec / (prec + rec) else 0
   cat("Selection quality:\n")
   cat(sprintf("  TPP (recall) = %.4f\n", tpp))

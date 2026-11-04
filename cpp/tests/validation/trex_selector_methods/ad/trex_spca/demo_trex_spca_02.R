@@ -29,13 +29,13 @@
 #       After running this, RE-RUN the C++ demo so cpp_pipeline.csv reflects R's X:
 #         validation_trex_spca_04_rdump_pipeline --use-r-lambda2 --n <num_MC>
 #
-# MIGRATED: the T-Rex+GVS(EN) selection now runs through the TRexSelectorNeo R
-# binding (TRexGVSSelector) instead of the CRAN TRexSelector::trex(). The legacy
+# MIGRATED: the T-Rex+GVS(EN) selection now runs through the R binding
+# (TRexGVSSelector) instead of the pure-R trex() of TRexSelector 1.x. The legacy
 # type = "lar"/"lasso" inner-solver switch maps to the EN solver via
 # trex_gvs_control(en_solver = "TENET" / "TENET_AUG") -- see note at the calls.
 # ==============================================================================
 
-library(TRexSelectorNeo)
+library(TRexSelector)
 library(glmnet)
 
 # ------------------------------------------------------------------------------

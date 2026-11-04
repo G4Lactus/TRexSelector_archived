@@ -241,9 +241,9 @@ sets `TRexSelector_WITH_OPENMP` to tell which.
 
 ## Relation to the Language Packages
 
-* The Python package ([Python/TRexSelectorNeo](../Python/TRexSelectorNeo/)) compiles this
+* The Python package ([Python/trexselector](../Python/trexselector/)) compiles this
   source tree directly via scikit-build-core — no separate library install is needed.
-* The R package ([R/TRexSelectorNeo](../R/TRexSelectorNeo/)) vendors a copy of `src/` at
+* The R package ([R/TRexSelector](../R/TRexSelector/)) vendors a copy of `src/` at
   release time via `tools/bundle_for_cran.sh`, so the CRAN tarball is self-contained.
 
 ## License

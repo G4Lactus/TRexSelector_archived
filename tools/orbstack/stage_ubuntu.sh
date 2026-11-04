@@ -61,10 +61,10 @@ grep -E "tests passed|tests failed|Total Test time" "$LOG/cpp_ctest.log" | sed '
 run cpp_install_smoke bash cpp/tests/install_smoke/run_install_smoke.sh cpp/build/ci
 
 # ---------------------------------------------------------------- 3. R
-run r_vendor_check bash R/TRexSelectorNeo/tools/bundle_for_cran.sh --check
-run r_install R CMD INSTALL --no-docs R/TRexSelectorNeo
+run r_vendor_check bash R/TRexSelector/tools/bundle_for_cran.sh --check
+run r_install R CMD INSTALL --no-docs R/TRexSelector
 step r_testthat
-( cd "$REPO/R/TRexSelectorNeo" && Rscript -e 'library(TRexSelectorNeo)
+( cd "$REPO/R/TRexSelector" && Rscript -e 'library(TRexSelector)
     res <- testthat::test_dir("tests/testthat", stop_on_failure = TRUE)
     df <- as.data.frame(res)
     cat(sprintf("TOTAL: %d passed, %d failed, %d skipped\n",
@@ -73,9 +73,9 @@ say "r_testthat: exit $?"
 grep -E "^TOTAL:|Error|FAIL" "$LOG/r_testthat.log" | tail -3 | sed 's/^/    /' | tee -a "$SUM"
 # The CRAN-shaped check on the built tarball (vignettes skipped: the
 # usage-and-simulations vignette is a long run).
-rm -rf "$REPO"/TRexSelectorNeo_*.tar.gz "$REPO"/TRexSelectorNeo.Rcheck
-run r_build R CMD build --no-build-vignettes --no-manual R/TRexSelectorNeo
-TARBALL=$(ls -t "$REPO"/TRexSelectorNeo_*.tar.gz 2>/dev/null | head -1)
+rm -rf "$REPO"/TRexSelector_*.tar.gz "$REPO"/TRexSelector.Rcheck
+run r_build R CMD build --no-build-vignettes --no-manual R/TRexSelector
+TARBALL=$(ls -t "$REPO"/TRexSelector_*.tar.gz 2>/dev/null | head -1)
 step r_check
 # A UTF-8 session: en_US.UTF-8 (generated in the apt step) or the C.UTF-8 every
 # image has (a snapshot taken before locale-gen holds only that one). An ASCII
@@ -92,9 +92,9 @@ step py_venv
 python3 -m venv /work/venv > "$LOG/py_venv.log" 2>&1 \
   && /work/venv/bin/pip install -q --upgrade pip numpy pytest >> "$LOG/py_venv.log" 2>&1
 say "py_venv: exit $?"
-run py_build /work/venv/bin/pip install -v Python/TRexSelectorNeo
+run py_build /work/venv/bin/pip install -v Python/trexselector
 step py_pytest
-( cd "$REPO/Python/TRexSelectorNeo" \
+( cd "$REPO/Python/trexselector" \
   && /work/venv/bin/python -X faulthandler -m pytest tests -x -q ) > "$LOG/py_pytest.log" 2>&1
 say "py_pytest: exit $?"
 tail -n 2 "$LOG/py_pytest.log" | sed 's/^/    /' | tee -a "$SUM"

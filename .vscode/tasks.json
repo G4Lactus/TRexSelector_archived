@@ -154,7 +154,7 @@
         },
 
         // -----------------------------------------------------------------------
-        // Python Package (Python/TRexSelectorNeo/)
+        // Python Package (Python/trexselector/)
         // -----------------------------------------------------------------------
 
         // Editable install: builds the pybind11/CMake C++ extension in-place
@@ -162,7 +162,7 @@
             "type": "shell",
             "label": "Python: Install (Editable)",
             "command": "conda run --no-capture-output -n trex-dev pip install -e '.[dev]'",
-            "options": {"cwd": "${workspaceFolder}/Python/TRexSelectorNeo"},
+            "options": {"cwd": "${workspaceFolder}/Python/trexselector"},
             "group": {"kind": "build"},
             "problemMatcher": [],
             "detail": "Editable install in the trex-dev env (scikit-build-core); the extras are quoted for zsh."
@@ -172,7 +172,7 @@
             "type": "shell",
             "label": "Python: Build (Wheel)",
             "command": "conda run --no-capture-output -n trex-dev pip wheel . -w dist/",
-            "options": {"cwd": "${workspaceFolder}/Python/TRexSelectorNeo"},
+            "options": {"cwd": "${workspaceFolder}/Python/trexselector"},
             "group": {"kind": "build"},
             "problemMatcher": [],
             "detail": "Build distributable wheel in the trex-dev env (pip wheel . -w dist/)"
@@ -182,7 +182,7 @@
             "type": "shell",
             "label": "Python: Test",
             "command": "conda run --no-capture-output -n trex-dev pytest tests/ -v",
-            "options": {"cwd": "${workspaceFolder}/Python/TRexSelectorNeo"},
+            "options": {"cwd": "${workspaceFolder}/Python/trexselector"},
             "group": {"kind": "test"},
             "problemMatcher": [],
             "detail": "Run pytest test suite in the trex-dev env"

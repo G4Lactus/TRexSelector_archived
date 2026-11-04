@@ -36,13 +36,13 @@ import os
 import sys
 
 import numpy as np
-from trex_selector_neo.tsolvers.lars_based import (
+from trexselector.tsolvers.lars_based import (
     TENET_Solver,
     TENETAug_Solver,
     TLARS_Solver,
     TLASSO_Solver,
 )
-from trex_selector_neo.utils import set_num_threads
+from trexselector.utils import set_num_threads
 
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 # Reference dumps are committed in the shared library data folder, two levels up

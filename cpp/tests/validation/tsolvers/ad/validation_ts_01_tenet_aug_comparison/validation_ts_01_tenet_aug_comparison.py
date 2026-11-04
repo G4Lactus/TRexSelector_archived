@@ -27,8 +27,8 @@ if _THIS_DIR not in sys.path:
     sys.path.insert(0, _THIS_DIR)
 
 import numpy as np
-from trex_selector_neo.ml_methods import LpNormScaler, NormType, ZScoreScaler
-from trex_selector_neo.tsolvers.lars_based import (
+from trexselector.ml_methods import LpNormScaler, NormType, ZScoreScaler
+from trexselector.tsolvers.lars_based import (
     TENET_Solver,
     TENETAug_Solver,
     TLASSO_Solver,

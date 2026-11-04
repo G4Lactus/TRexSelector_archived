@@ -50,12 +50,12 @@ documentation:
 * **C++ core library** — [`cpp/`](cpp/), documented in [cpp/README.md](cpp/README.md):
   building the library and tests, and reaching it from your own C++ project via
   `find_package(TRexSelector)`.
-* **Python package** — [`Python/TRexSelectorNeo/`](Python/TRexSelectorNeo/), documented in
-  [Python/TRexSelectorNeo/README.md](Python/TRexSelectorNeo/README.md): installation, quick
-  start, and development setup. Distributed as `TRexSelectorNeo`, imported as
-  `trex_selector_neo`.
-* **R package** — [`R/TRexSelectorNeo/`](R/TRexSelectorNeo/), documented in
-  [R/TRexSelectorNeo/README.md](R/TRexSelectorNeo/README.md): installation, quick start, and
+* **Python package** — [`Python/trexselector/`](Python/trexselector/), documented in
+  [Python/trexselector/README.md](Python/trexselector/README.md): installation, quick
+  start, and development setup. Distributed on PyPI and imported as
+  `trexselector`.
+* **R package** — [`R/TRexSelector/`](R/TRexSelector/), documented in
+  [R/TRexSelector/README.md](R/TRexSelector/README.md): installation, quick start, and
   the twelve vignettes.
 
 ---
@@ -74,7 +74,7 @@ documentation:
 ## Citing
 
 [CITATION.cff](CITATION.cff) carries the citation metadata of the repository, and the R package answers
-`citation("TRexSelectorNeo")`. Every paper the class documentation credits is listed in
+`citation("TRexSelector")`. Every paper the class documentation credits is listed in
 [references.bib](references.bib), the master file from which the reference blocks of the C++, R and Python
 documentation are rendered with the scripts in [tools/references/](tools/references/). The reference list
 above is rendered from it as well, the two application papers of the opening story included.

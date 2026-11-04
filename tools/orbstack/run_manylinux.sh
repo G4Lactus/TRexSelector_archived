@@ -43,7 +43,7 @@ curl -fsSL https://archives.boost.io/release/1.85.0/source/boost_1_85_0.tar.gz |
 cp -r /tmp/boost_1_85_0/boost /usr/local/include/boost'
 
 echo "Stage B start $(date): CIBW_BUILD=$CIBW_BUILD"
-"$CIBW" --platform linux --output-dir "$WORK/wheelhouse" Python/TRexSelectorNeo 2>&1 | tee "$WORK/logs/manylinux.log"
+"$CIBW" --platform linux --output-dir "$WORK/wheelhouse" Python/trexselector 2>&1 | tee "$WORK/logs/manylinux.log"
 rc=${PIPESTATUS[0]}
 echo "cibuildwheel exit $rc"
 ls -la "$WORK/wheelhouse"
