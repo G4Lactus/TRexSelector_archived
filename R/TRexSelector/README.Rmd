@@ -67,12 +67,12 @@ First install the R-side prerequisites (once, from an R session):
 install.packages(c("Rcpp", "RcppEigen", "BH", "Rcereal", "R6"))
 ```
 
-Then install 'TRexSelector' from [GitHub](https://github.com/G4Lactus/TRexSelector) — the package lives in the `R/TRexSelector/` subdirectory of the repository:
+Then install 'TRexSelector' from [GitHub](https://github.com/trexselector/TRexSelector) — the package lives in the `R/TRexSelector/` subdirectory of the repository:
 
 ```{r, eval=FALSE}
 # Option 1: Install directly from GitHub
 install.packages("remotes")
-remotes::install_github("G4Lactus/TRexSelector", subdir = "R/TRexSelector")
+remotes::install_github("trexselector/TRexSelector", subdir = "R/TRexSelector")
 
 # Option 2: Install from a local clone of the repository
 # (from the shell, at the repository root)
@@ -204,9 +204,9 @@ The help page of every selector, T-solver and machine learning class ends with t
 ## Links
 T-Rex paper: <https://doi.org/10.48550/arXiv.2110.06048>
 
-TRexSelector repository (C++ core, Python, and R packages): [GitHub-TRexSelector](https://github.com/G4Lactus/TRexSelector)
+TRexSelector repository (C++ core, Python, and R packages): [GitHub-TRexSelector](https://github.com/trexselector/TRexSelector)
 
-Bug reports: [GitHub Issues](https://github.com/G4Lactus/TRexSelector/issues)
+Bug reports: [GitHub Issues](https://github.com/trexselector/TRexSelector/issues)
 
 ```{r, include = FALSE}
 # Reset user's options()

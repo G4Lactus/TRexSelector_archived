@@ -60,13 +60,13 @@ install.packages(c("Rcpp", "RcppEigen", "BH", "Rcereal", "R6"))
 ```
 
 Then install ‘TRexSelector’ from
-[GitHub](https://github.com/G4Lactus/TRexSelector) — the package lives
-in the `R/TRexSelector/` subdirectory of the repository:
+[GitHub](https://github.com/trexselector/TRexSelector) — the package
+lives in the `R/TRexSelector/` subdirectory of the repository:
 
 ``` r
 # Option 1: Install directly from GitHub
 install.packages("remotes")
-remotes::install_github("G4Lactus/TRexSelector", subdir = "R/TRexSelector")
+remotes::install_github("trexselector/TRexSelector", subdir = "R/TRexSelector")
 
 # Option 2: Install from a local clone of the repository
 # (from the shell, at the repository root)
@@ -97,8 +97,8 @@ citation("TRexSelector")
 
 # Quick Start
 
-This section illustrates the basic usage of the ‘TRexSelector’
-package to perform FDR-controlled variable selection in large-scale
+This section illustrates the basic usage of the ‘TRexSelector’ package
+to perform FDR-controlled variable selection in large-scale
 high-dimensional settings based on the T-Rex selector.
 
 1.  **First**, we generate a high-dimensional Gaussian data set with
@@ -229,23 +229,23 @@ vignette has the details.
 
 The package has twelve vignettes in [`vignettes/`](vignettes/) (built on
 installation with `build_vignettes = TRUE`, listed by
-`browseVignettes("TRexSelector")`): getting started, the T-Rex
-selector, T-Rex+DA, T-Rex GVS, screening, T-Rex SPCA, T-Rex Tikhonov,
-the T-solvers, the ML methods, memory mapping, working without data
-copies, and parallelism. The help page of every selector, T-solver and
-machine learning class ends with the papers it builds on, and
-`citation("TRexSelector")` lists the package entry and the T-Rex
-method papers.
+`browseVignettes("TRexSelector")`): getting started, the T-Rex selector,
+T-Rex+DA, T-Rex GVS, screening, T-Rex SPCA, T-Rex Tikhonov, the
+T-solvers, the ML methods, memory mapping, working without data copies,
+and parallelism. The help page of every selector, T-solver and machine
+learning class ends with the papers it builds on, and
+`citation("TRexSelector")` lists the package entry and the T-Rex method
+papers.
 
 ## Links
 
 T-Rex paper: <https://doi.org/10.48550/arXiv.2110.06048>
 
 TRexSelector repository (C++ core, Python, and R packages):
-[GitHub-TRexSelector](https://github.com/G4Lactus/TRexSelector)
+[GitHub-TRexSelector](https://github.com/trexselector/TRexSelector)
 
 Bug reports: [GitHub
-Issues](https://github.com/G4Lactus/TRexSelector/issues)
+Issues](https://github.com/trexselector/TRexSelector/issues)
 
 ## Acknowledgements
 

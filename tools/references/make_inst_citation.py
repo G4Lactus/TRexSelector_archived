@@ -99,7 +99,7 @@ def build():
     version = package_version()
     pkg_text = ("TRexSelector Team, \\\"TRexSelector: T-Rex Selector: High-Dimensional Variable "
                 f"Selection & FDR Control,\\\" 2026, R package version {version}. [Online]. "
-                "Available: https://github.com/G4Lactus/TRexSelector")
+                "Available: https://github.com/trexselector/TRexSelector")
     head = f'''citHeader("To cite 'TRexSelector' in publications, please use the package entry and the
           paper of the method you used:")
 
@@ -108,7 +108,7 @@ bibentry("Manual",
   author      = person(given = "TRexSelector Team"),
   note        = "R package version {version}",
   year        = "2026",
-  url         = "https://github.com/G4Lactus/TRexSelector",
+  url         = "https://github.com/trexselector/TRexSelector",
   textVersion = "{pkg_text}"
 )
 '''

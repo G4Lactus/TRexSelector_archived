@@ -33,7 +33,7 @@ dependencies Eigen3, Boost ≥ 1.80 and Cereal, with OpenMP optional (see the [C
 how to install them per platform):
 
 ```bash
-pip install git+https://github.com/G4Lactus/TRexSelector.git#subdirectory=Python/trexselector
+pip install git+https://github.com/trexselector/TRexSelector.git#subdirectory=Python/trexselector
 ```
 
 Without OpenMP the package builds single-threaded and `trexselector.utils.get_max_threads()` returns 1. The CMake
@@ -151,9 +151,9 @@ Installation).
 
 T-Rex paper: <https://doi.org/10.1016/j.sigpro.2025.109894>
 
-TRexSelector package: [GitHub](https://github.com/G4Lactus/TRexSelector)
+TRexSelector package: [GitHub](https://github.com/trexselector/TRexSelector)
 
-Bug reports: [GitHub Issues](https://github.com/G4Lactus/TRexSelector/issues)
+Bug reports: [GitHub Issues](https://github.com/trexselector/TRexSelector/issues)
 
 Citation metadata: [CITATION.cff](../../CITATION.cff) at the repository root. The docstring of every selector,
 T-solver and machine learning class ends with the papers it builds on.

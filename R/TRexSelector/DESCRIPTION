@@ -14,8 +14,8 @@ Authors@R:
       person(given = c("Daniel", "P."), family = "Palomar", email = "daniel.p.palomar@gmail.com", role = "aut"),
       person(given = "Michael", family = "Muma", email = "michael.muma@tu-darmstadt.de", role = "aut")
     )
-URL: https://github.com/G4Lactus/TRexSelector
-BugReports: https://github.com/G4Lactus/TRexSelector/issues
+URL: https://github.com/trexselector/TRexSelector
+BugReports: https://github.com/trexselector/TRexSelector/issues
 License: GPL (>= 3)
 Encoding: UTF-8
 LazyData: true

@@ -129,6 +129,18 @@ that entry; TRexSelectorNeo before).
 
 ### 2026-11-05
 
+#### The repository addresses point at the GitHub organization trexselector (D15)
+
+- The repository moves from the account G4Lactus to the organization trexselector with its
+  history, and every address in the packages follows before the move is published by CRAN or
+  PyPI (GitHub forwards the old address, but CRAN's URL check reports a forwarded address as
+  "Moved Permanently"): `https://github.com/G4Lactus/TRexSelector` is
+  `https://github.com/trexselector/TRexSelector` in DESCRIPTION (URL, BugReports), the R README
+  and its `install_github()` line, `_pkgdown.yml`, the getting-started vignette,
+  `pyproject.toml` (Homepage, Repository, Bug Tracker), the Python README, CITATION.cff and the
+  citation generator. The generated files (the R README.md, `TRexSelector-package.Rd`,
+  `inst/CITATION`) are rebuilt from them. No change of code or behaviour.
+
 #### The seeded generators count their draws and engine seedings toward the work threshold
 
 - The work threshold (`kParallelWorkThreshold`, 1e6 entries) was calibrated on plain passes over

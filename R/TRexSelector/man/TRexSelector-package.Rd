@@ -58,8 +58,8 @@ accepts the result in place of a matrix.
 \seealso{
 Useful links:
 \itemize{
-  \item \url{https://github.com/G4Lactus/TRexSelector}
-  \item Report bugs at \url{https://github.com/G4Lactus/TRexSelector/issues}
+  \item \url{https://github.com/trexselector/TRexSelector}
+  \item Report bugs at \url{https://github.com/trexselector/TRexSelector/issues}
 }
 
 }

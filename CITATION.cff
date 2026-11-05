@@ -12,7 +12,7 @@ abstract: >-
 authors:
   - name: "TRexSelector Team"
 version: 1.0.0
-repository-code: "https://github.com/G4Lactus/TRexSelector"
+repository-code: "https://github.com/trexselector/TRexSelector"
 license: GPL-3.0-or-later
 keywords:
   - false discovery rate

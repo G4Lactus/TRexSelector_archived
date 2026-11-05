@@ -65,7 +65,7 @@ GitHub. It lives in the `R/TRexSelector/` subdirectory of the repository.
 
 ```{r, eval = FALSE}
 install.packages("remotes")
-remotes::install_github("G4Lactus/TRexSelector", subdir = "R/TRexSelector")
+remotes::install_github("trexselector/TRexSelector", subdir = "R/TRexSelector")
 ```
 
 OpenMP is optional. On Linux and Windows R supplies the OpenMP flags. CRAN's R for macOS has none, so
