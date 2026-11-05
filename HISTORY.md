@@ -127,6 +127,16 @@ that entry; TRexSelectorNeo before).
   `MAX_SELECTION` is gone; the knee with tolerance 0 is the largest
   selection. See the 2026-10-28 entry.
 
+### 2026-11-05
+
+#### NEWS.md and the submission comments of the R package
+
+- `R/TRexSelector/NEWS.md` (new): the 2.0.0 entry for CRAN's news reader, the breaking change from
+  the 1.0.0 functional interface to the R6 classes, and the additions. `cran-comments.md` describes
+  the update as it is: the rewrite as C++ bindings, the test environments (macOS R 4.6.1, Ubuntu
+  24.04 R 4.3.3, the CI jobs), the two Ubuntu NOTEs with their reasons, the Eigen header warnings,
+  the OpenMP configure logic and no reverse dependencies; win-builder is marked pending.
+
 ### 2026-11-04
 
 #### Eigen's homepage URL follows its move

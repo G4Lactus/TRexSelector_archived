@@ -1,41 +1,53 @@
-# TRexSelector Package
+# TRexSelector 2.0.0
 
-## New submission
+## Summary of the update
 
-This is a new submission of the TRexSelector package (version 2.0.0). This version
-is a complete architectural rework: the R bindings are now backed by a dedicated
-C++20 library, replacing the previous dependency on the 'tlars' R package.
+This is a major update of TRexSelector (1.0.0 on CRAN since 2024-02-23). The package is rewritten as
+R bindings to the TRexSelector C++ library. The pure-R implementation of 1.0.0 and its dependencies
+(tlars, MASS, glmnet, boot, parallel, doParallel, foreach, doRNG) are gone and the compiled backend
+takes their place; the package now links to Rcpp, RcppEigen, BH and Rcereal and imports R6.
 
-Changes from the previous CRAN version:
+The user interface changes with it. The functional interface of 1.0.0 (`trex()`, `FDP()`, `TPP()`,
+`add_dummies_GVS()` and the other helpers) is replaced by R6 classes (`TRexSelector`,
+`TRexDASelector`, `TRexGVSSelector`, `TRexScreeningSelector`, `TRexBiobankScreeningSelector`,
+`TRexSPCASelector`, `TRexTikhonovSelector`) with control lists (`trex_control()` and its siblings)
+and the metrics `trex_fdp()` and `trex_tpp()`. NEWS.md lists the changes. The package has no reverse
+dependencies on CRAN.
 
-* C++20 backend replaces the 'tlars' dependency entirely.
-* New R6-based API (TRexSelector, TRexDASelector, TRexGVSSelector,
-   TRexScreeningSelector, TRexBiobankScreeningSelector).
-* Dependency-aware, GVS, screening, and biobank screening variants added.
-* Full testthat test suite added.
-* Vignette added.
+## Test environments
+
+* macOS 27.2 (Apple silicon), R 4.6.1: `R CMD check --as-cran`, also with the CPU-to-elapsed
+  thresholds CRAN applies (`_R_CHECK_*_TIMING_CPU_TO_ELAPSED_THRESHOLD_` at 2.5).
+* Ubuntu 24.04 (arm64 container), R 4.3.3, with and without OpenMP.
+* The package's GitHub Actions jobs: install, the testthat suite and `R CMD check` without vignettes
+  on Ubuntu, macOS and Windows (R release), and the sequential build without OpenMP on Ubuntu.
+* win-builder (R-devel): pending, to be added before the upload.
 
 ## R CMD check results
 
-There were no ERRORs or WARNINGs.
+0 errors | 0 warnings | 0 notes on macOS.
 
-One NOTE (both local and win-builder):
+Two NOTEs on Ubuntu:
 
-* "New submission" — expected for a first submission of this revised package.
-* The GitHub repository (URL and BugReports fields) is currently private and
-   therefore not yet reachable by the automated URL checker. It will be made
-   public upon acceptance. The published paper DOI
-   (https://doi.org/10.1016/j.sigpro.2025.109894) is reachable.
+* checking installed package size ... NOTE: installed size is 8.3 MB, sub-directories of 1 MB or more:
+  libs 5.7 MB. The compiled backend (the Eigen template instantiations of the solvers) accounts for
+  it; the shared object is stripped on Linux (src/Makevars.in).
+* checking DESCRIPTION meta-information ... NOTE: 'LinkingTo' for 'BH' is unused as it has no
+  'include' directory. An artifact of Ubuntu's r-cran-bh binary, which ships no headers; the CRAN BH
+  package has them, and the sources include the Boost headers through it.
 
-Compilation NOTE: three -Wunused warnings from RcppEigen/Eigen's own sparse
-matrix headers appear during compilation. These originate in upstream Eigen
-headers and are not from the package's own code.
+Compilation emits `-Wunused-but-set-variable` warnings from RcppEigen's Eigen headers (SparseLU,
+"variable 'count' set but not used" and similar). They originate in the upstream headers, not in the
+package's code.
 
-Tested on:
+## System requirements and OpenMP
 
-* macOS aarch64 (Apple M-series, macOS Tahoe 26.5), R 4.5.3
-* Windows: tested via CRAN win-builder service
+A C++20 compiler (GCC 10, Clang 12, Apple Clang 14 or newer, Rtools on Windows) and R 4.3 or newer.
+OpenMP is optional: `configure` uses R's `SHLIB_OPENMP_CXXFLAGS` where R provides them (Linux,
+Windows); on macOS without them it looks for an `omp.h` (Homebrew libomp or the mac.r-project.org
+OpenMP package) and links R's bundled libomp, and without one it compiles sequentially. The
+examples run in under 0.3 s each, and the vignettes limit themselves to two threads.
 
 ## Downstream dependencies
 
-There are currently no downstream dependencies for this package.
+There are no reverse dependencies on CRAN.
