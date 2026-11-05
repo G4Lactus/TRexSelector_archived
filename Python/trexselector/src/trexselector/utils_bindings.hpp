@@ -275,14 +275,26 @@ inline void bind_utils_module(py::module& m) {
     // =================================================================================
     // OpenMP wrappers
     // =================================================================================
+    m.def("get_num_threads",
+          &trex::utils::openmp::get_num_threads,
+          "The library's default thread budget, initially 1. The library is single-threaded "
+          "by default: every parallel region runs on an explicit budget, a selector's random "
+          "experiments and inner kernels on TRexControlParameter.max_outer_threads / "
+          "max_inner_threads, a T-solver on SolverOptions.n_threads, and every method without "
+          "an option of its own (the scalers, the clustering, the ML regressions, "
+          "normalize_design) on this default budget, which their n_threads argument "
+          "overrides per object.");
+
     m.def("get_max_threads",
           &trex::utils::openmp::get_max_threads,
-          "Get maximum number of threads used by OpenMP");
+          "The threads OpenMP can run on this machine (1 in a build without OpenMP): an "
+          "upper bound for a budget, not the budget itself.");
 
     m.def("set_num_threads",
           &trex::utils::openmp::set_num_threads,
           py::arg("num_threads"),
-          "Set number of threads for OpenMP");
+          "Set the library's default thread budget (>= 1) for the process and return the "
+          "previous budget; see get_num_threads().");
 }
 
 // =====================================================================================

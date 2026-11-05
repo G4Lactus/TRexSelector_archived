@@ -104,6 +104,7 @@ target_sources(trex_utils PUBLIC
         ${CMAKE_CURRENT_SOURCE_DIR}/global_temp_dir.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/logging/logger.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/memmap/memory_mapped_matrix.hpp
+        ${CMAKE_CURRENT_SOURCE_DIR}/openmp/utils_eigen_threads.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/openmp/utils_openmp.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/physical_memory.hpp
         ${CMAKE_CURRENT_SOURCE_DIR}/serialization/utils_cereal_eigen.hpp

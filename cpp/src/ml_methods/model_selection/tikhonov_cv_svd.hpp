@@ -81,6 +81,9 @@
 
 // Eigen includes
 #include <Eigen/Core>
+
+// utils includes
+#include <utils/openmp/utils_eigen_threads.hpp>
 #include <Eigen/SVD>
 #include <Eigen/SparseCore>
 #include <Eigen/Eigenvalues>
@@ -119,6 +122,18 @@ public:
     /** @brief Default constructor. */
     tikhonov_cv_svd() = default;
 
+    /** @brief Set the thread budget of the Eigen products of fit() (>= 1);
+     *  the library's default budget unless set. */
+    void set_num_threads(int n_threads) {
+        if (n_threads < 1) {
+            throw std::invalid_argument("tikhonov_cv_svd::set_num_threads: n_threads must be >= 1.");
+        }
+        n_threads_ = n_threads;
+    }
+
+    /** @brief The thread budget of the Eigen products of fit(). */
+    int num_threads() const noexcept { return n_threads_; }
+
     /**
      * @brief Fit K-fold CV for the IEN group-mean penalty (TIENET geometry).
      *
@@ -147,6 +162,8 @@ public:
              unsigned int seed         = 0,
              double       epsilon      = -1.0)
     {
+        // Eigen's products run on this object's budget for the scope of the fit
+        ::trex::utils::openmp::EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
         validate_common(X, y, n_folds, n_lambda, lambda_ratio);
         build_group_basis(groups, X.cols());
         run_cv(X, y, n_folds, n_lambda, lambda_ratio, seed, epsilon);
@@ -177,6 +194,8 @@ public:
              unsigned int seed         = 0,
              double       epsilon      = -1.0)
     {
+        // Eigen's products run on this object's budget for the scope of the fit
+        ::trex::utils::openmp::EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
         validate_common(X, y, n_folds, n_lambda, lambda_ratio);
         build_general_basis(K, X.cols());
         run_cv(X, y, n_folds, n_lambda, lambda_ratio, seed, epsilon);
@@ -748,6 +767,9 @@ private:
 
     /** @brief Rank of K (M in group mode). */
     Eigen::Index r_ = 0;
+
+    /** @brief Thread budget of the Eigen products of fit() (>= 1). */
+    int n_threads_{::trex::utils::openmp::get_num_threads()};
 
     /** @brief Map for the penalized block (p x r): V_+ Lambda_+^{-1/2}. */
     Eigen::MatrixXd TA_;

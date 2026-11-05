@@ -111,7 +111,8 @@ std::vector<MergeStep> internal_dispatch_linkage(
     const TransposedType& transposed_data,
     LinkageMethod method,
     bool use_mmap,
-    bool verbose) {
+    bool verbose,
+    int n_threads) {
 
     using DistPol = DistancePolicy<TransposedType, MetricEnum>;
 
@@ -124,7 +125,7 @@ std::vector<MergeStep> internal_dispatch_linkage(
             if constexpr (MetricEnum == DistanceMetric::Euclidean ||
                           MetricEnum == DistanceMetric::Correlation_LSH_Approx) {
                 return AgglomerativeClustering::cluster<TransposedType, DistPol,
-                        LinkageMethod::Ward>(transposed_data, use_mmap, verbose);
+                        LinkageMethod::Ward>(transposed_data, use_mmap, verbose, n_threads);
             } else {
                 throw std::invalid_argument(
                     "Ward linkage strictly requires Euclidean distance "
@@ -133,21 +134,21 @@ std::vector<MergeStep> internal_dispatch_linkage(
             }
         case LinkageMethod::Average:
             return AgglomerativeClustering::cluster<TransposedType, DistPol,
-                    LinkageMethod::Average>(transposed_data, use_mmap, verbose);
+                    LinkageMethod::Average>(transposed_data, use_mmap, verbose, n_threads);
         case LinkageMethod::Complete:
             return AgglomerativeClustering::cluster<TransposedType, DistPol,
-                    LinkageMethod::Complete>(transposed_data, use_mmap, verbose);
+                    LinkageMethod::Complete>(transposed_data, use_mmap, verbose, n_threads);
         case LinkageMethod::Single:
             return AgglomerativeClustering::cluster<TransposedType, DistPol,
-                     LinkageMethod::Single>(transposed_data, use_mmap, verbose);
+                     LinkageMethod::Single>(transposed_data, use_mmap, verbose, n_threads);
         case LinkageMethod::WPGMA:
             return AgglomerativeClustering::cluster<TransposedType, DistPol,
-                     LinkageMethod::WPGMA>(transposed_data, use_mmap, verbose);
+                     LinkageMethod::WPGMA>(transposed_data, use_mmap, verbose, n_threads);
         case LinkageMethod::Median:
             // Median strictly requires (squared) Euclidean geometry
             if constexpr (MetricEnum == DistanceMetric::Euclidean) {
                 return AgglomerativeClustering::cluster<TransposedType, DistPol,
-                         LinkageMethod::Median>(transposed_data, use_mmap, verbose);
+                         LinkageMethod::Median>(transposed_data, use_mmap, verbose, n_threads);
             } else {
                 throw std::invalid_argument("Median linkage strictly requires Euclidean distance.");
             }
@@ -155,7 +156,7 @@ std::vector<MergeStep> internal_dispatch_linkage(
             // Centroid strictly requires (squared) Euclidean geometry
             if constexpr (MetricEnum == DistanceMetric::Euclidean) {
                 return AgglomerativeClustering::cluster<TransposedType, DistPol,
-                         LinkageMethod::Centroid>(transposed_data, use_mmap, verbose);
+                         LinkageMethod::Centroid>(transposed_data, use_mmap, verbose, n_threads);
             } else {
                 throw std::invalid_argument("Centroid linkage strictly requires Euclidean distance.");
             }
@@ -185,7 +186,11 @@ inline Eigen::MatrixXd py_agglomerative_cluster(
     LinkageMethod method,
     DistanceMetric metric,
     bool use_mmap = false,
-    bool verbose = false) {
+    bool verbose = false,
+    std::optional<int> n_threads_opt = std::nullopt) {
+
+    // The thread budget of the clustering: the library's default unless given
+    const int n_threads = n_threads_opt.value_or(trex::utils::openmp::get_num_threads());
 
     // Python has row objects, the C++ engine expects columns to be objects.
     // `data` is a read-only view of the caller's Fortran-ordered float64 array
@@ -199,23 +204,23 @@ inline Eigen::MatrixXd py_agglomerative_cluster(
     switch (metric) {
         case DistanceMetric::Euclidean:
             merges = internal_dispatch_linkage<TransposedType,
-                        DistanceMetric::Euclidean>(transposed_data, method, use_mmap, verbose);
+                        DistanceMetric::Euclidean>(transposed_data, method, use_mmap, verbose, n_threads);
             break;
         case DistanceMetric::Correlation:
             merges = internal_dispatch_linkage<TransposedType,
-                        DistanceMetric::Correlation>(transposed_data, method, use_mmap, verbose);
+                        DistanceMetric::Correlation>(transposed_data, method, use_mmap, verbose, n_threads);
             break;
         case DistanceMetric::Manhattan:
             merges = internal_dispatch_linkage<TransposedType,
-                        DistanceMetric::Manhattan>(transposed_data, method, use_mmap, verbose);
+                        DistanceMetric::Manhattan>(transposed_data, method, use_mmap, verbose, n_threads);
             break;
         case DistanceMetric::Correlation_LSH_Filter:
             merges = internal_dispatch_linkage<TransposedType,
-                        DistanceMetric::Correlation_LSH_Filter>(transposed_data, method, use_mmap, verbose);
+                        DistanceMetric::Correlation_LSH_Filter>(transposed_data, method, use_mmap, verbose, n_threads);
             break;
         case DistanceMetric::Correlation_LSH_Approx:
             merges = internal_dispatch_linkage<TransposedType,
-                        DistanceMetric::Correlation_LSH_Approx>(transposed_data, method, use_mmap, verbose);
+                        DistanceMetric::Correlation_LSH_Approx>(transposed_data, method, use_mmap, verbose, n_threads);
             break;
         default:
             throw std::invalid_argument("Unknown DistanceMetric");
@@ -307,9 +312,12 @@ inline void bind_clustering(py::module_& m) {
           py::arg("metric") = DistanceMetric::Euclidean,
           py::arg("use_mmap") = false,
           py::arg("verbose") = false,
+          py::arg("n_threads") = py::none(),
           "Perform hierarchical agglomerative clustering, returning a SciPy-style [N-1, 4] "
           "linkage matrix. verbose=True prints the backend's allocation line (the size of the "
-          "distance matrix in RAM or in the memory-mapped file).\n"
+          "distance matrix in RAM or in the memory-mapped file). n_threads is the thread budget "
+          "of the distance loops (None: the library's default budget, utils.get_num_threads(), "
+          "initially 1).\n"
           "\n"
           "References\n"
           "----------\n"

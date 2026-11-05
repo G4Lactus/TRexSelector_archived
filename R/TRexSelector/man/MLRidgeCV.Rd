@@ -62,7 +62,7 @@ Other ML methods:
   Initialize the MLRidgeCV object.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{MLRidgeCV$new(low_memory = FALSE)}
+    \preformatted{MLRidgeCV$new(low_memory = FALSE, n_threads = NULL)}
     \if{html}{\out{</div>}}
   }
   \subsection{Arguments}{
@@ -76,6 +76,9 @@ in place (an \code{mmap_matrix} included, \code{"readonly"}
 suffices), no p-dimensional coefficients; same estimator, grid and
 rank rule, agreement to numerical precision; memory O(n^2) instead of
 O(n p), the route for p >> n.}
+      \item{\code{n_threads}}{Integer, the thread budget of the fit's matrix products
+(\code{NULL}, the default: the library's default budget,
+\code{\link{trex_get_num_threads}()}, initially 1).}
     }
     \if{html}{\out{</div>}}
   }

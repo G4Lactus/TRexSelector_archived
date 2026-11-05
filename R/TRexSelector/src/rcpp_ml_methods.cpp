@@ -65,8 +65,8 @@ static Eigen::Map<const Eigen::MatrixXd> const_map(const Rcpp::NumericMatrix& m)
 //' @return XPtr to ZScoreScaler
 //' @noRd
 // [[Rcpp::export]]
-XPtr<ZScoreScaler> zscore_scaler_create(bool center, bool scale) {
-    return XPtr<ZScoreScaler>(new ZScoreScaler(center, scale));
+XPtr<ZScoreScaler> zscore_scaler_create(bool center, bool scale, int n_threads) {
+    return XPtr<ZScoreScaler>(new ZScoreScaler(center, scale, n_threads));
 }
 
 //' @title Fit ZScoreScaler
@@ -296,9 +296,9 @@ void zscore_scaler_inverse_transform_inplace_mmap(
 //' @return XPtr to LpNormScaler
 //' @noRd
 // [[Rcpp::export]]
-XPtr<LpNormScaler> lpnorm_scaler_create(int norm_type, bool center, bool scale) {
+XPtr<LpNormScaler> lpnorm_scaler_create(int norm_type, bool center, bool scale, int n_threads) {
     LpNormScaler::NormType type = (norm_type == 1) ? LpNormScaler::NormType::L1 : LpNormScaler::NormType::L2;
-    return XPtr<LpNormScaler>(new LpNormScaler(type, center, scale));
+    return XPtr<LpNormScaler>(new LpNormScaler(type, center, scale, n_threads));
 }
 
 //' @title Fit LpNormScaler
@@ -537,9 +537,12 @@ void lpnorm_scaler_inverse_transform_inplace_mmap(
 //' @return XPtr to ridge_cv
 //' @noRd
 // [[Rcpp::export]]
-XPtr<ridge_cv> ridge_cv_create(bool low_memory = false) {
+XPtr<ridge_cv> ridge_cv_create(bool low_memory, int n_threads) {
     // low_memory: the kernel (dual) fold engine, see ridge_cv_svd(bool).
-    return XPtr<ridge_cv>(new ridge_cv(low_memory));
+    // n_threads: the budget of the Eigen products of fit().
+    auto* cv = new ridge_cv(low_memory);
+    cv->set_num_threads(n_threads);
+    return XPtr<ridge_cv>(cv);
 }
 
 //' @title Fit Ridge CV
@@ -709,10 +712,13 @@ bool ridge_cv_selection_at_grid_edge(
 //' @return XPtr to enet_path
 //' @noRd
 // [[Rcpp::export]]
-XPtr<enet_path> enet_create(bool low_memory = false) {
+XPtr<enet_path> enet_create(bool low_memory, int n_threads) {
     // low_memory: the raw-X engine (no working copy of X; a memory-mapped X
     // is read in place), see enet_gaussian(bool).
-    return XPtr<enet_path>(new enet_path(low_memory));
+    // n_threads: the budget of the Eigen products of fit().
+    auto* path = new enet_path(low_memory);
+    path->set_num_threads(n_threads);
+    return XPtr<enet_path>(path);
 }
 
 //' @title Fit Elastic Net over an auto-generated glmnet-style grid
@@ -878,8 +884,11 @@ Eigen::MatrixXd enet_predict_mmap(
 //' @return XPtr to enet_cv
 //' @noRd
 // [[Rcpp::export]]
-XPtr<enet_cv> enet_cv_create(bool low_memory = false) {
-    return XPtr<enet_cv>(new enet_cv(low_memory));
+XPtr<enet_cv> enet_cv_create(bool low_memory, int n_threads) {
+    // n_threads: the budget of the Eigen products of fit() and the fold fits.
+    auto* cv = new enet_cv(low_memory);
+    cv->set_num_threads(n_threads);
+    return XPtr<enet_cv>(cv);
 }
 
 //' @title Fit Elastic Net CV over a glmnet-style grid
@@ -1005,10 +1014,12 @@ Eigen::VectorXd enet_cv_get_cv_std(
 //' @noRd
 // [[Rcpp::export]]
 Rcpp::List svd_compute(Rcpp::NumericMatrix X, int M,
-                       double min_dim_thresh = 10000, double block_size = 1024) {
+                       double min_dim_thresh, double block_size, int n_threads) {
     // Dispatch thresholds: a lower min_dim_thresh selects the
     // randomized, block-wise (no copy) path for smaller designs.
-    SVDSolver solver{static_cast<Eigen::Index>(min_dim_thresh), static_cast<Eigen::Index>(block_size)};
+    // n_threads: the budget of the Eigen products.
+    SVDSolver solver{static_cast<Eigen::Index>(min_dim_thresh), static_cast<Eigen::Index>(block_size),
+                     n_threads};
     SVDResult res = solver.compute(const_map(X), static_cast<Eigen::Index>(M));
     return Rcpp::List::create(
         Rcpp::Named("U") = res.U,
@@ -1023,11 +1034,13 @@ Rcpp::List svd_compute(Rcpp::NumericMatrix X, int M,
 Rcpp::List svd_compute_mmap(
     XPtr<MmapMatrixD> mmap_ptr, // NOLINT(performance-unnecessary-value-param)
     int M,
-    double min_dim_thresh = 10000,
-    double block_size = 1024
+    double min_dim_thresh,
+    double block_size,
+    int n_threads
 ) {
     const MmapMatrixD& mmap = *mmap_ptr;
-    SVDSolver solver{static_cast<Eigen::Index>(min_dim_thresh), static_cast<Eigen::Index>(block_size)};
+    SVDSolver solver{static_cast<Eigen::Index>(min_dim_thresh), static_cast<Eigen::Index>(block_size),
+                     n_threads};
     SVDResult res = solver.compute(mmap.getMap(), static_cast<Eigen::Index>(M));
     return Rcpp::List::create(
         Rcpp::Named("U") = res.U,
@@ -1058,15 +1071,17 @@ Rcpp::List svd_compute_mmap(
 Rcpp::XPtr<PCA> pca_create(
     Rcpp::NumericMatrix X,
     int M,
-    bool center = true,
-    bool normalize = true
+    bool center,
+    bool normalize,
+    int n_threads
 ) {
     // Zero-copy view over the R buffer (X is REALSXP by contract). The PCA
     // constructor preprocesses X in place and keeps a raw pointer into it
     // until fit(); the protection slot pins X for the object's lifetime.
+    // n_threads: the budget of the Eigen products of fit() and transform().
     Eigen::Map<Eigen::MatrixXd> X_map(X.begin(), X.nrow(), X.ncol());
     return Rcpp::XPtr<PCA>(
-        new PCA(X_map, static_cast<Eigen::Index>(M), center, normalize),
+        new PCA(X_map, static_cast<Eigen::Index>(M), center, normalize, n_threads),
         true, R_NilValue, X);
 }
 
@@ -1080,12 +1095,13 @@ Rcpp::XPtr<PCA> pca_create(
 Rcpp::XPtr<PCA> pca_create_mmap(
     XPtr<MmapMatrixD> mmap_ptr, // NOLINT(performance-unnecessary-value-param)
     int M,
-    bool center = true,
-    bool normalize = true
+    bool center,
+    bool normalize,
+    int n_threads
 ) {
     auto X_map = mmap_ptr->getMap();   // mutable map over the file
     return Rcpp::XPtr<PCA>(
-        new PCA(X_map, static_cast<Eigen::Index>(M), center, normalize),
+        new PCA(X_map, static_cast<Eigen::Index>(M), center, normalize, n_threads),
         true, R_NilValue, mmap_ptr);
 }
 
@@ -1230,9 +1246,10 @@ Eigen::VectorXd pca_get_explained_variance(
 Eigen::VectorXd ridge_solve(
     Rcpp::NumericMatrix X,
     const Eigen::VectorXd& y,
-    double lambda
+    double lambda,
+    int n_threads
 ) {
-    return RidgeSolver::solve(const_map(X), y, lambda);
+    return RidgeSolver::solve(const_map(X), y, lambda, n_threads);
 }
 
 //' @title Solve Ridge Regression on a MemoryMappedMatrix (zero-copy, readonly suffices)
@@ -1241,8 +1258,9 @@ Eigen::VectorXd ridge_solve(
 Eigen::VectorXd ridge_solve_mmap(
     XPtr<MmapMatrixD> mmap_ptr, // NOLINT(performance-unnecessary-value-param)
     const Eigen::VectorXd& y,
-    double lambda
+    double lambda,
+    int n_threads
 ) {
     const MmapMatrixD& mmap = *mmap_ptr;
-    return RidgeSolver::solve(mmap.getMap(), y, lambda);
+    return RidgeSolver::solve(mmap.getMap(), y, lambda, n_threads);
 }

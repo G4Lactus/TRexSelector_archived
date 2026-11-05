@@ -30,6 +30,9 @@
 // Eigen includes
 #include <Eigen/Dense>
 
+// utils includes
+#include <utils/openmp/utils_openmp.hpp>
+
 // ===================================================================================
 
 // Embedded into namespace trex::ml_methods::clustering::hierarchical::agglomerative
@@ -137,8 +140,8 @@ public:
      * @note Clustering is done over columns (variables). Expected data shape is
      * (n_samples x n_features).
      */
-    SLINK(const MatrixType& data)
-        : distance_policy_(data), num_objects_(data.cols())
+    SLINK(const MatrixType& data, int n_threads = ::trex::utils::openmp::get_num_threads())
+        : distance_policy_(data, -1, n_threads), num_objects_(data.cols())
     {
         if (num_objects_ < 2) {
             throw std::invalid_argument(

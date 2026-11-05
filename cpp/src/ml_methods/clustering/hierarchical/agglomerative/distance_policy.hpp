@@ -26,6 +26,9 @@
 // Eigen includes
 #include <Eigen/Dense>
 
+// utils includes
+#include <utils/openmp/utils_openmp.hpp>
+
 // ===================================================================================
 
 namespace trex::ml_methods::clustering::hierarchical::agglomerative {
@@ -114,6 +117,9 @@ private:
     /** @brief Elevated to class member to allow dynamic LSH updates */
     Eigen::Matrix<RealScalar, Eigen::Dynamic, 64> random_planes_;
 
+    /** @brief Thread budget of the precomputation and distance loops (>= 1). */
+    int n_threads_;
+
 public:
 
     /**
@@ -122,11 +128,19 @@ public:
      * @param data Reference to the data matrix.
      * @param precompute_limit Instructs the policy to only precalculate the first N columns.
      *        If -1, it precalculates all columns (used by SLINK).
+     * @param n_threads Thread budget of the precomputation and distance loops;
+     *        the library's default budget unless given.
      */
-    DistancePolicy(const MatrixType& data, Eigen::Index precompute_limit = -1) : data_(data) {
+    DistancePolicy(const MatrixType& data, Eigen::Index precompute_limit = -1,
+                   int n_threads = ::trex::utils::openmp::get_num_threads())
+        : data_(data), n_threads_(n_threads) {
         Eigen::Index n = data_.rows();
         Eigen::Index p = data_.cols();
         Eigen::Index limit = (precompute_limit == -1) ? p : precompute_limit;
+
+        // Team of the precomputation loops: the budget, or 1 below the work threshold
+        [[maybe_unused]] const int nt = ::trex::utils::openmp::threads_for(
+            n_threads_, static_cast<double>(n) * static_cast<double>(limit));
 
         // Precompute squared column norms for metrics that need them.
         // Correlation normalizes the dot product by these norms (true Pearson),
@@ -136,8 +150,9 @@ public:
                       SelectedMetric == DistanceMetric::Correlation ||
                       SelectedMetric == DistanceMetric::Correlation_LSH_Filter) {
             sq_norms_.resize(p);
-            #pragma omp parallel for schedule(static)
+            #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
             for (Eigen::Index j = 0; j < limit; ++j) {
+                ::trex::utils::openmp::team_probe::record();
                 sq_norms_(j) = data_.col(j).squaredNorm();
             }
         }
@@ -153,8 +168,9 @@ public:
                     random_planes_(i, b) = dist(rng);
                 }
             }
-            #pragma omp parallel for schedule(static)
+            #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
             for (Eigen::Index j = 0; j < limit; ++j) {
+                ::trex::utils::openmp::team_probe::record();
                 update_node(j);
             }
         }
@@ -200,8 +216,11 @@ public:
      */
     template <typename OutputVectorType>
     void compute_distances(Eigen::Index i, OutputVectorType& out_distances) const {
-        #pragma omp parallel for schedule(static)
+        [[maybe_unused]] const int nt = ::trex::utils::openmp::threads_for(
+            n_threads_, static_cast<double>(data_.rows()) * static_cast<double>(i));
+        #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
         for (Eigen::Index j = 0; j < i; ++j) {
+            ::trex::utils::openmp::team_probe::record();
             out_distances(j) = get_distance(i, j);
         }
     }

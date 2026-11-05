@@ -24,6 +24,9 @@
 
 // Eigen includes
 #include <Eigen/Core>
+
+// utils includes
+#include <utils/openmp/utils_eigen_threads.hpp>
 #include <Eigen/SVD>
 #include <Eigen/Eigenvalues>
 
@@ -94,6 +97,18 @@ public:
     /** @brief Switch the fold engine; takes effect at the next fit(). */
     void set_low_memory(bool low_memory) noexcept { low_memory_ = low_memory; }
 
+    /** @brief Set the thread budget of the Eigen products of fit() (>= 1);
+     *  the library's default budget unless set. */
+    void set_num_threads(int n_threads) {
+        if (n_threads < 1) {
+            throw std::invalid_argument("ridge_cv_svd::set_num_threads: n_threads must be >= 1.");
+        }
+        n_threads_ = n_threads;
+    }
+
+    /** @brief The thread budget of the Eigen products of fit(). */
+    int num_threads() const noexcept { return n_threads_; }
+
     /** @brief Whether the kernel (no gathered fold) engine is selected. */
     bool low_memory() const noexcept { return low_memory_; }
 
@@ -122,6 +137,9 @@ public:
              Eigen::Index n_lambda = 100,
              double lambda_ratio   = 1000.0,
              unsigned int seed     = 0) {
+
+        // Eigen's products run on this object's budget for the scope of the fit
+        ::trex::utils::openmp::EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
 
         if (X.rows() != y.size()) {
             throw std::invalid_argument(
@@ -493,6 +511,9 @@ public:
 
 
 private:
+
+    /** @brief Thread budget of the Eigen products of fit() (>= 1). */
+    int n_threads_{::trex::utils::openmp::get_num_threads()};
 
     // ---- kernel (dual) fold engine -------------------------------------------
     //

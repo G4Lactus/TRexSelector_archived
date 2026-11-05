@@ -124,6 +124,19 @@ public:
     /** @brief Defaulted move assignment operator */
     DummyGenerator& operator=(DummyGenerator&&) = default;
 
+    /** @brief Set the thread budget of the generation and normalization
+     *  regions (>= 1); a selector passes its max_inner_threads. */
+    void setNumThreads(int n_threads) {
+        if (n_threads < 1) {
+            throw std::invalid_argument(
+                "DummyGenerator::setNumThreads: n_threads must be >= 1.");
+        }
+        n_threads_ = n_threads;
+    }
+
+    /** @brief The thread budget of the generation and normalization regions. */
+    int getNumThreads() const noexcept { return n_threads_; }
+
 
     // ==========================================================================
     // Core dummy generation — fresh dummies
@@ -203,14 +216,15 @@ public:
         dummygen::generate_dummies(
             target, n_,
             static_cast<std::size_t>(target.cols()),
-            base_seed, distribution_
+            base_seed, distribution_, /*col_offset=*/0, n_threads_
         );
 
         utils::data_normalizer::centerAndL2NormalizeMatrix(
             target,
             std::numeric_limits<double>::epsilon(),
             verbose_,
-            scaling_mode_
+            scaling_mode_,
+            n_threads_
         );
     }
 
@@ -248,14 +262,15 @@ public:
         dummygen::generate_dummies(
             target, n_,
             static_cast<std::size_t>(target.cols()),
-            base_seed, distribution_
+            base_seed, distribution_, /*col_offset=*/0, n_threads_
         );
 
         utils::data_normalizer::centerAndL2NormalizeMatrix(
             target,
             std::numeric_limits<double>::epsilon(),
             verbose_,
-            scaling_mode_
+            scaling_mode_,
+            n_threads_
         );
     }
 
@@ -309,14 +324,15 @@ public:
 
         dummygen::generate_dummies(
             new_block, n_, new_cols, base_seed, distribution_,
-            /*col_offset=*/existing_cols
+            /*col_offset=*/existing_cols, n_threads_
         );
 
         utils::data_normalizer::centerAndL2NormalizeMatrix(
             new_block,
             std::numeric_limits<double>::epsilon(),
             verbose_,
-            scaling_mode_
+            scaling_mode_,
+            n_threads_
         );
     }
 
@@ -355,14 +371,15 @@ public:
         dummygen::generate_dummies(
             target, n_,
             static_cast<std::size_t>(target.cols()),
-            seed_k, distribution_
+            seed_k, distribution_, /*col_offset=*/0, n_threads_
         );
 
         utils::data_normalizer::centerAndL2NormalizeMatrix(
             target,
             std::numeric_limits<double>::epsilon(),
             verbose_,
-            scaling_mode_
+            scaling_mode_,
+            n_threads_
         );
     }
 
@@ -400,7 +417,7 @@ public:
             // Deterministic row permutation directly into target
             // (full 64-bit seed path; see dummygen::make_column_engine)
             std::mt19937 rng = dummygen::make_column_engine(base_seed_perm_, k);
-            applyRowPermutationInto(base_dummies_perm_, target, rng);
+            applyRowPermutationInto(base_dummies_perm_, target, rng, n_threads_);
         }
     }
 
@@ -718,7 +735,7 @@ public:
         // Experiments k > 0: deterministic row permutation
         // (full 64-bit seed path; see dummygen::make_column_engine)
         std::mt19937 rng = dummygen::make_column_engine(base_seed_perm_, k);
-        return applyRowPermutation(base_dummies_perm_, rng);
+        return applyRowPermutation(base_dummies_perm_, rng, n_threads_);
     }
 
 
@@ -753,7 +770,7 @@ public:
                                 std::uint64_t base_id) const {
         if (k == 0) { return base; }
         std::mt19937 rng = dummygen::make_column_engine(base_id, k);
-        return applyRowPermutation(base, rng);
+        return applyRowPermutation(base, rng, n_threads_);
     }
 
 
@@ -776,7 +793,7 @@ public:
             return;
         }
         std::mt19937 rng = dummygen::make_column_engine(base_id, k);
-        applyRowPermutationInto(base, target, rng);
+        applyRowPermutationInto(base, target, rng, n_threads_);
     }
 
 
@@ -819,6 +836,10 @@ private:
 
     /** @brief Column scaling convention applied to generated dummies. */
     data_normalizer::ScalingMode scaling_mode_;
+
+    /** @brief Thread budget of the generation and normalization regions (>= 1):
+     *  the library's default budget unless a selector sets its own. */
+    int n_threads_{::trex::utils::openmp::get_num_threads()};
 
     /** @brief 64-bit base seed resolved once at construction.
      *
@@ -1017,15 +1038,17 @@ private:
      *
      * @param dummies  Input matrix (n × L).
      * @param rng      Random engine (seeded deterministically).
+     * @param n_threads Thread budget of the row loop (>= 1).
      *
      * @return Row-permuted matrix (n × L).
      */
     static Eigen::MatrixXd applyRowPermutation(
         const Eigen::MatrixXd& dummies,
-        std::mt19937& rng) {
+        std::mt19937& rng,
+        int n_threads) {
 
         Eigen::MatrixXd result(dummies.rows(), dummies.cols());
-        applyRowPermutationInto(dummies, result, rng);
+        applyRowPermutationInto(dummies, result, rng, n_threads);
         return result;
     }
 
@@ -1042,11 +1065,13 @@ private:
      * @param source  Input matrix (n × L).
      * @param target  Output matrix (n × L, pre-sized).
      * @param rng     Random engine (seeded deterministically).
+     * @param n_threads Thread budget of the row loop (>= 1).
      */
     static void applyRowPermutationInto(
         const Eigen::MatrixXd& source,
         Eigen::Ref<Eigen::MatrixXd> target,
-        std::mt19937& rng)
+        std::mt19937& rng,
+        int n_threads)
     {
 
         const auto n = source.rows();
@@ -1056,9 +1081,14 @@ private:
         std::iota(row_indices.begin(), row_indices.end(), 0);
         std::shuffle(row_indices.begin(), row_indices.end(), rng);
 
+        // Team of the row loop: the budget, or 1 below the work threshold
+        [[maybe_unused]] const int nt = ::trex::utils::openmp::threads_for(
+            n_threads, static_cast<double>(n) * static_cast<double>(source.cols()));
+
         // Permute: target[i, :] = source[perm[i], :]
-        #pragma omp parallel for schedule(static) if(n > 100)
+        #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
         for (Eigen::Index i = 0; i < n; ++i) {
+            ::trex::utils::openmp::team_probe::record();
             target.row(i) = source.row(row_indices[i]);
         }
     }

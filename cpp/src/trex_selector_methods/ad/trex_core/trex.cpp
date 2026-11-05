@@ -157,8 +157,13 @@ TRexSelector::TRexSelector(
     // claim is kept in every mode: one live selector per X buffer.
     dn::centerY(y_, norm_params_, trex_ctrl_.scaling_mode);
     dn::centerAndL2NormalizeX(*X_, norm_params_, eps_,
-                             verbose_, trex_ctrl_.scaling_mode);
+                             verbose_, trex_ctrl_.scaling_mode,
+                             trex_ctrl_.max_inner_threads);
     X_is_normalized_ = true;
+
+    // The dummy generator's regions run on the selector's inner budget
+    // (serial inside a parallel K-loop, see threads_for()).
+    dummy_gen_.setNumThreads(trex_ctrl_.max_inner_threads);
 
     // 3. Initialize memory-mapped D manager (if requested)
     // -----------------------------------------------------
@@ -220,7 +225,7 @@ TRexSelector::~TRexSelector() {
 
 void TRexSelector::denormalizeAndReleaseX() {
     if (X_is_normalized_) {
-        dn::denormalizeX(*X_, norm_params_);
+        dn::denormalizeX(*X_, norm_params_, trex_ctrl_.max_inner_threads);
         X_is_normalized_ = false;
         releaseBuffer(X_->data());
     }

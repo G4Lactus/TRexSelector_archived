@@ -44,8 +44,13 @@ DataTransformer& DataTransformer::fit(const Eigen::Ref<const Eigen::MatrixXd>& X
     scales_.resize(ncols);
     dropped_indices_.clear();
 
-    #pragma omp parallel
+    // Team of the column pass: the budget, or 1 below the work threshold
+    [[maybe_unused]] const int nt = trex::utils::openmp::threads_for(
+        n_threads_, static_cast<double>(nrows) * static_cast<double>(ncols));
+
+    #pragma omp parallel num_threads(nt) if (nt > 1)
     {
+        trex::utils::openmp::team_probe::record();
         // Thread-local storage for degenerate column indices
         std::vector<std::size_t> thread_dropped;
 
@@ -106,8 +111,11 @@ void DataTransformer::transform_inplace(Eigen::Map<Eigen::MatrixXd>& X) const {
 
     // Degenerate columns need no special-casing: their scale factor is 1.0,
     // so they are centered like every other column and never divided.
-    #pragma omp parallel for schedule(static)
+    [[maybe_unused]] const int nt = trex::utils::openmp::threads_for(
+        n_threads_, static_cast<double>(X.rows()) * static_cast<double>(X.cols()));
+    #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
     for (Eigen::Index j = 0; j < X.cols(); ++j) {
+        trex::utils::openmp::team_probe::record();
 
         // Center
         if (center_) {
@@ -136,8 +144,12 @@ void DataTransformer::inverse_transform_inplace(
             std::to_string(X_transformed.cols()));
     }
 
-    #pragma omp parallel for schedule(static)
+    [[maybe_unused]] const int nt = trex::utils::openmp::threads_for(
+        n_threads_, static_cast<double>(X_transformed.rows()) *
+                        static_cast<double>(X_transformed.cols()));
+    #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
     for (Eigen::Index j = 0; j < X_transformed.cols(); ++j) {
+        trex::utils::openmp::team_probe::record();
 
         // Unscale (inverse order of transform)
         if (scale_) {

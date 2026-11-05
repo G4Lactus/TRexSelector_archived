@@ -52,7 +52,7 @@ Other ML methods:
   Initialize the solver with its dispatch thresholds.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{MLSVD$new(min_dim_thresh = 10000, block_size = 1024)}
+    \preformatted{MLSVD$new(min_dim_thresh = 10000, block_size = 1024, n_threads = NULL)}
     \if{html}{\out{</div>}}
   }
   \subsection{Arguments}{
@@ -66,6 +66,9 @@ passes over X without a copy (the route for a large
 \code{mmap_matrix}). \code{p > 2 n} always takes the Gram path.}
       \item{\code{block_size}}{Integer (default 1024): the column block of the
 block-wise passes.}
+      \item{\code{n_threads}}{Integer, the thread budget of the matrix products
+(\code{NULL}, the default: the library's default budget,
+\code{\link{trex_get_num_threads}()}, initially 1).}
     }
     \if{html}{\out{</div>}}
   }

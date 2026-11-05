@@ -42,6 +42,7 @@
 #include <atomic>
 #include <complex>
 #include <string>
+#include <utils/openmp/utils_openmp.hpp>
 
 // ===================================================================================
 
@@ -67,7 +68,7 @@ namespace detail {
  * @throws std::invalid_argument naming the first offending entry.
  */
 template <typename MatrixType>
-void reject_non_finite(const MatrixType& data) {
+void reject_non_finite(const MatrixType& data, int n_threads) {
     namespace fpc = trex::utils::fp_classify;
     using Scalar = typename MatrixType::Scalar;
     const Eigen::Index n_rows = data.rows();
@@ -90,8 +91,11 @@ void reject_non_finite(const MatrixType& data) {
     };
 
     std::atomic<Eigen::Index> bad_col{n_cols};
-    #pragma omp parallel for schedule(static)
+    [[maybe_unused]] const int nt = ::trex::utils::openmp::threads_for(
+        n_threads, static_cast<double>(n_rows) * static_cast<double>(n_cols));
+    #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
     for (Eigen::Index j = 0; j < n_cols; ++j) {
+        ::trex::utils::openmp::team_probe::record();
         // Columns past an offending one need no scan
         if (j >= bad_col.load(std::memory_order_relaxed)) continue;
         if (first_bad_row(j) < 0) continue;
@@ -159,18 +163,22 @@ public:
      */
     template <typename MatrixType, typename DistancePolicyType, LinkageMethod Method>
     static std::vector<MergeStep> cluster(const MatrixType& data, bool use_mmap = false,
-                                          bool verbose = true) {
+                                          bool verbose = true,
+                                          int n_threads = ::trex::utils::openmp::get_num_threads()) {
 
         Eigen::Index num_objs = data.cols();
+        if (n_threads < 1) {
+            throw std::invalid_argument("AgglomerativeClustering: n_threads must be >= 1.");
+        }
 
         // Every engine below assumes finite distances.
-        detail::reject_non_finite(data);
+        detail::reject_non_finite(data, n_threads);
 
         // -----------------------------------------------------------------------
         // PATH 1: SINGLE LINKAGE (SLINK Engine, O(N) Space)
         // -----------------------------------------------------------------------
         if constexpr (Method == LinkageMethod::Single) {
-            SLINK<MatrixType, DistancePolicyType> slink(data);
+            SLINK<MatrixType, DistancePolicyType> slink(data, n_threads);
             slink.cluster();
 
             // Note: SLINK returns a pointer representation, needs Kruskal's conversion
@@ -191,7 +199,7 @@ public:
                 // the Lance-Williams UPGMA formula and violates reducibility, causing NNChain
                 // cycles for non-perfectly-separated data.
                 using Policy = ProjectedGeometricUpdatePolicy<MatrixType, DistancePolicyType, Method>;
-                NNChain<MatrixType, Policy> nnchain(data, use_mmap, verbose);
+                NNChain<MatrixType, Policy> nnchain(data, use_mmap, verbose, n_threads);
                 nnchain.cluster();
                 return DendrogramUtils::format_nnchain_merges(nnchain.get_merges(), num_objs);
             }
@@ -205,7 +213,7 @@ public:
                               "(squared Euclidean); other exact metrics are not valid "
                               "in the Lance-Williams recurrence for Ward.");
                 using Policy = BlockTiledMatrixPolicy<MatrixType, DistancePolicyType, Method>;
-                NNChain<MatrixType, Policy> nnchain(data, use_mmap, verbose);
+                NNChain<MatrixType, Policy> nnchain(data, use_mmap, verbose, n_threads);
                 nnchain.cluster();
                 return DendrogramUtils::format_nnchain_merges(nnchain.get_merges(), num_objs);
             }
@@ -219,7 +227,7 @@ public:
             using Policy = BlockTiledMatrixPolicy<MatrixType, DistancePolicyType, Method>;
 
             // Pass the use_mmap flag down through NNChain into the BlockTiled constructor
-            NNChain<MatrixType, Policy> nnchain(data, use_mmap, verbose);
+            NNChain<MatrixType, Policy> nnchain(data, use_mmap, verbose, n_threads);
             nnchain.cluster();
             return DendrogramUtils::format_nnchain_merges(nnchain.get_merges(),
                                                             num_objs);
@@ -233,7 +241,7 @@ public:
                           "(squared Euclidean); the Lance-Williams centroid/median "
                           "recurrences are not valid for other metrics.");
             using Policy = BlockTiledMatrixPolicy<MatrixType, DistancePolicyType, Method>;
-            GenericLinkage<MatrixType, Policy> generic_linkage(data, use_mmap, verbose);
+            GenericLinkage<MatrixType, Policy> generic_linkage(data, use_mmap, verbose, n_threads);
             generic_linkage.cluster();
             return DendrogramUtils::format_nnchain_merges(generic_linkage.get_merges(),
                                                           num_objs);

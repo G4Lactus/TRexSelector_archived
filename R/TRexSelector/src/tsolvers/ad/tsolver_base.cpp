@@ -107,10 +107,7 @@ int TSolver_Base::resolveThreadBudget(int n_threads) const {
 
 
 int TSolver_Base::threadsFor(double work) const noexcept {
-    if (n_threads_ <= 1 || work < kParallelWorkThreshold || omp_in_parallel() != 0) {
-        return 1;
-    }
-    return n_threads_;
+    return trex::utils::openmp::threads_for(n_threads_, work);
 }
 
 

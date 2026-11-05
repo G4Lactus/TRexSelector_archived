@@ -70,7 +70,7 @@ Other ML methods:
 is applied to \code{X} in-place immediately.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{MLPCA$new(X, M, center = TRUE, normalize = TRUE)}
+    \preformatted{MLPCA$new(X, M, center = TRUE, normalize = TRUE, n_threads = NULL)}
     \if{html}{\out{</div>}}
   }
   \subsection{Arguments}{
@@ -84,6 +84,10 @@ centering/normalizing; call \code{restore()} to undo.}
 (default: \code{TRUE}).}
       \item{\code{normalize}}{Logical, whether to scale the columns of \code{X}
 in-place (default: \code{TRUE}).}
+      \item{\code{n_threads}}{Integer, the thread budget of the matrix products of
+\code{fit()} and \code{transform()} (\code{NULL}, the default: the
+library's default budget, \code{\link{trex_get_num_threads}()},
+initially 1).}
     }
     \if{html}{\out{</div>}}
   }

@@ -116,6 +116,9 @@
 
 // Eigen includes
 #include <Eigen/Core>
+
+// utils includes
+#include <utils/openmp/utils_eigen_threads.hpp>
 #include <Eigen/SparseCore>
 
 // Model-selection includes
@@ -141,6 +144,18 @@ public:
 
     /** @brief Default constructor. */
     ien_gaussian() = default;
+
+    /** @brief Set the thread budget of the Eigen products of fit() (>= 1);
+     *  the library's default budget unless set. */
+    void set_num_threads(int n_threads) {
+        if (n_threads < 1) {
+            throw std::invalid_argument("ien_gaussian::set_num_threads: n_threads must be >= 1.");
+        }
+        n_threads_ = n_threads;
+    }
+
+    /** @brief The thread budget of the Eigen products of fit(). */
+    int num_threads() const noexcept { return n_threads_; }
 
     /**
      * @brief Fit the IEN path with the group-mean penalty (TIENET geometry).
@@ -183,6 +198,8 @@ public:
              double       devmax   = 1.0,
              Eigen::Index dfmax    = -1)
     {
+        // Eigen's products run on this object's budget for the scope of the fit
+        ::trex::utils::openmp::EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
         validate(X, y, lambda2, lambda1_grid);
         setup_group_penalty(groups, X.cols());
         preprocess(X, y);
@@ -204,6 +221,8 @@ public:
              double       devmax   = 1.0,
              Eigen::Index dfmax    = -1)
     {
+        // Eigen's products run on this object's budget for the scope of the fit
+        ::trex::utils::openmp::EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
         validate(X, y, lambda2, lambda1_grid);
         setup_sparse_penalty(K, X.cols());
         preprocess(X, y);
@@ -271,6 +290,9 @@ public:
     }
 
 private:
+
+    /** @brief Thread budget of the Eigen products of fit() (>= 1). */
+    int n_threads_{::trex::utils::openmp::get_num_threads()};
 
     // ---- penalty configuration ----------------------------------------------
 
@@ -629,6 +651,18 @@ public:
     /** @brief Default constructor. */
     ienet_cv_ccd() = default;
 
+    /** @brief Set the thread budget of the Eigen products of fit() (>= 1);
+     *  the library's default budget unless set. The fold fits inherit it. */
+    void set_num_threads(int n_threads) {
+        if (n_threads < 1) {
+            throw std::invalid_argument("ienet_cv_ccd::set_num_threads: n_threads must be >= 1.");
+        }
+        n_threads_ = n_threads;
+    }
+
+    /** @brief The thread budget of the Eigen products of fit(). */
+    int num_threads() const noexcept { return n_threads_; }
+
     /**
      * @brief Fit K-fold CV with the group-mean penalty (TIENET geometry).
      *
@@ -712,6 +746,8 @@ public:
              double       tol               = 1e-4,
              double       dfmax_ratio       = 0.8)
     {
+        // Eigen's products run on this object's budget for the scope of the fit
+        ::trex::utils::openmp::EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
         groups_ = groups;
         use_group_ = true;
         run_cv(X, y, n_folds, n_lambda2, lambda2_ratio, n_lambda1,
@@ -734,6 +770,8 @@ public:
              double       tol               = 1e-4,
              double       dfmax_ratio       = 0.8)
     {
+        // Eigen's products run on this object's budget for the scope of the fit
+        ::trex::utils::openmp::EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
         K_ = K;
         use_group_ = false;
         run_cv(X, y, n_folds, n_lambda2, lambda2_ratio, n_lambda1,
@@ -867,6 +905,9 @@ public:
     }
 
 private:
+
+    /** @brief Thread budget of the Eigen products of fit() and the fold fits (>= 1). */
+    int n_threads_{::trex::utils::openmp::get_num_threads()};
 
     void run_cv(Eigen::Ref<const Eigen::MatrixXd> X,
                 Eigen::Ref<const Eigen::VectorXd> y,
@@ -1015,6 +1056,7 @@ private:
             Eigen::MatrixXd warm_ref;
             for (Eigen::Index k2 = 0; k2 < K2; ++k2) {
                 ien_gaussian ref;
+                ref.set_num_threads(n_threads_);
                 if (k2 > 0) ref.set_warm_start(&warm_ref);
                 if (use_group_)
                     ref.fit(X, y, lambdas_(k2), groups_, lambda1s_,
@@ -1064,6 +1106,7 @@ private:
                 const Eigen::Index len =
                     k1_len[static_cast<std::size_t>(k2)];
                 ien_gaussian en;
+                en.set_num_threads(n_threads_);
                 if (k2 > 0) en.set_warm_start(&warm_fold);
                 if (use_group_)
                     en.fit(X_tr, y_tr, lambdas_(k2), groups_,

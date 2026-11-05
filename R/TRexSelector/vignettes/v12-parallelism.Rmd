@@ -35,18 +35,23 @@ thread, and a T-solver used on its own runs serially. Parallel work is opt-in th
 `trex_control()`: `max_outer_threads` for the experiments and `max_inner_threads` for the solvers'
 passes.
 
-# The thread count of the package
+# The default thread budget of the package
 
-`trex_get_max_threads()` reads the OpenMP thread count of the backend and `trex_set_num_threads()` sets
-it for the session, returning the previous value. In a build without OpenMP both report one thread and
-every setting is a no-op.
+The package is single-threaded by default on every machine. Every parallel region of the backend runs on
+an explicit budget, and the methods without an option of their own (the scalers, the clustering, the ML
+regressions, `trex_normalize_design()`, the dummy and data generators) take the package's default budget,
+which starts at 1. `trex_get_num_threads()` reads that default, `trex_set_num_threads()` sets it for the
+session and returns the previous value, and the `n_threads` argument of those methods overrides it per
+object. Inside a selector the same kernels take `max_inner_threads`. `trex_get_max_threads()` reports the
+threads OpenMP can run on this machine, an upper bound for a budget. In a build without OpenMP every
+setting is a no-op and the machine count is one.
 
 ```{r threads}
+trex_get_num_threads()
 trex_get_max_threads()
 ```
 
-This count is the budget of the one-shot kernels: the scalers, the dummy generation, the clustering. The
-selectors and the solvers do not read it. Their budget comes from the control.
+The selectors and the solvers do not read the default budget. Their budget comes from the control.
 
 # The solvers' passes
 
@@ -103,11 +108,11 @@ order for the same reason.
 A Monte Carlo study usually parallelizes over trials. Then the trials own the cores, and the package
 should run serially inside every worker, which is the default. Two details matter.
 
-- With `parallel::mclapply()` the workers are forks of the session and inherit its thread count. Keep the
-  count at one in the workers, or set it there with `trex_set_num_threads(1)`, so that the forks do not
-  oversubscribe the machine.
+- With `parallel::mclapply()` the workers are forks of the session and inherit its default budget. Keep
+  it at one in the session, or set it to one in the workers with `trex_set_num_threads(1)`, so that the
+  forks do not oversubscribe the machine.
 - With `parallel::parLapply()` or the future framework the workers are separate R processes with the
-  default count of a fresh session. Load the package in the workers and keep the defaults.
+  default budget of a fresh session, one thread. Load the package in the workers and keep the defaults.
 
 ```{r mc, eval = FALSE}
 trials <- parallel::mclapply(seq_len(40), function(mc) {

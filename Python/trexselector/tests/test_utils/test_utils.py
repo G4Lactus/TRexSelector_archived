@@ -302,6 +302,53 @@ def test_set_num_threads_no_exception():
     set_num_threads(1)  # should not raise
 
 
+def test_default_thread_budget_is_one_and_the_setter_validates():
+    from trexselector.utils import get_num_threads
+    assert get_num_threads() == 1
+    assert set_num_threads(2) == 1
+    assert get_num_threads() == 2
+    assert set_num_threads(1) == 2
+    assert get_num_threads() == 1
+    with pytest.raises(ValueError):
+        set_num_threads(0)
+    assert get_num_threads() == 1
+
+
+def test_n_threads_argument_of_the_kernels():
+    import trexselector as tsn
+    from trexselector.ml_methods import (
+        ElasticNet, ElasticNetCV, LpNormScaler, PCA, RidgeCV, RidgeSolver, SVDSolver, ZScoreScaler,
+    )
+    from trexselector.ml_methods.clustering import LinkageMethod, agglomerative_cluster
+
+    X = np.asfortranarray(np.random.default_rng(3).standard_normal((50, 6)))
+    y = np.ascontiguousarray(X[:, 0] + 0.1 * np.random.default_rng(4).standard_normal(50))
+
+    # None is the library's default budget; a budget is an object option
+    assert ZScoreScaler().get_num_threads() == 1
+    assert ZScoreScaler(n_threads=2).get_num_threads() == 2
+    assert LpNormScaler(n_threads=3).get_num_threads() == 3
+    assert RidgeCV(low_memory=False, n_threads=2).num_threads() == 2
+    assert ElasticNet(low_memory=False, n_threads=2).num_threads() == 2
+    assert ElasticNetCV(low_memory=False, n_threads=2).num_threads() == 2
+    assert SVDSolver(n_threads=2).num_threads() == 2
+    assert PCA(n_threads=2).get_num_threads() == 2
+    with pytest.raises(ValueError):
+        ZScoreScaler(n_threads=0)
+    with pytest.raises(ValueError):
+        agglomerative_cluster(X, LinkageMethod.Average, n_threads=0)
+
+    # A budget changes no result
+    l1 = agglomerative_cluster(X, LinkageMethod.Average)
+    l2 = agglomerative_cluster(X, LinkageMethod.Average, n_threads=2)
+    np.testing.assert_array_equal(l1, l2)
+    d1 = tsn.normalize_design(X, y)
+    d2 = tsn.normalize_design(X, y, n_threads=2)
+    np.testing.assert_array_equal(d1["X"], d2["X"])
+    np.testing.assert_array_equal(RidgeSolver.solve(X, y, 0.5, n_threads=2),
+                                  RidgeSolver.solve(X, y, 0.5))
+
+
 def test_set_num_threads_restore():
     original = get_max_threads()
     set_num_threads(1)

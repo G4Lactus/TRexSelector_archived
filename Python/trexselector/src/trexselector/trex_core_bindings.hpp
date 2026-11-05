@@ -187,10 +187,12 @@ inline void bind_trex_core(py::module& m_tsm) {
     // can reproduce the selector's L2 / ZSCORE preprocessing (then run under
     // NONE), or inspect the parameters. Copies; the inputs are untouched.
     m_tsm.def("normalize_design",
-        [](Eigen::MatrixXd X, Eigen::VectorXd y, dn::ScalingMode scaling_mode, double eps) {
+        [](Eigen::MatrixXd X, Eigen::VectorXd y, dn::ScalingMode scaling_mode, double eps,
+           std::optional<int> n_threads) {
             dn::NormalizationParams params;
             dn::centerY(y, params, scaling_mode);
-            dn::centerAndL2NormalizeX(X, params, eps, /*verbose=*/false, scaling_mode);
+            dn::centerAndL2NormalizeX(X, params, eps, /*verbose=*/false, scaling_mode,
+                                      n_threads.value_or(trex::utils::openmp::get_num_threads()));
             py::dict out;
             out["X"]        = X;
             out["y"]        = y;
@@ -202,13 +204,16 @@ inline void bind_trex_core(py::module& m_tsm) {
         py::arg("X"), py::arg("y"),
         py::arg("scaling_mode") = dn::ScalingMode::L2,
         py::arg("eps") = 1e-6,
+        py::arg("n_threads") = py::none(),
         "Apply the selectors' data normalization to copies of X and y and return a dict with "
         "keys 'X', 'y' (the normalized copies), 'X_means', 'X_scales' (the per-column divisors: "
         "L2 norms for L2, sample SDs for ZSCORE, ones for NONE) and 'y_mean'. Under "
         "ScalingMode.NONE the copies equal the inputs and the parameters are the identity. "
         "eps is the dead-column threshold on the working L2 norm (the selectors use the solver "
-        "tolerance, default 1e-6). Raises ValueError on a non-finite entry or a dead column "
-        "(constant under L2 / ZSCORE, all-zero under NONE), naming the column (0-based).");
+        "tolerance, default 1e-6). n_threads is the thread budget of the column passes (None: "
+        "the library's default budget, utils.get_num_threads(), initially 1). Raises ValueError "
+        "on a non-finite entry or a dead column (constant under L2 / ZSCORE, all-zero under "
+        "NONE), naming the column (0-based).");
 
     // Bind LLoopStrategy enum
     py::enum_<LLoopStrategy>(m_tsm, "LLoopStrategy", "L-loop strategy controlling how dummy variables are constructed "

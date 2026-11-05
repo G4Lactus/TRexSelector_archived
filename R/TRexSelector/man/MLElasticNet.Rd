@@ -66,7 +66,7 @@ Other ML methods:
   Initialize the MLElasticNet object.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{MLElasticNet$new(low_memory = FALSE)}
+    \preformatted{MLElasticNet$new(low_memory = FALSE, n_threads = NULL)}
     \if{html}{\out{</div>}}
   }
   \subsection{Arguments}{
@@ -78,6 +78,9 @@ X (one n x p matrix while fitting). \code{TRUE}: it runs on X itself
 (an \code{mmap_matrix} is read in place, \code{"readonly"} suffices)
 with no allocation of the size of X; same estimator and grid, the two
 engines agree to rounding (about 1e-12 in the coefficients).}
+      \item{\code{n_threads}}{Integer, the thread budget of the fit's matrix products
+(\code{NULL}, the default: the library's default budget,
+\code{\link{trex_get_num_threads}()}, initially 1).}
     }
     \if{html}{\out{</div>}}
   }

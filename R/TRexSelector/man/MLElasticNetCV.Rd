@@ -70,7 +70,7 @@ Other ML methods:
   Initialize the MLElasticNetCV object.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{MLElasticNetCV$new(low_memory = FALSE)}
+    \preformatted{MLElasticNetCV$new(low_memory = FALSE, n_threads = NULL)}
     \if{html}{\out{</div>}}
   }
   \subsection{Arguments}{
@@ -80,6 +80,9 @@ Other ML methods:
 full-data fit and every fold on X itself with a 0/1 training mask
 (no allocation of the size of X; an \code{mmap_matrix} is read in
 place). See \code{\link{MLElasticNet}}.}
+      \item{\code{n_threads}}{Integer, the thread budget of the matrix products of the
+fit and its folds (\code{NULL}, the default: the library's default
+budget, \code{\link{trex_get_num_threads}()}, initially 1).}
     }
     \if{html}{\out{</div>}}
   }

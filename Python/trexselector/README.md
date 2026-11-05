@@ -132,9 +132,12 @@ after the other, every T-solver on one thread. Parallel work is opt-in, and one 
   since the passes are memory-bandwidth bound.
 - `SolverOptions(n_threads=m)` is the same budget for a T-solver used on its own, and `setNumThreads()` changes it on a
   live solver.
-- `trexselector.utils.set_num_threads()` sets the process-wide OpenMP count that the one-shot kernels use (the
-  scalers, the dummy generation, the clustering), `get_max_threads()` reads it. The selectors and the solvers do not
-  read it.
+- Every other kernel (the scalers, the clustering, the ML regressions, `normalize_design()`, the dummy and data
+  generators) runs on the library's default budget, which starts at 1, so the package is single-threaded by default on
+  every machine. `trexselector.utils.set_num_threads(m)` sets that default for the process and returns the previous
+  value, `get_num_threads()` reads it, and the `n_threads` argument of the scalers, the clustering and the ML classes
+  overrides it per object. Inside a selector these kernels take `max_inner_threads`. `get_max_threads()` reports the
+  threads OpenMP can run on the machine, an upper bound for a budget.
 
 Every thread option is a whole number of at least 1; other values raise `ValueError`. A seeded run selects the same
 variables whatever the thread settings. Without OpenMP every setting is a no-op and `get_max_threads()` returns 1 (see

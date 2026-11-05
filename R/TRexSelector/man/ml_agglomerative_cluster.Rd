@@ -9,7 +9,8 @@ ml_agglomerative_cluster(
   method = ml_linkage_method$Ward,
   metric = ml_distance_metric$Euclidean,
   use_mmap = FALSE,
-  verbose = FALSE
+  verbose = FALSE,
+  n_threads = NULL
 )
 }
 \arguments{
@@ -26,6 +27,9 @@ Ignored when \code{data} is already an \code{mmap_matrix} (always \code{TRUE}).}
 
 \item{verbose}{Whether the backend prints its allocation line (the size of the distance matrix in
 RAM or in the memory-mapped file). Default is FALSE.}
+
+\item{n_threads}{Integer, the thread budget of the distance loops (\code{NULL}, the default: the
+library's default budget, \code{\link{trex_get_num_threads}()}, initially 1).}
 }
 \value{
 A numeric matrix representing the computed hierarchical linkage.

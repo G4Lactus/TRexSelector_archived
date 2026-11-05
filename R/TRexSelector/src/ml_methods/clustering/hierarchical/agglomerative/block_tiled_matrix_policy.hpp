@@ -43,6 +43,9 @@
 // Eigen includes
 #include <Eigen/Dense>
 
+// utils includes
+#include <utils/openmp/utils_openmp.hpp>
+
 // ml_methods includes
 #include <ml_methods/clustering/hierarchical/agglomerative/agglomerative_types.hpp>
 
@@ -207,6 +210,9 @@ private:
 
     DistancePolicyType dist_policy_;
 
+    /** @brief Thread budget of the pairwise-distance fill (>= 1). */
+    int n_threads_;
+
     inline Eigen::Index get_tiled_index(Eigen::Index r, Eigen::Index c) const {
         const Eigen::Index block_r = r / BLOCK_SIZE;
         const Eigen::Index block_c = c / BLOCK_SIZE;
@@ -237,8 +243,9 @@ public:
      * @param use_mmap If true, the distance matrix is stored on disk using memory mapping.
      * @param verbose If true, emit backend-allocation log messages (default: true).
      */
-    BlockTiledMatrixPolicy(const MatrixType& data, bool use_mmap = false, bool verbose = true)
-        : use_mmap_(use_mmap), dist_policy_(data)
+    BlockTiledMatrixPolicy(const MatrixType& data, bool use_mmap = false, bool verbose = true,
+                           int n_threads = ::trex::utils::openmp::get_num_threads())
+        : use_mmap_(use_mmap), dist_policy_(data, -1, n_threads), n_threads_(n_threads)
     {
         namespace fs = std::filesystem;
         namespace bip = boost::interprocess;
@@ -310,8 +317,13 @@ public:
         id_to_idx_.assign(num_original_ * 2 - 1, -1);
         idx_to_id_.assign(num_original_, -1);
 
-        #pragma omp parallel for schedule(dynamic)
+        // Team of the pairwise-distance fill: the budget, or 1 below the work threshold
+        [[maybe_unused]] const int nt = ::trex::utils::openmp::threads_for(
+            n_threads_, static_cast<double>(num_original_) * static_cast<double>(num_original_) *
+                            static_cast<double>(data.rows()));
+        #pragma omp parallel for schedule(dynamic) num_threads(nt) if (nt > 1)
         for (Eigen::Index i = 0; i < num_original_; ++i) {
+            ::trex::utils::openmp::team_probe::record();
             id_to_idx_[i] = i;
             idx_to_id_[i] = i;
             set_physical_distance(i, i, 0.0);

@@ -19,6 +19,9 @@
 // Eigen includes
 #include <Eigen/Dense>
 
+// utils includes
+#include <utils/openmp/utils_eigen_threads.hpp>
+
 // ===================================================================================
 
 // Namespace integration
@@ -58,7 +61,14 @@ public:
      */
     static Eigen::VectorXd solve(const Eigen::Ref<const Eigen::MatrixXd>& X,
                                  const Eigen::Ref<const Eigen::VectorXd>& y,
-                                 double lambda) {
+                                 double lambda,
+                                 int n_threads = ::trex::utils::openmp::get_num_threads()) {
+
+        if (n_threads < 1) {
+            throw std::invalid_argument("RidgeSolver::solve: n_threads must be >= 1.");
+        }
+        // Eigen's products run on the budget for the scope of the solve
+        ::trex::utils::openmp::EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads);
 
         Eigen::Index n = X.rows();
         Eigen::Index p = X.cols();

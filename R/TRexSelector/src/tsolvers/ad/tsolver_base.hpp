@@ -37,6 +37,7 @@
 // Utils includes
 #include <utils/serialization/utils_cereal_eigen.hpp>
 #include <utils/openmp/utils_openmp.hpp>
+#include <utils/openmp/utils_eigen_threads.hpp>
 
 // tsolvers includes
 #include <tsolvers/ad/solver_utils/solver_preprocessing.hpp>
@@ -56,28 +57,9 @@ using ScalingMode = solver_utils::preprocessing::ScalingMode;
 
 // ===================================================================================
 
-/**
- * @brief RAII guard pinning Eigen's global thread count to the solver's
- * budget for the enclosing scope, outside any parallel region of a caller.
- * Inside a caller's region (the experiment runner's team) it does nothing:
- * that caller owns the global setting, and a write from inside a team would
- * race. Restores the previous value on exit so nothing leaks into the host.
- */
-class EigenThreadBudgetGuard {
-public:
-    explicit EigenThreadBudgetGuard(int n_threads)
-        : active_(omp_in_parallel() == 0), previous_(Eigen::nbThreads()) {
-        if (active_) { Eigen::setNbThreads(n_threads > 0 ? n_threads : 1); }
-    }
-    ~EigenThreadBudgetGuard() { if (active_) { Eigen::setNbThreads(previous_); } }
-
-    EigenThreadBudgetGuard(const EigenThreadBudgetGuard&) = delete;
-    EigenThreadBudgetGuard& operator=(const EigenThreadBudgetGuard&) = delete;
-
-private:
-    bool active_;
-    int previous_;
-};
+/** @brief The scoped Eigen thread budget of utils/openmp/utils_eigen_threads.hpp,
+ *  aliased so the solvers refer to it unqualified. */
+using EigenThreadBudgetGuard = trex::utils::openmp::EigenThreadBudgetGuard;
 
 // ===================================================================================
 
@@ -857,8 +839,9 @@ protected:
 
     /** @brief Work of a pass (entries of the design it touches) below which
      *  its region stays serial: the fork-join cost exceeds the gain there.
-     *  Provisional value from the measurement of the inner regions. */
-    static constexpr double kParallelWorkThreshold = 1.0e6;
+     *  The library-wide threshold of utils_openmp.hpp. */
+    static constexpr double kParallelWorkThreshold =
+        trex::utils::openmp::kParallelWorkThreshold;
 
     /** @brief Resolved thread budget of the solver's own regions (>= 1).
      *  Not serialized: a loaded solver starts at 1. */

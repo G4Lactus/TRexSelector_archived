@@ -71,7 +71,12 @@ Other ML methods:
   Initialize the MLLpNormScaler
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{MLLpNormScaler$new(norm_type = 2, center = TRUE, scale = TRUE)}
+    \preformatted{MLLpNormScaler$new(
+  norm_type = 2,
+  center = TRUE,
+  scale = TRUE,
+  n_threads = NULL
+)}
     \if{html}{\out{</div>}}
   }
   \subsection{Arguments}{
@@ -80,6 +85,9 @@ Other ML methods:
       \item{\code{norm_type}}{Integer, 1 for L1 norm, 2 for L2 norm (default: 2)}
       \item{\code{center}}{Logical, whether to center columns to mean 0 (default: TRUE)}
       \item{\code{scale}}{Logical, whether to scale columns to unit Lp norm (default: TRUE)}
+      \item{\code{n_threads}}{Integer, the thread budget of the column passes
+(\code{NULL}, the default: the library's default budget,
+\code{\link{trex_get_num_threads}()}, initially 1).}
     }
     \if{html}{\out{</div>}}
   }

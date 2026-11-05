@@ -30,8 +30,11 @@
  */
 // ===================================================================================
 
+#include <atomic>
 #include <chrono>
 #include <iostream>
+#include <stdexcept>
+#include <string>
 
 // ===================================================================================
 
@@ -211,14 +214,61 @@ inline void print_info() {
 #endif
 }
 
-/** @brief Set the number of threads for OpenMP */
-inline void set_num_threads(int num_threads) {
-    #if HAS_OPENMP
-        omp_set_num_threads(num_threads);
-    #endif
+// ============================================================================
+// The library's thread budget
+// ============================================================================
+//
+// Every OpenMP region of the library carries an explicit num_threads clause.
+// The T-solvers and the selectors take their budget from their options
+// (n_threads, max_inner_threads); the one-shot kernels without an option of
+// their own (the dummy and data generators, the normalizer, the scalers, the
+// clustering, the ML regressions' Eigen products) take the library's default
+// budget below, which starts at 1. The OpenMP runtime's own default team is
+// never used, so a default call is single-threaded on every machine.
+// ============================================================================
+
+/**
+ * @brief Work threshold (matrix entries) below which a budgeted region stays
+ *        serial, because forking a team costs more than the work.
+ */
+inline constexpr double kParallelWorkThreshold = 1.0e6;
+
+namespace detail {
+    /** @brief Storage of the library's default thread budget. */
+    inline std::atomic<int>& default_threads() {
+        static std::atomic<int> value{1};
+        return value;
+    }
 }
 
-/** @brief Get the maximum number of threads available for OpenMP */
+/**
+ * @brief The library's default thread budget, initially 1.
+ *
+ * Kernels without a thread option of their own use it; set_num_threads()
+ * changes it for the process.
+ */
+inline int get_num_threads() {
+    return detail::default_threads().load(std::memory_order_relaxed);
+}
+
+/**
+ * @brief Set the library's default thread budget.
+ * @param num_threads The budget, at least 1.
+ * @return The previous budget.
+ * @throws std::invalid_argument when num_threads is below 1.
+ */
+inline int set_num_threads(int num_threads) {
+    if (num_threads < 1) {
+        throw std::invalid_argument(
+            "set_num_threads: num_threads must be >= 1. Got: " + std::to_string(num_threads));
+    }
+    return detail::default_threads().exchange(num_threads, std::memory_order_relaxed);
+}
+
+/**
+ * @brief Threads the OpenMP runtime can run on this machine (1 without
+ *        OpenMP). An upper bound for a budget, not the budget itself.
+ */
 inline int get_max_threads() {
     #if HAS_OPENMP
         return omp_get_max_threads();
@@ -226,6 +276,60 @@ inline int get_max_threads() {
         return 1;
     #endif
 }
+
+/**
+ * @brief Team size of a budgeted region.
+ * @param budget The caller's thread budget (an option or get_num_threads()).
+ * @param work The region's work in matrix entries.
+ * @return 1 when the budget is 1, the work is below kParallelWorkThreshold or
+ *         the caller already runs inside a team; the budget otherwise.
+ */
+inline int threads_for(int budget, double work) noexcept {
+    if (budget <= 1 || work < kParallelWorkThreshold || omp_in_parallel() != 0) {
+        return 1;
+    }
+    return budget;
+}
+
+/**
+ * @brief Team-size probe for the tests: records the largest team any
+ *        budgeted region of the library ran on since the last reset.
+ *
+ * Off by default; record() is one relaxed load per call while off.
+ */
+namespace team_probe {
+
+    namespace detail {
+        inline std::atomic<bool>& enabled() {
+            static std::atomic<bool> value{false};
+            return value;
+        }
+        inline std::atomic<int>& max_team() {
+            static std::atomic<int> value{0};
+            return value;
+        }
+    }
+
+    /** @brief Switch the probe on or off. */
+    inline void enable(bool on) { detail::enabled().store(on, std::memory_order_relaxed); }
+
+    /** @brief Forget the recorded maximum. */
+    inline void reset() { detail::max_team().store(0, std::memory_order_relaxed); }
+
+    /** @brief The largest team recorded since the last reset (0 when none ran). */
+    inline int max_team() { return detail::max_team().load(std::memory_order_relaxed); }
+
+    /** @brief Called inside a region: records the size of the current team. */
+    inline void record() {
+        if (!detail::enabled().load(std::memory_order_relaxed)) return;
+        const int team = omp_get_num_threads();
+        auto& recorded = detail::max_team();
+        int current = recorded.load(std::memory_order_relaxed);
+        while (team > current &&
+               !recorded.compare_exchange_weak(current, team, std::memory_order_relaxed)) {}
+    }
+
+} /* End of namespace team_probe */
 
 // ===================================================================================
 } /* End of namespace trex::utils::openmp */

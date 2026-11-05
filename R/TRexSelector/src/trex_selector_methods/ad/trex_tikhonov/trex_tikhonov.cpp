@@ -434,6 +434,7 @@ double TRexTikhonovSelector::computeLambda2() const {
             // scan; the dfmax support cap (ctrl.cv_dfmax_ratio) is what makes
             // it affordable. max_iter / tol are the tuner's defaults.
             ms::ienet_cv_ccd cv;
+            cv.set_num_threads(trex_ctrl_.max_inner_threads);
             cv.fit(*X_, y_, trex_tik_ctrl_.tikhonov_K,
                    trex_tik_ctrl_.cv_n_folds,
                    trex_tik_ctrl_.cv_n_lambda2,
@@ -460,6 +461,7 @@ double TRexTikhonovSelector::computeLambda2() const {
             // null-space block interpolates the training folds (any pick
             // there is floor-driven).
             ms::tikhonov_cv_svd cv;
+            cv.set_num_threads(trex_ctrl_.max_inner_threads);
             cv.fit(*X_, y_, trex_tik_ctrl_.tikhonov_K,
                    trex_tik_ctrl_.cv_n_folds,
                    trex_tik_ctrl_.cv_n_lambda,

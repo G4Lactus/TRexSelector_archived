@@ -643,8 +643,15 @@ void TRexDASelector::setupDA_NN() {
         inv_norms(j) = (col_norms(j) > eps_) ? (1.0 / col_norms(j)) : 0.0;
     }
 
-    #pragma omp parallel for schedule(dynamic) if (p > 100)
+    // Team of the correlation scan: the selector's inner budget, or 1 below
+    // the work threshold (p * p dot products of length n)
+    [[maybe_unused]] const int nt = trex::utils::openmp::threads_for(
+        trex_ctrl_.max_inner_threads,
+        static_cast<double>(p) * static_cast<double>(p) * static_cast<double>(X_->rows()));
+
+    #pragma omp parallel for schedule(dynamic) num_threads(nt) if (nt > 1)
     for (Eigen::Index j = 0; j < p; ++j) {
+        trex::utils::openmp::team_probe::record();
         for (Eigen::Index k = 0; k < p; ++k) {
             if (k == j) { continue; }
             const double abs_cor =

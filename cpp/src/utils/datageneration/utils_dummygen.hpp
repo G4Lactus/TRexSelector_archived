@@ -578,6 +578,8 @@ struct Distribution {
  * @param dist Distribution configuration.
  * @param col_offset Global column index of D's first column within the
  *                   base's seed domain (0 for standalone matrices).
+ * @param n_threads Thread budget of the column loop; the library's default
+ *                  budget (openmp::get_num_threads(), initially 1) unless given.
  */
 template<typename MatrixType>
 inline void generate_dummies(
@@ -586,7 +588,8 @@ inline void generate_dummies(
     std::size_t p,
     std::uint64_t base_seed,
     const Distribution& dist = Distribution::Normal(),
-    std::size_t col_offset = 0
+    std::size_t col_offset = 0,
+    int n_threads = ::trex::utils::openmp::get_num_threads()
 ) {
     // OpenMP Safety:
     // Each column iteration uses a local PRNG.
@@ -594,13 +597,18 @@ inline void generate_dummies(
     // per column WITHIN a base (injective; cross-base collisions are 2^-64).
     // Threads cannot generate duplicates or race on the PRNG state.
 
+    // Team of the column loop: the budget, or 1 below the work threshold
+    [[maybe_unused]] const int nt = ::trex::utils::openmp::threads_for(
+        n_threads, static_cast<double>(n) * static_cast<double>(p));
+
     // Choose generation method based on distribution type
     switch (dist.get_type()) {
 
         /** @brief Generate Normal distributed dummies. */
         case Distribution::Type::Normal: {
-            #pragma omp parallel for schedule(static)
+            #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
             for (std::size_t j = 0; j < p; ++j) {
+                ::trex::utils::openmp::team_probe::record();
                 std::mt19937 gen = make_column_engine(base_seed, col_offset + j);
                 std::normal_distribution<double> distribution(0.0, 1.0);
                 for (std::size_t i = 0; i < n; ++i) {
@@ -614,8 +622,9 @@ inline void generate_dummies(
         /** @brief Generate Uniform distributed dummies. */
         case Distribution::Type::Uniform: {
             double a = dist.uniform_a;
-            #pragma omp parallel for schedule(static)
+            #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
             for (std::size_t j = 0; j < p; ++j) {
+                ::trex::utils::openmp::team_probe::record();
                 std::mt19937 gen = make_column_engine(base_seed, col_offset + j);
                 std::uniform_real_distribution<double> distribution(-a, a);
                 for (std::size_t i = 0; i < n; ++i) {
@@ -628,8 +637,9 @@ inline void generate_dummies(
 
         /** @brief Generate Rademacher distributed dummies. */
         case Distribution::Type::Rademacher: {
-            #pragma omp parallel for schedule(static)
+            #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
             for (std::size_t j = 0; j < p; ++j) {
+                ::trex::utils::openmp::team_probe::record();
                 std::mt19937 gen = make_column_engine(base_seed, col_offset + j);
                 std::bernoulli_distribution distribution(0.5);
                 for (std::size_t i = 0; i < n; ++i) {
@@ -646,8 +656,9 @@ inline void generate_dummies(
             // Scale to unit variance if df > 2
             double scale = (df > 2.0) ? std::sqrt((df - 2.0) / df) :  1.0;
 
-            #pragma omp parallel for schedule(static)
+            #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
             for (std::size_t j = 0; j < p; ++j) {
+                ::trex::utils::openmp::team_probe::record();
                 std::mt19937 gen = make_column_engine(base_seed, col_offset + j);
                 std::student_t_distribution<double> distribution(df);
                 for (std::size_t i = 0; i < n; ++i) {
@@ -662,8 +673,9 @@ inline void generate_dummies(
         case Distribution::Type::Laplace: {
             double location = dist.laplace_location;
             double scale = dist.laplace_scale;
-            #pragma omp parallel for schedule(static)
+            #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
             for (std::size_t j = 0; j < p; ++j) {
+                ::trex::utils::openmp::team_probe::record();
                 std::mt19937 gen = make_column_engine(base_seed, col_offset + j);
                 boost::random::laplace_distribution<double> distribution(location, scale);
                 for (std::size_t i = 0; i < n; ++i) {
@@ -682,8 +694,9 @@ inline void generate_dummies(
             // std::extreme_value_distribution(a, b) has mean a + b * gamma, so
             // shift a down by scale * gamma to center the samples at `location`.
             double adjusted_location = location - scale * std::numbers::egamma;
-            #pragma omp parallel for schedule(static)
+            #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
             for (std::size_t j = 0; j < p; ++j) {
+                ::trex::utils::openmp::team_probe::record();
                 std::mt19937 gen = make_column_engine(base_seed, col_offset + j);
                 std::extreme_value_distribution<double> distribution(adjusted_location, scale);
                 for (std::size_t i = 0; i < n; ++i) {
@@ -699,8 +712,9 @@ inline void generate_dummies(
             double a = dist.triangle_a;
             double b = dist.triangle_b;
             double c = dist.triangle_c;
-            #pragma omp parallel for schedule(static)
+            #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
             for (std::size_t j = 0; j < p; ++j) {
+                ::trex::utils::openmp::team_probe::record();
                 std::mt19937 gen = make_column_engine(base_seed, col_offset + j);
                 boost::random::triangle_distribution<double> distribution(a, b, c);
                 for (std::size_t i = 0; i < n; ++i) {
@@ -723,8 +737,9 @@ inline void generate_dummies(
             }
 
             // Boost uniform_on_sphere distribution
-            #pragma omp parallel for schedule(static)
+            #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
             for (std::size_t j = 0; j < p; j += static_cast<std::size_t>(dim)) {
+                ::trex::utils::openmp::team_probe::record();
                 std::mt19937 gen = make_column_engine(base_seed, col_offset + j);
                 boost::random::uniform_on_sphere<double> distribution(dim);
                 for (std::size_t i = 0; i < n; ++i) {
@@ -745,8 +760,9 @@ inline void generate_dummies(
         case Distribution::Type::Mammen: {
             double p1 = dist.mammen_param_p1; // Pr for value -(sqrt(5) - 1) / 2
             double p2 = dist.mammen_param_p2; // Pr for value +(sqrt(5) + 1) / 2
-            #pragma omp parallel for schedule(static)
+            #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
             for (std::size_t j = 0; j < p; ++j) {
+                ::trex::utils::openmp::team_probe::record();
                 std::mt19937 gen = make_column_engine(base_seed, col_offset + j);
                 std::discrete_distribution<int> distribution({p1, p2});
                 for (std::size_t i = 0; i < n; ++i) {
@@ -762,8 +778,9 @@ inline void generate_dummies(
         case Distribution::Type::ConstrainedSparseRademacher: {
             double s = dist.constrained_sparse_rademacher_s;
 
-            #pragma omp parallel for schedule(static)
+            #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
             for (std::size_t j = 0; j < p; ++j) {
+                ::trex::utils::openmp::team_probe::record();
                 std::mt19937 gen = make_column_engine(base_seed, col_offset + j);
 
                 // Calculate even number of non-zeros: k = floor(s * n / 2) (floor -> std::size_t)
@@ -801,8 +818,9 @@ inline void generate_dummies(
         case Distribution::Type::Logistic: {
             double location = dist.logistic_location;
             double scale = dist.logistic_scale;
-            #pragma omp parallel for schedule (static)
+            #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
             for (std::size_t j = 0; j < p; ++j) {
+                ::trex::utils::openmp::team_probe::record();
                 std::mt19937 gen = make_column_engine(base_seed, col_offset + j);
                 // Lower bound excludes u = 0, which would map to -infinity
                 std::uniform_real_distribution<double> uniform_dist(

@@ -36,6 +36,9 @@
 // Eigen includes
 #include <Eigen/Core>
 
+// utils includes
+#include <utils/openmp/utils_eigen_threads.hpp>
+
 // ===================================================================================
 
 // Namespace embedding: trex::ml_methods::model_selection
@@ -75,6 +78,18 @@ public:
      */
     explicit enet_gaussian(bool low_memory) : low_memory_(low_memory) {}
 
+    /** @brief Set the thread budget of the Eigen products of fit() (>= 1);
+     *  the library's default budget unless set. */
+    void set_num_threads(int n_threads) {
+        if (n_threads < 1) {
+            throw std::invalid_argument("enet_gaussian::set_num_threads: n_threads must be >= 1.");
+        }
+        n_threads_ = n_threads;
+    }
+
+    /** @brief The thread budget of the Eigen products of fit(). */
+    int num_threads() const noexcept { return n_threads_; }
+
     /** @brief Switch the engine (see the constructor); takes effect at the next fit(). */
     void set_low_memory(bool low_memory) noexcept { low_memory_ = low_memory; }
 
@@ -112,6 +127,8 @@ public:
              int          max_iter         = 100000,
              double       tol              = 1e-7)
     {
+        // Eigen's products run on this object's budget for the scope of the fit
+        ::trex::utils::openmp::EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
         validate_inputs(X, y, alpha);
         if (low_memory_) {
             fit_raw_(X, y, /*mask=*/nullptr, /*lambda_grid=*/nullptr, alpha, n_lambda,
@@ -172,6 +189,8 @@ public:
              int    max_iter        = 100000,
              double tol             = 1e-7)
     {
+        // Eigen's products run on this object's budget for the scope of the fit
+        ::trex::utils::openmp::EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
         validate_inputs(X, y, alpha);
         if (lambda_grid.size() == 0) {
             throw std::invalid_argument(
@@ -242,6 +261,8 @@ public:
                     int    max_iter        = 100000,
                     double tol             = 1e-7)
     {
+        // Eigen's products run on this object's budget for the scope of the fit
+        ::trex::utils::openmp::EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
         validate_inputs(X, y, alpha);
         if (lambda_grid.size() == 0) {
             throw std::invalid_argument(
@@ -295,6 +316,9 @@ public:
     }
 
 private:
+
+    /** @brief Thread budget of the Eigen products of fit() (>= 1). */
+    int n_threads_{::trex::utils::openmp::get_num_threads()};
 
     // ---- shared standardised-space coordinate-descent core -----------------
     //
@@ -817,6 +841,18 @@ public:
      *  training mask, so the CV makes no allocation of the size of X. */
     explicit enet_cv_ccd(bool low_memory) : low_memory_(low_memory) {}
 
+    /** @brief Set the thread budget of the Eigen products of fit() (>= 1);
+     *  the library's default budget unless set. The fold fits inherit it. */
+    void set_num_threads(int n_threads) {
+        if (n_threads < 1) {
+            throw std::invalid_argument("enet_cv_ccd::set_num_threads: n_threads must be >= 1.");
+        }
+        n_threads_ = n_threads;
+    }
+
+    /** @brief The thread budget of the Eigen products of fit(). */
+    int num_threads() const noexcept { return n_threads_; }
+
     /** @brief Switch the engine; takes effect at the next fit(). */
     void set_low_memory(bool low_memory) noexcept { low_memory_ = low_memory; }
 
@@ -850,6 +886,8 @@ public:
              int          max_iter         = 100000,
              double       tol              = 1e-7)
     {
+        // Eigen's products run on this object's budget for the scope of the fit
+        ::trex::utils::openmp::EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
         if (X.rows() != y.size())
             throw std::invalid_argument("enet_cv_ccd::fit: X.rows() != y.size()");
         const Eigen::Index n = X.rows();
@@ -863,6 +901,7 @@ public:
         n_lambda_requested_ = n_lambda;
         {
             enet_gaussian full(low_memory_);
+            full.set_num_threads(n_threads_);
             full.fit(X, y, alpha, n_lambda, lambda_min_ratio,
                      standardize, intercept, /*use_strong_rule=*/false, max_iter, tol);
             lambdas_ = full.lambdas();
@@ -898,6 +937,7 @@ public:
                     y_te(t) = y(test_idx[static_cast<std::size_t>(t)]);
                 }
                 enet_gaussian en(true);
+                en.set_num_threads(n_threads_);
                 en.fit_masked(X, y, w, lambdas_, alpha,
                               standardize, intercept, /*use_strong_rule=*/false, max_iter, tol);
                 const Eigen::MatrixXd preds = en.predict_rows(X, test_idx);
@@ -920,6 +960,7 @@ public:
             // The gathered fold becomes the fit's working copy (centred and
             // standardised in place): one n_tr x p matrix per fold, not two.
             enet_gaussian en;
+            en.set_num_threads(n_threads_);
             en.fit_owned(std::move(X_tr), y_tr, lambdas_, alpha,
                          standardize, intercept, /*use_strong_rule=*/false, max_iter, tol);
 
@@ -1019,6 +1060,9 @@ public:
     }
 
 private:
+
+    /** @brief Thread budget of the Eigen products of fit() and the fold fits (>= 1). */
+    int n_threads_{::trex::utils::openmp::get_num_threads()};
 
     void check_fitted() const {
         if (!fitted_)

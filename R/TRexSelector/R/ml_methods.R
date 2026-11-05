@@ -37,8 +37,11 @@ MLZScoreScaler <- R6::R6Class("MLZScoreScaler",
     #' @param center Logical, whether to center columns to mean 0 (default: TRUE)
     #' @param scale Logical, whether to scale columns to unit SD (default: TRUE);
     #'   around 0 instead of the mean when \code{center = FALSE}, as in R's scale().
-    initialize = function(center = TRUE, scale = TRUE) {
-      private$cpp_ptr <- zscore_scaler_create(center, scale)
+    #' @param n_threads Integer, the thread budget of the column passes
+    #'   (\code{NULL}, the default: the library's default budget,
+    #'   \code{\link{trex_get_num_threads}()}, initially 1).
+    initialize = function(center = TRUE, scale = TRUE, n_threads = NULL) {
+      private$cpp_ptr <- zscore_scaler_create(center, scale, resolve_n_threads(n_threads))
     },
 
     #' @description Compute the centers and scales to be used for later scaling.
@@ -218,11 +221,15 @@ MLLpNormScaler <- R6::R6Class("MLLpNormScaler",
     #' @param norm_type Integer, 1 for L1 norm, 2 for L2 norm (default: 2)
     #' @param center Logical, whether to center columns to mean 0 (default: TRUE)
     #' @param scale Logical, whether to scale columns to unit Lp norm (default: TRUE)
-    initialize = function(norm_type = 2, center = TRUE, scale = TRUE) {
+    #' @param n_threads Integer, the thread budget of the column passes
+    #'   (\code{NULL}, the default: the library's default budget,
+    #'   \code{\link{trex_get_num_threads}()}, initially 1).
+    initialize = function(norm_type = 2, center = TRUE, scale = TRUE, n_threads = NULL) {
       if (!(norm_type %in% c(1, 2))) {
         stop("norm_type must be 1 (L1) or 2 (L2)")
       }
-      private$cpp_ptr <- lpnorm_scaler_create(norm_type, center, scale)
+      private$cpp_ptr <- lpnorm_scaler_create(norm_type, center, scale,
+                                              resolve_n_threads(n_threads))
     },
 
     #' @description Compute the norm parameters.
@@ -408,8 +415,11 @@ MLRidgeCV <- R6::R6Class("MLRidgeCV",
     #'   suffices), no p-dimensional coefficients; same estimator, grid and
     #'   rank rule, agreement to numerical precision; memory O(n^2) instead of
     #'   O(n p), the route for p >> n.
-    initialize = function(low_memory = FALSE) {
-      private$cpp_ptr <- ridge_cv_create(as.logical(low_memory))
+    #' @param n_threads Integer, the thread budget of the fit's matrix products
+    #'   (\code{NULL}, the default: the library's default budget,
+    #'   \code{\link{trex_get_num_threads}()}, initially 1).
+    initialize = function(low_memory = FALSE, n_threads = NULL) {
+      private$cpp_ptr <- ridge_cv_create(as.logical(low_memory), resolve_n_threads(n_threads))
     },
 
     #' @description Fit the CV model.
@@ -559,8 +569,11 @@ MLElasticNet <- R6::R6Class("MLElasticNet",
     #'   (an \code{mmap_matrix} is read in place, \code{"readonly"} suffices)
     #'   with no allocation of the size of X; same estimator and grid, the two
     #'   engines agree to rounding (about 1e-12 in the coefficients).
-    initialize = function(low_memory = FALSE) {
-      private$cpp_ptr <- enet_create(as.logical(low_memory))
+    #' @param n_threads Integer, the thread budget of the fit's matrix products
+    #'   (\code{NULL}, the default: the library's default budget,
+    #'   \code{\link{trex_get_num_threads}()}, initially 1).
+    initialize = function(low_memory = FALSE, n_threads = NULL) {
+      private$cpp_ptr <- enet_create(as.logical(low_memory), resolve_n_threads(n_threads))
     },
 
     #' @description Fit the EN path over an auto-generated glmnet-style grid.
@@ -725,8 +738,11 @@ MLElasticNetCV <- R6::R6Class("MLElasticNetCV",
     #'   full-data fit and every fold on X itself with a 0/1 training mask
     #'   (no allocation of the size of X; an \code{mmap_matrix} is read in
     #'   place). See \code{\link{MLElasticNet}}.
-    initialize = function(low_memory = FALSE) {
-      private$cpp_ptr <- enet_cv_create(as.logical(low_memory))
+    #' @param n_threads Integer, the thread budget of the matrix products of the
+    #'   fit and its folds (\code{NULL}, the default: the library's default
+    #'   budget, \code{\link{trex_get_num_threads}()}, initially 1).
+    initialize = function(low_memory = FALSE, n_threads = NULL) {
+      private$cpp_ptr <- enet_cv_create(as.logical(low_memory), resolve_n_threads(n_threads))
     },
 
     #' @description Fit K-fold CV over a glmnet-style grid.
@@ -838,6 +854,7 @@ MLElasticNetCV <- R6::R6Class("MLElasticNetCV",
 #' @export
 MLSVD <- R6::R6Class("MLSVD",
   private = list(
+    n_threads_ = 1L,
     min_dim_thresh_ = 10000,
     block_size_     = 1024
   ),
@@ -852,11 +869,15 @@ MLSVD <- R6::R6Class("MLSVD",
     #'   \code{mmap_matrix}). \code{p > 2 n} always takes the Gram path.
     #' @param block_size Integer (default 1024): the column block of the
     #'   block-wise passes.
-    initialize = function(min_dim_thresh = 10000, block_size = 1024) {
+    #' @param n_threads Integer, the thread budget of the matrix products
+    #'   (\code{NULL}, the default: the library's default budget,
+    #'   \code{\link{trex_get_num_threads}()}, initially 1).
+    initialize = function(min_dim_thresh = 10000, block_size = 1024, n_threads = NULL) {
       stopifnot(is.numeric(min_dim_thresh), min_dim_thresh >= 1,
                 is.numeric(block_size), block_size >= 1)
       private$min_dim_thresh_ <- as.numeric(min_dim_thresh)
       private$block_size_     <- as.numeric(block_size)
+      private$n_threads_      <- resolve_n_threads(n_threads)
     },
 
     #' @description Compute top-M singular value decomposition of \code{X}.
@@ -874,11 +895,13 @@ MLSVD <- R6::R6Class("MLSVD",
     compute = function(X, M) {
       if (inherits(X, "mmap_matrix")) {
         stopifnot(is.numeric(M), M >= 1L, M <= min(dim(X)))
-        return(svd_compute_mmap(X, as.integer(M), private$min_dim_thresh_, private$block_size_))
+        return(svd_compute_mmap(X, as.integer(M), private$min_dim_thresh_, private$block_size_,
+                                private$n_threads_))
       }
       X <- .as_double_matrix(X)
       stopifnot(is.numeric(M), M >= 1L, M <= min(nrow(X), ncol(X)))
-      svd_compute(X, as.integer(M), private$min_dim_thresh_, private$block_size_)
+      svd_compute(X, as.integer(M), private$min_dim_thresh_, private$block_size_,
+                  private$n_threads_)
     }
   )
 )
@@ -937,12 +960,18 @@ MLPCA <- R6::R6Class("MLPCA",
     #'   (default: \code{TRUE}).
     #' @param normalize Logical, whether to scale the columns of \code{X}
     #'   in-place (default: \code{TRUE}).
-    initialize = function(X, M, center = TRUE, normalize = TRUE) {
+    #' @param n_threads Integer, the thread budget of the matrix products of
+    #'   \code{fit()} and \code{transform()} (\code{NULL}, the default: the
+    #'   library's default budget, \code{\link{trex_get_num_threads}()},
+    #'   initially 1).
+    initialize = function(X, M, center = TRUE, normalize = TRUE, n_threads = NULL) {
+      n_threads <- resolve_n_threads(n_threads)
       if (inherits(X, "mmap_matrix")) {
         stopifnot(is.numeric(M), M >= 1L, M <= min(dim(X)))
         private$X_ <- X
         private$cpp_ptr <- pca_create_mmap(X, as.integer(M),
-                                           as.logical(center), as.logical(normalize))
+                                           as.logical(center), as.logical(normalize),
+                                           n_threads)
         return(invisible(self))
       }
       # Double storage so pca_create's zero-copy view aliases this buffer; the
@@ -950,7 +979,8 @@ MLPCA <- R6::R6Class("MLPCA",
       private$X_ <- .as_double_matrix(X)
       stopifnot(is.numeric(M), M >= 1L, M <= min(nrow(private$X_), ncol(private$X_)))
       private$cpp_ptr <- pca_create(private$X_, as.integer(M),
-                                    as.logical(center), as.logical(normalize))
+                                    as.logical(center), as.logical(normalize),
+                                    n_threads)
     },
 
     #' @description Fit the PCA bound at construction time (single-use).
@@ -1062,17 +1092,21 @@ MLRidge <- R6::R6Class("MLRidge",
     #'   zero-copy; \code{"readonly"} suffices).
     #' @param y Numeric response vector of length n.
     #' @param lambda Non-negative regularization parameter.
+    #' @param n_threads Integer, the thread budget of the matrix products
+    #'   (\code{NULL}, the default: the library's default budget,
+    #'   \code{\link{trex_get_num_threads}()}, initially 1).
     #'
     #' @return Coefficient vector of length p.
-    solve = function(X, y, lambda) {
+    solve = function(X, y, lambda, n_threads = NULL) {
       stopifnot(is.numeric(y), is.numeric(lambda), lambda >= 0)
+      n_threads <- resolve_n_threads(n_threads)
       if (inherits(X, "mmap_matrix")) {
         stopifnot(dim(X)[1] == length(y))
-        return(ridge_solve_mmap(X, as.numeric(y), as.numeric(lambda)))
+        return(ridge_solve_mmap(X, as.numeric(y), as.numeric(lambda), n_threads))
       }
       X <- .as_double_matrix(X)
       stopifnot(nrow(X) == length(y))
-      ridge_solve(X, as.numeric(y), as.numeric(lambda))
+      ridge_solve(X, as.numeric(y), as.numeric(lambda), n_threads)
     }
   )
 )

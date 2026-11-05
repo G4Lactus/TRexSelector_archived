@@ -21,6 +21,9 @@
 // Eigen includes
 #include <Eigen/Dense>
 
+// utils includes
+#include <utils/openmp/utils_eigen_threads.hpp>
+
 // ml_methods includes
 #include <ml_methods/svd/svd.hpp>
 
@@ -114,7 +117,8 @@ public:
     explicit PCA(Eigen::Ref<Eigen::MatrixXd> X,
                  Eigen::Index M,
                  bool center    = true,
-                 bool normalize = true)
+                 bool normalize = true,
+                 int n_threads  = ::trex::utils::openmp::get_num_threads())
         : data_ptr_(X.data()),
           writable_ptr_(X.data()),
           outer_stride_(X.outerStride()),
@@ -125,8 +129,12 @@ public:
           normalize_(normalize),
           is_centered_(false),
           is_normalized_(false),
-          fitted_(false)
+          fitted_(false),
+          n_threads_(n_threads)
     {
+        if (n_threads < 1) {
+            throw std::invalid_argument("PCA: n_threads must be >= 1.");
+        }
         validate_();
         preprocess_(X);
     }
@@ -219,6 +227,8 @@ public:
      * @throws std::runtime_error if called on an already-fitted instance.
      */
     PCAResult fit() {
+        // Eigen's products run on this object's budget for the scope of the fit
+        ::trex::utils::openmp::EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
 
         if (fitted_) {
             throw std::runtime_error(
@@ -291,6 +301,8 @@ public:
         if (!fitted_) {
             throw std::runtime_error("PCA::transform() called before fit().");
         }
+        // Eigen's products run on this object's budget for the scope of the call
+        ::trex::utils::openmp::EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
         Eigen::MatrixXd Xc = (X.rowwise() - means_).eval();
         Xc.array().rowwise() /= norms_.array();
         return Xc * loadings_;
@@ -371,6 +383,9 @@ private:
     /** @brief True after fit() has been called successfully. */
     bool fitted_;
 
+    /** @brief Thread budget of the Eigen products of fit() and transform() (>= 1). */
+    int n_threads_;
+
     /** @brief Column means computed at construction (zero-vector when center=false). */
     Eigen::RowVectorXd means_;
 
@@ -386,7 +401,8 @@ private:
     struct ReadOnlyTag {};
 
     /** @brief Read-only construction: no preprocessing, no write pointer. */
-    PCA(ReadOnlyTag, Eigen::Ref<const Eigen::MatrixXd> X, Eigen::Index M)
+    PCA(ReadOnlyTag, Eigen::Ref<const Eigen::MatrixXd> X, Eigen::Index M,
+        int n_threads = ::trex::utils::openmp::get_num_threads())
         : data_ptr_(X.data()),
           writable_ptr_(nullptr),
           outer_stride_(X.outerStride()),
@@ -397,8 +413,12 @@ private:
           normalize_(false),
           is_centered_(false),
           is_normalized_(false),
-          fitted_(false)
+          fitted_(false),
+          n_threads_(n_threads)
     {
+        if (n_threads < 1) {
+            throw std::invalid_argument("PCA: n_threads must be >= 1.");
+        }
         validate_();
         means_ = Eigen::RowVectorXd::Zero(p_);
         norms_ = Eigen::RowVectorXd::Ones(p_);

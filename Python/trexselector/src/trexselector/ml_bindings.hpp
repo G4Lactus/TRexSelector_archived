@@ -23,8 +23,11 @@
 // =====================================================================================
 
 // pybind11 includes
+#include <optional>
+
 #include <pybind11/pybind11.h>
 #include <pybind11/eigen.h>
+#include <pybind11/stl.h>
 
 // ml_methods includes
 #include <ml_methods/scaler_methods/z_score_scaler.hpp>
@@ -55,14 +58,26 @@ namespace py = pybind11;
  */
 class PyPCA {
 public:
-    explicit PyPCA(bool center = true, bool normalize = true)
-        : center_(center), normalize_(normalize) {}
+    explicit PyPCA(bool center = true, bool normalize = true,
+                   std::optional<int> n_threads = std::nullopt)
+        : center_(center), normalize_(normalize),
+          n_threads_(n_threads.value_or(trex::utils::openmp::get_num_threads())) {
+        if (n_threads_ < 1) throw std::invalid_argument("PCA: n_threads must be >= 1.");
+    }
 
     trex::ml_methods::pca::PCAResult fit(Eigen::Ref<Eigen::MatrixXd> X, Eigen::Index M) {
         x_map_ = std::make_unique<Eigen::Map<Eigen::MatrixXd>>(X.data(), X.rows(), X.cols());
-        pca_ = std::make_unique<trex::ml_methods::pca::PCA>(*x_map_, M, center_, normalize_);
+        pca_ = std::make_unique<trex::ml_methods::pca::PCA>(*x_map_, M, center_, normalize_,
+                                                            n_threads_);
         return pca_->fit();
     }
+
+    // The budget of the next fit(); a fitted PCA keeps the budget it was fitted with
+    void setNumThreads(int n_threads) {
+        if (n_threads < 1) throw std::invalid_argument("PCA: n_threads must be >= 1.");
+        n_threads_ = n_threads;
+    }
+    int getNumThreads() const { return n_threads_; }
 
     Eigen::MatrixXd transform(const Eigen::Ref<const Eigen::MatrixXd>& X_new) const {
         ensureFitted();
@@ -86,6 +101,7 @@ private:
 
     bool center_;
     bool normalize_;
+    int n_threads_;
     std::unique_ptr<Eigen::Map<Eigen::MatrixXd>>   x_map_;
     std::unique_ptr<trex::ml_methods::pca::PCA>    pca_;
 };
@@ -165,8 +181,18 @@ inline void bind_ml_methods(py::module& m) {
      *       a writeable Fortran-ordered float64 array (e.g. np.asfortranarray(X)).
      */
     py::class_<ZScoreScaler>(m, "ZScoreScaler")
-        .def(py::init<bool, bool>(),
-             py::arg("center") = true, py::arg("scale") = true)
+        .def(py::init([](bool center, bool scale, std::optional<int> n_threads) {
+                 return ZScoreScaler(center, scale,
+                                     n_threads.value_or(trex::utils::openmp::get_num_threads()));
+             }),
+             py::arg("center") = true, py::arg("scale") = true,
+             py::arg("n_threads") = py::none(),
+             "n_threads: the thread budget of the column passes (None: the library's "
+             "default budget, utils.get_num_threads(), initially 1).")
+        .def("set_num_threads", &ZScoreScaler::set_num_threads, py::arg("n_threads"),
+             "Set the thread budget of the column passes (>= 1).")
+        .def("get_num_threads", &ZScoreScaler::get_num_threads,
+             "The thread budget of the column passes.")
         .def("fit",
             [](ZScoreScaler& self, Eigen::Ref<const Eigen::MatrixXd> X, double threshold) -> ZScoreScaler& {
                 // read-only: any float64 array, read-only or C-ordered (converted once)
@@ -236,10 +262,21 @@ inline void bind_ml_methods(py::module& m) {
      *       a writeable Fortran-ordered float64 array (e.g. np.asfortranarray(X)).
      */
     py::class_<LpNormScaler>(m, "LpNormScaler")
-        .def(py::init<LpNormScaler::NormType, bool, bool>(),
+        .def(py::init([](LpNormScaler::NormType norm_type, bool center, bool scale,
+                         std::optional<int> n_threads) {
+                 return LpNormScaler(norm_type, center, scale,
+                                     n_threads.value_or(trex::utils::openmp::get_num_threads()));
+             }),
              py::arg("norm_type") = LpNormScaler::NormType::L2,
              py::arg("center") = true,
-             py::arg("scale") = true)
+             py::arg("scale") = true,
+             py::arg("n_threads") = py::none(),
+             "n_threads: the thread budget of the column passes (None: the library's "
+             "default budget, utils.get_num_threads(), initially 1).")
+        .def("set_num_threads", &LpNormScaler::set_num_threads, py::arg("n_threads"),
+             "Set the thread budget of the column passes (>= 1).")
+        .def("get_num_threads", &LpNormScaler::get_num_threads,
+             "The thread budget of the column passes.")
         .def("fit", [](LpNormScaler& self,
             Eigen::Ref<const Eigen::MatrixXd> X, double threshold) -> LpNormScaler& {
                 // read-only: any float64 array, read-only or C-ordered (converted once)
@@ -309,11 +346,22 @@ inline void bind_ml_methods(py::module& m) {
         "  in the Special 40th Anniversary Issue).\n"
         "G. Guennebaud, B. Jacob et al., Eigen v3, https://libeigen.gitlab.io/, 2010.\n")
         .def(py::init<>())
-        .def(py::init<bool>(), py::arg("low_memory"),
+        .def(py::init([](bool low_memory, std::optional<int> n_threads) {
+                 ridge_cv_svd cv(low_memory);
+                 cv.set_num_threads(n_threads.value_or(trex::utils::openmp::get_num_threads()));
+                 return cv;
+             }),
+             py::arg("low_memory"), py::arg("n_threads") = py::none(),
              "low_memory=True: the dual (kernel) fold engine — n x n kernels accumulated "
              "from column blocks of X read in place, no p-dimensional coefficients; same "
              "estimator, grid and rank rule, agreement to numerical precision; memory "
-             "O(n^2) instead of O(n p), the route for p >> n.")
+             "O(n^2) instead of O(n p), the route for p >> n. n_threads: the thread budget "
+             "of the fit's matrix products (None: the library's default budget, "
+             "utils.get_num_threads(), initially 1).")
+        .def("set_num_threads", &ridge_cv_svd::set_num_threads, py::arg("n_threads"),
+             "Set the thread budget of the fit's matrix products (>= 1).")
+        .def("num_threads", &ridge_cv_svd::num_threads,
+             "The thread budget of the fit's matrix products.")
         .def("set_low_memory", &ridge_cv_svd::set_low_memory, py::arg("low_memory"),
              "Switch the fold engine; takes effect at the next fit().")
         .def("low_memory", &ridge_cv_svd::low_memory,
@@ -361,13 +409,24 @@ inline void bind_ml_methods(py::module& m) {
         "  Models via Coordinate Descent,\" J. Stat. Softw., vol. 33, no. 1, pp. 1-22, 2010,\n"
         "  doi: 10.18637/jss.v033.i01.\n")
         .def(py::init<>())
-        .def(py::init<bool>(), py::arg("low_memory"),
+        .def(py::init([](bool low_memory, std::optional<int> n_threads) {
+                 enet_gaussian path(low_memory);
+                 path.set_num_threads(n_threads.value_or(trex::utils::openmp::get_num_threads()));
+                 return path;
+             }),
+             py::arg("low_memory"), py::arg("n_threads") = py::none(),
              "low_memory=False (default): the coordinate descent runs on a centered and "
              "standardized working copy of X (one n x p matrix while fitting). "
              "low_memory=True: it runs on X itself through the caller's view (a "
              "MemoryMappedMatrix.to_numpy() view included) with no allocation of the size "
              "of X; same estimator and grid, the two engines agree to rounding (about "
-             "1e-12 in the coefficients).")
+             "1e-12 in the coefficients). n_threads: the thread budget of the fit's matrix "
+             "products (None: the library's default budget, utils.get_num_threads(), "
+             "initially 1).")
+        .def("set_num_threads", &enet_gaussian::set_num_threads, py::arg("n_threads"),
+             "Set the thread budget of the fit's matrix products (>= 1).")
+        .def("num_threads", &enet_gaussian::num_threads,
+             "The thread budget of the fit's matrix products.")
         .def("set_low_memory", &enet_gaussian::set_low_memory, py::arg("low_memory"),
              "Switch the engine; takes effect at the next fit().")
         .def("low_memory", &enet_gaussian::low_memory,
@@ -448,9 +507,20 @@ inline void bind_ml_methods(py::module& m) {
         "L. Breiman, J. H. Friedman, R. A. Olshen, and C. J. Stone, Classification and Regression\n"
         "  Trees. Wadsworth, Belmont, CA, 1984.\n")
         .def(py::init<>())
-        .def(py::init<bool>(), py::arg("low_memory"),
+        .def(py::init([](bool low_memory, std::optional<int> n_threads) {
+                 enet_cv_ccd cv(low_memory);
+                 cv.set_num_threads(n_threads.value_or(trex::utils::openmp::get_num_threads()));
+                 return cv;
+             }),
+             py::arg("low_memory"), py::arg("n_threads") = py::none(),
              "low_memory=True runs the full-data fit and every fold on X itself with a 0/1 "
-             "training mask (no allocation of the size of X); see ElasticNet.")
+             "training mask (no allocation of the size of X); see ElasticNet. n_threads: "
+             "the thread budget of the matrix products of the fit and its folds (None: the "
+             "library's default budget, utils.get_num_threads(), initially 1).")
+        .def("set_num_threads", &enet_cv_ccd::set_num_threads, py::arg("n_threads"),
+             "Set the thread budget of the matrix products of the fit and its folds (>= 1).")
+        .def("num_threads", &enet_cv_ccd::num_threads,
+             "The thread budget of the matrix products of the fit and its folds.")
         .def("set_low_memory", &enet_cv_ccd::set_low_memory, py::arg("low_memory"),
              "Switch the engine; takes effect at the next fit().")
         .def("low_memory", &enet_cv_ccd::low_memory,
@@ -515,14 +585,25 @@ inline void bind_ml_methods(py::module& m) {
         "----------\n"
         "G. Guennebaud, B. Jacob et al., Eigen v3, https://libeigen.gitlab.io/, 2010.\n")
         .def(py::init<>())
-        .def(py::init<Eigen::Index, Eigen::Index>(),
+        .def(py::init([](Eigen::Index min_dim_thresh, Eigen::Index block_size,
+                         std::optional<int> n_threads) {
+                 return SVDSolver(min_dim_thresh, block_size,
+                                  n_threads.value_or(trex::utils::openmp::get_num_threads()));
+             }),
              py::arg("min_dim_thresh") = 10000, py::arg("block_size") = 1024,
+             py::arg("n_threads") = py::none(),
+             "n_threads: the thread budget of the matrix products (None: the library's "
+             "default budget, utils.get_num_threads(), initially 1). "
              "Dispatch thresholds: the direct Jacobi path copies X "
              "and computes every singular triplet; when min(n, p) exceeds min_dim_thresh "
              "and M < min(n, p) / 10 the randomized path runs two block-wise passes over X "
              "(no copy; the route for a memory-mapped X), and p > 2n always takes the Gram "
              "path. Lowering min_dim_thresh selects the randomized path for smaller "
              "designs; block_size is the column block of the block-wise passes.")
+        .def("set_num_threads", &SVDSolver::set_num_threads, py::arg("n_threads"),
+             "Set the thread budget of the matrix products (>= 1).")
+        .def("num_threads", &SVDSolver::num_threads,
+             "The thread budget of the matrix products.")
         .def("compute",
             [](SVDSolver& self,
                Eigen::Ref<const Eigen::MatrixXd> X, // NOLINT(performance-unnecessary-value-param)
@@ -560,7 +641,15 @@ inline void bind_ml_methods(py::module& m) {
         "References\n"
         "----------\n"
         "G. Guennebaud, B. Jacob et al., Eigen v3, https://libeigen.gitlab.io/, 2010.\n")
-        .def(py::init<bool, bool>(), py::arg("center") = true, py::arg("normalize") = true)
+        .def(py::init<bool, bool, std::optional<int>>(),
+             py::arg("center") = true, py::arg("normalize") = true,
+             py::arg("n_threads") = py::none(),
+             "n_threads: the thread budget of the matrix products of fit() and transform() "
+             "(None: the library's default budget, utils.get_num_threads(), initially 1).")
+        .def("set_num_threads", &PyPCA::setNumThreads, py::arg("n_threads"),
+             "Set the thread budget of the next fit() (>= 1).")
+        .def("get_num_threads", &PyPCA::getNumThreads,
+             "The thread budget of the matrix products.")
         .def("fit",
             [](PyPCA& self, Eigen::Ref<Eigen::MatrixXd> X, Eigen::Index M) {
                 return self.fit(X, M);
@@ -603,10 +692,13 @@ inline void bind_ml_methods(py::module& m) {
         .def_static("solve",
             [](Eigen::Ref<const Eigen::MatrixXd> X, // NOLINT(performance-unnecessary-value-param)
                Eigen::Ref<const Eigen::VectorXd> y, // NOLINT(performance-unnecessary-value-param)
-               double lambda) {
-                return RidgeSolver::solve(X, y, lambda);
+               double lambda, std::optional<int> n_threads) {
+                return RidgeSolver::solve(X, y, lambda,
+                                          n_threads.value_or(trex::utils::openmp::get_num_threads()));
             },
-            py::arg("X"), py::arg("y"), py::arg("lambda_val"));
+            py::arg("X"), py::arg("y"), py::arg("lambda_val"), py::arg("n_threads") = py::none(),
+            "n_threads: the thread budget of the matrix products (None: the library's "
+            "default budget, utils.get_num_threads(), initially 1).");
 
 
 // =====================================================================================

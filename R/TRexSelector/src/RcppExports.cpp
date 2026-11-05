@@ -13,8 +13,8 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // rcpp_agglomerative_cluster
-NumericMatrix rcpp_agglomerative_cluster(const Eigen::Map<Eigen::MatrixXd>& data, int method_idx, int metric_idx, bool use_mmap, bool verbose);
-RcppExport SEXP _TRexSelector_rcpp_agglomerative_cluster(SEXP dataSEXP, SEXP method_idxSEXP, SEXP metric_idxSEXP, SEXP use_mmapSEXP, SEXP verboseSEXP) {
+NumericMatrix rcpp_agglomerative_cluster(const Eigen::Map<Eigen::MatrixXd>& data, int method_idx, int metric_idx, bool use_mmap, bool verbose, int n_threads);
+RcppExport SEXP _TRexSelector_rcpp_agglomerative_cluster(SEXP dataSEXP, SEXP method_idxSEXP, SEXP metric_idxSEXP, SEXP use_mmapSEXP, SEXP verboseSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -23,13 +23,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type metric_idx(metric_idxSEXP);
     Rcpp::traits::input_parameter< bool >::type use_mmap(use_mmapSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpp_agglomerative_cluster(data, method_idx, metric_idx, use_mmap, verbose));
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(rcpp_agglomerative_cluster(data, method_idx, metric_idx, use_mmap, verbose, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
 // rcpp_agglomerative_cluster_mmap
-NumericMatrix rcpp_agglomerative_cluster_mmap(XPtr<trex::utils::memmap::MemoryMappedMatrix<double>> data_ptr, int method_idx, int metric_idx, bool verbose);
-RcppExport SEXP _TRexSelector_rcpp_agglomerative_cluster_mmap(SEXP data_ptrSEXP, SEXP method_idxSEXP, SEXP metric_idxSEXP, SEXP verboseSEXP) {
+NumericMatrix rcpp_agglomerative_cluster_mmap(XPtr<trex::utils::memmap::MemoryMappedMatrix<double>> data_ptr, int method_idx, int metric_idx, bool verbose, int n_threads);
+RcppExport SEXP _TRexSelector_rcpp_agglomerative_cluster_mmap(SEXP data_ptrSEXP, SEXP method_idxSEXP, SEXP metric_idxSEXP, SEXP verboseSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -37,7 +38,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type method_idx(method_idxSEXP);
     Rcpp::traits::input_parameter< int >::type metric_idx(metric_idxSEXP);
     Rcpp::traits::input_parameter< bool >::type verbose(verboseSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpp_agglomerative_cluster_mmap(data_ptr, method_idx, metric_idx, verbose));
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(rcpp_agglomerative_cluster_mmap(data_ptr, method_idx, metric_idx, verbose, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -55,14 +57,15 @@ BEGIN_RCPP
 END_RCPP
 }
 // zscore_scaler_create
-XPtr<ZScoreScaler> zscore_scaler_create(bool center, bool scale);
-RcppExport SEXP _TRexSelector_zscore_scaler_create(SEXP centerSEXP, SEXP scaleSEXP) {
+XPtr<ZScoreScaler> zscore_scaler_create(bool center, bool scale, int n_threads);
+RcppExport SEXP _TRexSelector_zscore_scaler_create(SEXP centerSEXP, SEXP scaleSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
     Rcpp::traits::input_parameter< bool >::type scale(scaleSEXP);
-    rcpp_result_gen = Rcpp::wrap(zscore_scaler_create(center, scale));
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(zscore_scaler_create(center, scale, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -247,15 +250,16 @@ BEGIN_RCPP
 END_RCPP
 }
 // lpnorm_scaler_create
-XPtr<LpNormScaler> lpnorm_scaler_create(int norm_type, bool center, bool scale);
-RcppExport SEXP _TRexSelector_lpnorm_scaler_create(SEXP norm_typeSEXP, SEXP centerSEXP, SEXP scaleSEXP) {
+XPtr<LpNormScaler> lpnorm_scaler_create(int norm_type, bool center, bool scale, int n_threads);
+RcppExport SEXP _TRexSelector_lpnorm_scaler_create(SEXP norm_typeSEXP, SEXP centerSEXP, SEXP scaleSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< int >::type norm_type(norm_typeSEXP);
     Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
     Rcpp::traits::input_parameter< bool >::type scale(scaleSEXP);
-    rcpp_result_gen = Rcpp::wrap(lpnorm_scaler_create(norm_type, center, scale));
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(lpnorm_scaler_create(norm_type, center, scale, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -451,13 +455,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // ridge_cv_create
-XPtr<ridge_cv> ridge_cv_create(bool low_memory);
-RcppExport SEXP _TRexSelector_ridge_cv_create(SEXP low_memorySEXP) {
+XPtr<ridge_cv> ridge_cv_create(bool low_memory, int n_threads);
+RcppExport SEXP _TRexSelector_ridge_cv_create(SEXP low_memorySEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< bool >::type low_memory(low_memorySEXP);
-    rcpp_result_gen = Rcpp::wrap(ridge_cv_create(low_memory));
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(ridge_cv_create(low_memory, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -593,13 +598,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // enet_create
-XPtr<enet_path> enet_create(bool low_memory);
-RcppExport SEXP _TRexSelector_enet_create(SEXP low_memorySEXP) {
+XPtr<enet_path> enet_create(bool low_memory, int n_threads);
+RcppExport SEXP _TRexSelector_enet_create(SEXP low_memorySEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< bool >::type low_memory(low_memorySEXP);
-    rcpp_result_gen = Rcpp::wrap(enet_create(low_memory));
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(enet_create(low_memory, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -772,13 +778,14 @@ BEGIN_RCPP
 END_RCPP
 }
 // enet_cv_create
-XPtr<enet_cv> enet_cv_create(bool low_memory);
-RcppExport SEXP _TRexSelector_enet_cv_create(SEXP low_memorySEXP) {
+XPtr<enet_cv> enet_cv_create(bool low_memory, int n_threads);
+RcppExport SEXP _TRexSelector_enet_cv_create(SEXP low_memorySEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< bool >::type low_memory(low_memorySEXP);
-    rcpp_result_gen = Rcpp::wrap(enet_cv_create(low_memory));
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(enet_cv_create(low_memory, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -902,8 +909,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // svd_compute
-Rcpp::List svd_compute(Rcpp::NumericMatrix X, int M, double min_dim_thresh, double block_size);
-RcppExport SEXP _TRexSelector_svd_compute(SEXP XSEXP, SEXP MSEXP, SEXP min_dim_threshSEXP, SEXP block_sizeSEXP) {
+Rcpp::List svd_compute(Rcpp::NumericMatrix X, int M, double min_dim_thresh, double block_size, int n_threads);
+RcppExport SEXP _TRexSelector_svd_compute(SEXP XSEXP, SEXP MSEXP, SEXP min_dim_threshSEXP, SEXP block_sizeSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -911,13 +918,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type M(MSEXP);
     Rcpp::traits::input_parameter< double >::type min_dim_thresh(min_dim_threshSEXP);
     Rcpp::traits::input_parameter< double >::type block_size(block_sizeSEXP);
-    rcpp_result_gen = Rcpp::wrap(svd_compute(X, M, min_dim_thresh, block_size));
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(svd_compute(X, M, min_dim_thresh, block_size, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
 // svd_compute_mmap
-Rcpp::List svd_compute_mmap(XPtr<MmapMatrixD> mmap_ptr, int M, double min_dim_thresh, double block_size);
-RcppExport SEXP _TRexSelector_svd_compute_mmap(SEXP mmap_ptrSEXP, SEXP MSEXP, SEXP min_dim_threshSEXP, SEXP block_sizeSEXP) {
+Rcpp::List svd_compute_mmap(XPtr<MmapMatrixD> mmap_ptr, int M, double min_dim_thresh, double block_size, int n_threads);
+RcppExport SEXP _TRexSelector_svd_compute_mmap(SEXP mmap_ptrSEXP, SEXP MSEXP, SEXP min_dim_threshSEXP, SEXP block_sizeSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -925,13 +933,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type M(MSEXP);
     Rcpp::traits::input_parameter< double >::type min_dim_thresh(min_dim_threshSEXP);
     Rcpp::traits::input_parameter< double >::type block_size(block_sizeSEXP);
-    rcpp_result_gen = Rcpp::wrap(svd_compute_mmap(mmap_ptr, M, min_dim_thresh, block_size));
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(svd_compute_mmap(mmap_ptr, M, min_dim_thresh, block_size, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
 // pca_create
-Rcpp::XPtr<PCA> pca_create(Rcpp::NumericMatrix X, int M, bool center, bool normalize);
-RcppExport SEXP _TRexSelector_pca_create(SEXP XSEXP, SEXP MSEXP, SEXP centerSEXP, SEXP normalizeSEXP) {
+Rcpp::XPtr<PCA> pca_create(Rcpp::NumericMatrix X, int M, bool center, bool normalize, int n_threads);
+RcppExport SEXP _TRexSelector_pca_create(SEXP XSEXP, SEXP MSEXP, SEXP centerSEXP, SEXP normalizeSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -939,13 +948,14 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type M(MSEXP);
     Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
     Rcpp::traits::input_parameter< bool >::type normalize(normalizeSEXP);
-    rcpp_result_gen = Rcpp::wrap(pca_create(X, M, center, normalize));
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(pca_create(X, M, center, normalize, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
 // pca_create_mmap
-Rcpp::XPtr<PCA> pca_create_mmap(XPtr<MmapMatrixD> mmap_ptr, int M, bool center, bool normalize);
-RcppExport SEXP _TRexSelector_pca_create_mmap(SEXP mmap_ptrSEXP, SEXP MSEXP, SEXP centerSEXP, SEXP normalizeSEXP) {
+Rcpp::XPtr<PCA> pca_create_mmap(XPtr<MmapMatrixD> mmap_ptr, int M, bool center, bool normalize, int n_threads);
+RcppExport SEXP _TRexSelector_pca_create_mmap(SEXP mmap_ptrSEXP, SEXP MSEXP, SEXP centerSEXP, SEXP normalizeSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -953,7 +963,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< int >::type M(MSEXP);
     Rcpp::traits::input_parameter< bool >::type center(centerSEXP);
     Rcpp::traits::input_parameter< bool >::type normalize(normalizeSEXP);
-    rcpp_result_gen = Rcpp::wrap(pca_create_mmap(mmap_ptr, M, center, normalize));
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(pca_create_mmap(mmap_ptr, M, center, normalize, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -1059,28 +1070,30 @@ BEGIN_RCPP
 END_RCPP
 }
 // ridge_solve
-Eigen::VectorXd ridge_solve(Rcpp::NumericMatrix X, const Eigen::VectorXd& y, double lambda);
-RcppExport SEXP _TRexSelector_ridge_solve(SEXP XSEXP, SEXP ySEXP, SEXP lambdaSEXP) {
+Eigen::VectorXd ridge_solve(Rcpp::NumericMatrix X, const Eigen::VectorXd& y, double lambda, int n_threads);
+RcppExport SEXP _TRexSelector_ridge_solve(SEXP XSEXP, SEXP ySEXP, SEXP lambdaSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< Rcpp::NumericMatrix >::type X(XSEXP);
     Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type y(ySEXP);
     Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
-    rcpp_result_gen = Rcpp::wrap(ridge_solve(X, y, lambda));
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(ridge_solve(X, y, lambda, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
 // ridge_solve_mmap
-Eigen::VectorXd ridge_solve_mmap(XPtr<MmapMatrixD> mmap_ptr, const Eigen::VectorXd& y, double lambda);
-RcppExport SEXP _TRexSelector_ridge_solve_mmap(SEXP mmap_ptrSEXP, SEXP ySEXP, SEXP lambdaSEXP) {
+Eigen::VectorXd ridge_solve_mmap(XPtr<MmapMatrixD> mmap_ptr, const Eigen::VectorXd& y, double lambda, int n_threads);
+RcppExport SEXP _TRexSelector_ridge_solve_mmap(SEXP mmap_ptrSEXP, SEXP ySEXP, SEXP lambdaSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< XPtr<MmapMatrixD> >::type mmap_ptr(mmap_ptrSEXP);
     Rcpp::traits::input_parameter< const Eigen::VectorXd& >::type y(ySEXP);
     Rcpp::traits::input_parameter< double >::type lambda(lambdaSEXP);
-    rcpp_result_gen = Rcpp::wrap(ridge_solve_mmap(mmap_ptr, y, lambda));
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(ridge_solve_mmap(mmap_ptr, y, lambda, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -3368,8 +3381,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // rcpp_normalize_design
-Rcpp::List rcpp_normalize_design(Eigen::MatrixXd X, Eigen::VectorXd y, const std::string& scaling_mode, double eps);
-RcppExport SEXP _TRexSelector_rcpp_normalize_design(SEXP XSEXP, SEXP ySEXP, SEXP scaling_modeSEXP, SEXP epsSEXP) {
+Rcpp::List rcpp_normalize_design(Eigen::MatrixXd X, Eigen::VectorXd y, const std::string& scaling_mode, double eps, int n_threads);
+RcppExport SEXP _TRexSelector_rcpp_normalize_design(SEXP XSEXP, SEXP ySEXP, SEXP scaling_modeSEXP, SEXP epsSEXP, SEXP n_threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -3377,7 +3390,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< Eigen::VectorXd >::type y(ySEXP);
     Rcpp::traits::input_parameter< const std::string& >::type scaling_mode(scaling_modeSEXP);
     Rcpp::traits::input_parameter< double >::type eps(epsSEXP);
-    rcpp_result_gen = Rcpp::wrap(rcpp_normalize_design(X, y, scaling_mode, eps));
+    Rcpp::traits::input_parameter< int >::type n_threads(n_threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(rcpp_normalize_design(X, y, scaling_mode, eps, n_threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -3391,22 +3405,33 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// rcpp_get_num_threads
+int rcpp_get_num_threads();
+RcppExport SEXP _TRexSelector_rcpp_get_num_threads() {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    rcpp_result_gen = Rcpp::wrap(rcpp_get_num_threads());
+    return rcpp_result_gen;
+END_RCPP
+}
 // rcpp_set_num_threads
-void rcpp_set_num_threads(int n);
+int rcpp_set_num_threads(int n);
 RcppExport SEXP _TRexSelector_rcpp_set_num_threads(SEXP nSEXP) {
 BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< int >::type n(nSEXP);
-    rcpp_set_num_threads(n);
-    return R_NilValue;
+    rcpp_result_gen = Rcpp::wrap(rcpp_set_num_threads(n));
+    return rcpp_result_gen;
 END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_TRexSelector_rcpp_agglomerative_cluster", (DL_FUNC) &_TRexSelector_rcpp_agglomerative_cluster, 5},
-    {"_TRexSelector_rcpp_agglomerative_cluster_mmap", (DL_FUNC) &_TRexSelector_rcpp_agglomerative_cluster_mmap, 4},
+    {"_TRexSelector_rcpp_agglomerative_cluster", (DL_FUNC) &_TRexSelector_rcpp_agglomerative_cluster, 6},
+    {"_TRexSelector_rcpp_agglomerative_cluster_mmap", (DL_FUNC) &_TRexSelector_rcpp_agglomerative_cluster_mmap, 5},
     {"_TRexSelector_rcpp_cut_tree", (DL_FUNC) &_TRexSelector_rcpp_cut_tree, 3},
-    {"_TRexSelector_zscore_scaler_create", (DL_FUNC) &_TRexSelector_zscore_scaler_create, 2},
+    {"_TRexSelector_zscore_scaler_create", (DL_FUNC) &_TRexSelector_zscore_scaler_create, 3},
     {"_TRexSelector_zscore_scaler_fit", (DL_FUNC) &_TRexSelector_zscore_scaler_fit, 3},
     {"_TRexSelector_zscore_scaler_transform_inplace", (DL_FUNC) &_TRexSelector_zscore_scaler_transform_inplace, 2},
     {"_TRexSelector_zscore_scaler_fit_transform_inplace", (DL_FUNC) &_TRexSelector_zscore_scaler_fit_transform_inplace, 3},
@@ -3423,7 +3448,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_TRexSelector_zscore_scaler_transform_inplace_mmap", (DL_FUNC) &_TRexSelector_zscore_scaler_transform_inplace_mmap, 2},
     {"_TRexSelector_zscore_scaler_fit_transform_inplace_mmap", (DL_FUNC) &_TRexSelector_zscore_scaler_fit_transform_inplace_mmap, 3},
     {"_TRexSelector_zscore_scaler_inverse_transform_inplace_mmap", (DL_FUNC) &_TRexSelector_zscore_scaler_inverse_transform_inplace_mmap, 2},
-    {"_TRexSelector_lpnorm_scaler_create", (DL_FUNC) &_TRexSelector_lpnorm_scaler_create, 3},
+    {"_TRexSelector_lpnorm_scaler_create", (DL_FUNC) &_TRexSelector_lpnorm_scaler_create, 4},
     {"_TRexSelector_lpnorm_scaler_fit", (DL_FUNC) &_TRexSelector_lpnorm_scaler_fit, 3},
     {"_TRexSelector_lpnorm_scaler_transform_inplace", (DL_FUNC) &_TRexSelector_lpnorm_scaler_transform_inplace, 2},
     {"_TRexSelector_lpnorm_scaler_fit_transform_inplace", (DL_FUNC) &_TRexSelector_lpnorm_scaler_fit_transform_inplace, 3},
@@ -3441,7 +3466,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_TRexSelector_lpnorm_scaler_transform_inplace_mmap", (DL_FUNC) &_TRexSelector_lpnorm_scaler_transform_inplace_mmap, 2},
     {"_TRexSelector_lpnorm_scaler_fit_transform_inplace_mmap", (DL_FUNC) &_TRexSelector_lpnorm_scaler_fit_transform_inplace_mmap, 3},
     {"_TRexSelector_lpnorm_scaler_inverse_transform_inplace_mmap", (DL_FUNC) &_TRexSelector_lpnorm_scaler_inverse_transform_inplace_mmap, 2},
-    {"_TRexSelector_ridge_cv_create", (DL_FUNC) &_TRexSelector_ridge_cv_create, 1},
+    {"_TRexSelector_ridge_cv_create", (DL_FUNC) &_TRexSelector_ridge_cv_create, 2},
     {"_TRexSelector_ridge_cv_fit", (DL_FUNC) &_TRexSelector_ridge_cv_fit, 7},
     {"_TRexSelector_ridge_cv_fit_mmap", (DL_FUNC) &_TRexSelector_ridge_cv_fit_mmap, 7},
     {"_TRexSelector_ridge_cv_min", (DL_FUNC) &_TRexSelector_ridge_cv_min, 1},
@@ -3453,7 +3478,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_TRexSelector_ridge_cv_get_cv_std", (DL_FUNC) &_TRexSelector_ridge_cv_get_cv_std, 1},
     {"_TRexSelector_ridge_cv_interpolates", (DL_FUNC) &_TRexSelector_ridge_cv_interpolates, 1},
     {"_TRexSelector_ridge_cv_selection_at_grid_edge", (DL_FUNC) &_TRexSelector_ridge_cv_selection_at_grid_edge, 1},
-    {"_TRexSelector_enet_create", (DL_FUNC) &_TRexSelector_enet_create, 1},
+    {"_TRexSelector_enet_create", (DL_FUNC) &_TRexSelector_enet_create, 2},
     {"_TRexSelector_enet_fit", (DL_FUNC) &_TRexSelector_enet_fit, 11},
     {"_TRexSelector_enet_fit_mmap", (DL_FUNC) &_TRexSelector_enet_fit_mmap, 11},
     {"_TRexSelector_enet_fit_grid", (DL_FUNC) &_TRexSelector_enet_fit_grid, 10},
@@ -3466,7 +3491,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_TRexSelector_enet_n_nonconverged", (DL_FUNC) &_TRexSelector_enet_n_nonconverged, 1},
     {"_TRexSelector_enet_predict", (DL_FUNC) &_TRexSelector_enet_predict, 2},
     {"_TRexSelector_enet_predict_mmap", (DL_FUNC) &_TRexSelector_enet_predict_mmap, 2},
-    {"_TRexSelector_enet_cv_create", (DL_FUNC) &_TRexSelector_enet_cv_create, 1},
+    {"_TRexSelector_enet_cv_create", (DL_FUNC) &_TRexSelector_enet_cv_create, 2},
     {"_TRexSelector_enet_cv_fit", (DL_FUNC) &_TRexSelector_enet_cv_fit, 12},
     {"_TRexSelector_enet_cv_fit_mmap", (DL_FUNC) &_TRexSelector_enet_cv_fit_mmap, 12},
     {"_TRexSelector_enet_cv_min", (DL_FUNC) &_TRexSelector_enet_cv_min, 1},
@@ -3476,10 +3501,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_TRexSelector_enet_cv_get_lambdas", (DL_FUNC) &_TRexSelector_enet_cv_get_lambdas, 1},
     {"_TRexSelector_enet_cv_get_cv_errors", (DL_FUNC) &_TRexSelector_enet_cv_get_cv_errors, 1},
     {"_TRexSelector_enet_cv_get_cv_std", (DL_FUNC) &_TRexSelector_enet_cv_get_cv_std, 1},
-    {"_TRexSelector_svd_compute", (DL_FUNC) &_TRexSelector_svd_compute, 4},
-    {"_TRexSelector_svd_compute_mmap", (DL_FUNC) &_TRexSelector_svd_compute_mmap, 4},
-    {"_TRexSelector_pca_create", (DL_FUNC) &_TRexSelector_pca_create, 4},
-    {"_TRexSelector_pca_create_mmap", (DL_FUNC) &_TRexSelector_pca_create_mmap, 4},
+    {"_TRexSelector_svd_compute", (DL_FUNC) &_TRexSelector_svd_compute, 5},
+    {"_TRexSelector_svd_compute_mmap", (DL_FUNC) &_TRexSelector_svd_compute_mmap, 5},
+    {"_TRexSelector_pca_create", (DL_FUNC) &_TRexSelector_pca_create, 5},
+    {"_TRexSelector_pca_create_mmap", (DL_FUNC) &_TRexSelector_pca_create_mmap, 5},
     {"_TRexSelector_pca_fit", (DL_FUNC) &_TRexSelector_pca_fit, 1},
     {"_TRexSelector_pca_restore", (DL_FUNC) &_TRexSelector_pca_restore, 2},
     {"_TRexSelector_pca_restore_mmap", (DL_FUNC) &_TRexSelector_pca_restore_mmap, 2},
@@ -3489,8 +3514,8 @@ static const R_CallMethodDef CallEntries[] = {
     {"_TRexSelector_pca_get_norms", (DL_FUNC) &_TRexSelector_pca_get_norms, 1},
     {"_TRexSelector_pca_get_loadings", (DL_FUNC) &_TRexSelector_pca_get_loadings, 1},
     {"_TRexSelector_pca_get_explained_variance", (DL_FUNC) &_TRexSelector_pca_get_explained_variance, 1},
-    {"_TRexSelector_ridge_solve", (DL_FUNC) &_TRexSelector_ridge_solve, 3},
-    {"_TRexSelector_ridge_solve_mmap", (DL_FUNC) &_TRexSelector_ridge_solve_mmap, 3},
+    {"_TRexSelector_ridge_solve", (DL_FUNC) &_TRexSelector_ridge_solve, 4},
+    {"_TRexSelector_ridge_solve_mmap", (DL_FUNC) &_TRexSelector_ridge_solve_mmap, 4},
     {"_TRexSelector_trex_biobank_screening_1d_create", (DL_FUNC) &_TRexSelector_trex_biobank_screening_1d_create, 7},
     {"_TRexSelector_trex_biobank_screening_2d_create", (DL_FUNC) &_TRexSelector_trex_biobank_screening_2d_create, 7},
     {"_TRexSelector_trex_biobank_screening_1d_mmap_create", (DL_FUNC) &_TRexSelector_trex_biobank_screening_1d_mmap_create, 7},
@@ -3676,8 +3701,9 @@ static const R_CallMethodDef CallEntries[] = {
     {"_TRexSelector_rcpp_compute_recall", (DL_FUNC) &_TRexSelector_rcpp_compute_recall, 2},
     {"_TRexSelector_rcpp_compute_fdp_dense", (DL_FUNC) &_TRexSelector_rcpp_compute_fdp_dense, 3},
     {"_TRexSelector_rcpp_compute_tpp_dense", (DL_FUNC) &_TRexSelector_rcpp_compute_tpp_dense, 3},
-    {"_TRexSelector_rcpp_normalize_design", (DL_FUNC) &_TRexSelector_rcpp_normalize_design, 4},
+    {"_TRexSelector_rcpp_normalize_design", (DL_FUNC) &_TRexSelector_rcpp_normalize_design, 5},
     {"_TRexSelector_rcpp_get_max_threads", (DL_FUNC) &_TRexSelector_rcpp_get_max_threads, 0},
+    {"_TRexSelector_rcpp_get_num_threads", (DL_FUNC) &_TRexSelector_rcpp_get_num_threads, 0},
     {"_TRexSelector_rcpp_set_num_threads", (DL_FUNC) &_TRexSelector_rcpp_set_num_threads, 1},
     {NULL, NULL, 0}
 };

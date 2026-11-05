@@ -28,6 +28,7 @@
 
 // utils includes
 #include <utils/serialization/utils_cereal_eigen.hpp>
+#include <utils/openmp/utils_openmp.hpp>
 
 // ===================================================================================
 
@@ -88,13 +89,23 @@ protected:
     /** @brief Whether the transformer has been fitted. */
     bool fitted_{false};
 
+    /** @brief Thread budget of the column passes (>= 1). Not serialized: a
+     *  loaded transformer starts at the library's default budget. */
+    int n_threads_{1};
+
     // ========================================================================
     // Protected constructors to support inheritance and prevent slicing
     // ========================================================================
 
-    /** @brief Construct with the standard center/scale switches. */
-    explicit DataTransformer(bool center = true, bool scale = true)
-        : center_(center), scale_(scale) {}
+    /** @brief Construct with the standard center/scale switches and the thread
+     *  budget of the column passes (the library's default budget unless given). */
+    explicit DataTransformer(bool center = true, bool scale = true,
+                             int n_threads = ::trex::utils::openmp::get_num_threads())
+        : center_(center), scale_(scale), n_threads_(n_threads) {
+        if (n_threads < 1) {
+            throw std::invalid_argument("DataTransformer: n_threads must be >= 1.");
+        }
+    }
 
     /** @brief Default copy constructor */
     DataTransformer(const DataTransformer&) = default;
@@ -198,6 +209,17 @@ public:
 
     /** @brief Whether columns are scaled. */
     bool get_scale() const noexcept { return scale_; }
+
+    /** @brief The thread budget of the column passes. */
+    int get_num_threads() const noexcept { return n_threads_; }
+
+    /** @brief Set the thread budget of the column passes (>= 1). */
+    void set_num_threads(int n_threads) {
+        if (n_threads < 1) {
+            throw std::invalid_argument(get_name() + "::set_num_threads: n_threads must be >= 1.");
+        }
+        n_threads_ = n_threads;
+    }
 
     /** @brief Get transformer name for serialization */
     virtual std::string get_name() const = 0;

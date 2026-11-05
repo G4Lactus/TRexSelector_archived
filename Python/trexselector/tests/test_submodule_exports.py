@@ -106,6 +106,7 @@ def test_utils_symbols_importable():
         false_negatives_count,
         f1_score,
         get_max_threads,
+        get_num_threads,
         set_num_threads,
     )
     assert callable(compute_fdp)
@@ -119,6 +120,7 @@ def test_utils_symbols_importable():
     assert callable(false_negatives_count)
     assert callable(f1_score)
     assert callable(get_max_threads)
+    assert callable(get_num_threads)
     assert callable(set_num_threads)
     assert callable(numpy_to_memmap)
     assert callable(convert_to_memory_mapped)

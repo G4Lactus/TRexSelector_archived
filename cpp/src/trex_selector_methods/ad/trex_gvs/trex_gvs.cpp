@@ -557,6 +557,7 @@ double TRexGVSSelector::computeLambda2() const {
                 // the dfmax support cap (ctrl.cv_dfmax_ratio) is what makes
                 // it affordable. max_iter / tol are the tuner's defaults.
                 ms::ienet_cv_ccd cv;
+                cv.set_num_threads(trex_ctrl_.max_inner_threads);
                 cv.fit(*X_, y_, gvs_setup_.groups_vec,
                        trex_gvs_ctrl_.cv_n_folds,
                        trex_gvs_ctrl_.cv_n_lambda2,
@@ -584,6 +585,7 @@ double TRexGVSSelector::computeLambda2() const {
                 // block can interpolate the training folds (p - M >=
                 // n_train): any pick there is floor-driven, so refuse.
                 ms::tikhonov_cv_svd cv;
+                cv.set_num_threads(trex_ctrl_.max_inner_threads);
                 cv.fit(*X_, y_, gvs_setup_.groups_vec,
                        trex_gvs_ctrl_.cv_n_folds,
                        trex_gvs_ctrl_.cv_n_lambda,
@@ -620,6 +622,7 @@ double TRexGVSSelector::computeLambda2() const {
         // == SVD-based CV (ridge_cv_svd, JacobiSVD direct ridge) =====================
         case LambdaSelectionMethod::CV_MIN_SVD: {
             ms::ridge_cv_svd cv;
+            cv.set_num_threads(trex_ctrl_.max_inner_threads);
             cv.fit(*X_, y_,
                    trex_gvs_ctrl_.cv_n_folds,
                    trex_gvs_ctrl_.cv_n_lambda,
@@ -633,6 +636,7 @@ double TRexGVSSelector::computeLambda2() const {
         case LambdaSelectionMethod::CV_1SE_SVD: {
             // Largest lambda within 1 SE of the CV minimum (SVD path).
             ms::ridge_cv_svd cv;
+            cv.set_num_threads(trex_ctrl_.max_inner_threads);
             cv.fit(*X_, y_,
                    trex_gvs_ctrl_.cv_n_folds,
                    trex_gvs_ctrl_.cv_n_lambda,
@@ -647,6 +651,7 @@ double TRexGVSSelector::computeLambda2() const {
         // == CCD-based CV (enet_cv_ccd, alpha=0, glmnet-faithful) ===========
         case LambdaSelectionMethod::CV_MIN_CCD: {
             ms::enet_cv_ccd cv;
+            cv.set_num_threads(trex_ctrl_.max_inner_threads);
             cv.fit(*X_, y_,
                    /*alpha=*/0.0,
                    trex_gvs_ctrl_.cv_n_folds,
@@ -664,6 +669,7 @@ double TRexGVSSelector::computeLambda2() const {
         case LambdaSelectionMethod::CV_1SE_CCD: {
             // glmnet-faithful 1SE rule via coordinate descent (default). See CV_MIN_CCD.
             ms::enet_cv_ccd cv;
+            cv.set_num_threads(trex_ctrl_.max_inner_threads);
             cv.fit(*X_, y_,
                    /*alpha=*/0.0,
                    trex_gvs_ctrl_.cv_n_folds,

@@ -48,6 +48,9 @@ NULL
 #'   \code{"NONE"} (copies equal the inputs; identity parameters).
 #' @param eps Dead-column threshold on the working L2 norm (default 1e-6,
 #'   the selectors' default solver tolerance).
+#' @param n_threads Integer, the thread budget of the column passes
+#'   (\code{NULL}, the default: the library's default budget,
+#'   \code{\link{trex_get_num_threads}()}, initially 1).
 #'
 #' @return A list with \code{X} and \code{y} (the normalized copies),
 #'   \code{X_means}, \code{X_scales} (the per-column divisors: L2 norms for
@@ -69,11 +72,11 @@ NULL
 #' @family T-Rex selectors and controls
 #' @export
 trex_normalize_design <- function(X, y, scaling_mode = c("L2", "ZSCORE", "NONE"),
-                                  eps = 1e-6) {
+                                  eps = 1e-6, n_threads = NULL) {
   scaling_mode <- match.arg(scaling_mode)
   X <- .as_double_matrix(X)
   y <- .as_double_vector(y)
-  rcpp_normalize_design(X, y, scaling_mode, eps)
+  rcpp_normalize_design(X, y, scaling_mode, eps, resolve_n_threads(n_threads))
 }
 
 
@@ -537,32 +540,55 @@ trex_tpp_dense <- function(beta_hat, beta, eps = 1e-15) {
 }
 
 
-#' OpenMP threads used by the library
+#' The library's thread budget
 #'
-#' @description The number of threads the C++ backend uses for its parallel
-#'   regions (the K experiments of a selector, the column loops of the
-#'   scalers, ...). \code{trex_get_max_threads()} reads it,
-#'   \code{trex_set_num_threads()} sets it for this session; both are
-#'   no-ops in a build without OpenMP (one thread).
+#' @description The library is single-threaded by default. Every parallel
+#'   region of the C++ backend runs on an explicit budget: a selector's
+#'   random experiments and its inner kernels on \code{trex_control(
+#'   max_outer_threads, max_inner_threads)}, a T-solver on
+#'   \code{tsolver_options(n_threads)}, and every method without an option
+#'   of its own (the scalers, the clustering, the ML regressions, the
+#'   dummy and data generators, \code{\link{trex_normalize_design}}) on the
+#'   library's default budget, which starts at 1.
+#'   \code{trex_get_num_threads()} reads that default budget and
+#'   \code{trex_set_num_threads()} sets it for this session; the
+#'   \code{n_threads} argument of those methods overrides it per object.
+#'   \code{trex_get_max_threads()} reports the threads OpenMP can run on this
+#'   machine (1 in a build without OpenMP), an upper bound for a budget.
 #'
-#' @param n Positive integer, the number of threads.
-#' @return \code{trex_get_max_threads()}: an integer.
-#'   \code{trex_set_num_threads()}: invisibly, the previous value.
+#' @param n Positive integer, the default thread budget.
+#' @return \code{trex_get_num_threads()}, \code{trex_get_max_threads()}: an
+#'   integer. \code{trex_set_num_threads()}: invisibly, the previous budget.
 #' @examples
-#' old <- trex_set_num_threads(2)
-#' trex_get_max_threads()
+#' trex_get_num_threads()   # 1
+#' old <- trex_set_num_threads(min(2L, trex_get_max_threads()))
+#' trex_get_num_threads()
 #' trex_set_num_threads(old)
 #' @family T-Rex selectors and controls
+#' @export
+trex_get_num_threads <- function() {
+  rcpp_get_num_threads()
+}
+
+#' @rdname trex_get_num_threads
 #' @export
 trex_get_max_threads <- function() {
   rcpp_get_max_threads()
 }
 
-#' @rdname trex_get_max_threads
+#' @rdname trex_get_num_threads
 #' @export
 trex_set_num_threads <- function(n) {
   stopifnot(is.numeric(n), length(n) == 1L, n >= 1)
-  old <- rcpp_get_max_threads()
-  rcpp_set_num_threads(as.integer(n))
-  invisible(old)
+  invisible(rcpp_set_num_threads(as.integer(n)))
+}
+
+# The budget an n_threads argument resolves to: the library's default budget
+# for NULL, the positive integer otherwise.
+resolve_n_threads <- function(n_threads) {
+  if (is.null(n_threads)) {
+    return(rcpp_get_num_threads())
+  }
+  stopifnot(is.numeric(n_threads), length(n_threads) == 1L, n_threads >= 1)
+  as.integer(n_threads)
 }

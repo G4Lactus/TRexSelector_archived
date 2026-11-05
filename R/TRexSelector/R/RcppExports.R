@@ -15,8 +15,8 @@
 #' @return A linkage matrix
 #'
 #' @noRd
-rcpp_agglomerative_cluster <- function(data, method_idx, metric_idx, use_mmap = FALSE, verbose = FALSE) {
-    .Call(`_TRexSelector_rcpp_agglomerative_cluster`, data, method_idx, metric_idx, use_mmap, verbose)
+rcpp_agglomerative_cluster <- function(data, method_idx, metric_idx, use_mmap = FALSE, verbose = FALSE, n_threads = 1L) {
+    .Call(`_TRexSelector_rcpp_agglomerative_cluster`, data, method_idx, metric_idx, use_mmap, verbose, n_threads)
 }
 
 #' @title Rcpp Agglomerative Clustering (memory-mapped input)
@@ -33,8 +33,8 @@ rcpp_agglomerative_cluster <- function(data, method_idx, metric_idx, use_mmap = 
 #' @return A linkage matrix
 #'
 #' @noRd
-rcpp_agglomerative_cluster_mmap <- function(data_ptr, method_idx, metric_idx, verbose = FALSE) {
-    .Call(`_TRexSelector_rcpp_agglomerative_cluster_mmap`, data_ptr, method_idx, metric_idx, verbose)
+rcpp_agglomerative_cluster_mmap <- function(data_ptr, method_idx, metric_idx, verbose = FALSE, n_threads = 1L) {
+    .Call(`_TRexSelector_rcpp_agglomerative_cluster_mmap`, data_ptr, method_idx, metric_idx, verbose, n_threads)
 }
 
 #' @title Rcpp Cut Tree
@@ -58,8 +58,8 @@ rcpp_cut_tree <- function(linkage, num_orig_objs, num_clusters) {
 #' @param scale Scale columns to unit SD (Bessel; RMS around 0 if not centered)
 #' @return XPtr to ZScoreScaler
 #' @noRd
-zscore_scaler_create <- function(center, scale) {
-    .Call(`_TRexSelector_zscore_scaler_create`, center, scale)
+zscore_scaler_create <- function(center, scale, n_threads) {
+    .Call(`_TRexSelector_zscore_scaler_create`, center, scale, n_threads)
 }
 
 #' @title Fit ZScoreScaler
@@ -217,8 +217,8 @@ zscore_scaler_inverse_transform_inplace_mmap <- function(ptr, mmap_ptr) {
 #' @param scale Scale columns to unit Lp norm (around the applied center)
 #' @return XPtr to LpNormScaler
 #' @noRd
-lpnorm_scaler_create <- function(norm_type, center, scale) {
-    .Call(`_TRexSelector_lpnorm_scaler_create`, norm_type, center, scale)
+lpnorm_scaler_create <- function(norm_type, center, scale, n_threads) {
+    .Call(`_TRexSelector_lpnorm_scaler_create`, norm_type, center, scale, n_threads)
 }
 
 #' @title Fit LpNormScaler
@@ -382,8 +382,8 @@ lpnorm_scaler_inverse_transform_inplace_mmap <- function(ptr, mmap_ptr) {
 #'
 #' @return XPtr to ridge_cv
 #' @noRd
-ridge_cv_create <- function(low_memory = FALSE) {
-    .Call(`_TRexSelector_ridge_cv_create`, low_memory)
+ridge_cv_create <- function(low_memory, n_threads) {
+    .Call(`_TRexSelector_ridge_cv_create`, low_memory, n_threads)
 }
 
 #' @title Fit Ridge CV
@@ -502,8 +502,8 @@ ridge_cv_selection_at_grid_edge <- function(ptr) {
 #' @title Create Elastic Net path
 #' @return XPtr to enet_path
 #' @noRd
-enet_create <- function(low_memory = FALSE) {
-    .Call(`_TRexSelector_enet_create`, low_memory)
+enet_create <- function(low_memory, n_threads) {
+    .Call(`_TRexSelector_enet_create`, low_memory, n_threads)
 }
 
 #' @title Fit Elastic Net over an auto-generated glmnet-style grid
@@ -581,8 +581,8 @@ enet_predict_mmap <- function(ptr, mmap_ptr) {
 #' @title Create Elastic Net CV
 #' @return XPtr to enet_cv
 #' @noRd
-enet_cv_create <- function(low_memory = FALSE) {
-    .Call(`_TRexSelector_enet_cv_create`, low_memory)
+enet_cv_create <- function(low_memory, n_threads) {
+    .Call(`_TRexSelector_enet_cv_create`, low_memory, n_threads)
 }
 
 #' @title Fit Elastic Net CV over a glmnet-style grid
@@ -650,14 +650,14 @@ enet_cv_get_cv_std <- function(ptr) {
 #' @return Named list with elements \code{U} (n x M), \code{S} (M),
 #'   and \code{V} (p x M).
 #' @noRd
-svd_compute <- function(X, M, min_dim_thresh = 10000, block_size = 1024) {
-    .Call(`_TRexSelector_svd_compute`, X, M, min_dim_thresh, block_size)
+svd_compute <- function(X, M, min_dim_thresh, block_size, n_threads) {
+    .Call(`_TRexSelector_svd_compute`, X, M, min_dim_thresh, block_size, n_threads)
 }
 
 #' @title Compute SVD of a MemoryMappedMatrix (zero-copy, readonly suffices)
 #' @noRd
-svd_compute_mmap <- function(mmap_ptr, M, min_dim_thresh = 10000, block_size = 1024) {
-    .Call(`_TRexSelector_svd_compute_mmap`, mmap_ptr, M, min_dim_thresh, block_size)
+svd_compute_mmap <- function(mmap_ptr, M, min_dim_thresh, block_size, n_threads) {
+    .Call(`_TRexSelector_svd_compute_mmap`, mmap_ptr, M, min_dim_thresh, block_size, n_threads)
 }
 
 #' @title Create PCA object
@@ -673,8 +673,8 @@ svd_compute_mmap <- function(mmap_ptr, M, min_dim_thresh = 10000, block_size = 1
 #'
 #' @return XPtr to a PCA instance.
 #' @noRd
-pca_create <- function(X, M, center = TRUE, normalize = TRUE) {
-    .Call(`_TRexSelector_pca_create`, X, M, center, normalize)
+pca_create <- function(X, M, center, normalize, n_threads) {
+    .Call(`_TRexSelector_pca_create`, X, M, center, normalize, n_threads)
 }
 
 #' @title Create PCA object on a MemoryMappedMatrix (zero-copy)
@@ -683,8 +683,8 @@ pca_create <- function(X, M, center = TRUE, normalize = TRUE) {
 #'   (readwrite mapping required when center or normalize is TRUE);
 #'   \code{pca_restore_mmap()} undoes it.
 #' @noRd
-pca_create_mmap <- function(mmap_ptr, M, center = TRUE, normalize = TRUE) {
-    .Call(`_TRexSelector_pca_create_mmap`, mmap_ptr, M, center, normalize)
+pca_create_mmap <- function(mmap_ptr, M, center, normalize, n_threads) {
+    .Call(`_TRexSelector_pca_create_mmap`, mmap_ptr, M, center, normalize, n_threads)
 }
 
 #' @title Fit PCA
@@ -780,14 +780,14 @@ pca_get_explained_variance <- function(ptr) {
 #'
 #' @return Coefficient vector of length p.
 #' @noRd
-ridge_solve <- function(X, y, lambda) {
-    .Call(`_TRexSelector_ridge_solve`, X, y, lambda)
+ridge_solve <- function(X, y, lambda, n_threads) {
+    .Call(`_TRexSelector_ridge_solve`, X, y, lambda, n_threads)
 }
 
 #' @title Solve Ridge Regression on a MemoryMappedMatrix (zero-copy, readonly suffices)
 #' @noRd
-ridge_solve_mmap <- function(mmap_ptr, y, lambda) {
-    .Call(`_TRexSelector_ridge_solve_mmap`, mmap_ptr, y, lambda)
+ridge_solve_mmap <- function(mmap_ptr, y, lambda, n_threads) {
+    .Call(`_TRexSelector_ridge_solve_mmap`, mmap_ptr, y, lambda, n_threads)
 }
 
 #' @title Create RTRexBiobankScreeningSelector 1D
@@ -2425,8 +2425,8 @@ rcpp_compute_tpp_dense <- function(beta_hat, beta, eps = 1e-15) {
 #' @return List with X, y, X_means, X_scales, y_mean.
 #'
 #' @noRd
-rcpp_normalize_design <- function(X, y, scaling_mode, eps) {
-    .Call(`_TRexSelector_rcpp_normalize_design`, X, y, scaling_mode, eps)
+rcpp_normalize_design <- function(X, y, scaling_mode, eps, n_threads) {
+    .Call(`_TRexSelector_rcpp_normalize_design`, X, y, scaling_mode, eps, n_threads)
 }
 
 #' @noRd
@@ -2435,7 +2435,12 @@ rcpp_get_max_threads <- function() {
 }
 
 #' @noRd
+rcpp_get_num_threads <- function() {
+    .Call(`_TRexSelector_rcpp_get_num_threads`)
+}
+
+#' @noRd
 rcpp_set_num_threads <- function(n) {
-    invisible(.Call(`_TRexSelector_rcpp_set_num_threads`, n))
+    .Call(`_TRexSelector_rcpp_set_num_threads`, n)
 }
 

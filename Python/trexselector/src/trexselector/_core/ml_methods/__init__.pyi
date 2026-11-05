@@ -23,9 +23,9 @@ class ElasticNet:
     def __init__(self) -> None:
         ...
     @typing.overload
-    def __init__(self, low_memory: bool) -> None:
+    def __init__(self, low_memory: bool, n_threads: typing.SupportsInt | typing.SupportsIndex | None = None) -> None:
         """
-        low_memory=False (default): the coordinate descent runs on a centered and standardized working copy of X (one n x p matrix while fitting). low_memory=True: it runs on X itself through the caller's view (a MemoryMappedMatrix.to_numpy() view included) with no allocation of the size of X; same estimator and grid, the two engines agree to rounding (about 1e-12 in the coefficients).
+        low_memory=False (default): the coordinate descent runs on a centered and standardized working copy of X (one n x p matrix while fitting). low_memory=True: it runs on X itself through the caller's view (a MemoryMappedMatrix.to_numpy() view included) with no allocation of the size of X; same estimator and grid, the two engines agree to rounding (about 1e-12 in the coefficients). n_threads: the thread budget of the fit's matrix products (None: the library's default budget, utils.get_num_threads(), initially 1).
         """
     def coef(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]:
         """
@@ -63,6 +63,10 @@ class ElasticNet:
         """
         Number of lambda points that hit max_iter without converging.
         """
+    def num_threads(self) -> int:
+        """
+        The thread budget of the fit's matrix products.
+        """
     def predict(self, X_new: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]:
         """
         Predictions per lambda: (X_new @ coef) + intercept.
@@ -70,6 +74,10 @@ class ElasticNet:
     def set_low_memory(self, low_memory: bool) -> None:
         """
         Switch the engine; takes effect at the next fit().
+        """
+    def set_num_threads(self, n_threads: typing.SupportsInt | typing.SupportsIndex) -> None:
+        """
+        Set the thread budget of the fit's matrix products (>= 1).
         """
 class ElasticNetCV:
     """
@@ -93,9 +101,9 @@ class ElasticNetCV:
     def __init__(self) -> None:
         ...
     @typing.overload
-    def __init__(self, low_memory: bool) -> None:
+    def __init__(self, low_memory: bool, n_threads: typing.SupportsInt | typing.SupportsIndex | None = None) -> None:
         """
-        low_memory=True runs the full-data fit and every fold on X itself with a 0/1 training mask (no allocation of the size of X); see ElasticNet.
+        low_memory=True runs the full-data fit and every fold on X itself with a 0/1 training mask (no allocation of the size of X); see ElasticNet. n_threads: the thread budget of the matrix products of the fit and its folds (None: the library's default budget, utils.get_num_threads(), initially 1).
         """
     def cv_1se(self) -> float:
         """
@@ -137,6 +145,10 @@ class ElasticNetCV:
         """
         Whether the raw-X engine is selected.
         """
+    def num_threads(self) -> int:
+        """
+        The thread budget of the matrix products of the fit and its folds.
+        """
     def selection_at_grid_edge(self) -> bool:
         """
         Whether lambda.min or lambda.1se sits on the first or last grid point.
@@ -145,9 +157,15 @@ class ElasticNetCV:
         """
         Switch the engine; takes effect at the next fit().
         """
+    def set_num_threads(self, n_threads: typing.SupportsInt | typing.SupportsIndex) -> None:
+        """
+        Set the thread budget of the matrix products of the fit and its folds (>= 1).
+        """
 class LpNormScaler:
-    def __init__(self, norm_type: NormType = ..., center: bool = True, scale: bool = True) -> None:
-        ...
+    def __init__(self, norm_type: NormType = ..., center: bool = True, scale: bool = True, n_threads: typing.SupportsInt | typing.SupportsIndex | None = None) -> None:
+        """
+        n_threads: the thread budget of the column passes (None: the library's default budget, utils.get_num_threads(), initially 1).
+        """
     def fit(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], threshold: typing.SupportsFloat | typing.SupportsIndex = 1e-12) -> LpNormScaler:
         ...
     def fit_transform(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], threshold: typing.SupportsFloat | typing.SupportsIndex = 1e-12) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]:
@@ -164,6 +182,10 @@ class LpNormScaler:
         ...
     def get_norm_type(self) -> NormType:
         ...
+    def get_num_threads(self) -> int:
+        """
+        The thread budget of the column passes.
+        """
     def get_scale(self) -> bool:
         ...
     def get_scales(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
@@ -180,6 +202,10 @@ class LpNormScaler:
         ...
     def save(self, filename: str) -> None:
         ...
+    def set_num_threads(self, n_threads: typing.SupportsInt | typing.SupportsIndex) -> None:
+        """
+        Set the thread budget of the column passes (>= 1).
+        """
     def transform(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]:
         """
         Return a normalized copy of X (any memory order accepted; X unchanged).
@@ -239,8 +265,10 @@ class PCA:
     ----------
     G. Guennebaud, B. Jacob et al., Eigen v3, https://libeigen.gitlab.io/, 2010.
     """
-    def __init__(self, center: bool = True, normalize: bool = True) -> None:
-        ...
+    def __init__(self, center: bool = True, normalize: bool = True, n_threads: typing.SupportsInt | typing.SupportsIndex | None = None) -> None:
+        """
+        n_threads: the thread budget of the matrix products of fit() and transform() (None: the library's default budget, utils.get_num_threads(), initially 1).
+        """
     def fit(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.writeable", "flags.f_contiguous"], M: typing.SupportsInt | typing.SupportsIndex) -> PCAResult:
         ...
     def get_explained_variance(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
@@ -253,8 +281,16 @@ class PCA:
         ...
     def get_norms(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[1, n]"]:
         ...
+    def get_num_threads(self) -> int:
+        """
+        The thread budget of the matrix products.
+        """
     def restore(self) -> None:
         ...
+    def set_num_threads(self, n_threads: typing.SupportsInt | typing.SupportsIndex) -> None:
+        """
+        Set the thread budget of the next fit() (>= 1).
+        """
     def transform(self, X_new: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]:
         ...
 class PCAResult:
@@ -293,9 +329,9 @@ class RidgeCV:
     def __init__(self) -> None:
         ...
     @typing.overload
-    def __init__(self, low_memory: bool) -> None:
+    def __init__(self, low_memory: bool, n_threads: typing.SupportsInt | typing.SupportsIndex | None = None) -> None:
         """
-        low_memory=True: the dual (kernel) fold engine — n x n kernels accumulated from column blocks of X read in place, no p-dimensional coefficients; same estimator, grid and rank rule, agreement to numerical precision; memory O(n^2) instead of O(n p), the route for p >> n.
+        low_memory=True: the dual (kernel) fold engine — n x n kernels accumulated from column blocks of X read in place, no p-dimensional coefficients; same estimator, grid and rank rule, agreement to numerical precision; memory O(n^2) instead of O(n p), the route for p >> n. n_threads: the thread budget of the fit's matrix products (None: the library's default budget, utils.get_num_threads(), initially 1).
         """
     def cv_1se(self) -> float:
         """
@@ -337,6 +373,10 @@ class RidgeCV:
         """
         Whether the kernel fold engine is selected.
         """
+    def num_threads(self) -> int:
+        """
+        The thread budget of the fit's matrix products.
+        """
     def selection_at_grid_edge(self) -> bool:
         """
         Whether lambda.min or lambda.1se sits on the first or last grid point.
@@ -344,6 +384,10 @@ class RidgeCV:
     def set_low_memory(self, low_memory: bool) -> None:
         """
         Switch the fold engine; takes effect at the next fit().
+        """
+    def set_num_threads(self, n_threads: typing.SupportsInt | typing.SupportsIndex) -> None:
+        """
+        Set the thread budget of the fit's matrix products (>= 1).
         """
 class RidgeSolver:
     """
@@ -356,8 +400,10 @@ class RidgeSolver:
       in the Special 40th Anniversary Issue).
     """
     @staticmethod
-    def solve(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], lambda_val: typing.SupportsFloat | typing.SupportsIndex) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
-        ...
+    def solve(X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], y: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"], lambda_val: typing.SupportsFloat | typing.SupportsIndex, n_threads: typing.SupportsInt | typing.SupportsIndex | None = None) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
+        """
+        n_threads: the thread budget of the matrix products (None: the library's default budget, utils.get_num_threads(), initially 1).
+        """
     def __init__(self) -> None:
         ...
 class SVDResult:
@@ -393,15 +439,25 @@ class SVDSolver:
     def __init__(self) -> None:
         ...
     @typing.overload
-    def __init__(self, min_dim_thresh: typing.SupportsInt | typing.SupportsIndex = 10000, block_size: typing.SupportsInt | typing.SupportsIndex = 1024) -> None:
+    def __init__(self, min_dim_thresh: typing.SupportsInt | typing.SupportsIndex = 10000, block_size: typing.SupportsInt | typing.SupportsIndex = 1024, n_threads: typing.SupportsInt | typing.SupportsIndex | None = None) -> None:
         """
-        Dispatch thresholds: the direct Jacobi path copies X and computes every singular triplet; when min(n, p) exceeds min_dim_thresh and M < min(n, p) / 10 the randomized path runs two block-wise passes over X (no copy; the route for a memory-mapped X), and p > 2n always takes the Gram path. Lowering min_dim_thresh selects the randomized path for smaller designs; block_size is the column block of the block-wise passes.
+        n_threads: the thread budget of the matrix products (None: the library's default budget, utils.get_num_threads(), initially 1). Dispatch thresholds: the direct Jacobi path copies X and computes every singular triplet; when min(n, p) exceeds min_dim_thresh and M < min(n, p) / 10 the randomized path runs two block-wise passes over X (no copy; the route for a memory-mapped X), and p > 2n always takes the Gram path. Lowering min_dim_thresh selects the randomized path for smaller designs; block_size is the column block of the block-wise passes.
         """
     def compute(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], M: typing.SupportsInt | typing.SupportsIndex) -> SVDResult:
         ...
+    def num_threads(self) -> int:
+        """
+        The thread budget of the matrix products.
+        """
+    def set_num_threads(self, n_threads: typing.SupportsInt | typing.SupportsIndex) -> None:
+        """
+        Set the thread budget of the matrix products (>= 1).
+        """
 class ZScoreScaler:
-    def __init__(self, center: bool = True, scale: bool = True) -> None:
-        ...
+    def __init__(self, center: bool = True, scale: bool = True, n_threads: typing.SupportsInt | typing.SupportsIndex | None = None) -> None:
+        """
+        n_threads: the thread budget of the column passes (None: the library's default budget, utils.get_num_threads(), initially 1).
+        """
     def fit(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], threshold: typing.SupportsFloat | typing.SupportsIndex = 1e-12) -> ZScoreScaler:
         ...
     def fit_transform(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"], threshold: typing.SupportsFloat | typing.SupportsIndex = 1e-12) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]:
@@ -416,6 +472,10 @@ class ZScoreScaler:
         ...
     def get_dropped_indices(self) -> list[int]:
         ...
+    def get_num_threads(self) -> int:
+        """
+        The thread budget of the column passes.
+        """
     def get_scale(self) -> bool:
         ...
     def get_scales(self) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, 1]"]:
@@ -432,6 +492,10 @@ class ZScoreScaler:
         ...
     def save(self, filename: str) -> None:
         ...
+    def set_num_threads(self, n_threads: typing.SupportsInt | typing.SupportsIndex) -> None:
+        """
+        Set the thread budget of the column passes (>= 1).
+        """
     def transform(self, X: typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]", "flags.f_contiguous"]) -> typing.Annotated[numpy.typing.NDArray[numpy.float64], "[m, n]"]:
         """
         Return a scaled copy of X (any memory order accepted; X unchanged).

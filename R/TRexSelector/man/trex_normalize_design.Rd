@@ -8,7 +8,8 @@ trex_normalize_design(
   X,
   y,
   scaling_mode = c("L2", "ZSCORE", "NONE"),
-  eps = 1e-06
+  eps = 1e-06,
+  n_threads = NULL
 )
 }
 \arguments{
@@ -22,6 +23,10 @@ column L2 norm), \code{"ZSCORE"} (center, divide by the sample SD) or
 
 \item{eps}{Dead-column threshold on the working L2 norm (default 1e-6,
 the selectors' default solver tolerance).}
+
+\item{n_threads}{Integer, the thread budget of the column passes
+(\code{NULL}, the default: the library's default budget,
+\code{\link{trex_get_num_threads}()}, initially 1).}
 }
 \value{
 A list with \code{X} and \code{y} (the normalized copies),
@@ -69,7 +74,7 @@ Other T-Rex selectors and controls:
 \code{\link[=trex_fdp]{trex_fdp()}},
 \code{\link[=trex_fdp_dense]{trex_fdp_dense()}},
 \code{\link[=trex_gamma_to_k]{trex_gamma_to_k()}},
-\code{\link[=trex_get_max_threads]{trex_get_max_threads()}},
+\code{\link[=trex_get_num_threads]{trex_get_num_threads()}},
 \code{\link[=trex_gvs_control]{trex_gvs_control()}},
 \code{\link[=trex_precision]{trex_precision()}},
 \code{\link[=trex_recall]{trex_recall()}},

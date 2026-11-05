@@ -71,7 +71,7 @@ Other ML methods:
   Initialize the MLZScoreScaler
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{MLZScoreScaler$new(center = TRUE, scale = TRUE)}
+    \preformatted{MLZScoreScaler$new(center = TRUE, scale = TRUE, n_threads = NULL)}
     \if{html}{\out{</div>}}
   }
   \subsection{Arguments}{
@@ -80,6 +80,9 @@ Other ML methods:
       \item{\code{center}}{Logical, whether to center columns to mean 0 (default: TRUE)}
       \item{\code{scale}}{Logical, whether to scale columns to unit SD (default: TRUE);
 around 0 instead of the mean when \code{center = FALSE}, as in R's scale().}
+      \item{\code{n_threads}}{Integer, the thread budget of the column passes
+(\code{NULL}, the default: the library's default budget,
+\code{\link{trex_get_num_threads}()}, initially 1).}
     }
     \if{html}{\out{</div>}}
   }

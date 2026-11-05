@@ -64,13 +64,18 @@ void centerAndL2NormalizeX(Eigen::Ref<Eigen::MatrixXd> X,
                            NormalizationParams& params,
                            double eps,
                            bool verbose,
-                           ScalingMode mode) {
+                           ScalingMode mode,
+                           int n_threads) {
 
     (void)verbose;  // rejection is an exception; the NONE warning is not gated
 
     const Eigen::Index p = X.cols();
     const Eigen::Index n = X.rows();
     const double sd_factor = sdFactor(mode, n);
+
+    // Team of the column passes: the budget, or 1 below the work threshold
+    [[maybe_unused]] const int nt = ::trex::utils::openmp::threads_for(
+        n_threads, static_cast<double>(n) * static_cast<double>(p));
 
     // ---------------------------------------------------------------------
     // Pass 1 — validation on the untouched matrix (X is unmodified when an
@@ -83,8 +88,9 @@ void centerAndL2NormalizeX(Eigen::Ref<Eigen::MatrixXd> X,
     double       dead_norm = 0.0;   // its working L2 norm
     Eigen::Index stray = 0;         // NONE: columns off the unit-L2 band
 
-    #pragma omp parallel if (p > 100)
+    #pragma omp parallel num_threads(nt) if (nt > 1)
     {
+        ::trex::utils::openmp::team_probe::record();
         Eigen::VectorXd centered(n);
 
         #pragma omp for schedule(static) reduction(+:stray)
@@ -174,8 +180,9 @@ void centerAndL2NormalizeX(Eigen::Ref<Eigen::MatrixXd> X,
     // Pass 1 rejected every dead column, so the divisor is at least eps up
     // to rounding of the centered norm; no pinning to 1.0 any more.
     // ---------------------------------------------------------------------
-    #pragma omp parallel for if (p > 100)
+    #pragma omp parallel for num_threads(nt) if (nt > 1)
     for (Eigen::Index j = 0; j < p; ++j) {
+        ::trex::utils::openmp::team_probe::record();
 
         // Compute column mean j
         double mean_j = X.col(j).mean();
@@ -197,14 +204,17 @@ void centerAndL2NormalizeX(Eigen::Ref<Eigen::MatrixXd> X,
 
 
 void denormalizeX(Eigen::Ref<Eigen::MatrixXd> X,
-                  const NormalizationParams& params
-                  )
+                  const NormalizationParams& params,
+                  int n_threads)
 {
     if (params.mode == ScalingMode::NONE) { return; }  // identity parameters
 
     const Eigen::Index p = X.cols();
-    #pragma omp parallel for schedule(static) if(p > 100)
+    [[maybe_unused]] const int nt = ::trex::utils::openmp::threads_for(
+        n_threads, static_cast<double>(X.rows()) * static_cast<double>(p));
+    #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
     for (Eigen::Index j = 0; j < p; ++j) {
+        ::trex::utils::openmp::team_probe::record();
 
         auto col = X.col(j);
 
@@ -220,7 +230,8 @@ void denormalizeX(Eigen::Ref<Eigen::MatrixXd> X,
 void centerAndL2NormalizeMatrix(Eigen::Ref<Eigen::MatrixXd> M,
                                  double eps,
                                  bool verbose,
-                                 ScalingMode mode) {
+                                 ScalingMode mode,
+                                 int n_threads) {
 
     if (mode == ScalingMode::NONE) { return; }  // user-managed: untouched
 
@@ -228,8 +239,13 @@ void centerAndL2NormalizeMatrix(Eigen::Ref<Eigen::MatrixXd> M,
     const Eigen::Index n = M.rows();
     const double sd_factor = sdFactor(mode, n);
 
-    #pragma omp parallel for if (p > 100)
+    // Team of the column loop: the budget, or 1 below the work threshold
+    [[maybe_unused]] const int nt = ::trex::utils::openmp::threads_for(
+        n_threads, static_cast<double>(n) * static_cast<double>(p));
+
+    #pragma omp parallel for num_threads(nt) if (nt > 1)
     for (Eigen::Index j = 0; j < p; ++j) {
+        ::trex::utils::openmp::team_probe::record();
 
         // Center column j
         M.col(j).array() -= M.col(j).mean();

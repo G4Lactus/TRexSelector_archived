@@ -18,6 +18,9 @@
 
 // Eigen includes
 #include <Eigen/Dense>
+
+// utils includes
+#include <utils/openmp/utils_eigen_threads.hpp>
 #include <Eigen/Eigenvalues>
 
 // ===================================================================================
@@ -70,14 +73,31 @@ public:
      *                           inside the RedSVD and Gram SVD paths. Default: 1,024.
      */
     explicit SVDSolver(Eigen::Index min_dim_thresh = 10'000,
-                       Eigen::Index block_size     = 1'024)
+                       Eigen::Index block_size     = 1'024,
+                       int n_threads = ::trex::utils::openmp::get_num_threads())
         : min_dim_thresh_(min_dim_thresh)
         , block_size_(block_size)
-    {}
+        , n_threads_(n_threads)
+    {
+        if (n_threads < 1) {
+            throw std::invalid_argument("SVDSolver: n_threads must be >= 1.");
+        }
+    }
 
 
     /** @brief Default destructor */
     ~SVDSolver() = default;
+
+    /** @brief Set the thread budget of the Eigen products of compute() (>= 1). */
+    void set_num_threads(int n_threads) {
+        if (n_threads < 1) {
+            throw std::invalid_argument("SVDSolver::set_num_threads: n_threads must be >= 1.");
+        }
+        n_threads_ = n_threads;
+    }
+
+    /** @brief The thread budget of the Eigen products of compute(). */
+    int num_threads() const noexcept { return n_threads_; }
 
 
     /**
@@ -91,6 +111,8 @@ public:
      */
     SVDResult compute(const Eigen::Ref<const Eigen::MatrixXd>& X,
                       Eigen::Index M) {
+        // Eigen's products run on this object's budget for the scope of the call
+        ::trex::utils::openmp::EigenThreadBudgetGuard eigen_thread_budget_guard(n_threads_);
         Eigen::Index n = X.rows();
         Eigen::Index p = X.cols();
 
@@ -286,6 +308,9 @@ private:
 
     /** @brief Column-block width used in cache-friendly matrix products. */
     Eigen::Index block_size_;
+
+    /** @brief Thread budget of the Eigen products of compute() (>= 1). */
+    int n_threads_;
 };
 
 

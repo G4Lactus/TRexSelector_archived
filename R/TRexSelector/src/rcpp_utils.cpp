@@ -412,7 +412,8 @@ Rcpp::List rcpp_normalize_design(
     Eigen::MatrixXd X,
     Eigen::VectorXd y,
     const std::string& scaling_mode,
-    double eps
+    double eps,
+    int n_threads
 ) {
     namespace dn = trex::trex_selector_methods::ad::utils::data_normalizer;
     dn::ScalingMode mode;
@@ -429,7 +430,7 @@ Rcpp::List rcpp_normalize_design(
 
     dn::NormalizationParams params;
     dn::centerY(y, params, mode);
-    dn::centerAndL2NormalizeX(X, params, eps, /*verbose=*/false, mode);
+    dn::centerAndL2NormalizeX(X, params, eps, /*verbose=*/false, mode, n_threads);
 
     return Rcpp::List::create(
         Rcpp::Named("X")        = X,
@@ -452,7 +453,13 @@ int rcpp_get_max_threads() {
 
 //' @noRd
 // [[Rcpp::export]]
-void rcpp_set_num_threads(int n) {
+int rcpp_get_num_threads() {
+    return trex::utils::openmp::get_num_threads();
+}
+
+//' @noRd
+// [[Rcpp::export]]
+int rcpp_set_num_threads(int n) {
     if (n < 1) Rcpp::stop("set_num_threads: n must be >= 1");
-    trex::utils::openmp::set_num_threads(n);
+    return trex::utils::openmp::set_num_threads(n);
 }

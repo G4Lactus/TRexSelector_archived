@@ -29,6 +29,9 @@
 // Eigen includes
 #include <Eigen/Dense>
 
+// utils includes
+#include <utils/openmp/utils_openmp.hpp>
+
 // ml_methods includes
 #include <ml_methods/clustering/hierarchical/agglomerative/agglomerative_types.hpp>
 
@@ -84,6 +87,9 @@ private:
     std::vector<Eigen::Index> sizes_;
     Eigen::Index num_original_;
 
+    /** @brief Thread budget of the projection loops (>= 1). */
+    int n_threads_;
+
     inline void update_signature(Eigen::Index phys_idx) {
         uint64_t sig = 0;
         for(Eigen::Index b = 0; b < 64; ++b) {
@@ -99,10 +105,15 @@ public:
      * @brief Constructor. Reads the massive dataset once, projects it to 64D, and stores in RAM.
      */
     ProjectedGeometricUpdatePolicy(const MatrixType& data, bool /*use_mmap*/ = false,
-                                   bool verbose = true)
-        : num_original_(data.cols())
+                                   bool verbose = true,
+                                   int n_threads = ::trex::utils::openmp::get_num_threads())
+        : num_original_(data.cols()), n_threads_(n_threads)
     {
         Eigen::Index N = data.rows();
+
+        // Team of the projection loops: the budget, or 1 below the work threshold
+        [[maybe_unused]] const int nt = ::trex::utils::openmp::threads_for(
+            n_threads_, 64.0 * static_cast<double>(N) * static_cast<double>(num_original_));
 
         V_.resize(64, num_original_);
         signatures_.resize(num_original_);
@@ -128,16 +139,18 @@ public:
 
         // 2. Compress the dataset in cache-friendly chunks (avoids RAM spikes)
         const Eigen::Index chunk_size = 5000;
-        #pragma omp parallel for schedule(dynamic)
+        #pragma omp parallel for schedule(dynamic) num_threads(nt) if (nt > 1)
         for (Eigen::Index j = 0; j < num_original_; j += chunk_size) {
+            ::trex::utils::openmp::team_probe::record();
             Eigen::Index cols = std::min(chunk_size, num_original_ - j);
             // Matrix multiplication applies the projection
             V_.block(0, j, 64, cols) = H.transpose() * data.block(0, j, N, cols);
         }
 
         // 3. Initialize 64-bit signatures
-        #pragma omp parallel for schedule(static)
+        #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
         for(Eigen::Index j = 0; j < num_original_; ++j) {
+            ::trex::utils::openmp::team_probe::record();
             update_signature(j);
         }
     }

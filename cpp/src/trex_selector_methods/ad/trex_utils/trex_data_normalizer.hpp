@@ -18,6 +18,9 @@
 // Eigen includes
 #include <Eigen/Dense>
 
+// utils includes
+#include <utils/openmp/utils_openmp.hpp>
+
 // =================================================================================
 
 namespace trex::trex_selector_methods::ad::utils::data_normalizer {
@@ -123,7 +126,8 @@ void centerAndL2NormalizeX(Eigen::Ref<Eigen::MatrixXd> X,
                            NormalizationParams& params,
                            double eps = std::numeric_limits<double>::epsilon(),
                            bool verbose = false,
-                           ScalingMode mode = ScalingMode::L2);
+                           ScalingMode mode = ScalingMode::L2,
+                           int n_threads = ::trex::utils::openmp::get_num_threads());
 
 /**
  * @brief Center and L2-normalize an arbitrary matrix in-place (e.g., dummy block D).
@@ -145,7 +149,8 @@ void centerAndL2NormalizeX(Eigen::Ref<Eigen::MatrixXd> X,
 void centerAndL2NormalizeMatrix(Eigen::Ref<Eigen::MatrixXd> M,
                                 double eps = std::numeric_limits<double>::epsilon(),
                                 bool verbose = false,
-                                ScalingMode mode = ScalingMode::L2);
+                                ScalingMode mode = ScalingMode::L2,
+                                int n_threads = ::trex::utils::openmp::get_num_threads());
 
 /**
  * @brief Reverses column normalization: X = X_normalized * X_l2norms + X_means.
@@ -158,7 +163,8 @@ void centerAndL2NormalizeMatrix(Eigen::Ref<Eigen::MatrixXd> M,
  *               centerAndL2NormalizeX).
  */
 void denormalizeX(Eigen::Ref<Eigen::MatrixXd> X,
-                  const NormalizationParams& params);
+                  const NormalizationParams& params,
+                  int n_threads = ::trex::utils::openmp::get_num_threads());
 
 /**
  * @brief Reverses column normalization of an arbitrary matrix:

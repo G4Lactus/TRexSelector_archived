@@ -54,7 +54,8 @@ TRexSPCA::TRexSPCA(Eigen::Map<Eigen::MatrixXd>& X,
     , verbose_(verbose)
     , scaler_(std_scaler::LpNormScaler::NormType::L2,
               /*center=*/true,
-              /*scale=*/false)   // center-only: ordinary PCA must be a covariance PCA
+              /*scale=*/false,   // center-only: ordinary PCA must be a covariance PCA
+              spca_ctrl_.gvs_ctrl.trex_ctrl.max_inner_threads)
 {
     if (M_ > std::min(X_->rows(), X_->cols())) {
         throw std::invalid_argument(
@@ -122,7 +123,8 @@ const TRexSPCAResult& TRexSPCA::select() {
     X_is_centered_ = true;
 
     // 1. Compute ordinary PCA on the centered X (no further preprocessing).
-    pca::PCAResult ord_pca = pca::PCA(*X_, M_, /*center=*/false, /*normalize=*/false).fit();
+    pca::PCAResult ord_pca = pca::PCA(*X_, M_, /*center=*/false, /*normalize=*/false,
+                                      spca_ctrl_.gvs_ctrl.trex_ctrl.max_inner_threads).fit();
 
     // 2. Per-PC loop.
     for (Eigen::Index m = 0; m < M_; ++m) {
@@ -226,7 +228,8 @@ void TRexSPCA::assembleActiveSetLoadings(
 
     // Ridge regression on the active subset; normalize and scatter back.
     Eigen::VectorXd beta_ridge = ridge::RidgeSolver::solve(
-        X_active, z_m, spca_ctrl_.lambda2_ridge_loadings
+        X_active, z_m, spca_ctrl_.lambda2_ridge_loadings,
+        spca_ctrl_.gvs_ctrl.trex_ctrl.max_inner_threads
     );
     beta_ridge.normalize();
 

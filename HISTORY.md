@@ -129,6 +129,41 @@ that entry; TRexSelectorNeo before).
 
 ### 2026-11-05
 
+#### The one-shot kernels take an explicit thread budget: single-threaded by default (WP15 gap)
+
+- The Examples check of 2026-11-05 found the library not single-threaded by default: 28
+  OpenMP regions ran without a thread clause and took the runtime's default team (every
+  logical core), so a default selection used about 3 cores in Python and 2.5 in R. The data
+  normalizer (4 regions), the dummy generator's row permutation (1), the dummy distributions
+  (11), the synthetic data generator (1), the DA selector's correlation scan (1), the scalers
+  (3) and the hierarchical clustering (7) now carry `num_threads(nt) if (nt > 1)`, with
+  `nt = threads_for(budget, work)`: 1 for a budget of 1, below the work threshold
+  (`kParallelWorkThreshold`, 1e6 entries, now library-wide in utils_openmp.hpp) or inside a
+  caller's team, the budget otherwise. The selectors' kernels take `max_inner_threads`; the
+  stand-alone kernels take an explicit `n_threads` (the scalers, the clustering, the data
+  normalizer, the generators) or the library's default budget. Selections are unchanged:
+  they never depended on the thread count.
+- `set_num_threads(m)` is the library's default budget (initially 1) instead of the OpenMP
+  runtime's count: `get_num_threads()` reads it, `set_num_threads()` sets it and returns the
+  previous value, and refuses values below 1; `get_max_threads()` keeps reporting the
+  machine's threads, an upper bound for a budget. The OpenMP runtime's own default team is
+  never used by the library.
+- The ML regressions (ridge CV, the elastic-net path and CV, the IEN path and CV, the
+  Tikhonov CV, the SVD solver, PCA, the ridge solver) run their Eigen products under
+  `EigenThreadBudgetGuard` on a budget of their own: `set_num_threads()` / `num_threads()` on
+  the classes, an `n_threads` constructor argument for SVD and PCA, a parameter of
+  `RidgeSolver::solve()`; the CV classes hand their budget to the fold fits. The guard moved
+  from the T-solver base to `utils/openmp/utils_eigen_threads.hpp`. The selectors pass
+  `max_inner_threads` to their lambda tuners, SPCA to its scaler, PCA and ridge step.
+- R and Python: `trex_get_num_threads()` / `utils.get_num_threads()` are new, the set
+  functions return the previous budget, and `n_threads` (`NULL` / `None` = the default
+  budget) is an argument of the scalers, `ml_agglomerative_cluster()` /
+  `agglomerative_cluster()`, the ML classes, `MLRidge$solve()` / `RidgeSolver.solve()` and
+  `trex_normalize_design()` / `normalize_design()`. A team probe
+  (`openmp::team_probe`, off by default) records the largest team any budgeted region ran on,
+  and the new C++ test pins the default to one thread with the OpenMP runtime's count raised,
+  and a budget of four to a larger team. The READMEs and vignette 12 describe the model.
+
 #### NEWS.md and the submission comments of the R package
 
 - `R/TRexSelector/NEWS.md` (new): the 2.0.0 entry for CRAN's news reader, the breaking change from

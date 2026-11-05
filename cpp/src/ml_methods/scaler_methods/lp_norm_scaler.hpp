@@ -64,11 +64,14 @@ public:
      * @param center If true, center columns to mean = 0.
      * @param scale If true, scale columns to unit Lp norm (computed around
      *              the applied center; around 0 when `center` is false).
+     * @param n_threads Thread budget of the column passes; the library's
+     *                  default budget unless given.
      */
     explicit LpNormScaler(NormType norm = NormType::L2,
                           bool center = true,
-                          bool scale = true)
-        : DataTransformer(center, scale), norm_type_(norm) {}
+                          bool scale = true,
+                          int n_threads = ::trex::utils::openmp::get_num_threads())
+        : DataTransformer(center, scale, n_threads), norm_type_(norm) {}
 
     // ========================================================================
     // Identification & Accessors

@@ -6,7 +6,7 @@ import collections.abc
 import numpy
 import numpy.typing
 import typing
-__all__: list[str] = ['AccessMode', 'MemoryMappedMatrix', 'ReadOnly', 'ReadWrite', 'compute_fdp', 'compute_fdp_dense', 'compute_precision', 'compute_recall', 'compute_tpp', 'compute_tpp_dense', 'convert_to_memory_mapped', 'f1_score', 'false_negatives_count', 'false_positives_count', 'get_max_threads', 'set_num_threads', 'true_positives_count']
+__all__: list[str] = ['AccessMode', 'MemoryMappedMatrix', 'ReadOnly', 'ReadWrite', 'compute_fdp', 'compute_fdp_dense', 'compute_precision', 'compute_recall', 'compute_tpp', 'compute_tpp_dense', 'convert_to_memory_mapped', 'f1_score', 'false_negatives_count', 'false_positives_count', 'get_max_threads', 'get_num_threads', 'set_num_threads', 'true_positives_count']
 class AccessMode:
     """
     Members:
@@ -136,11 +136,15 @@ def false_positives_count(selected_indices: collections.abc.Sequence[typing.Supp
     """
 def get_max_threads() -> int:
     """
-    Get maximum number of threads used by OpenMP
+    The threads OpenMP can run on this machine (1 in a build without OpenMP): an upper bound for a budget, not the budget itself.
     """
-def set_num_threads(num_threads: typing.SupportsInt | typing.SupportsIndex) -> None:
+def get_num_threads() -> int:
     """
-    Set number of threads for OpenMP
+    The library's default thread budget, initially 1. The library is single-threaded by default: every parallel region runs on an explicit budget, a selector's random experiments and inner kernels on TRexControlParameter.max_outer_threads / max_inner_threads, a T-solver on SolverOptions.n_threads, and every method without an option of its own (the scalers, the clustering, the ML regressions, normalize_design) on this default budget, which their n_threads argument overrides per object.
+    """
+def set_num_threads(num_threads: typing.SupportsInt | typing.SupportsIndex) -> int:
+    """
+    Set the library's default thread budget (>= 1) for the process and return the previous budget; see get_num_threads().
     """
 def true_positives_count(selected_indices: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex], true_support: collections.abc.Sequence[typing.SupportsInt | typing.SupportsIndex]) -> int:
     """

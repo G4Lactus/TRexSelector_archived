@@ -56,7 +56,7 @@ Other ML methods:
   Solve ridge regression for a single \code{lambda}.
   \subsection{Usage}{
     \if{html}{\out{<div class="r">}}
-    \preformatted{MLRidge$solve(X, y, lambda)}
+    \preformatted{MLRidge$solve(X, y, lambda, n_threads = NULL)}
     \if{html}{\out{</div>}}
   }
   \subsection{Arguments}{
@@ -66,6 +66,9 @@ Other ML methods:
 zero-copy; \code{"readonly"} suffices).}
       \item{\code{y}}{Numeric response vector of length n.}
       \item{\code{lambda}}{Non-negative regularization parameter.}
+      \item{\code{n_threads}}{Integer, the thread budget of the matrix products
+(\code{NULL}, the default: the library's default budget,
+\code{\link{trex_get_num_threads}()}, initially 1).}
     }
     \if{html}{\out{</div>}}
   }

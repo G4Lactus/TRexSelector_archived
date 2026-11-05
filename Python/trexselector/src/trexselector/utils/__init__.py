@@ -14,6 +14,7 @@ from .._core.utils import (
     false_negatives_count,
     f1_score,
     get_max_threads,
+    get_num_threads,
     set_num_threads,
 )
 import numpy as np
@@ -70,5 +71,6 @@ __all__ = [
     "false_negatives_count",
     "f1_score",
     "get_max_threads",
+    "get_num_threads",
     "set_num_threads",
 ]
