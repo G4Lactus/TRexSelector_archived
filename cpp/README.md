@@ -158,7 +158,9 @@ time.
   split only when it touches at least a million entries of the design
   (`TSolver_Base::kParallelWorkThreshold`), because the cost of forming a team of threads
   exceeds the gain below that. Two to four threads carry the gain, since the passes are
-  memory-bandwidth bound.
+  memory-bandwidth bound. The seeded generators (the dummies, the synthetic designs) count
+  their work in the same unit with the measured cost of a random draw (about 80 entries) and
+  of seeding an engine (up to 32,000), so they split from a few thousand entries.
 * `SolverOptions::n_threads = m` is the same budget for a T-solver used on its own, and
   `TSolver_Base::setNumThreads()` changes it on a live solver.
 * Every other kernel (the scalers, the clustering, the ML regressions, the data normalizer, the

@@ -129,7 +129,9 @@ after the other, every T-solver on one thread. Parallel work is opt-in, and one 
   design. The budget is live when the experiments run in sequence, which the lean L-loop strategies (`SEEDED`,
   `PERMUTATION`, `PERMUTATION_SEEDED`) always do. A pass is split only when it touches at least a million entries of the
   design, because the cost of forming a team of threads exceeds the gain below that. Two to four threads carry the gain,
-  since the passes are memory-bandwidth bound.
+  since the passes are memory-bandwidth bound. The seeded generators (the dummies, the synthetic designs) count their
+  work in the same unit with the measured cost of a random draw (about 80 entries) and of seeding an engine (up to
+  32,000), so they split from a few thousand entries.
 - `SolverOptions(n_threads=m)` is the same budget for a T-solver used on its own, and `setNumThreads()` changes it on a
   live solver.
 - Every other kernel (the scalers, the clustering, the ML regressions, `normalize_design()`, the dummy and data

@@ -129,6 +129,23 @@ that entry; TRexSelectorNeo before).
 
 ### 2026-11-05
 
+#### The seeded generators count their draws and engine seedings toward the work threshold
+
+- The work threshold (`kParallelWorkThreshold`, 1e6 entries) was calibrated on plain passes over
+  the design, which stream an entry in about 0.2 ns. A random draw costs 15 to 18 ns and the
+  seeding of a per-column engine through `std::seed_seq` 5.8 us (a word-seeded engine 0.9 us),
+  so `generate_dummies()` and the AR(1) design generator, which counted plain entries, stayed
+  serial up to about 15 ms of work (n = 150 with 5,000 columns: 38 ms serial at a budget of 8,
+  while 7,000 columns took 7 ms) and the smallest points of a runtime curve generated serially
+  where the next ones split. `dummygen::seeded_loop_work(engines, draws, engine_work)` now
+  counts such a loop in the threshold's unit with `kDrawWork` = 80, `kSeedSeqEngineWork` =
+  32,000 and `kWordSeededEngineWork` = 5,000 entries, so the generators split from about
+  0.2 ms of serial work like every other region. The default budget stays 1 and selections are
+  unchanged. The thread-budget test pins a seeding-dominated design below the entry threshold
+  to a team at a budget of four while the scaler's passes over the same matrix stay serial.
+- `calculate_noise_params()` (utils_noisegen.hpp) carries a comment on its variance
+  denominator (n - 1 up to n = 100, n above). No change of behaviour.
+
 #### The one-shot kernels take an explicit thread budget: single-threaded by default (WP15 gap)
 
 - The Examples check of 2026-11-05 found the library not single-threaded by default: 28

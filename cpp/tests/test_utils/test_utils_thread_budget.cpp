@@ -29,6 +29,7 @@
 #include <ml_methods/scaler_methods/z_score_scaler.hpp>
 #include <trex_selector_methods/ad/trex_core/trex.hpp>
 #include <utils/datageneration/utils_datagen.hpp>
+#include <utils/datageneration/utils_dummygen.hpp>
 #include <utils/openmp/utils_eigen_threads.hpp>
 #include <utils/openmp/utils_openmp.hpp>
 
@@ -177,6 +178,44 @@ TEST(ThreadBudget, LibraryDefaultBudgetReachesTheKernels) {
     }
     EXPECT_EQ(omp::set_num_threads(previous), 4);
     EXPECT_EQ(omp::get_num_threads(), 1);
+}
+
+TEST(ThreadBudget, SeededLoopWorkCountsDrawsAndEngines) {
+    namespace dg = trex::utils::datageneration::dummygen;
+    // 5,000 columns of 150 draws: 7.5e5 entries, far above the threshold once counted as work
+    EXPECT_GE(dg::seeded_loop_work(5000, 150, dg::kSeedSeqEngineWork), omp::kParallelWorkThreshold);
+    // 20 columns of 50 draws stay below it
+    EXPECT_LT(dg::seeded_loop_work(20, 50, dg::kSeedSeqEngineWork), omp::kParallelWorkThreshold);
+    EXPECT_GT(dg::seeded_loop_work(10, 10, dg::kSeedSeqEngineWork),
+              dg::seeded_loop_work(10, 10, dg::kWordSeededEngineWork));
+}
+
+TEST(ThreadBudget, SeedingDominatedGeneratorFormsATeam) {
+    if (!canFormTeams()) { GTEST_SKIP() << "one core or no OpenMP"; }
+    namespace dg = trex::utils::datageneration::dummygen;
+    namespace dgen = trex::utils::datageneration::datagen;
+
+    // 150 x 5,000: below the entry threshold, far above it with the draws and seedings counted
+    const std::size_t n = 150;
+    const std::size_t p = 5000;
+    Eigen::MatrixXd D(n, p);
+    {
+        ProbeScope probe;
+        dg::generate_dummies(D, n, p, 11u, dg::Distribution::Normal(), 0, 4);
+        EXPECT_GE(omp::team_probe::max_team(), 2) << "the dummy columns";
+    }
+    {
+        ProbeScope probe;
+        dgen::detail::generate_predictor_matrix(D, n, p, 11u, dgen::predictor_policy::AR1(0.5), 4);
+        EXPECT_GE(omp::team_probe::max_team(), 2) << "the AR(1) rows";
+    }
+    {
+        // The scaler's plain passes over the same 7.5e5 entries stay serial
+        ProbeScope probe;
+        ZScoreScaler scaler(true, true, 4);
+        scaler.fit(D);
+        EXPECT_LE(omp::team_probe::max_team(), 1) << "the scaler's passes";
+    }
 }
 
 TEST(ThreadBudget, ClusteringDefaultsToOneThreadAndTakesABudget) {

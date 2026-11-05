@@ -212,9 +212,10 @@ namespace detail {
         // Stationary AR(1): |rho| < 1 is enforced by the policy constructor
         double innovation_std = std::sqrt(std::max(0.0, 1.0 - policy.rho * policy.rho));
 
-        // Team of the row loop: the budget, or 1 below the work threshold
+        // Team of the row loop: the budget, or 1 below the work threshold, with
+        // the draws and the seedings counted in the threshold's unit
         [[maybe_unused]] const int nt = ::trex::utils::openmp::threads_for(
-            n_threads, static_cast<double>(n) * static_cast<double>(p));
+            n_threads, dummygen::seeded_loop_work(n, p, dummygen::kWordSeededEngineWork));
 
         #pragma omp parallel for schedule(static) num_threads(nt) if (nt > 1)
         for (std::size_t i = 0; i < n; ++i) {

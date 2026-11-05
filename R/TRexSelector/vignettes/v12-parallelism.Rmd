@@ -59,7 +59,10 @@ The selectors and the solvers do not read the default budget. Their budget comes
 threads for its passes over the design (the correlation refreshes, the step-length search, the
 standardization). The default is 1. A pass is split only when it touches at least a million entries of
 the design, because the cost of forming a team of threads exceeds the gain below that, so small problems
-run serially whatever the budget says. The budget is live when the experiments run in sequence. Inside
+run serially whatever the budget says. The seeded generators (the dummies, the synthetic designs) count
+their work in the same unit with the measured cost of a random draw (about 80 entries) and of seeding an
+engine (up to 32,000), so they split from a few thousand entries. The budget is live when the
+experiments run in sequence. Inside
 parallel experiments the solvers stay serial. A T-solver used on its own takes the same budget through
 `tsolver_options(n_threads = )`, and `$set_num_threads()` changes it on a live solver.
 

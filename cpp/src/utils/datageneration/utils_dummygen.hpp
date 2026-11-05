@@ -144,6 +144,38 @@ inline std::mt19937 make_column_engine(std::uint64_t base_seed, std::uint64_t co
 }
 
 
+/**
+ * @brief Cost of a random draw and of seeding an engine, in the unit of the
+ *        parallel work threshold (entries of a plain pass over a matrix).
+ *
+ * @details A plain pass streams an entry in about 0.2 ns. A distribution draw
+ *  costs about 80 of those entries, the seeding of an mt19937 through a
+ *  std::seed_seq about 32,000 and through a single 32-bit word about 5,000
+ *  (measured on one Apple M-series core), so a loop of seeded engines reaches
+ *  the threshold from a few thousand draws, where the fork-join cost is paid.
+ */
+inline constexpr double kDrawWork = 80.0;
+inline constexpr double kSeedSeqEngineWork = 32'000.0;
+inline constexpr double kWordSeededEngineWork = 5'000.0;
+
+
+/**
+ * @brief Work of a loop of seeded engines in the unit of the parallel work threshold.
+ *
+ * @param engines Number of engines seeded (the columns or rows of the loop).
+ * @param draws_per_engine Draws each engine makes.
+ * @param engine_work Cost of one seeding: kSeedSeqEngineWork or kWordSeededEngineWork.
+ *
+ * @return The work to compare with openmp::kParallelWorkThreshold.
+ */
+inline double seeded_loop_work(std::size_t engines,
+                               std::size_t draws_per_engine,
+                               double engine_work) noexcept {
+    return static_cast<double>(engines) *
+           (static_cast<double>(draws_per_engine) * kDrawWork + engine_work);
+}
+
+
 // ============================================
 // Unified Distribution Configuration
 // ============================================
@@ -597,9 +629,10 @@ inline void generate_dummies(
     // per column WITHIN a base (injective; cross-base collisions are 2^-64).
     // Threads cannot generate duplicates or race on the PRNG state.
 
-    // Team of the column loop: the budget, or 1 below the work threshold
+    // Team of the column loop: the budget, or 1 below the work threshold, with
+    // the draws and the seedings counted in the threshold's unit
     [[maybe_unused]] const int nt = ::trex::utils::openmp::threads_for(
-        n_threads, static_cast<double>(n) * static_cast<double>(p));
+        n_threads, seeded_loop_work(p, n, kSeedSeqEngineWork));
 
     // Choose generation method based on distribution type
     switch (dist.get_type()) {

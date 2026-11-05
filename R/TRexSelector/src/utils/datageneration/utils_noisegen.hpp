@@ -93,6 +93,7 @@ inline std::pair<double, double> calculate_noise_params(
 ) {
     double mean_y = y.mean();
     double var_sum = (y.array() - mean_y).square().sum();
+    // Variance denominator: n - 1 up to n = 100 and n above; generated data depends on the rule
     double denom = (n <= 100) ? static_cast<double>(std::max<std::size_t>(n, 2) - 1)
                               : static_cast<double>(n);
     double signal_power = var_sum / denom;
